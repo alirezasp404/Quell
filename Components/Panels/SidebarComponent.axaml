@@ -8,6 +8,7 @@
               mc:Ignorable="d" d:DesignWidth="260" d:DesignHeight="600"
               x:Class="Fdb.Components.SidebarComponent"
               x:DataType="vm:SidebarViewModel"
+              x:Name="SidebarRoot"
               IsVisible="{Binding IsVisible}">
 
     <!-- Reusable Sidebar Panel Component (Hierarchical Tree View: Databases -> Tables) -->
@@ -131,21 +132,20 @@
                                         <Border CornerRadius="4" 
                                                 Padding="4,3" 
                                                 Margin="0,1" 
-                                                Background="Transparent">
+                                                Background="Transparent"
+                                                HorizontalAlignment="Stretch">
                                             <!-- Right-Click ContextMenu for Database Node -->
                                             <Border.ContextMenu>
                                                 <ContextMenu>
                                                     <MenuItem Header="Connect" 
-                                                              Command="{Binding $parent[UserControl].((vm:SidebarViewModel)DataContext).ConnectDatabaseNodeCommand}"
-                                                              CommandParameter="{Binding}"
+                                                              Command="{Binding ConnectCommand}"
                                                               IsVisible="{Binding !IsConnected}">
                                                         <MenuItem.Icon>
                                                             <ui:FASymbolIcon Symbol="Play" FontSize="11" Foreground="{DynamicResource AppAccentBrush}"/>
                                                         </MenuItem.Icon>
                                                     </MenuItem>
                                                     <MenuItem Header="Disconnect" 
-                                                              Command="{Binding $parent[UserControl].((vm:SidebarViewModel)DataContext).DisconnectDatabaseNodeCommand}"
-                                                              CommandParameter="{Binding}"
+                                                              Command="{Binding DisconnectCommand}"
                                                               IsVisible="{Binding IsConnected}">
                                                         <MenuItem.Icon>
                                                             <ui:FASymbolIcon Symbol="Dismiss" FontSize="11" Foreground="#EF4444"/>
@@ -153,15 +153,13 @@
                                                     </MenuItem>
                                                     <Separator />
                                                     <MenuItem Header="Edit Connection..." 
-                                                              Command="{Binding $parent[UserControl].((vm:SidebarViewModel)DataContext).EditDatabaseNodeCommand}"
-                                                              CommandParameter="{Binding}">
+                                                              Command="{Binding EditCommand}">
                                                         <MenuItem.Icon>
                                                             <ui:FASymbolIcon Symbol="Settings" FontSize="11" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
                                                         </MenuItem.Icon>
                                                     </MenuItem>
                                                     <MenuItem Header="Refresh Tables" 
-                                                              Command="{Binding $parent[UserControl].((vm:SidebarViewModel)DataContext).RefreshDatabaseNodeCommand}"
-                                                              CommandParameter="{Binding}"
+                                                              Command="{Binding RefreshCommand}"
                                                               IsVisible="{Binding IsConnected}">
                                                         <MenuItem.Icon>
                                                             <ui:FASymbolIcon Symbol="Refresh" FontSize="11" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
@@ -169,8 +167,7 @@
                                                     </MenuItem>
                                                     <Separator />
                                                     <MenuItem Header="Delete Connection" 
-                                                              Command="{Binding $parent[UserControl].((vm:SidebarViewModel)DataContext).DeleteDatabaseNodeCommand}"
-                                                              CommandParameter="{Binding}">
+                                                              Command="{Binding DeleteCommand}">
                                                         <MenuItem.Icon>
                                                             <ui:FASymbolIcon Symbol="Delete" FontSize="11" Foreground="#EF4444"/>
                                                         </MenuItem.Icon>
@@ -178,7 +175,7 @@
                                                 </ContextMenu>
                                             </Border.ContextMenu>
 
-                                            <Grid ColumnDefinitions="Auto, *, Auto">
+                                            <Grid ColumnDefinitions="Auto, *">
                                                 <!-- Dedicated Database Vector Icon Tile -->
                                                 <Border Grid.Column="0" 
                                                         Width="24" Height="24" 
@@ -194,102 +191,40 @@
                                                 </Border>
 
                                                 <!-- DB Title & Status Subtitle -->
-                                                <Button Grid.Column="1" 
-                                                        Background="Transparent" 
-                                                        BorderThickness="0" 
-                                                        Padding="0"
-                                                        HorizontalAlignment="Stretch"
-                                                        HorizontalContentAlignment="Left"
-                                                        Command="{Binding $parent[UserControl].((vm:SidebarViewModel)DataContext).ConnectDatabaseNodeCommand}"
-                                                        CommandParameter="{Binding}">
-                                                    <StackPanel VerticalAlignment="Center" Spacing="1">
-                                                        <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-                                                            <TextBlock Text="{Binding Title}" 
-                                                                       FontSize="11" 
-                                                                       FontWeight="SemiBold" 
-                                                                       Foreground="{DynamicResource AppTextPrimaryBrush}" 
-                                                                       TextTrimming="CharacterEllipsis"/>
-                                                            
-                                                            <!-- Status Dot (Glowing Green for Active, Gray for Disconnected) -->
-                                                            <Border Width="6" Height="6" 
-                                                                    CornerRadius="3" 
-                                                                    Background="{Binding StatusColor}" 
-                                                                    VerticalAlignment="Center"/>
-
-                                                            <!-- Connected / Active Badge -->
-                                                            <Border Background="{DynamicResource AppWorkspaceBrush}" 
-                                                                    BorderBrush="{DynamicResource AppBorderBrush}" 
-                                                                    BorderThickness="1" 
-                                                                    CornerRadius="3" 
-                                                                    Padding="3,0" 
-                                                                    VerticalAlignment="Center"
-                                                                    IsVisible="{Binding IsConnected}">
-                                                                <TextBlock Text="{Binding StatusBadgeText}" 
-                                                                           FontSize="7" 
-                                                                           FontWeight="Bold" 
-                                                                           Foreground="{Binding StatusColor}"/>
-                                                            </Border>
-                                                        </StackPanel>
-
-                                                        <TextBlock Text="{Binding Subtitle}" 
-                                                                   FontSize="9" 
-                                                                   Foreground="{DynamicResource AppTextMutedBrush}" 
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                                                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Title}" 
+                                                                   FontSize="11" 
+                                                                   FontWeight="SemiBold" 
+                                                                   Foreground="{DynamicResource AppTextPrimaryBrush}" 
                                                                    TextTrimming="CharacterEllipsis"/>
-                                                    </StackPanel>
-                                                </Button>
+                                                        
+                                                        <!-- Status Dot (Glowing Green for Active, Gray for Disconnected) -->
+                                                        <Border Width="6" Height="6" 
+                                                                CornerRadius="3" 
+                                                                Background="{Binding StatusColor}" 
+                                                                VerticalAlignment="Center"/>
 
-                                                <!-- Options Menu Button (Replaces ugly inline buttons) -->
-                                                <Button Grid.Column="2" 
-                                                        Classes="classic-menu-btn" 
-                                                        ToolTip.Tip="Connection options (Right-click)" 
-                                                        Padding="4,2" 
-                                                        VerticalAlignment="Center">
-                                                    <ui:FASymbolIcon Symbol="Settings" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
-                                                    <Button.Flyout>
-                                                        <MenuFlyout>
-                                                            <MenuItem Header="Connect" 
-                                                                      Command="{Binding $parent[UserControl].((vm:SidebarViewModel)DataContext).ConnectDatabaseNodeCommand}"
-                                                                      CommandParameter="{Binding}"
-                                                                      IsVisible="{Binding !IsConnected}">
-                                                                <MenuItem.Icon>
-                                                                    <ui:FASymbolIcon Symbol="Play" FontSize="11" Foreground="{DynamicResource AppAccentBrush}"/>
-                                                                </MenuItem.Icon>
-                                                            </MenuItem>
-                                                            <MenuItem Header="Disconnect" 
-                                                                      Command="{Binding $parent[UserControl].((vm:SidebarViewModel)DataContext).DisconnectDatabaseNodeCommand}"
-                                                                      CommandParameter="{Binding}"
-                                                                      IsVisible="{Binding IsConnected}">
-                                                                <MenuItem.Icon>
-                                                                    <ui:FASymbolIcon Symbol="Dismiss" FontSize="11" Foreground="#EF4444"/>
-                                                                </MenuItem.Icon>
-                                                            </MenuItem>
-                                                            <Separator />
-                                                            <MenuItem Header="Edit Connection..." 
-                                                                      Command="{Binding $parent[UserControl].((vm:SidebarViewModel)DataContext).EditDatabaseNodeCommand}"
-                                                                      CommandParameter="{Binding}">
-                                                                <MenuItem.Icon>
-                                                                    <ui:FASymbolIcon Symbol="Settings" FontSize="11" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                                                                </MenuItem.Icon>
-                                                            </MenuItem>
-                                                            <MenuItem Header="Refresh Tables" 
-                                                                      Command="{Binding $parent[UserControl].((vm:SidebarViewModel)DataContext).RefreshDatabaseNodeCommand}"
-                                                                      CommandParameter="{Binding}"
-                                                                      IsVisible="{Binding IsConnected}">
-                                                                <MenuItem.Icon>
-                                                                    <ui:FASymbolIcon Symbol="Refresh" FontSize="11" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                                                                </MenuItem.Icon>
-                                                            </MenuItem>
-                                                            <Separator />
-                                                            <MenuItem Header="Delete Connection" 
-                                                                      Command="{Binding $parent[UserControl].((vm:SidebarViewModel)DataContext).DeleteDatabaseNodeCommand}"
-                                                                      CommandParameter="{Binding}">
-                                                                <MenuItem.Icon>
-                                                                    <ui:FASymbolIcon Symbol="Delete" FontSize="11" Foreground="#EF4444"/>
-                                                                </MenuItem.Icon>
-                                                            </MenuItem>
-                                                        </MenuFlyout>
-                                                    </Button.Flyout>
-                                                </Button>
+                                                        <!-- Connected / Active Badge -->
+                                                        <Border Background="{DynamicResource AppWorkspaceBrush}" 
+                                                                BorderBrush="{DynamicResource AppBorderBrush}" 
+                                                                BorderThickness="1" 
+                                                                CornerRadius="3" 
+                                                                Padding="3,0" 
+                                                                VerticalAlignment="Center"
+                                                                IsVisible="{Binding IsConnected}">
+                                                            <TextBlock Text="{Binding StatusBadgeText}" 
+                                                                       FontSize="7" 
+                                                                       FontWeight="Bold" 
+                                                                       Foreground="{Binding StatusColor}"/>
+                                                        </Border>
+                                                    </StackPanel>
+
+                                                    <TextBlock Text="{Binding Subtitle}" 
+                                                               FontSize="9" 
+                                                               Foreground="{DynamicResource AppTextMutedBrush}" 
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                </StackPanel>
                                             </Grid>
                                         </Border>
                                     </TreeDataTemplate>
@@ -316,7 +251,29 @@
 
                                     <!-- LEVEL 3: TABLE LEAF NODE -->
                                     <DataTemplate DataType="vm:TableTreeNode">
-                                        <Border CornerRadius="3" Padding="3,2" Margin="0,1" Background="Transparent">
+                                        <Border CornerRadius="3" 
+                                                Padding="4,2" 
+                                                Margin="0,1" 
+                                                Background="Transparent"
+                                                HorizontalAlignment="Stretch">
+                                            <!-- Right-Click ContextMenu for Table Node -->
+                                            <Border.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="Select TOP 100" 
+                                                              Command="{Binding ExecuteTop100Command}">
+                                                        <MenuItem.Icon>
+                                                            <ui:FASymbolIcon Symbol="Play" FontSize="11" Foreground="{DynamicResource AppAccentBrush}"/>
+                                                        </MenuItem.Icon>
+                                                    </MenuItem>
+                                                    <MenuItem Header="Copy Table Name" 
+                                                              Command="{Binding CopyTableNameCommand}">
+                                                        <MenuItem.Icon>
+                                                            <ui:FASymbolIcon Symbol="Copy" FontSize="11" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                                                        </MenuItem.Icon>
+                                                    </MenuItem>
+                                                </ContextMenu>
+                                            </Border.ContextMenu>
+
                                             <Border.Styles>
                                                 <Style Selector="Border:pointerover">
                                                     <Setter Property="Background" Value="{DynamicResource AppTableHoverBackgroundBrush}"/>
@@ -330,40 +287,25 @@
                                                                  VerticalAlignment="Center" 
                                                                  Margin="0,0,6,0"/>
 
-                                                <Button Grid.Column="1" 
-                                                        Background="Transparent" 
-                                                        BorderThickness="0" 
-                                                        Padding="0"
-                                                        HorizontalAlignment="Stretch"
-                                                        HorizontalContentAlignment="Left"
-                                                        Command="{Binding $parent[UserControl].((vm:SidebarViewModel)DataContext).SelectTableNodeCommand}"
-                                                        CommandParameter="{Binding}">
-                                                    <TextBlock Text="{Binding FullName}" 
-                                                               FontSize="11" 
-                                                               Foreground="{DynamicResource AppTextPrimaryBrush}" 
-                                                               VerticalAlignment="Center" 
-                                                               TextTrimming="CharacterEllipsis"/>
-                                                </Button>
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding FullName}" 
+                                                           FontSize="11" 
+                                                           Foreground="{DynamicResource AppTextPrimaryBrush}" 
+                                                           VerticalAlignment="Center" 
+                                                           TextTrimming="CharacterEllipsis"/>
 
-                                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                                                    <Border Background="{DynamicResource AppSurfaceBrush}" 
-                                                            BorderBrush="{DynamicResource AppBorderBrush}" 
-                                                            BorderThickness="1" 
-                                                            CornerRadius="3" 
-                                                            Padding="3,1">
-                                                        <TextBlock Text="{Binding DisplayType}" 
-                                                                   FontSize="8" 
-                                                                   Foreground="{DynamicResource AppTextMutedBrush}" 
-                                                                   FontWeight="Medium"/>
-                                                    </Border>
-                                                    <Button Classes="classic-menu-btn" 
-                                                            Command="{Binding $parent[UserControl].((vm:SidebarViewModel)DataContext).ExecuteTableNodeCommand}"
-                                                            CommandParameter="{Binding}"
-                                                            ToolTip.Tip="Run query on table"
-                                                            Padding="3,1">
-                                                        <ui:FASymbolIcon Symbol="Play" FontSize="8" Foreground="{DynamicResource AppAccentBrush}"/>
-                                                    </Button>
-                                                </StackPanel>
+                                                <Border Grid.Column="2" 
+                                                        Background="{DynamicResource AppSurfaceBrush}" 
+                                                        BorderBrush="{DynamicResource AppBorderBrush}" 
+                                                        BorderThickness="1" 
+                                                        CornerRadius="3" 
+                                                        Padding="3,1"
+                                                        VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding DisplayType}" 
+                                                               FontSize="8" 
+                                                               Foreground="{DynamicResource AppTextMutedBrush}" 
+                                                               FontWeight="Medium"/>
+                                                </Border>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
@@ -442,7 +384,9 @@
                                                 BorderThickness="1" 
                                                 CornerRadius="5" 
                                                 Padding="8,6" 
-                                                Margin="0,2">
+                                                Margin="0,2"
+                                                HorizontalAlignment="Stretch"
+                                                DoubleTapped="OnSavedConnectionDoubleTapped">
                                             <!-- Right-Click ContextMenu for Saved Connection -->
                                             <Border.ContextMenu>
                                                 <ContextMenu>
@@ -481,7 +425,7 @@
                                                 </ContextMenu>
                                             </Border.ContextMenu>
 
-                                            <Grid ColumnDefinitions="Auto, *, Auto">
+                                            <Grid ColumnDefinitions="Auto, *">
                                                 <!-- Dedicated Database Vector Icon Tile -->
                                                 <Border Grid.Column="0" 
                                                         Width="26" Height="26" 
@@ -517,51 +461,6 @@
                                                                Foreground="{DynamicResource AppTextMutedBrush}" 
                                                                TextTrimming="CharacterEllipsis"/>
                                                 </StackPanel>
-
-                                                <!-- Single Options Menu Button -->
-                                                <Button Grid.Column="2" 
-                                                        Classes="classic-menu-btn" 
-                                                        ToolTip.Tip="Connection options (Right-click)" 
-                                                        Padding="4,2" 
-                                                        VerticalAlignment="Center">
-                                                    <ui:FASymbolIcon Symbol="Settings" FontSize="11" Foreground="{DynamicResource AppTextMutedBrush}"/>
-                                                    <Button.Flyout>
-                                                        <MenuFlyout>
-                                                            <MenuItem Header="Connect" 
-                                                                      Command="{Binding $parent[UserControl].((vm:SidebarViewModel)DataContext).ActivateConnectionCommand}"
-                                                                      CommandParameter="{Binding}"
-                                                                      IsVisible="{Binding !IsActive}">
-                                                                <MenuItem.Icon>
-                                                                    <ui:FASymbolIcon Symbol="Play" FontSize="11" Foreground="{DynamicResource AppAccentBrush}"/>
-                                                                </MenuItem.Icon>
-                                                            </MenuItem>
-                                                            <MenuItem Header="Disconnect" 
-                                                                      Command="{Binding $parent[UserControl].((vm:SidebarViewModel)DataContext).DisconnectSavedConnectionCommand}"
-                                                                      CommandParameter="{Binding}"
-                                                                      IsVisible="{Binding IsActive}">
-                                                                <MenuItem.Icon>
-                                                                    <ui:FASymbolIcon Symbol="Dismiss" FontSize="11" Foreground="#EF4444"/>
-                                                                </MenuItem.Icon>
-                                                            </MenuItem>
-                                                            <Separator />
-                                                            <MenuItem Header="Edit Connection..." 
-                                                                      Command="{Binding $parent[UserControl].((vm:SidebarViewModel)DataContext).EditSavedConnectionCommand}"
-                                                                      CommandParameter="{Binding}">
-                                                                <MenuItem.Icon>
-                                                                    <ui:FASymbolIcon Symbol="Settings" FontSize="11" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                                                                </MenuItem.Icon>
-                                                            </MenuItem>
-                                                            <Separator />
-                                                            <MenuItem Header="Delete Connection" 
-                                                                      Command="{Binding $parent[UserControl].((vm:SidebarViewModel)DataContext).DisconnectAndRemoveConnectionCommand}"
-                                                                      CommandParameter="{Binding}">
-                                                                <MenuItem.Icon>
-                                                                    <ui:FASymbolIcon Symbol="Delete" FontSize="11" Foreground="#EF4444"/>
-                                                                </MenuItem.Icon>
-                                                            </MenuItem>
-                                                        </MenuFlyout>
-                                                    </Button.Flyout>
-                                                </Button>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>

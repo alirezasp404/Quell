@@ -705,12 +705,12 @@ sealed class Program
             }
             Console.WriteLine($"Successfully verified saved connection: {savedConn.DisplayTitle}");
 
-            // Test Editing Connection via ContextMenu Action
+            // Test Editing Connection via ContextMenu Action (Node.EditCommand)
             Console.WriteLine("\n[Action] Verifying Edit Connection via ContextMenu Action...");
             var salesNodeToEdit = System.Linq.Enumerable.FirstOrDefault(vm.Sidebar.DatabaseNodes, n => n.Server == "sql-cluster.production.local");
             if (salesNodeToEdit != null)
             {
-                vm.Sidebar.EditDatabaseNode(salesNodeToEdit);
+                salesNodeToEdit.EditCommand.Execute(null);
                 Console.WriteLine($"ConnectModal Open: {vm.ConnectModal.IsOpen}, IsEditMode: {vm.ConnectModal.IsEditMode}, EditingId: {vm.ConnectModal.EditingConnectionId}");
                 if (!vm.ConnectModal.IsOpen || !vm.ConnectModal.IsEditMode || vm.ConnectModal.EditingConnectionId != salesNodeToEdit.Record.Id)
                 {

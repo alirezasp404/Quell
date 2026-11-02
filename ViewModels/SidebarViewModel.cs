@@ -197,13 +197,19 @@ public partial class SidebarViewModel : ViewModelBase
                     existing.UpdateRecord(c);
                 }
 
+                existing.ConnectAction = ConnectDatabaseNodeAsync;
+                existing.DisconnectAction = DisconnectDatabaseNodeAsync;
+                existing.EditAction = EditDatabaseNode;
+                existing.RefreshAction = RefreshDatabaseNodeAsync;
+                existing.DeleteAction = DeleteDatabaseNodeAsync;
+
                 existing.IsConnected = isOpen;
                 existing.IsActive = isActive;
 
                 if (isOpen)
                 {
                     var dbTables = await DatabaseSessionService.Instance.GetTablesAsync(key);
-                    existing.LoadTables(dbTables);
+                    existing.LoadTables(dbTables, SelectTableNode);
                 }
                 else
                 {
@@ -295,7 +301,7 @@ public partial class SidebarViewModel : ViewModelBase
                     }
 
                     var tables = await DatabaseSessionService.Instance.GetTablesAsync(node.ConnectionKey);
-                    node.LoadTables(tables);
+                    node.LoadTables(tables, SelectTableNode);
                     node.IsExpanded = true;
                     node.Subtitle = $"{tables.Count} table(s) found";
 
@@ -399,7 +405,7 @@ public partial class SidebarViewModel : ViewModelBase
         if (node.IsConnected)
         {
             var tables = await DatabaseSessionService.Instance.GetTablesAsync(node.ConnectionKey);
-            node.LoadTables(tables);
+            node.LoadTables(tables, SelectTableNode);
             if (node.IsActive)
             {
                 Tables.Clear();

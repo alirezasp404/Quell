@@ -1,6 +1,9 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
+using Avalonia.Input.Platform;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Fdb.Services;
 using Fdb.Services.DatabaseProviders;
 
@@ -39,6 +42,54 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
     public int Port => Record.Port;
     public string DatabaseName => Record.DatabaseName;
     public string ConnectionKey => Record.Id > 0 ? $"id_{Record.Id}" : $"{Record.DatabaseType}_{Record.Server}_{Record.Port}_{Record.DatabaseName}";
+
+    public Func<DatabaseConnectionTreeNode, Task>? ConnectAction { get; set; }
+    public Func<DatabaseConnectionTreeNode, Task>? DisconnectAction { get; set; }
+    public Action<DatabaseConnectionTreeNode>? EditAction { get; set; }
+    public Func<DatabaseConnectionTreeNode, Task>? RefreshAction { get; set; }
+    public Func<DatabaseConnectionTreeNode, Task>? DeleteAction { get; set; }
+
+    [RelayCommand]
+    public async Task ConnectAsync()
+    {
+        if (ConnectAction != null)
+        {
+            await ConnectAction(this);
+        }
+    }
+
+    [RelayCommand]
+    public async Task DisconnectAsync()
+    {
+        if (DisconnectAction != null)
+        {
+            await DisconnectAction(this);
+        }
+    }
+
+    [RelayCommand]
+    public void Edit()
+    {
+        EditAction?.Invoke(this);
+    }
+
+    [RelayCommand]
+    public async Task RefreshAsync()
+    {
+        if (RefreshAction != null)
+        {
+            await RefreshAction(this);
+        }
+    }
+
+    [RelayCommand]
+    public async Task DeleteAsync()
+    {
+        if (DeleteAction != null)
+        {
+            await DeleteAction(this);
+        }
+    }
 
     public void UpdateRecord(ConnectionRecord record)
     {
@@ -81,7 +132,7 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
         IsActive = false;
     }
 
-    public void LoadTables(System.Collections.Generic.IEnumerable<TableMetadata> tables)
+    public void LoadTables(System.Collections.Generic.IEnumerable<TableMetadata> tables, Func<TableTreeNode, Task>? executeAction = null)
     {
         Children.Clear();
         var tableList = tables is System.Collections.Generic.List<TableMetadata> list ? list : new System.Collections.Generic.List<TableMetadata>(tables);
@@ -94,7 +145,11 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
 
         foreach (var table in tableList)
         {
-            folder.Children.Add(new TableTreeNode(table, this));
+            var node = new TableTreeNode(table, this)
+            {
+                ExecuteAction = executeAction
+            };
+            folder.Children.Add(node);
         }
 
         Children.Add(folder);
@@ -132,6 +187,30 @@ public partial class TableTreeNode : SidebarTreeNodeBase
     public string SchemaName => Table.SchemaName;
     public string FullName => Table.FullName;
     public string DisplayType => Table.DisplayType;
+
+    public Func<TableTreeNode, Task>? ExecuteAction { get; set; }
+
+    [RelayCommand]
+    public async Task ExecuteTop100Async()
+    {
+        if (ExecuteAction != null)
+        {
+            await ExecuteAction(this);
+        }
+    }
+
+    [RelayCommand]
+    public async Task CopyTableNameAsync()
+    {
+        if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            var clipboard = desktop.MainWindow?.Clipboard;
+            if (clipboard != null)
+            {
+                await clipboard.SetTextAsync(FullName);
+            }
+        }
+    }
 
     public TableTreeNode(TableMetadata table, DatabaseConnectionTreeNode dbNode)
     {
