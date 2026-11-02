@@ -1112,6 +1112,51 @@ sealed class Program
                 throw new Exception($"Referenced row was not selected or title was unexpected: {vm.SampleQueryResult.SelectedRow?["TITLE"]}");
             }
             Console.WriteLine("[Success] Foreign Key visual indicators and arrow navigation to referenced table verified!");
+// E. Test Persian & English Course (دوره) -> Users (کاربران) Navigation
+            Console.WriteLine("\n[Action] Testing Course (دوره) Foreign Key -> User Navigation...");
+            var courseFk = Fdb.ViewModels.QueryResultTableViewModel.DetectProbableForeignKey("دوره");
+            Console.WriteLine($"DetectProbableForeignKey('دوره'): TargetTable={courseFk?.TargetTable}, TargetColumn={courseFk?.TargetColumn}");
+            if (courseFk == null || courseFk.TargetTable != "Users")
+            {
+                throw new Exception("Foreign Key detection failed for 'دوره' linking to Users!");
+            }
+
+            var studentFk = Fdb.ViewModels.QueryResultTableViewModel.DetectProbableForeignKey("نام_دانشجو");
+            Console.WriteLine($"DetectProbableForeignKey('نام_دانشجو'): TargetTable={studentFk?.TargetTable}, TargetColumn={studentFk?.TargetColumn}");
+            if (studentFk == null || studentFk.TargetTable != "Users")
+            {
+                throw new Exception("Foreign Key detection failed for 'نام_دانشجو' linking to Users!");
+            }
+
+            // Load Courses table
+            vm.SampleQueryResult.LoadSampleReferencedTable("Courses");
+            Console.WriteLine($"Loaded Courses table: Rows={vm.SampleQueryResult.Rows.Count}, CurrentTableName='{vm.SampleQueryResult.CurrentTableName}'");
+            if (vm.SampleQueryResult.CurrentTableName != "Courses" || vm.SampleQueryResult.Rows.Count != 5)
+            {
+                throw new Exception("Failed to load Courses table!");
+            }
+
+            // Click navigation arrow on course 'C# & Avalonia UI'
+            Console.WriteLine("[Action] Navigating from Course 'C# & Avalonia UI' to User via Foreign Key...");
+            await vm.SampleQueryResult.NavigateToForeignKeyAsync("دوره", "C# & Avalonia UI");
+
+            Console.WriteLine($"After Course->User Navigation: CurrentTable='{vm.SampleQueryResult.CurrentTableName}', SelectedUser='{vm.SampleQueryResult.SelectedRow?.Name}'");
+            Console.WriteLine($"Generated Query: '{vm.Editor.SelectedTab?.Text}'");
+            Console.WriteLine($"Status: '{vm.SampleQueryResult.LastQueryMessage}'");
+
+            if (vm.SampleQueryResult.CurrentTableName != "Users")
+            {
+                throw new Exception("Navigation failed to navigate to Users table!");
+            }
+            if (vm.SampleQueryResult.SelectedRow == null || vm.SampleQueryResult.SelectedRow.Name != "Alice Johnson")
+            {
+                throw new Exception($"Expected selected user to be 'Alice Johnson', got '{vm.SampleQueryResult.SelectedRow?.Name}'!");
+            }
+            if (vm.Editor.SelectedTab == null || !vm.Editor.SelectedTab.Text.Contains("Users") || !vm.Editor.SelectedTab.Text.Contains("C# & Avalonia UI"))
+            {
+                throw new Exception("Editor failed to receive User selection query for Course!");
+            }
+            Console.WriteLine("[Success] Course (دوره) -> User navigation and item retrieval verified!");
 
             Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER, SIMULTANEOUS BATCH CELL EDITING & FOREIGN KEY NAVIGATION) PASSED! <<<");
             return;

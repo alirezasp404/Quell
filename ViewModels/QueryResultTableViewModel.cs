@@ -30,6 +30,9 @@ public partial class QueryResultRow : ObservableObject
     private string _role = string.Empty;
 
     [ObservableProperty]
+    private string _course = string.Empty;
+
+    [ObservableProperty]
     private string _status = "Active";
 
     [ObservableProperty]
@@ -52,6 +55,7 @@ public partial class QueryResultRow : ObservableObject
                 "NAME" => Name,
                 "EMAIL" => Email,
                 "ROLE" => Role,
+                "COURSE" or "دوره" => Course,
                 "STATUS" => Status,
                 "CREATED AT" or "CREATEDAT" => CreatedAt,
                 _ => string.Empty
@@ -74,6 +78,9 @@ public partial class QueryResultRow : ObservableObject
                 case "ROLE":
                     Role = value;
                     break;
+                case "COURSE" or "دوره":
+                    Course = value;
+                    break;
                 case "STATUS":
                     Status = value;
                     break;
@@ -85,6 +92,7 @@ public partial class QueryResultRow : ObservableObject
             OnPropertyChanged(nameof(Name));
             OnPropertyChanged(nameof(Email));
             OnPropertyChanged(nameof(Role));
+            OnPropertyChanged(nameof(Course));
             OnPropertyChanged(nameof(Status));
             OnPropertyChanged(nameof(CreatedAt));
         }
@@ -265,7 +273,37 @@ public partial class QueryResultTableViewModel : ViewModelBase
             }
         }
 
-        if (lower == "role" || lower == "role_name")
+        // Persian & English: Course (دوره) and User (کاربر / دانشجو) relations
+        if (lower == "دوره" || lower == "دوره_ها" || lower == "کد_دوره" || lower == "نام_دوره" ||
+            lower == "course" || lower == "course_name" || lower == "coursetitle" || lower == "course_title")
+        {
+            if (!string.IsNullOrEmpty(tableName) && (tableName.Equals("Users", StringComparison.OrdinalIgnoreCase) || tableName.Equals("کاربران", StringComparison.OrdinalIgnoreCase)))
+            {
+                return new ForeignKeyRelation { ColumnName = c, TargetTable = "Courses", TargetColumn = "Title" };
+            }
+            return new ForeignKeyRelation { ColumnName = c, TargetTable = "Users", TargetColumn = "Course" };
+        }
+        if (lower == "course_id" || lower == "courseid")
+        {
+            if (!string.IsNullOrEmpty(tableName) && (tableName.Equals("Users", StringComparison.OrdinalIgnoreCase) || tableName.Equals("کاربران", StringComparison.OrdinalIgnoreCase)))
+            {
+                return new ForeignKeyRelation { ColumnName = c, TargetTable = "Courses", TargetColumn = "Id" };
+            }
+            return new ForeignKeyRelation { ColumnName = c, TargetTable = "Users", TargetColumn = "Id" };
+        }
+
+        if (lower == "user" || lower == "user_name" || lower == "username" || lower == "student" || lower == "student_name" ||
+            lower == "کاربر" || lower == "کاربران" || lower == "نام_کاربر" || lower == "دانشجو" || lower == "دانشجویان" || lower == "نام_دانشجو" || lower == "نام_دانشجو")
+        {
+            return new ForeignKeyRelation { ColumnName = c, TargetTable = "Users", TargetColumn = "Name" };
+        }
+        if (lower == "user_id" || lower == "userid" || lower == "student_id" || lower == "studentid" ||
+            lower == "کد_کاربر" || lower == "کاربر_id" || lower == "کد_دانشجو")
+        {
+            return new ForeignKeyRelation { ColumnName = c, TargetTable = "Users", TargetColumn = "Id" };
+        }
+
+        if (lower == "role" || lower == "role_name" || lower == "نقش" || lower == "نام_نقش")
         {
             return new ForeignKeyRelation { ColumnName = c, TargetTable = "Roles", TargetColumn = "Title" };
         }
@@ -412,6 +450,20 @@ public partial class QueryResultTableViewModel : ViewModelBase
             TargetTable = "Roles",
             TargetColumn = "Title",
             ConstraintName = "FK_Users_Roles"
+        };
+        ForeignKeyRelations["Course"] = new ForeignKeyRelation
+        {
+            ColumnName = "Course",
+            TargetTable = "Courses",
+            TargetColumn = "Title",
+            ConstraintName = "FK_Users_Courses"
+        };
+        ForeignKeyRelations["دوره"] = new ForeignKeyRelation
+        {
+            ColumnName = "دوره",
+            TargetTable = "Courses",
+            TargetColumn = "Title",
+            ConstraintName = "FK_Users_Courses_Fa"
         };
 
         _allRows.Clear();
@@ -1048,6 +1100,112 @@ public partial class QueryResultTableViewModel : ViewModelBase
             ForeignKeyRelations.Clear();
             ColumnsChanged?.Invoke(cols);
         }
+        else if (tableName.Equals("Users", StringComparison.OrdinalIgnoreCase) || tableName.Equals("کاربران", StringComparison.OrdinalIgnoreCase))
+        {
+            var userRows = new List<QueryResultRow>
+            {
+                new QueryResultRow { RowIndex = 1, Id = 101, Name = "Alice Johnson", Email = "alice@example.com", Role = "DBA", Course = "C# & Avalonia UI", Status = "Active", CreatedAt = "2026-01-15 08:30:00" },
+                new QueryResultRow { RowIndex = 2, Id = 102, Name = "Bob Smith", Email = "bob@example.com", Role = "Developer", Course = "SQL Server Architecture", Status = "Active", CreatedAt = "2026-02-10 11:15:22" },
+                new QueryResultRow { RowIndex = 3, Id = 103, Name = "Charlie Davis", Email = "charlie@example.com", Role = "Analyst", Course = "Database Performance Tuning", Status = "Pending", CreatedAt = "2026-03-01 14:45:00" },
+                new QueryResultRow { RowIndex = 4, Id = 104, Name = "Dana White", Email = "dana@example.com", Role = "Admin", Course = "PostgreSQL Administration", Status = "Active", CreatedAt = "2026-03-12 09:20:11" },
+                new QueryResultRow { RowIndex = 5, Id = 105, Name = "Evan Wright", Email = "evan@example.com", Role = "Developer", Course = "Cloud Databases & Docker", Status = "Inactive", CreatedAt = "2026-04-05 16:00:45" }
+            };
+
+            foreach (var r in userRows)
+            {
+                r.Values["ID"] = r.Id.ToString();
+                r.Values["NAME"] = r.Name;
+                r.Values["EMAIL"] = r.Email;
+                r.Values["ROLE"] = r.Role;
+                r.Values["COURSE"] = r.Course;
+                r.Values["دوره"] = r.Course;
+                r.Values["STATUS"] = r.Status;
+                r.Values["CREATED AT"] = r.CreatedAt;
+
+                foreach (var kvp in r.Values)
+                {
+                    r.OriginalValues[kvp.Key] = kvp.Value;
+                }
+            }
+
+            var cols = new List<string> { "ID", "NAME", "EMAIL", "ROLE", "COURSE", "STATUS", "CREATED AT" };
+            SetResults(cols, userRows, "11 ms");
+            SetPrimaryKeys(new[] { "ID" });
+            ForeignKeyRelations.Clear();
+            ForeignKeyRelations["Role"] = new ForeignKeyRelation { ColumnName = "ROLE", TargetTable = "Roles", TargetColumn = "Title" };
+            ForeignKeyRelations["Course"] = new ForeignKeyRelation { ColumnName = "COURSE", TargetTable = "Courses", TargetColumn = "Title" };
+            ForeignKeyRelations["دوره"] = new ForeignKeyRelation { ColumnName = "دوره", TargetTable = "Courses", TargetColumn = "Title" };
+            ColumnsChanged?.Invoke(cols);
+
+            if (!string.IsNullOrWhiteSpace(filterValue))
+            {
+                var match = userRows.FirstOrDefault(r => 
+                    r.Id.ToString() == filterValue ||
+                    r.Name.Equals(filterValue, StringComparison.OrdinalIgnoreCase) ||
+                    r.Course.Equals(filterValue, StringComparison.OrdinalIgnoreCase) ||
+                    (r.Values.TryGetValue("COURSE", out var cVal) && cVal.Equals(filterValue, StringComparison.OrdinalIgnoreCase)) ||
+                    (r.Values.TryGetValue("دوره", out var dVal) && dVal.Equals(filterValue, StringComparison.OrdinalIgnoreCase))
+                );
+                if (match != null)
+                {
+                    SelectedRow = match;
+                }
+            }
+        }
+        else if (tableName.Equals("Courses", StringComparison.OrdinalIgnoreCase) || tableName.Equals("دوره_ها", StringComparison.OrdinalIgnoreCase) || tableName.Equals("دوره", StringComparison.OrdinalIgnoreCase))
+        {
+            var courseRows = new List<QueryResultRow>
+            {
+                new QueryResultRow { RowIndex = 1, Id = 1, Name = "C# & Avalonia UI", Email = "Alice Johnson", Role = "101", Course = "Active", Status = "Active", CreatedAt = "40 Hours" },
+                new QueryResultRow { RowIndex = 2, Id = 2, Name = "SQL Server Architecture", Email = "Bob Smith", Role = "102", Course = "Active", Status = "Active", CreatedAt = "50 Hours" },
+                new QueryResultRow { RowIndex = 3, Id = 3, Name = "Database Performance Tuning", Email = "Charlie Davis", Role = "103", Course = "In Progress", Status = "In Progress", CreatedAt = "35 Hours" },
+                new QueryResultRow { RowIndex = 4, Id = 4, Name = "PostgreSQL Administration", Email = "Dana White", Role = "104", Course = "Active", Status = "Active", CreatedAt = "45 Hours" },
+                new QueryResultRow { RowIndex = 5, Id = 5, Name = "Cloud Databases & Docker", Email = "Evan Wright", Role = "105", Course = "Completed", Status = "Completed", CreatedAt = "30 Hours" }
+            };
+
+            foreach (var r in courseRows)
+            {
+                r.Values["ID"] = r.Id.ToString();
+                r.Values["TITLE"] = r.Name;
+                r.Values["دوره"] = r.Name;
+                r.Values["USER_ID"] = r.Role;
+                r.Values["کد_کاربر"] = r.Role;
+                r.Values["STUDENT_NAME"] = r.Email;
+                r.Values["نام_دانشجو"] = r.Email;
+                r.Values["DURATION"] = r.CreatedAt;
+                r.Values["STATUS"] = r.Status;
+
+                foreach (var kvp in r.Values)
+                {
+                    r.OriginalValues[kvp.Key] = kvp.Value;
+                }
+            }
+
+            var cols = new List<string> { "ID", "TITLE", "USER_ID", "STUDENT_NAME", "DURATION", "STATUS" };
+            SetResults(cols, courseRows, "9 ms");
+            SetPrimaryKeys(new[] { "ID" });
+            ForeignKeyRelations.Clear();
+            ForeignKeyRelations["USER_ID"] = new ForeignKeyRelation { ColumnName = "USER_ID", TargetTable = "Users", TargetColumn = "Id" };
+            ForeignKeyRelations["کد_کاربر"] = new ForeignKeyRelation { ColumnName = "کد_کاربر", TargetTable = "Users", TargetColumn = "Id" };
+            ForeignKeyRelations["STUDENT_NAME"] = new ForeignKeyRelation { ColumnName = "STUDENT_NAME", TargetTable = "Users", TargetColumn = "Name" };
+            ForeignKeyRelations["نام_دانشجو"] = new ForeignKeyRelation { ColumnName = "نام_دانشجو", TargetTable = "Users", TargetColumn = "Name" };
+            ForeignKeyRelations["TITLE"] = new ForeignKeyRelation { ColumnName = "TITLE", TargetTable = "Users", TargetColumn = "Course" };
+            ForeignKeyRelations["دوره"] = new ForeignKeyRelation { ColumnName = "دوره", TargetTable = "Users", TargetColumn = "Course" };
+            ColumnsChanged?.Invoke(cols);
+
+            if (!string.IsNullOrWhiteSpace(filterValue))
+            {
+                var match = courseRows.FirstOrDefault(r =>
+                    r.Id.ToString() == filterValue ||
+                    r.Name.Equals(filterValue, StringComparison.OrdinalIgnoreCase) ||
+                    r.Email.Equals(filterValue, StringComparison.OrdinalIgnoreCase) ||
+                    r.Role == filterValue);
+                if (match != null)
+                {
+                    SelectedRow = match;
+                }
+            }
+        }
         else
         {
             var genRows = new List<QueryResultRow>
@@ -1069,11 +1227,11 @@ public partial class QueryResultTableViewModel : ViewModelBase
     {
         var sampleRows = new List<QueryResultRow>
         {
-            new QueryResultRow { RowIndex = 1, Id = 101, Name = "Alice Johnson", Email = "alice@example.com", Role = "DBA", Status = "Active", CreatedAt = "2026-01-15 08:30:00" },
-            new QueryResultRow { RowIndex = 2, Id = 102, Name = "Bob Smith", Email = "bob@example.com", Role = "Developer", Status = "Active", CreatedAt = "2026-02-10 11:15:22" },
-            new QueryResultRow { RowIndex = 3, Id = 103, Name = "Charlie Davis", Email = "charlie@example.com", Role = "Analyst", Status = "Pending", CreatedAt = "2026-03-01 14:45:00" },
-            new QueryResultRow { RowIndex = 4, Id = 104, Name = "Dana White", Email = "dana@example.com", Role = "Admin", Status = "Active", CreatedAt = "2026-03-12 09:20:11" },
-            new QueryResultRow { RowIndex = 5, Id = 105, Name = "Evan Wright", Email = "evan@example.com", Role = "Developer", Status = "Inactive", CreatedAt = "2026-04-05 16:00:45" }
+            new QueryResultRow { RowIndex = 1, Id = 101, Name = "Alice Johnson", Email = "alice@example.com", Role = "DBA", Course = "C# & Avalonia UI", Status = "Active", CreatedAt = "2026-01-15 08:30:00" },
+            new QueryResultRow { RowIndex = 2, Id = 102, Name = "Bob Smith", Email = "bob@example.com", Role = "Developer", Course = "SQL Server Architecture", Status = "Active", CreatedAt = "2026-02-10 11:15:22" },
+            new QueryResultRow { RowIndex = 3, Id = 103, Name = "Charlie Davis", Email = "charlie@example.com", Role = "Analyst", Course = "Database Performance Tuning", Status = "Pending", CreatedAt = "2026-03-01 14:45:00" },
+            new QueryResultRow { RowIndex = 4, Id = 104, Name = "Dana White", Email = "dana@example.com", Role = "Admin", Course = "PostgreSQL Administration", Status = "Active", CreatedAt = "2026-03-12 09:20:11" },
+            new QueryResultRow { RowIndex = 5, Id = 105, Name = "Evan Wright", Email = "evan@example.com", Role = "Developer", Course = "Cloud Databases & Docker", Status = "Inactive", CreatedAt = "2026-04-05 16:00:45" }
         };
 
         foreach (var r in sampleRows)

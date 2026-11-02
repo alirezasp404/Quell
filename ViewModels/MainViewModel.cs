@@ -448,9 +448,35 @@ public partial class MainViewModel : ViewModelBase
         string cleanVal = cellValue?.Replace("'", "''") ?? string.Empty;
         bool isNumeric = long.TryParse(cellValue, out _) || double.TryParse(cellValue, out _);
 
-        string whereClause = string.IsNullOrWhiteSpace(cellValue) || cellValue == "NULL"
-            ? string.Empty
-            : (isNumeric ? $"WHERE {targetColumn} = {cellValue}" : $"WHERE {targetColumn} = '{cleanVal}'");
+        string whereClause;
+        if (string.IsNullOrWhiteSpace(cellValue) || cellValue == "NULL")
+        {
+            whereClause = string.Empty;
+        }
+        else if (targetTable.Equals("Users", StringComparison.OrdinalIgnoreCase) || targetTable.Equals("کاربران", StringComparison.OrdinalIgnoreCase))
+        {
+            if (sourceColumn != null && (sourceColumn.Equals("دوره", StringComparison.OrdinalIgnoreCase) || sourceColumn.Equals("Course", StringComparison.OrdinalIgnoreCase) || sourceColumn.Equals("TITLE", StringComparison.OrdinalIgnoreCase) || sourceColumn.Equals("CourseTitle", StringComparison.OrdinalIgnoreCase)))
+            {
+                whereClause = isNumeric ? $"WHERE Id = {cellValue} OR Course = '{cleanVal}'" : $"WHERE Course = '{cleanVal}'";
+            }
+            else if (isNumeric)
+            {
+                whereClause = $"WHERE {targetColumn} = {cellValue}";
+            }
+            else
+            {
+                string col = targetColumn.Equals("Id", StringComparison.OrdinalIgnoreCase) ? "Name" : targetColumn;
+                whereClause = $"WHERE {col} = '{cleanVal}'";
+            }
+        }
+        else if (isNumeric)
+        {
+            whereClause = $"WHERE {targetColumn} = {cellValue}";
+        }
+        else
+        {
+            whereClause = $"WHERE {targetColumn} = '{cleanVal}'";
+        }
 
         string query = SelectedTargetDatabase?.DatabaseType == "MSSQL"
             ? $"SELECT TOP 100 * FROM {targetTable} {whereClause};".Replace("  ", " ")
@@ -499,7 +525,8 @@ public partial class MainViewModel : ViewModelBase
 
         SampleQueryResult.LoadSampleReferencedTable(targetTable, targetColumn, cellValue);
         SampleQueryResult.LastExecutedQuery = query;
-        SampleQueryResult.LastQueryMessage = $"Navigated to {targetTable} via FK [{sourceColumn} -> {targetTable}.{targetColumn}] ({SampleQueryResult.TotalRows} rows)";
+        string matchedInfo = SampleQueryResult.SelectedRow != null ? $" (User: {SampleQueryResult.SelectedRow.Name})" : "";
+        SampleQueryResult.LastQueryMessage = $"Navigated to {targetTable} via FK [{sourceColumn} -> {targetTable}]{matchedInfo} ({SampleQueryResult.TotalRows} rows)";
         SampleQueryResult.HasLastQueryMessage = true;
         ShowFooter();
     }
