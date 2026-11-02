@@ -612,9 +612,9 @@ sealed class Program
                 throw new Exception("New database in tree should initially be Disconnected until clicked!");
             }
 
-            // Click/Connect to TestStudioDB from tree
-            Console.WriteLine($"Clicking/connecting to tree node '{testDbNode.Title}'...");
-            await vm.Sidebar.ConnectDatabaseNodeAsync(testDbNode);
+            // Click (+) Expand or Right-Click Connect to TestStudioDB from tree
+            Console.WriteLine($"Clicking/connecting to tree node '{testDbNode.Title}' via ToggleExpandCommand (+)...");
+            await testDbNode.ToggleExpandCommand.ExecuteAsync(null);
             Console.WriteLine($"After click: Node.IsConnected={testDbNode.IsConnected}, Node.IsActive={testDbNode.IsActive}, Node.IsExpanded={testDbNode.IsExpanded}");
             if (!testDbNode.IsConnected || !testDbNode.IsActive || !testDbNode.IsExpanded)
             {

@@ -103,11 +103,10 @@ public partial class SidebarViewModel : ViewModelBase
 
     partial void OnSelectedTreeNodeChanged(SidebarTreeNodeBase? value)
     {
-        if (value is DatabaseConnectionTreeNode dbNode)
-        {
-            _ = ConnectDatabaseNodeAsync(dbNode);
-        }
-        else if (value is TableTreeNode tableNode)
+        // Clicking a database node does NOT auto-connect.
+        // Use right-click -> Connect to connect.
+        // Clicking a table node auto-generates and executes SELECT TOP 100.
+        if (value is TableTreeNode tableNode)
         {
             _ = SelectTableNode(tableNode);
         }
@@ -202,6 +201,7 @@ public partial class SidebarViewModel : ViewModelBase
                 existing.EditAction = EditDatabaseNode;
                 existing.RefreshAction = RefreshDatabaseNodeAsync;
                 existing.DeleteAction = DeleteDatabaseNodeAsync;
+                existing.ExpandConnectAction = ConnectDatabaseNodeAsync;
 
                 existing.IsConnected = isOpen;
                 existing.IsActive = isActive;
@@ -348,7 +348,7 @@ public partial class SidebarViewModel : ViewModelBase
             node.IsExpanded = true;
 
             var tables = await DatabaseSessionService.Instance.GetTablesAsync(node.ConnectionKey);
-            node.LoadTables(tables);
+            node.LoadTables(tables, SelectTableNode);
 
             IsConnected = true;
             ConnectionTitle = node.Title;

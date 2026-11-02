@@ -91,6 +91,23 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
         }
     }
 
+    [RelayCommand]
+    public async Task ToggleExpandAsync()
+    {
+        if (!IsConnected)
+        {
+            if (ConnectAction != null)
+            {
+                await ConnectAction(this);
+            }
+            IsExpanded = true;
+        }
+        else
+        {
+            IsExpanded = !IsExpanded;
+        }
+    }
+
     public void UpdateRecord(ConnectionRecord record)
     {
         Record = record;
@@ -117,6 +134,11 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
     [ObservableProperty]
     private int _tableCount;
 
+    /// <summary>
+    /// Called when user clicks "+" on a disconnected node to auto-connect and load tables.
+    /// </summary>
+    public Func<DatabaseConnectionTreeNode, Task>? ExpandConnectAction { get; set; }
+
     public string StatusBadgeText => IsConnected ? (IsActive ? "ACTIVE" : "CONNECTED") : "DISCONNECTED";
     public string StatusColor => IsConnected ? (IsActive ? "#10B981" : "#3B82F6") : "#9CA3AF";
 
@@ -130,6 +152,17 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
         Subtitle = $"{record.DatabaseType} · {record.Server}:{record.Port}";
         IsConnected = false;
         IsActive = false;
+        // Add placeholder child so TreeView shows the expand "+" toggle even when disconnected
+        Children.Add(new PlaceholderTreeNode());
+
+        // When user clicks "+" on a disconnected database, auto-connect and load tables
+        PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(IsExpanded) && IsExpanded && !IsConnected && ExpandConnectAction != null)
+            {
+                _ = ExpandConnectAction(this);
+            }
+        };
     }
 
     public void LoadTables(System.Collections.Generic.IEnumerable<TableMetadata> tables, Func<TableTreeNode, Task>? executeAction = null)
@@ -162,13 +195,21 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
         Children.Clear();
         TablesFolder = null;
         TableCount = 0;
-        Subtitle = "Disconnected · Click to connect";
+        Subtitle = $"{DatabaseType} · {Server}:{Port}";
+        // Re-add placeholder so "+" toggle remains visible
+        Children.Add(new PlaceholderTreeNode());
     }
 }
 
 public partial class FolderTreeNode : SidebarTreeNodeBase
 {
     public DatabaseConnectionTreeNode DatabaseNode { get; }
+
+    [RelayCommand]
+    public void ToggleExpand()
+    {
+        IsExpanded = !IsExpanded;
+    }
 
     public FolderTreeNode(string title, DatabaseConnectionTreeNode dbNode)
     {
@@ -218,5 +259,19 @@ public partial class TableTreeNode : SidebarTreeNodeBase
         DatabaseNode = dbNode;
         Title = table.FullName;
         Subtitle = table.DisplayType;
+    }
+}
+
+/// <summary>
+/// Invisible placeholder child node. Ensures the TreeView shows
+/// the expand/collapse "+" toggle on disconnected database nodes.
+/// When the user clicks "+", the expand event fires and
+/// SidebarViewModel auto-connects and loads real table nodes.
+/// </summary>
+public partial class PlaceholderTreeNode : SidebarTreeNodeBase
+{
+    public PlaceholderTreeNode()
+    {
+        Title = "Loading...";
     }
 }
