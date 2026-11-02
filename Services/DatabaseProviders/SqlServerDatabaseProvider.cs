@@ -62,72 +62,78 @@ public class SqlServerDatabaseProvider : IDatabaseProvider
 
     public async Task<ConnectionTestResult> TestConnectionAsync(DatabaseConnectionConfig config, CancellationToken cancellationToken = default)
     {
-        var sw = Stopwatch.StartNew();
-        try
+        return await Task.Run(async () =>
         {
-            string connStr = BuildConnectionString(config);
-            await using var conn = new SqlConnection(connStr);
-
-            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Min(8, config.TimeoutSeconds)));
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
-
-            await conn.OpenAsync(linkedCts.Token);
-
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT @@VERSION;";
-            var versionObj = await cmd.ExecuteScalarAsync(linkedCts.Token);
-            sw.Stop();
-
-            string versionStr = versionObj?.ToString() ?? "Microsoft SQL Server";
-            string firstLine = versionStr.Split('\n')[0].Trim();
-
-            return new ConnectionTestResult
+            var sw = Stopwatch.StartNew();
+            try
             {
-                Success = true,
-                Message = $"Connected to SQL Server in {sw.ElapsedMilliseconds} ms!",
-                ServerVersion = firstLine,
-                LatencyMs = sw.ElapsedMilliseconds
-            };
-        }
-        catch (SqlException ex)
-        {
-            sw.Stop();
-            return new ConnectionTestResult
+                string connStr = BuildConnectionString(config);
+                await using var conn = new SqlConnection(connStr);
+
+                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Min(8, config.TimeoutSeconds)));
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+                await conn.OpenAsync(linkedCts.Token).ConfigureAwait(false);
+
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT @@VERSION;";
+                var versionObj = await cmd.ExecuteScalarAsync(linkedCts.Token).ConfigureAwait(false);
+                sw.Stop();
+
+                string versionStr = versionObj?.ToString() ?? "Microsoft SQL Server";
+                string firstLine = versionStr.Split('\n')[0].Trim();
+
+                return new ConnectionTestResult
+                {
+                    Success = true,
+                    Message = $"Connected to SQL Server in {sw.ElapsedMilliseconds} ms!",
+                    ServerVersion = firstLine,
+                    LatencyMs = sw.ElapsedMilliseconds
+                };
+            }
+            catch (SqlException ex)
             {
-                Success = false,
-                Message = $"SQL Server Error ({ex.Number}): {ex.Message.Trim()}",
-                LatencyMs = sw.ElapsedMilliseconds,
-                Exception = ex
-            };
-        }
-        catch (OperationCanceledException)
-        {
-            sw.Stop();
-            return new ConnectionTestResult
+                sw.Stop();
+                return new ConnectionTestResult
+                {
+                    Success = false,
+                    Message = $"SQL Server Error ({ex.Number}): {ex.Message.Trim()}",
+                    LatencyMs = sw.ElapsedMilliseconds,
+                    Exception = ex
+                };
+            }
+            catch (OperationCanceledException)
             {
-                Success = false,
-                Message = $"Connection timed out after {sw.ElapsedMilliseconds} ms. Ensure the SQL Server instance is running and port {config.Port} is open.",
-                LatencyMs = sw.ElapsedMilliseconds
-            };
-        }
-        catch (Exception ex)
-        {
-            sw.Stop();
-            return new ConnectionTestResult
+                sw.Stop();
+                return new ConnectionTestResult
+                {
+                    Success = false,
+                    Message = $"Connection timed out after {sw.ElapsedMilliseconds} ms. Ensure the SQL Server instance is running and port {config.Port} is open.",
+                    LatencyMs = sw.ElapsedMilliseconds
+                };
+            }
+            catch (Exception ex)
             {
-                Success = false,
-                Message = $"Connection failed ({sw.ElapsedMilliseconds} ms): {ex.Message.Trim()}",
-                LatencyMs = sw.ElapsedMilliseconds,
-                Exception = ex
-            };
-        }
+                sw.Stop();
+                return new ConnectionTestResult
+                {
+                    Success = false,
+                    Message = $"Connection failed ({sw.ElapsedMilliseconds} ms): {ex.Message.Trim()}",
+                    LatencyMs = sw.ElapsedMilliseconds,
+                    Exception = ex
+                };
+            }
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<IDbConnection> CreateOpenConnectionAsync(DatabaseConnectionConfig config, CancellationToken cancellationToken = default)
     {
-        string connStr = BuildConnectionString(config);
-        var conn = new SqlConnection(connStr);
-        await conn.OpenAsync(cancellationToken);
-        return conn;
+        return await Task.Run(async () =>
+        {
+            string connStr = BuildConnectionString(config);
+            var conn = new SqlConnection(connStr);
+            await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
+            return (IDbConnection)conn;
+        }, cancellationToken).ConfigureAwait(false);
     }
 }

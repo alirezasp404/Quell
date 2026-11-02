@@ -159,6 +159,48 @@ public class DatabaseStorageService
             {
             }
 
+            try
+            {
+                // Backfill any empty passwords from records that have a password for the same server/database
+                await connection.ExecuteAsync(@"
+                    UPDATE Connections 
+                    SET Password = (
+                        SELECT c2.Password 
+                        FROM Connections c2 
+                        WHERE c2.Server = Connections.Server 
+                          AND c2.DatabaseName = Connections.DatabaseName 
+                          AND c2.Password IS NOT NULL 
+                          AND c2.Password != '' 
+                        ORDER BY c2.Id DESC 
+                        LIMIT 1
+                    )
+                    WHERE (Password IS NULL OR Password = '') 
+                      AND EXISTS (
+                        SELECT 1 
+                        FROM Connections c2 
+                        WHERE c2.Server = Connections.Server 
+                          AND c2.DatabaseName = Connections.DatabaseName 
+                          AND c2.Password IS NOT NULL 
+                          AND c2.Password != ''
+                    );
+                ");
+            }
+            catch { }
+
+            try
+            {
+                // Deduplicate old duplicates in Connections, keeping the newest one
+                await connection.ExecuteAsync(@"
+                    DELETE FROM Connections 
+                    WHERE Id NOT IN (
+                        SELECT MAX(Id) 
+                        FROM Connections 
+                        GROUP BY Server, Port, DatabaseName, DatabaseType
+                    );
+                ");
+            }
+            catch { }
+
             _initialized = true;
 
             reportProgress?.Invoke(90, "Pre-caching active SQL dialect keywords...");
@@ -488,6 +530,26 @@ public class DatabaseStorageService
             await InitializeAsync();
             await using var connection = new SqliteConnection(_connectionString);
             await connection.OpenAsync();
+
+            // Check if connection with same server, port, database and type already exists
+            const string findSql = @"
+                SELECT Id FROM Connections 
+                WHERE Server = @server AND Port = @port AND DatabaseName = @databaseName AND DatabaseType = @databaseType 
+                LIMIT 1;";
+
+            int existingId = await connection.ExecuteScalarAsync<int>(findSql, new
+            {
+                server = server ?? "localhost",
+                port,
+                databaseName = databaseName ?? "master",
+                databaseType = databaseType ?? "MSSQL"
+            });
+
+            if (existingId > 0)
+            {
+                await UpdateConnectionAsync(existingId, server ?? string.Empty, port, databaseName ?? string.Empty, authType ?? string.Empty, username ?? string.Empty, databaseType ?? string.Empty, password ?? string.Empty);
+                return existingId;
+            }
 
             const string sql = @"
                 INSERT INTO Connections (Server, Port, DatabaseName, AuthType, Username, Password, DatabaseType, LastConnectedAt)

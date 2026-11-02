@@ -101,6 +101,21 @@ public class DatabaseSessionService
 
     public event Action? ConnectionChanged;
 
+    private void NotifyConnectionChanged()
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            try
+            {
+                ConnectionChanged?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DatabaseSessionService] ConnectionChanged error: {ex.Message}");
+            }
+        });
+    }
+
     public bool IsSessionOpen(string sessionKey)
     {
         if (string.IsNullOrEmpty(sessionKey)) return false;
@@ -112,20 +127,29 @@ public class DatabaseSessionService
 
     public bool SetActiveSession(string sessionKey)
     {
+        if (string.IsNullOrEmpty(sessionKey)) return false;
+        bool changed = false;
         lock (_openSessions)
         {
             if (_openSessions.TryGetValue(sessionKey, out var session) && session.Connection.State == ConnectionState.Open)
             {
+                if (ActiveSession == session) return true;
                 ActiveSession = session;
-                ConnectionChanged?.Invoke();
-                return true;
+                changed = true;
             }
+        }
+
+        if (changed)
+        {
+            NotifyConnectionChanged();
+            return true;
         }
         return false;
     }
 
     public async Task<ConnectionTestResult> ConnectAsync(DatabaseConnectionConfig config, CancellationToken cancellationToken = default)
     {
+        bool shouldNotify = false;
         await _connectionLock.WaitAsync(cancellationToken);
         try
         {
@@ -136,8 +160,11 @@ public class DatabaseSessionService
             {
                 if (_openSessions.TryGetValue(key, out var existing) && existing.Connection.State == ConnectionState.Open)
                 {
-                    ActiveSession = existing;
-                    ConnectionChanged?.Invoke();
+                    if (ActiveSession != existing)
+                    {
+                        ActiveSession = existing;
+                        shouldNotify = true;
+                    }
                     return new ConnectionTestResult
                     {
                         Success = true,
@@ -171,7 +198,7 @@ public class DatabaseSessionService
             }
 
             ActiveSession = session;
-            ConnectionChanged?.Invoke();
+            shouldNotify = true;
             return testResult;
         }
         catch (Exception ex)
@@ -186,11 +213,16 @@ public class DatabaseSessionService
         finally
         {
             _connectionLock.Release();
+            if (shouldNotify)
+            {
+                NotifyConnectionChanged();
+            }
         }
     }
 
     public async Task DisconnectAsync(string? sessionKey = null)
     {
+        bool shouldNotify = false;
         await _connectionLock.WaitAsync();
         try
         {
@@ -210,6 +242,7 @@ public class DatabaseSessionService
                 if (_openSessions.TryGetValue(sessionKey, out sessionToClose))
                 {
                     _openSessions.Remove(sessionKey);
+                    shouldNotify = true;
                 }
             }
 
@@ -235,13 +268,16 @@ public class DatabaseSessionService
                 {
                     ActiveSession = _openSessions.Values.FirstOrDefault();
                 }
+                shouldNotify = true;
             }
-
-            ConnectionChanged?.Invoke();
         }
         finally
         {
             _connectionLock.Release();
+            if (shouldNotify)
+            {
+                NotifyConnectionChanged();
+            }
         }
     }
 
@@ -270,12 +306,11 @@ public class DatabaseSessionService
                 }
                 catch { }
             }
-
-            ConnectionChanged?.Invoke();
         }
         finally
         {
             _connectionLock.Release();
+            NotifyConnectionChanged();
         }
     }
 

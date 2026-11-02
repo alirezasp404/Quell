@@ -156,7 +156,7 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
         Server = record.Server;
         Port = record.Port;
         Database = record.DatabaseName;
-        Password = record.Password ?? string.Empty;
+        Password = !string.IsNullOrEmpty(record.Password) ? record.Password : string.Empty;
         if (!string.IsNullOrEmpty(record.AuthType))
         {
             AuthType = record.AuthType;
@@ -169,6 +169,14 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
         {
             FilePath = record.Server;
         }
+
+        OnPropertyChanged(nameof(Server));
+        OnPropertyChanged(nameof(Port));
+        OnPropertyChanged(nameof(Database));
+        OnPropertyChanged(nameof(Password));
+        OnPropertyChanged(nameof(Username));
+        OnPropertyChanged(nameof(AuthType));
+        OnPropertyChanged(nameof(FilePath));
     }
 
     partial void OnAuthTypeChanged(string value)
@@ -185,6 +193,20 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
             foreach (var c in conns.Where(c => !c.Server.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase) && !c.DatabaseName.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase)))
             {
                 SavedConnections.Add(c);
+            }
+
+            // Auto-prefill password if current form matches a saved connection
+            if (!IsEditMode && SavedConnections.Count > 0)
+            {
+                var match = SavedConnections.FirstOrDefault(s =>
+                    s.Server == Server && s.Port == Port && s.DatabaseName == Database && s.DatabaseType == SelectedDatabaseType)
+                    ?? SavedConnections.FirstOrDefault(s => s.IsActive);
+
+                if (match != null && !string.IsNullOrEmpty(match.Password) && string.IsNullOrEmpty(Password))
+                {
+                    Password = match.Password;
+                    OnPropertyChanged(nameof(Password));
+                }
             }
         }
         catch (Exception ex)

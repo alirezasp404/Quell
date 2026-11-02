@@ -120,24 +120,11 @@ public partial class MainViewModel : ViewModelBase
             _ = RefreshAvailableDatabasesAsync();
         };
 
-        // Listen for live database connection changes to update the UI badge and reload sidebar tables
+        // Listen for live database connection changes to update the UI badge and reload available databases
         DatabaseSessionService.Instance.ConnectionChanged += () =>
         {
-            if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
-            {
-                Navbar.UpdateConnectionStatus();
-                _ = Sidebar.RefreshAsync();
-                _ = RefreshAvailableDatabasesAsync();
-            }
-            else
-            {
-                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                {
-                    Navbar.UpdateConnectionStatus();
-                    _ = Sidebar.RefreshAsync();
-                    _ = RefreshAvailableDatabasesAsync();
-                });
-            }
+            Navbar.UpdateConnectionStatus();
+            _ = RefreshAvailableDatabasesAsync();
         };
 
         // Initialize SQLite local storage, load available databases and tables
@@ -150,6 +137,8 @@ public partial class MainViewModel : ViewModelBase
         await RefreshAvailableDatabasesAsync();
         await Sidebar.RefreshAsync();
     }
+
+    private bool _isUpdatingTargetSilently;
 
     public async Task RefreshAvailableDatabasesAsync()
     {
@@ -194,17 +183,38 @@ public partial class MainViewModel : ViewModelBase
 
         if (itemToSelect != null)
         {
-            SelectedTargetDatabase = itemToSelect;
+            if (SelectedTargetDatabase?.Key != itemToSelect.Key)
+            {
+                _isUpdatingTargetSilently = true;
+                try
+                {
+                    SelectedTargetDatabase = itemToSelect;
+                }
+                finally
+                {
+                    _isUpdatingTargetSilently = false;
+                }
+            }
         }
         else if (SelectedTargetDatabase != null && !AvailableTargetDatabases.Any(d => d.Key == SelectedTargetDatabase.Key))
         {
-            SelectedTargetDatabase = null;
-            SampleQueryResult.TargetDatabaseName = "(No Connection)";
+            _isUpdatingTargetSilently = true;
+            try
+            {
+                SelectedTargetDatabase = null;
+                SampleQueryResult.TargetDatabaseName = "(No Connection)";
+            }
+            finally
+            {
+                _isUpdatingTargetSilently = false;
+            }
         }
     }
 
     partial void OnSelectedTargetDatabaseChanged(TargetDatabaseItem? value)
     {
+        if (_isUpdatingTargetSilently) return;
+
         if (value == null)
         {
             SampleQueryResult.TargetDatabaseName = "(No Connection)";
@@ -212,11 +222,11 @@ public partial class MainViewModel : ViewModelBase
         }
 
         SampleQueryResult.TargetDatabaseName = value.FullDisplayName;
-        if (DatabaseSessionService.Instance.IsSessionOpen(value.Key))
+        if (DatabaseSessionService.Instance.IsSessionOpen(value.Key) &&
+            DatabaseSessionService.Instance.ActiveSession?.Key != value.Key)
         {
             DatabaseSessionService.Instance.SetActiveSession(value.Key);
         }
-        _ = Sidebar.RefreshAsync();
     }
 
     public async Task ActivateDatabaseConnectionAsync(ConnectionRecord record)

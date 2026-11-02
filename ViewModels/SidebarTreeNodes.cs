@@ -195,7 +195,7 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
         Children.Clear();
         TablesFolder = null;
         TableCount = 0;
-        Subtitle = $"{DatabaseType} · {Server}:{Port}";
+        Subtitle = DatabaseType ?? "MSSQL";
         // Re-add placeholder so "+" toggle remains visible
         Children.Add(new PlaceholderTreeNode());
     }
