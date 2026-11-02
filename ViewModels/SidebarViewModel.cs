@@ -17,6 +17,10 @@ public partial class SidebarViewModel : ViewModelBase
     [ObservableProperty]
     private string _selectedTab = "Explorer";
 
+    public bool IsExplorerTab => SelectedTab == "Explorer";
+    public bool IsDatabasesTab => SelectedTab == "Databases";
+    public bool IsHistoryTab => SelectedTab == "History";
+
     public ObservableCollection<string> Tabs { get; } = new()
     {
         "Explorer",
@@ -62,6 +66,8 @@ public partial class SidebarViewModel : ViewModelBase
     public Action<string>? InsertQueryToEditor { get; set; }
     public Func<string, Task>? ExecuteQueryInEditor { get; set; }
     public Action? OpenConnectModal { get; set; }
+    public Action<ConnectionRecord>? RequestActivateConnection { get; set; }
+    public event Action<ConnectionRecord>? ConnectionDeleted;
 
     public SidebarViewModel()
     {
@@ -73,6 +79,13 @@ public partial class SidebarViewModel : ViewModelBase
                 await RefreshAsync();
             });
         };
+    }
+
+    partial void OnSelectedTabChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsExplorerTab));
+        OnPropertyChanged(nameof(IsDatabasesTab));
+        OnPropertyChanged(nameof(IsHistoryTab));
     }
 
     partial void OnTableSearchFilterChanged(string value)
@@ -141,6 +154,8 @@ public partial class SidebarViewModel : ViewModelBase
             SavedConnections.Clear();
             foreach (var c in conns)
             {
+                string key = c.Id > 0 ? $"id_{c.Id}" : $"{c.DatabaseType}_{c.Server}_{c.Port}_{c.DatabaseName}";
+                c.IsActive = DatabaseSessionService.Instance.IsSessionOpen(key);
                 SavedConnections.Add(c);
             }
 
@@ -220,6 +235,38 @@ public partial class SidebarViewModel : ViewModelBase
     public void OpenConnectDialog()
     {
         OpenConnectModal?.Invoke();
+    }
+
+    [RelayCommand]
+    public async Task DisconnectActive()
+    {
+        await DatabaseSessionService.Instance.DisconnectAsync();
+        await RefreshAsync();
+    }
+
+    [RelayCommand]
+    public async Task ActivateConnection(ConnectionRecord record)
+    {
+        if (record == null) return;
+        if (RequestActivateConnection != null)
+        {
+            RequestActivateConnection.Invoke(record);
+        }
+        else
+        {
+            await ConnectSavedConnection(record);
+        }
+    }
+
+    [RelayCommand]
+    public async Task DisconnectAndRemoveConnection(ConnectionRecord record)
+    {
+        if (record == null) return;
+        string sessionKey = record.Id > 0 ? $"id_{record.Id}" : $"{record.DatabaseType}_{record.Server}_{record.Port}_{record.DatabaseName}";
+        await DatabaseSessionService.Instance.DisconnectAsync(sessionKey);
+        await DatabaseStorageService.Instance.DeleteConnectionAsync(record.Id);
+        await RefreshAsync();
+        ConnectionDeleted?.Invoke(record);
     }
 
     [RelayCommand]

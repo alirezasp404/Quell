@@ -163,17 +163,34 @@
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Button Classes="classic-tool-btn"
-                                                    Command="{Binding $parent[UserControl].((vm:ConnectDatabaseModalViewModel)DataContext).SelectSavedConnectionCommand}"
-                                                    CommandParameter="{Binding}"
-                                                    Padding="8,4">
-                                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                                    <Border Background="{Binding BadgeColor}" CornerRadius="3" Padding="4,1">
-                                                        <TextBlock Text="{Binding DatabaseType}" Foreground="White" FontSize="9" FontWeight="Bold"/>
-                                                    </Border>
-                                                    <TextBlock Text="{Binding DisplayTitle}" FontSize="11" VerticalAlignment="Center"/>
+                                            <Border Background="{DynamicResource AppSurfaceBrush}" 
+                                                    BorderBrush="{DynamicResource AppBorderBrush}" 
+                                                    BorderThickness="1" 
+                                                    CornerRadius="4" 
+                                                    Padding="4,2">
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <Button Classes="classic-tool-btn"
+                                                            Command="{Binding $parent[UserControl].((vm:ConnectDatabaseModalViewModel)DataContext).SelectSavedConnectionCommand}"
+                                                            CommandParameter="{Binding}"
+                                                            Padding="4,2" 
+                                                            BorderThickness="0" 
+                                                            Background="Transparent">
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <Border Background="{Binding BadgeColor}" CornerRadius="3" Padding="4,1">
+                                                                <TextBlock Text="{Binding DatabaseType}" Foreground="White" FontSize="9" FontWeight="Bold"/>
+                                                            </Border>
+                                                            <TextBlock Text="{Binding DisplayTitle}" FontSize="11" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Classes="classic-tool-btn" 
+                                                            Command="{Binding $parent[UserControl].((vm:ConnectDatabaseModalViewModel)DataContext).DeleteSavedConnectionCommand}"
+                                                            CommandParameter="{Binding}"
+                                                            ToolTip.Tip="Disconnect and Delete from SQLite"
+                                                            Padding="3,2">
+                                                        <ui:FASymbolIcon Symbol="Dismiss" FontSize="9" Foreground="#EF4444"/>
+                                                    </Button>
                                                 </StackPanel>
-                                            </Button>
+                                            </Border>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>

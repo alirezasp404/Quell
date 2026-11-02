@@ -33,6 +33,10 @@ public class ConnectionRecord
         "SQLite" => "#003B57",
         _ => "#4B5563"
     };
+
+    public bool IsActive { get; set; }
+    public string StatusBadgeText => IsActive ? "ACTIVE" : "SAVED";
+    public string StatusBadgeColor => IsActive ? "#10B981" : "#6B7280";
 }
 
 public class QueryHistoryRecord
@@ -456,7 +460,7 @@ public class DatabaseStorageService
         }
     }
 
-    public async Task SaveConnectionAsync(string server, int port, string databaseName, string authType, string username, string databaseType = "MSSQL")
+    public async Task<int> SaveConnectionAsync(string server, int port, string databaseName, string authType, string username, string databaseType = "MSSQL")
     {
         try
         {
@@ -466,9 +470,10 @@ public class DatabaseStorageService
 
             const string sql = @"
                 INSERT INTO Connections (Server, Port, DatabaseName, AuthType, Username, DatabaseType, LastConnectedAt)
-                VALUES (@server, @port, @databaseName, @authType, @username, @databaseType, datetime('now'));";
+                VALUES (@server, @port, @databaseName, @authType, @username, @databaseType, datetime('now'));
+                SELECT last_insert_rowid();";
 
-            await connection.ExecuteAsync(sql, new
+            return await connection.ExecuteScalarAsync<int>(sql, new
             {
                 server = server ?? "localhost",
                 port,
@@ -481,6 +486,45 @@ public class DatabaseStorageService
         catch (Exception ex)
         {
             Console.WriteLine($"[DatabaseStorageService] SaveConnectionAsync error: {ex.Message}");
+            return 0;
+        }
+    }
+
+    public async Task<bool> DeleteConnectionAsync(int id)
+    {
+        try
+        {
+            await InitializeAsync();
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+
+            const string sql = "DELETE FROM Connections WHERE Id = @id;";
+            int affected = await connection.ExecuteAsync(sql, new { id });
+            return affected > 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] DeleteConnectionAsync error: {ex.Message}");
+            return false;
+        }
+    }
+
+    public async Task<bool> DeleteConnectionAsync(string server, string databaseName)
+    {
+        try
+        {
+            await InitializeAsync();
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+
+            const string sql = "DELETE FROM Connections WHERE Server = @server AND DatabaseName = @databaseName;";
+            int affected = await connection.ExecuteAsync(sql, new { server, databaseName });
+            return affected > 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] DeleteConnectionAsync error: {ex.Message}");
+            return false;
         }
     }
 

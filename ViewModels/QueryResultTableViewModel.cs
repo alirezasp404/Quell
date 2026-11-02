@@ -81,6 +81,9 @@ public partial class QueryResultTableViewModel : ViewModelBase
     private string _executionTime = "14 ms";
 
     [ObservableProperty]
+    private string _targetDatabaseName = "Local SQLite (fdb_studio.db)";
+
+    [ObservableProperty]
     private int _currentPage = 1;
 
     [ObservableProperty]

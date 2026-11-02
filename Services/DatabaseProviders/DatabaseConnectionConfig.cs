@@ -1,9 +1,11 @@
 using System;
+using System.IO;
 
 namespace Fdb.Services.DatabaseProviders;
 
 public record DatabaseConnectionConfig
 {
+    public int Id { get; init; } = 0;
     public string DatabaseType { get; init; } = "MSSQL";
     public string Server { get; init; } = "localhost";
     public int Port { get; init; } = 1433;
@@ -14,4 +16,14 @@ public record DatabaseConnectionConfig
     public bool TrustServerCertificate { get; init; } = true;
     public string FilePath { get; init; } = string.Empty;
     public int TimeoutSeconds { get; init; } = 15;
+
+    public string ConnectionKey => Id > 0
+        ? $"id_{Id}"
+        : DatabaseType == "SQLite"
+            ? $"sqlite_{FilePath}"
+            : $"{DatabaseType}_{Server}_{Port}_{Database}";
+
+    public string DisplayName => DatabaseType == "SQLite"
+        ? (string.IsNullOrEmpty(Path.GetFileName(FilePath)) ? "SQLite (:memory:)" : Path.GetFileName(FilePath))
+        : $"{Database} ({Server}:{Port})";
 }

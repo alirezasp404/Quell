@@ -33,6 +33,23 @@
 
             <!-- Right: Execution Stats & Export -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <!-- Target Database Badge -->
+                <Border Background="{DynamicResource AppWorkspaceBrush}" 
+                        BorderBrush="{DynamicResource AppBorderBrush}" 
+                        BorderThickness="1" 
+                        CornerRadius="4" 
+                        Height="23"
+                        Padding="8,1">
+                    <StackPanel Orientation="Horizontal" Spacing="5">
+                        <ui:FASymbolIcon Symbol="Folder" FontSize="11" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding TargetDatabaseName}" 
+                                   Foreground="{DynamicResource AppTextPrimaryBrush}" 
+                                   FontWeight="SemiBold"
+                                   FontSize="11" 
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
                 <!-- Execution Time Badge -->
                 <Border Background="{DynamicResource AppWorkspaceBrush}" 
                         BorderBrush="{DynamicResource AppBorderBrush}" 

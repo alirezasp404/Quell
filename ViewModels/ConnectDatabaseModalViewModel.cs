@@ -43,6 +43,8 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
 
     public ObservableCollection<ConnectionRecord> SavedConnections { get; } = new();
 
+    public event Action<ConnectionRecord>? ConnectionDeleted;
+
     [ObservableProperty]
     private ConnectionRecord? _selectedSavedConnection;
 
@@ -263,11 +265,13 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
             var config = BuildCurrentConfig();
 
             // 1. Persist connection record to SQLite storage
-            await DatabaseStorageService.Instance.SaveConnectionAsync(
+            int connId = await DatabaseStorageService.Instance.SaveConnectionAsync(
                 Server, Port, Database, AuthType, Username, SelectedDatabaseType);
 
             // Reload saved connections
             await LoadSavedConnectionsAsync();
+
+            config = config with { Id = connId };
 
             // 2. Establish live session with the selected provider
             var result = await DatabaseSessionService.Instance.ConnectAsync(config);
@@ -294,5 +298,16 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
         {
             IsConnecting = false;
         }
+    }
+
+    [RelayCommand]
+    public async Task DeleteSavedConnection(ConnectionRecord record)
+    {
+        if (record == null) return;
+        string sessionKey = record.Id > 0 ? $"id_{record.Id}" : $"{record.DatabaseType}_{record.Server}_{record.Port}_{record.DatabaseName}";
+        await DatabaseSessionService.Instance.DisconnectAsync(sessionKey);
+        await DatabaseStorageService.Instance.DeleteConnectionAsync(record.Id);
+        await LoadSavedConnectionsAsync();
+        ConnectionDeleted?.Invoke(record);
     }
 }

@@ -1,7 +1,11 @@
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Fdb.Services;
 using Fdb.Services.DatabaseProviders;
 
 namespace Fdb.ViewModels;
@@ -37,6 +41,11 @@ public partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     private SchemaPropertiesTableViewModel _sampleSchema;
+
+    public ObservableCollection<TargetDatabaseItem> AvailableTargetDatabases { get; } = new();
+
+    [ObservableProperty]
+    private TargetDatabaseItem? _selectedTargetDatabase;
 
     public MainViewModel()
     {
@@ -81,6 +90,21 @@ public partial class MainViewModel : ViewModelBase
 
         _sidebar.OpenConnectModal = () => _connectModal.Open();
 
+        _sidebar.RequestActivateConnection = rec =>
+        {
+            _ = ActivateDatabaseConnectionAsync(rec);
+        };
+
+        _sidebar.ConnectionDeleted += rec =>
+        {
+            _ = RefreshAvailableDatabasesAsync();
+        };
+
+        _connectModal.ConnectionDeleted += rec =>
+        {
+            _ = RefreshAvailableDatabasesAsync();
+        };
+
         // Listen for live database connection changes to update the UI badge and reload sidebar tables
         DatabaseSessionService.Instance.ConnectionChanged += () =>
         {
@@ -88,6 +112,7 @@ public partial class MainViewModel : ViewModelBase
             {
                 Navbar.UpdateConnectionStatus();
                 _ = Sidebar.RefreshAsync();
+                _ = RefreshAvailableDatabasesAsync();
             }
             else
             {
@@ -95,17 +120,124 @@ public partial class MainViewModel : ViewModelBase
                 {
                     Navbar.UpdateConnectionStatus();
                     _ = Sidebar.RefreshAsync();
+                    _ = RefreshAvailableDatabasesAsync();
                 });
             }
         };
 
-        // Initialize SQLite local storage and load tables
+        // Initialize SQLite local storage, load available databases and tables
         _ = InitializeStartupAsync();
     }
 
     private async Task InitializeStartupAsync()
     {
         await Fdb.Services.DatabaseStorageService.Instance.InitializeAsync();
+        await RefreshAvailableDatabasesAsync();
+        await Sidebar.RefreshAsync();
+    }
+
+    public async Task RefreshAvailableDatabasesAsync()
+    {
+        var conns = await Fdb.Services.DatabaseStorageService.Instance.GetRecentConnectionsAsync();
+        var currentSelectedKey = SelectedTargetDatabase?.Key;
+
+        AvailableTargetDatabases.Clear();
+        var localItem = new TargetDatabaseItem
+        {
+            Key = "sqlite_local",
+            DatabaseType = "SQLite",
+            DisplayName = "Local SQLite",
+            DatabaseName = "fdb_studio.db",
+            IsLocalSqlite = true,
+            IsConnected = true
+        };
+        AvailableTargetDatabases.Add(localItem);
+
+        TargetDatabaseItem? itemToSelect = null;
+
+        foreach (var c in conns)
+        {
+            string key = c.Id > 0 ? $"id_{c.Id}" : $"{c.DatabaseType}_{c.Server}_{c.Port}_{c.DatabaseName}";
+            bool isOpen = DatabaseSessionService.Instance.IsSessionOpen(key);
+            var targetItem = new TargetDatabaseItem
+            {
+                ConnectionId = c.Id,
+                Key = key,
+                DatabaseType = c.DatabaseType,
+                DisplayName = c.DisplayTitle,
+                Server = c.Server,
+                Port = c.Port,
+                DatabaseName = c.DatabaseName,
+                AuthType = c.AuthType,
+                Username = c.Username,
+                IsLocalSqlite = false,
+                IsConnected = isOpen
+            };
+
+            AvailableTargetDatabases.Add(targetItem);
+
+            if (key == currentSelectedKey)
+            {
+                itemToSelect = targetItem;
+            }
+        }
+
+        if (itemToSelect != null)
+        {
+            SelectedTargetDatabase = itemToSelect;
+        }
+        else if (SelectedTargetDatabase == null || !AvailableTargetDatabases.Contains(SelectedTargetDatabase))
+        {
+            SelectedTargetDatabase = localItem;
+        }
+    }
+
+    partial void OnSelectedTargetDatabaseChanged(TargetDatabaseItem? value)
+    {
+        if (value == null) return;
+        SampleQueryResult.TargetDatabaseName = value.FullDisplayName;
+
+        if (!value.IsLocalSqlite)
+        {
+            if (DatabaseSessionService.Instance.IsSessionOpen(value.Key))
+            {
+                DatabaseSessionService.Instance.SetActiveSession(value.Key);
+            }
+        }
+        _ = Sidebar.RefreshAsync();
+    }
+
+    public async Task ActivateDatabaseConnectionAsync(ConnectionRecord record)
+    {
+        if (record == null) return;
+        string key = record.Id > 0 ? $"id_{record.Id}" : $"{record.DatabaseType}_{record.Server}_{record.Port}_{record.DatabaseName}";
+
+        if (!DatabaseSessionService.Instance.IsSessionOpen(key))
+        {
+            var config = new DatabaseConnectionConfig
+            {
+                Id = record.Id,
+                DatabaseType = record.DatabaseType ?? "MSSQL",
+                Server = record.Server,
+                Port = record.Port,
+                Database = record.DatabaseName,
+                AuthType = record.AuthType,
+                Username = record.Username,
+                TrustServerCertificate = true
+            };
+            await DatabaseSessionService.Instance.ConnectAsync(config);
+        }
+        else
+        {
+            DatabaseSessionService.Instance.SetActiveSession(key);
+        }
+
+        await RefreshAvailableDatabasesAsync();
+        var match = AvailableTargetDatabases.FirstOrDefault(d => d.Key == key);
+        if (match != null)
+        {
+            SelectedTargetDatabase = match;
+        }
         await Sidebar.RefreshAsync();
     }
 
@@ -113,13 +245,52 @@ public partial class MainViewModel : ViewModelBase
     public async Task ExecuteQuery()
     {
         string query = Editor.SelectedTab?.Text ?? "SELECT * FROM dbo.Users;";
-        string execTime = "14 ms";
-        int rowCount = SampleQueryResult.Rows.Count;
+        string execTime = "0 ms";
+        int rowCount = 0;
         string status = "Success";
+        string targetDbName = SelectedTargetDatabase?.FullDisplayName ?? "Local SQLite (fdb_studio.db)";
 
-        if (DatabaseSessionService.Instance.IsConnected)
+        if (SelectedTargetDatabase != null && !SelectedTargetDatabase.IsLocalSqlite)
         {
-            var result = await DatabaseSessionService.Instance.ExecuteQueryAsync(query);
+            string key = SelectedTargetDatabase.Key;
+            if (!DatabaseSessionService.Instance.IsSessionOpen(key))
+            {
+                var config = new DatabaseConnectionConfig
+                {
+                    Id = SelectedTargetDatabase.ConnectionId ?? 0,
+                    DatabaseType = SelectedTargetDatabase.DatabaseType,
+                    Server = SelectedTargetDatabase.Server,
+                    Port = SelectedTargetDatabase.Port,
+                    Database = SelectedTargetDatabase.DatabaseName,
+                    AuthType = SelectedTargetDatabase.AuthType,
+                    Username = SelectedTargetDatabase.Username,
+                    TrustServerCertificate = true
+                };
+                var connResult = await DatabaseSessionService.Instance.ConnectAsync(config);
+                if (!connResult.Success)
+                {
+                    SampleQueryResult.SetResults(
+                        new List<string> { "Error", "TargetDatabase" },
+                        new List<QueryResultRow>
+                        {
+                            new QueryResultRow
+                            {
+                                RowIndex = 1,
+                                ["Error"] = connResult.Message,
+                                ["TargetDatabase"] = targetDbName
+                            }
+                        },
+                        "0 ms");
+                    SampleQueryResult.TargetDatabaseName = targetDbName;
+                    return;
+                }
+            }
+            else
+            {
+                DatabaseSessionService.Instance.SetActiveSession(key);
+            }
+
+            var result = await DatabaseSessionService.Instance.ExecuteQueryAsync(query, key);
             execTime = result.ExecutionTime;
             status = result.Success ? "Success" : "Failed";
 
@@ -127,6 +298,21 @@ public partial class MainViewModel : ViewModelBase
             {
                 SampleQueryResult.SetResults(result.ColumnNames, result.Rows, result.ExecutionTime);
                 rowCount = result.Rows.Count;
+            }
+            else if (!result.Success)
+            {
+                SampleQueryResult.SetResults(
+                    new List<string> { "Error", "TargetDatabase" },
+                    new List<QueryResultRow>
+                    {
+                        new QueryResultRow
+                        {
+                            RowIndex = 1,
+                            ["Error"] = result.Message,
+                            ["TargetDatabase"] = targetDbName
+                        }
+                    },
+                    execTime);
             }
         }
         else
@@ -142,6 +328,8 @@ public partial class MainViewModel : ViewModelBase
                 rowCount = localResult.Rows.Count;
             }
         }
+
+        SampleQueryResult.TargetDatabaseName = targetDbName;
 
         await Fdb.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
             query, execTime, rowCount, status);
@@ -164,7 +352,7 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     public void Disconnect()
     {
-        string target = DatabaseSessionService.Instance.TargetDisplayName;
+        string target = SelectedTargetDatabase?.DisplayName ?? DatabaseSessionService.Instance.TargetDisplayName;
         ConfirmModal.Show(
             title: "Disconnect Database",
             message: $"Are you sure you want to disconnect from {target}? Active queries in tabs will remain preserved.",
@@ -173,7 +361,17 @@ public partial class MainViewModel : ViewModelBase
             confirmText: "Disconnect",
             onConfirmed: async () =>
             {
-                await DatabaseSessionService.Instance.DisconnectAsync();
+                if (SelectedTargetDatabase != null && !SelectedTargetDatabase.IsLocalSqlite)
+                {
+                    await DatabaseSessionService.Instance.DisconnectAsync(SelectedTargetDatabase.Key);
+                }
+                else
+                {
+                    await DatabaseSessionService.Instance.DisconnectAsync();
+                }
+
+                await RefreshAvailableDatabasesAsync();
+                SelectedTargetDatabase = AvailableTargetDatabases.FirstOrDefault();
                 Navbar.UpdateConnectionStatus();
                 await Sidebar.RefreshAsync();
             });

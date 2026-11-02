@@ -621,7 +621,53 @@ sealed class Program
             }
             Console.WriteLine($"Successfully verified saved connection: {savedConn.DisplayTitle}");
 
-            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, REAL QUERY & SIDEBAR TABLES) PASSED! <<<");
+            // 13. Test Target Database Selection, Execution Routing & Disconnect / Deletion from SQLite
+            Console.WriteLine("\n[Action] Verifying Target Database Selection, Routing & Disconnect/Removal...");
+            await vm.RefreshAvailableDatabasesAsync();
+            Console.WriteLine($"Available Target Databases: {vm.AvailableTargetDatabases.Count}");
+            if (vm.AvailableTargetDatabases.Count < 2)
+            {
+                throw new Exception("Expected at least Local SQLite and saved database connections in target selector!");
+            }
+
+            // Test executing query on Local SQLite target
+            vm.SelectedTargetDatabase = System.Linq.Enumerable.First(vm.AvailableTargetDatabases, d => d.IsLocalSqlite);
+            Console.WriteLine($"Selected Target: {vm.SelectedTargetDatabase.FullDisplayName}");
+            vm.Editor.SelectedTab!.Text = "SELECT 'TargetTest' AS TestKey, 100 AS Metric;";
+            await vm.ExecuteQuery();
+            Console.WriteLine($"Executed Result Target: {vm.SampleQueryResult.TargetDatabaseName}, Rows: {vm.SampleQueryResult.TotalRows}");
+            if (vm.SampleQueryResult.TargetDatabaseName != "Local SQLite (fdb_studio.db)")
+            {
+                throw new Exception($"Expected target 'Local SQLite (fdb_studio.db)', but got '{vm.SampleQueryResult.TargetDatabaseName}'!");
+            }
+            if (vm.SampleQueryResult.Rows[0]["TestKey"] != "TargetTest")
+            {
+                throw new Exception("Query result row did not contain expected TestKey value!");
+            }
+
+            // Test Disconnecting and Removing a Connection from SQLite
+            var targetToDelete = System.Linq.Enumerable.FirstOrDefault(vm.Sidebar.SavedConnections, c => c.Server == "sql-cluster.production.local");
+            if (targetToDelete != null)
+            {
+                int prevCount = vm.Sidebar.SavedConnections.Count;
+                Console.WriteLine($"Deleting connection '{targetToDelete.DisplayTitle}' (Id={targetToDelete.Id}) from SQLite...");
+                await vm.Sidebar.DisconnectAndRemoveConnection(targetToDelete);
+                await vm.RefreshAvailableDatabasesAsync();
+                Console.WriteLine($"After deletion: Sidebar count = {vm.Sidebar.SavedConnections.Count} (was {prevCount})");
+                var checkDeleted = System.Linq.Enumerable.FirstOrDefault(vm.Sidebar.SavedConnections, c => c.Id == targetToDelete.Id);
+                if (checkDeleted != null)
+                {
+                    throw new Exception("Failed to remove connection from SQLite!");
+                }
+                var checkAvailable = System.Linq.Enumerable.FirstOrDefault(vm.AvailableTargetDatabases, d => d.ConnectionId == targetToDelete.Id);
+                if (checkAvailable != null)
+                {
+                    throw new Exception("Failed to remove deleted connection from AvailableTargetDatabases selector!");
+                }
+                Console.WriteLine("[Success] Connection successfully disconnected and removed from SQLite!");
+            }
+
+            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, REAL QUERY, TARGET DATABASE SELECTION & DISCONNECT/DELETE) PASSED! <<<");
             return;
         }
 

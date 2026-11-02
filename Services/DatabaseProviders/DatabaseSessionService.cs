@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Fdb.ViewModels;
@@ -20,18 +21,44 @@ public record QueryExecutionResult
     public Exception? Exception { get; init; }
 }
 
+public class OpenDatabaseSession
+{
+    public string Key { get; init; } = string.Empty;
+    public IDbConnection Connection { get; init; } = null!;
+    public DatabaseConnectionConfig Config { get; init; } = null!;
+    public IDatabaseProvider Provider { get; init; } = null!;
+    public string? ServerVersion { get; init; }
+    public DateTime ConnectedAt { get; init; } = DateTime.Now;
+
+    public string DisplayName => Config.DisplayName;
+    public string DatabaseType => Config.DatabaseType;
+}
+
 public class DatabaseSessionService
 {
     private static DatabaseSessionService? _instance;
     public static DatabaseSessionService Instance => _instance ??= new DatabaseSessionService();
 
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
-    private IDbConnection? _activeConnection;
+    private readonly Dictionary<string, OpenDatabaseSession> _openSessions = new(StringComparer.OrdinalIgnoreCase);
 
-    public bool IsConnected => _activeConnection != null && _activeConnection.State == ConnectionState.Open;
-    public DatabaseConnectionConfig? ActiveConfig { get; private set; }
-    public IDatabaseProvider? ActiveProvider { get; private set; }
-    public string? ServerVersion { get; private set; }
+    public OpenDatabaseSession? ActiveSession { get; private set; }
+
+    public bool IsConnected => ActiveSession != null && ActiveSession.Connection.State == ConnectionState.Open;
+    public DatabaseConnectionConfig? ActiveConfig => ActiveSession?.Config;
+    public IDatabaseProvider? ActiveProvider => ActiveSession?.Provider;
+    public string? ServerVersion => ActiveSession?.ServerVersion;
+
+    public IReadOnlyList<OpenDatabaseSession> OpenSessions
+    {
+        get
+        {
+            lock (_openSessions)
+            {
+                return _openSessions.Values.ToList();
+            }
+        }
+    }
 
     public string ConnectionDisplayText
     {
@@ -73,12 +100,51 @@ public class DatabaseSessionService
 
     public event Action? ConnectionChanged;
 
+    public bool IsSessionOpen(string sessionKey)
+    {
+        if (string.IsNullOrEmpty(sessionKey)) return false;
+        lock (_openSessions)
+        {
+            return _openSessions.TryGetValue(sessionKey, out var s) && s.Connection.State == ConnectionState.Open;
+        }
+    }
+
+    public bool SetActiveSession(string sessionKey)
+    {
+        lock (_openSessions)
+        {
+            if (_openSessions.TryGetValue(sessionKey, out var session) && session.Connection.State == ConnectionState.Open)
+            {
+                ActiveSession = session;
+                ConnectionChanged?.Invoke();
+                return true;
+            }
+        }
+        return false;
+    }
+
     public async Task<ConnectionTestResult> ConnectAsync(DatabaseConnectionConfig config, CancellationToken cancellationToken = default)
     {
         await _connectionLock.WaitAsync(cancellationToken);
         try
         {
-            await DisconnectInternalAsync();
+            string key = config.ConnectionKey;
+
+            // Check if already open and active
+            lock (_openSessions)
+            {
+                if (_openSessions.TryGetValue(key, out var existing) && existing.Connection.State == ConnectionState.Open)
+                {
+                    ActiveSession = existing;
+                    ConnectionChanged?.Invoke();
+                    return new ConnectionTestResult
+                    {
+                        Success = true,
+                        ServerVersion = existing.ServerVersion,
+                        Message = $"Session '{existing.DisplayName}' is already active."
+                    };
+                }
+            }
 
             var provider = DatabaseProviderRegistry.Instance.GetProvider(config.DatabaseType);
             var testResult = await provider.TestConnectionAsync(config, cancellationToken);
@@ -88,17 +154,27 @@ public class DatabaseSessionService
                 return testResult;
             }
 
-            _activeConnection = await provider.CreateOpenConnectionAsync(config, cancellationToken);
-            ActiveConfig = config;
-            ActiveProvider = provider;
-            ServerVersion = testResult.ServerVersion;
+            var conn = await provider.CreateOpenConnectionAsync(config, cancellationToken);
+            var session = new OpenDatabaseSession
+            {
+                Key = key,
+                Connection = conn,
+                Config = config,
+                Provider = provider,
+                ServerVersion = testResult.ServerVersion
+            };
 
+            lock (_openSessions)
+            {
+                _openSessions[key] = session;
+            }
+
+            ActiveSession = session;
             ConnectionChanged?.Invoke();
             return testResult;
         }
         catch (Exception ex)
         {
-            await DisconnectInternalAsync();
             return new ConnectionTestResult
             {
                 Success = false,
@@ -112,12 +188,54 @@ public class DatabaseSessionService
         }
     }
 
-    public async Task DisconnectAsync()
+    public async Task DisconnectAsync(string? sessionKey = null)
     {
         await _connectionLock.WaitAsync();
         try
         {
-            await DisconnectInternalAsync();
+            if (string.IsNullOrEmpty(sessionKey))
+            {
+                sessionKey = ActiveSession?.Key;
+            }
+
+            if (string.IsNullOrEmpty(sessionKey))
+            {
+                return;
+            }
+
+            OpenDatabaseSession? sessionToClose = null;
+            lock (_openSessions)
+            {
+                if (_openSessions.TryGetValue(sessionKey, out sessionToClose))
+                {
+                    _openSessions.Remove(sessionKey);
+                }
+            }
+
+            if (sessionToClose != null)
+            {
+                try
+                {
+                    if (sessionToClose.Connection.State != ConnectionState.Closed)
+                    {
+                        sessionToClose.Connection.Close();
+                    }
+                    sessionToClose.Connection.Dispose();
+                }
+                catch
+                {
+                    // Ignore disposal errors
+                }
+            }
+
+            if (ActiveSession?.Key == sessionKey)
+            {
+                lock (_openSessions)
+                {
+                    ActiveSession = _openSessions.Values.FirstOrDefault();
+                }
+            }
+
             ConnectionChanged?.Invoke();
         }
         finally
@@ -126,42 +244,65 @@ public class DatabaseSessionService
         }
     }
 
-    private Task DisconnectInternalAsync()
+    public async Task DisconnectAllAsync()
     {
-        if (_activeConnection != null)
+        await _connectionLock.WaitAsync();
+        try
         {
-            try
+            List<OpenDatabaseSession> sessions;
+            lock (_openSessions)
             {
-                if (_activeConnection.State != ConnectionState.Closed)
-                {
-                    _activeConnection.Close();
-                }
-                _activeConnection.Dispose();
+                sessions = _openSessions.Values.ToList();
+                _openSessions.Clear();
+                ActiveSession = null;
             }
-            catch
-            {
-                // Ignore disposal errors
-            }
-            _activeConnection = null;
-        }
 
-        ActiveConfig = null;
-        ActiveProvider = null;
-        ServerVersion = null;
-        return Task.CompletedTask;
+            foreach (var s in sessions)
+            {
+                try
+                {
+                    if (s.Connection.State != ConnectionState.Closed)
+                    {
+                        s.Connection.Close();
+                    }
+                    s.Connection.Dispose();
+                }
+                catch { }
+            }
+
+            ConnectionChanged?.Invoke();
+        }
+        finally
+        {
+            _connectionLock.Release();
+        }
     }
 
-    public async Task<List<TableMetadata>> GetTablesAsync(CancellationToken cancellationToken = default)
+    private OpenDatabaseSession? ResolveSession(string? sessionKey)
+    {
+        if (!string.IsNullOrEmpty(sessionKey))
+        {
+            lock (_openSessions)
+            {
+                if (_openSessions.TryGetValue(sessionKey, out var s))
+                    return s;
+            }
+        }
+        return ActiveSession;
+    }
+
+    public async Task<List<TableMetadata>> GetTablesAsync(string? sessionKey = null, CancellationToken cancellationToken = default)
     {
         await _connectionLock.WaitAsync(cancellationToken);
         try
         {
-            if (_activeConnection == null || _activeConnection.State != ConnectionState.Open)
+            var session = ResolveSession(sessionKey);
+            if (session == null || session.Connection.State != ConnectionState.Open)
             {
                 return new List<TableMetadata>();
             }
 
-            string sql = ActiveConfig?.DatabaseType switch
+            string sql = session.Config.DatabaseType switch
             {
                 "MSSQL" => @"
                     SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE 
@@ -184,7 +325,7 @@ public class DatabaseSessionService
                     ORDER BY name;"
             };
 
-            using var cmd = _activeConnection.CreateCommand();
+            using var cmd = session.Connection.CreateCommand();
             cmd.CommandText = sql;
 
             var list = new List<TableMetadata>();
@@ -228,7 +369,7 @@ public class DatabaseSessionService
         }
     }
 
-    public async Task<QueryExecutionResult> ExecuteQueryAsync(string sql, CancellationToken cancellationToken = default)
+    public async Task<QueryExecutionResult> ExecuteQueryAsync(string sql, string? sessionKey = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(sql))
         {
@@ -242,7 +383,8 @@ public class DatabaseSessionService
         await _connectionLock.WaitAsync(cancellationToken);
         try
         {
-            if (_activeConnection == null || _activeConnection.State != ConnectionState.Open)
+            var session = ResolveSession(sessionKey);
+            if (session == null || session.Connection.State != ConnectionState.Open)
             {
                 return new QueryExecutionResult
                 {
@@ -252,7 +394,7 @@ public class DatabaseSessionService
             }
 
             var sw = Stopwatch.StartNew();
-            using var cmd = _activeConnection.CreateCommand();
+            using var cmd = session.Connection.CreateCommand();
             cmd.CommandText = sql;
             cmd.CommandTimeout = 30;
 
