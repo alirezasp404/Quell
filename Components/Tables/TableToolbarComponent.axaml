@@ -40,10 +40,10 @@
                         <TextBlock Text="Edit Cell..." VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
-                <Button Classes="classic-tool-btn" Command="{Binding DeleteSelectedRowCommand}" Height="23" Padding="6,2" ToolTip.Tip="Delete selected row with safety confirmation &amp; live SQL (Del)">
+                <Button Classes="classic-tool-btn" Command="{Binding DeleteSelectedRowCommand}" Height="23" Padding="6,2" ToolTip.Tip="Delete selected rows or columns with safety confirmation (Del)">
                     <StackPanel Orientation="Horizontal" Spacing="5">
                         <ui:FASymbolIcon Symbol="Delete" FontSize="11" Foreground="#EF4444" VerticalAlignment="Center"/>
-                        <TextBlock Text="Delete Row" Foreground="#EF4444" VerticalAlignment="Center"/>
+                        <TextBlock Text="Delete" Foreground="#EF4444" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
             </StackPanel>

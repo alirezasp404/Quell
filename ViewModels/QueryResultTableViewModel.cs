@@ -262,6 +262,10 @@ public partial class QueryResultTableViewModel : ViewModelBase
 
     public Action<string>? InsertQueryToEditorCallback { get; set; }
 
+    public Func<IReadOnlyList<QueryResultRow>>? GetSelectedRowsCallback { get; set; }
+
+    public Func<IReadOnlyList<string>>? GetSelectedColumnsCallback { get; set; }
+
     public event Action<IReadOnlyList<string>>? ColumnsChanged;
 
     public ObservableCollection<QueryResultRow> Rows { get; } = new()
@@ -389,19 +393,230 @@ public partial class QueryResultTableViewModel : ViewModelBase
     [RelayCommand]
     public void DeleteSelectedRow()
     {
-        DeleteRow(SelectedRow ?? Rows.FirstOrDefault());
+        var selectedRows = GetSelectedRowsCallback?.Invoke();
+        if (selectedRows != null && selectedRows.Count > 1)
+        {
+            DeleteRows(selectedRows);
+            return;
+        }
+
+        var selectedCols = GetSelectedColumnsCallback?.Invoke();
+        if (selectedCols != null && selectedCols.Count > 1 && (selectedRows == null || selectedRows.Count <= 1))
+        {
+            DeleteColumns(selectedCols);
+            return;
+        }
+
+        DeleteRow(selectedRows?.FirstOrDefault() ?? SelectedRow ?? Rows.FirstOrDefault());
+    }
+
+    [RelayCommand]
+    public void DeleteSelectedColumn()
+    {
+        var selectedCols = GetSelectedColumnsCallback?.Invoke();
+        if (selectedCols != null && selectedCols.Count > 0)
+        {
+            DeleteColumns(selectedCols);
+        }
     }
 
     [RelayCommand]
     public void GenerateDeleteQuery()
     {
-        var targetRow = SelectedRow ?? Rows.FirstOrDefault();
+        var selectedRows = GetSelectedRowsCallback?.Invoke();
+        if (selectedRows != null && selectedRows.Count > 1)
+        {
+            string batchQuery = BuildBatchDeleteQuery(selectedRows);
+            InsertQueryToEditorCallback?.Invoke(batchQuery);
+            LastQueryMessage = $"Generated DELETE query for {selectedRows.Count} rows in SQL editor";
+            HasLastQueryMessage = true;
+            return;
+        }
+
+        var selectedCols = GetSelectedColumnsCallback?.Invoke();
+        if (selectedCols != null && selectedCols.Count > 1 && (selectedRows == null || selectedRows.Count <= 1))
+        {
+            string dropQuery = BuildDropColumnsQuery(selectedCols);
+            InsertQueryToEditorCallback?.Invoke(dropQuery);
+            LastQueryMessage = $"Generated ALTER TABLE DROP COLUMN query for {selectedCols.Count} columns";
+            HasLastQueryMessage = true;
+            return;
+        }
+
+        var targetRow = selectedRows?.FirstOrDefault() ?? SelectedRow ?? Rows.FirstOrDefault();
         if (targetRow == null) return;
 
         string query = BuildDeleteQuery(targetRow);
         InsertQueryToEditorCallback?.Invoke(query);
         LastQueryMessage = "Generated DELETE query in SQL editor";
         HasLastQueryMessage = true;
+    }
+
+    public void DeleteRows(IReadOnlyList<QueryResultRow> rows)
+    {
+        if (rows == null || rows.Count == 0) return;
+
+        if (rows.Count == 1)
+        {
+            DeleteRow(rows[0]);
+            return;
+        }
+
+        string query = BuildBatchDeleteQuery(rows);
+
+        if (RequestConfirmation != null)
+        {
+            RequestConfirmation(
+                "Delete Rows Confirmation",
+                $"Are you sure you want to permanently delete {rows.Count} rows from table '{CurrentTableName}'? This will execute a DELETE statement against the database.",
+                query,
+                () => _ = ExecuteBatchDeleteAsync(rows, query)
+            );
+        }
+        else
+        {
+            _ = ExecuteBatchDeleteAsync(rows, query);
+        }
+    }
+
+    public async Task<bool> ExecuteBatchDeleteAsync(IReadOnlyList<QueryResultRow> rows, string query)
+    {
+        bool success = true;
+        if (ExecuteQueryCallback != null)
+        {
+            success = await ExecuteQueryCallback(query);
+        }
+
+        if (success)
+        {
+            foreach (var r in rows)
+            {
+                Rows.Remove(r);
+                _allRows.Remove(r);
+            }
+            for (int i = 0; i < Rows.Count; i++)
+            {
+                Rows[i].RowIndex = i + 1;
+            }
+            TotalRows = Rows.Count;
+            InsertQueryToEditorCallback?.Invoke(query);
+            LastQueryMessage = $"Deleted {rows.Count} rows: {query}";
+            HasLastQueryMessage = true;
+            return true;
+        }
+        else
+        {
+            LastQueryMessage = "Failed to execute DELETE query against database.";
+            HasLastQueryMessage = true;
+            return false;
+        }
+    }
+
+    public string BuildBatchDeleteQuery(IReadOnlyList<QueryResultRow> rows)
+    {
+        string escapedTable = FormatIdentifier(CurrentTableName, CurrentDatabaseType);
+        string pkCol = PrimaryKeyColumns.FirstOrDefault() ?? FindIdColumn(rows[0]);
+
+        if (!string.IsNullOrEmpty(pkCol) && rows.All(r => !string.IsNullOrEmpty(r[pkCol])))
+        {
+            string escapedPk = FormatIdentifier(pkCol, CurrentDatabaseType);
+            var idList = rows.Select(r => FormatLiteralOrNumber(r[pkCol]));
+            return $"DELETE FROM {escapedTable} WHERE {escapedPk} IN ({string.Join(", ", idList)});";
+        }
+
+        var whereClauses = rows.Select(r => $"({BuildWhereClause(r, CurrentDatabaseType)})");
+        return $"DELETE FROM {escapedTable} WHERE {string.Join(" OR ", whereClauses)};";
+    }
+
+    private static string FormatLiteralOrNumber(string val)
+    {
+        if (long.TryParse(val, out _) || double.TryParse(val, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _))
+        {
+            return val;
+        }
+        return $"'{val.Replace("'", "''")}'";
+    }
+
+    public void DeleteColumns(IReadOnlyList<string> columns)
+    {
+        if (columns == null || columns.Count == 0) return;
+
+        string query = BuildDropColumnsQuery(columns);
+
+        if (RequestConfirmation != null)
+        {
+            RequestConfirmation(
+                "Delete Columns Confirmation",
+                $"Are you sure you want to permanently drop {columns.Count} column(s) ({string.Join(", ", columns)}) from table '{CurrentTableName}'? This will execute an ALTER TABLE statement against the database.",
+                query,
+                () => _ = ExecuteDropColumnsAsync(columns, query)
+            );
+        }
+        else
+        {
+            _ = ExecuteDropColumnsAsync(columns, query);
+        }
+    }
+
+    public async Task<bool> ExecuteDropColumnsAsync(IReadOnlyList<string> columns, string query)
+    {
+        bool success = true;
+        if (ExecuteQueryCallback != null)
+        {
+            success = await ExecuteQueryCallback(query);
+        }
+
+        if (success)
+        {
+            var colSet = new HashSet<string>(columns, StringComparer.OrdinalIgnoreCase);
+            var remaining = (_lastColumns ?? Rows.FirstOrDefault()?.Values.Keys.ToList() ?? new List<string>())
+                .Where(c => !colSet.Contains(c))
+                .ToList();
+
+            foreach (var r in Rows)
+            {
+                foreach (var col in columns)
+                {
+                    r.Values.Remove(col);
+                    r.OriginalValues.Remove(col);
+                }
+            }
+
+            foreach (var r in _allRows)
+            {
+                foreach (var col in columns)
+                {
+                    r.Values.Remove(col);
+                    r.OriginalValues.Remove(col);
+                }
+            }
+
+            SetResults(remaining, Rows.ToList(), ExecutionTime);
+            InsertQueryToEditorCallback?.Invoke(query);
+            LastQueryMessage = $"Dropped {columns.Count} column(s): {string.Join(", ", columns)}";
+            HasLastQueryMessage = true;
+            return true;
+        }
+        else
+        {
+            LastQueryMessage = "Failed to drop column(s) from database.";
+            HasLastQueryMessage = true;
+            return false;
+        }
+    }
+
+    public string BuildDropColumnsQuery(IReadOnlyList<string> columns)
+    {
+        string escapedTable = FormatIdentifier(CurrentTableName, CurrentDatabaseType);
+        var escapedCols = columns.Select(c => FormatIdentifier(c, CurrentDatabaseType)).ToList();
+
+        return CurrentDatabaseType.ToUpperInvariant() switch
+        {
+            "MSSQL" => $"ALTER TABLE {escapedTable} DROP COLUMN {string.Join(", ", escapedCols)};",
+            "POSTGRESQL" or "MYSQL" => $"ALTER TABLE {escapedTable} {string.Join(", ", escapedCols.Select(c => $"DROP COLUMN {c}"))};",
+            "SQLITE" => string.Join("\n", escapedCols.Select(c => $"ALTER TABLE {escapedTable} DROP COLUMN {c};")),
+            _ => $"ALTER TABLE {escapedTable} DROP COLUMN {string.Join(", ", escapedCols)};"
+        };
     }
 
     public void DeleteRow(QueryResultRow? row)

@@ -916,7 +916,76 @@ sealed class Program
             }
             Console.WriteLine("[Success] Footer table Refresh command & real-time search filter verified!");
 
-            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY UI DISTINCTIVENESS, TABLE ROW DELETION & FOOTER REFRESH/FILTER) PASSED! <<<");
+            // [Action] Verifying Multi-Item Selection & Batch Deletion (Deleting multiple selected rows & columns)
+            Console.WriteLine("\n[Action] Verifying Multi-Item Deletion (Multiple Selected Rows & Columns)...");
+            
+            // 1. Reset to clean sample data (5 rows)
+            await vm.SampleQueryResult.RefreshCommand.ExecuteAsync(null);
+            Console.WriteLine($"Starting sample rows: {vm.SampleQueryResult.Rows.Count}");
+            if (vm.SampleQueryResult.Rows.Count != 5) throw new Exception("Expected 5 sample rows!");
+
+            // 2. Select 2 rows (Row 0 and Row 1)
+            var row0 = vm.SampleQueryResult.Rows[0];
+            var row1 = vm.SampleQueryResult.Rows[1];
+            vm.SampleQueryResult.GetSelectedRowsCallback = () => new[] { row0, row1 };
+            Console.WriteLine($"Simulated multi-row selection: 2 rows (Id={row0.Id}, Id={row1.Id})");
+
+            // Test batch delete query generation
+            vm.SampleQueryResult.GenerateDeleteQueryCommand.Execute(null);
+            Console.WriteLine($"Batch DELETE query in editor: '{vm.Editor.SelectedTab?.Text}'");
+            if (vm.Editor.SelectedTab == null || !vm.Editor.SelectedTab.Text.Contains("101") || !vm.Editor.SelectedTab.Text.Contains("102"))
+            {
+                throw new Exception("Batch DELETE query failed to include both selected rows (101 and 102)!");
+            }
+
+            // Test deleting both rows with confirmation
+            vm.SampleQueryResult.DeleteSelectedRowCommand.Execute(null);
+            Console.WriteLine($"ConfirmModal open: {vm.ConfirmModal.IsOpen}, Target: '{vm.ConfirmModal.TargetName}'");
+            if (!vm.ConfirmModal.IsOpen || !vm.ConfirmModal.TargetName!.Contains("101") || !vm.ConfirmModal.TargetName.Contains("102"))
+            {
+                throw new Exception("DeleteSelectedRow failed to prompt confirmation for both selected rows!");
+            }
+            vm.ConfirmModal.ConfirmCommand.Execute(null);
+            Console.WriteLine($"After multi-row delete: Rows Count = {vm.SampleQueryResult.Rows.Count}, TotalRows = {vm.SampleQueryResult.TotalRows}");
+            if (vm.SampleQueryResult.Rows.Count != 3 || vm.SampleQueryResult.TotalRows != 3)
+            {
+                throw new Exception($"Expected 3 rows remaining after deleting 2 rows, but got {vm.SampleQueryResult.Rows.Count}!");
+            }
+            if (System.Linq.Enumerable.Any(vm.SampleQueryResult.Rows, r => r.Id == 101 || r.Id == 102))
+            {
+                throw new Exception("Rows 101 or 102 still found in collection after multi-row delete!");
+            }
+            Console.WriteLine($"[Success] Multi-row batch deletion verified: '{vm.SampleQueryResult.LastQueryMessage}'");
+
+            // 3. Test deleting multiple columns (e.g. 'Role' and 'Status')
+            Console.WriteLine("[Action] Testing Multi-Column Deletion...");
+            vm.SampleQueryResult.GetSelectedRowsCallback = null;
+            vm.SampleQueryResult.GetSelectedColumnsCallback = () => new[] { "Role", "Status" };
+            vm.SampleQueryResult.DeleteSelectedColumnCommand.Execute(null);
+            Console.WriteLine($"ConfirmModal for columns: IsOpen={vm.ConfirmModal.IsOpen}, Target='{vm.ConfirmModal.TargetName}'");
+            if (!vm.ConfirmModal.IsOpen || !vm.ConfirmModal.TargetName!.Contains("DROP COLUMN") || !vm.ConfirmModal.TargetName.Contains("Role"))
+            {
+                throw new Exception("DeleteSelectedColumn failed to open ConfirmModal with ALTER TABLE DROP COLUMN query!");
+            }
+            vm.ConfirmModal.ConfirmCommand.Execute(null);
+            Console.WriteLine($"After column drop: Rows[0] contains Role={vm.SampleQueryResult.Rows[0].Values.ContainsKey("Role")}, Status={vm.SampleQueryResult.Rows[0].Values.ContainsKey("Status")}");
+            if (vm.SampleQueryResult.Rows[0].Values.ContainsKey("Role") || vm.SampleQueryResult.Rows[0].Values.ContainsKey("Status"))
+            {
+                throw new Exception("Dropped columns still exist in row dictionary!");
+            }
+            Console.WriteLine($"[Success] Multi-column drop verified: '{vm.SampleQueryResult.LastQueryMessage}'");
+
+            // 4. Verify PK has NO orange color in Light/Dark themes
+            Console.WriteLine("\n[Action] Verifying PK has NO orange color...");
+            var lightPkBrush = App.Current?.Resources["AppTablePkColumnForegroundBrush"] as Avalonia.Media.SolidColorBrush;
+            Console.WriteLine($"Light PK Color: {lightPkBrush?.Color}");
+            if (lightPkBrush?.Color.ToString() == "#FFD97706" || lightPkBrush?.Color.ToString() == "#FFF59E0B")
+            {
+                throw new Exception("PK brush still has orange color!");
+            }
+            Console.WriteLine("[Success] PK has neutral styling with zero orange coloring!");
+
+            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP & FOOTER REFRESH/FILTER) PASSED! <<<");
             return;
         }
 

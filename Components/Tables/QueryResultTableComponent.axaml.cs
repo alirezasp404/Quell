@@ -66,6 +66,8 @@ public partial class QueryResultTableComponent : UserControl
         {
             _viewModel.CopySelection = null;
             _viewModel.CopyFocusedRow = null;
+            _viewModel.GetSelectedRowsCallback = null;
+            _viewModel.GetSelectedColumnsCallback = null;
             _viewModel.ColumnsChanged -= OnColumnsChanged;
         }
 
@@ -75,6 +77,8 @@ public partial class QueryResultTableComponent : UserControl
 
         _viewModel.CopySelection = BuildSelectionText;
         _viewModel.CopyFocusedRow = BuildFocusedRowText;
+        _viewModel.GetSelectedRowsCallback = GetSelectedRowsList;
+        _viewModel.GetSelectedColumnsCallback = GetSelectedColumnsList;
         _viewModel.ColumnsChanged -= OnColumnsChanged;
         _viewModel.ColumnsChanged += OnColumnsChanged;
     }
@@ -112,8 +116,8 @@ public partial class QueryResultTableComponent : UserControl
 
                     var pkBadge = new Border
                     {
-                        Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#FEF3C7")),
-                        BorderBrush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#F59E0B")),
+                        Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#F1F5F9")),
+                        BorderBrush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#CBD5E1")),
                         BorderThickness = new Avalonia.Thickness(1),
                         CornerRadius = new Avalonia.CornerRadius(3),
                         Padding = new Avalonia.Thickness(3, 1),
@@ -129,9 +133,9 @@ public partial class QueryResultTableComponent : UserControl
                     var keyIcon = new Avalonia.Controls.PathIcon
                     {
                         Data = Avalonia.Media.Geometry.Parse("M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"),
-                        Width = 10,
-                        Height = 10,
-                        Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#D97706")),
+                        Width = 9,
+                        Height = 9,
+                        Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#64748B")),
                         VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
                     };
 
@@ -140,7 +144,7 @@ public partial class QueryResultTableComponent : UserControl
                         Text = "PK",
                         FontSize = 9,
                         FontWeight = Avalonia.Media.FontWeight.Bold,
-                        Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#B45309")),
+                        Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#64748B")),
                         VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
                     };
 
@@ -152,7 +156,7 @@ public partial class QueryResultTableComponent : UserControl
                     {
                         Text = colName.ToUpperInvariant(),
                         FontWeight = Avalonia.Media.FontWeight.Bold,
-                        Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#D97706")),
+                        Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#0F172A")),
                         VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
                     };
 
@@ -300,10 +304,9 @@ public partial class QueryResultTableComponent : UserControl
 
         if (e.Key == Key.Delete)
         {
-            var targetRow = _activeRow ?? _viewModel?.SelectedRow;
-            if (targetRow != null)
+            if (_viewModel?.DeleteSelectedRowCommand.CanExecute(null) == true)
             {
-                _viewModel?.DeleteRow(targetRow);
+                _viewModel.DeleteSelectedRowCommand.Execute(null);
                 e.Handled = true;
                 return;
             }
@@ -726,6 +729,58 @@ public partial class QueryResultTableComponent : UserControl
 
     private static bool IsRowHeader(DataGridColumn column) =>
         column.Header?.ToString() == "ROW #";
+
+    public IReadOnlyList<QueryResultRow> GetSelectedRowsList()
+    {
+        if (ResultsDataGrid.CollectionView is DataGridCollectionView view &&
+            TryGetSpan(out var r1, out var r2, out _, out _))
+        {
+            var list = new List<QueryResultRow>();
+            for (int i = r1; i <= r2 && i < view.Count; i++)
+            {
+                if (view.GetItemAt(i) is QueryResultRow row)
+                {
+                    list.Add(row);
+                }
+            }
+            if (list.Count > 0)
+                return list;
+        }
+
+        var active = _activeRow ?? ResultsDataGrid.SelectedItem as QueryResultRow;
+        return active != null ? new[] { active } : Array.Empty<QueryResultRow>();
+    }
+
+    public IReadOnlyList<string> GetSelectedColumnsList()
+    {
+        if (!TryGetSpan(out _, out _, out var c1, out var c2))
+        {
+            var curCol = ResultsDataGrid.CurrentColumn;
+            string? headerName = ExtractHeaderName(curCol);
+            return !string.IsNullOrEmpty(headerName) && headerName != "ROW #" ? new[] { headerName } : Array.Empty<string>();
+        }
+
+        var columns = ResultsDataGrid.Columns
+            .Where(column => !IsRowHeader(column) && column.DisplayIndex >= c1 && column.DisplayIndex <= c2)
+            .OrderBy(column => column.DisplayIndex)
+            .Select(ExtractHeaderName)
+            .Where(h => !string.IsNullOrEmpty(h) && h != "ROW #")
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return columns;
+    }
+
+    private static string ExtractHeaderName(DataGridColumn? column)
+    {
+        if (column == null) return string.Empty;
+        if (column.Header is StackPanel sp)
+        {
+            var tb = sp.Children.OfType<TextBlock>().LastOrDefault();
+            return tb?.Text ?? string.Empty;
+        }
+        return column.Header?.ToString() ?? string.Empty;
+    }
 
     private static string CellText(QueryResultRow row, DataGridColumn column)
     {
