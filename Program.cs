@@ -442,6 +442,30 @@ sealed class Program
             var storageService = Fdb.Services.DatabaseStorageService.Instance;
             await storageService.InitializeAsync();
 
+            Console.WriteLine($"SQLite DatabasePath: '{storageService.DatabasePath}'");
+            if (storageService.DatabasePath.Contains("bin\\Debug") || storageService.DatabasePath.Contains("bin/Debug"))
+            {
+                throw new Exception("SQLite database path should not be inside binary output directory!");
+            }
+
+            // Verify DatabaseInitialized flag in AppSettings
+            string isInit = await storageService.GetSettingAsync("DatabaseInitialized") ?? "";
+            Console.WriteLine($"DatabaseInitialized setting in AppSettings: '{isInit}'");
+            if (isInit != "true")
+            {
+                throw new Exception("DatabaseInitialized flag missing in AppSettings after init!");
+            }
+
+            // Test subsequent run idempotency: re-running InitializeAsync should NOT re-seed, duplicate or overwrite
+            int kwCountBefore = (await storageService.GetKeywordsAsync("MSSQL")).Count;
+            await storageService.InitializeAsync();
+            int kwCountAfter = (await storageService.GetKeywordsAsync("MSSQL")).Count;
+            if (kwCountBefore != kwCountAfter)
+            {
+                throw new Exception($"Re-running InitializeAsync altered keyword count! Before={kwCountBefore}, After={kwCountAfter}");
+            }
+            Console.WriteLine($"Subsequent launch idempotency verified: Init skipped, keywords preserved ({kwCountAfter})");
+
             var dialects = await storageService.GetSupportedDialectsAsync();
             Console.WriteLine($"SQLite Supported Dialects: {string.Join(", ", dialects)}");
             if (!dialects.Contains("MSSQL") || !dialects.Contains("PostgreSQL") || !dialects.Contains("MySQL") || !dialects.Contains("SQLite"))

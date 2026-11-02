@@ -77,12 +77,37 @@ public class DatabaseStorageService
     private readonly System.Threading.SemaphoreSlim _initLock = new(1, 1);
     private bool _initialized;
 
+    public string DatabasePath { get; }
+    public bool IsFirstRun { get; private set; }
+
+    public static string ResolveDatabasePath()
+    {
+        string? envPath = Environment.GetEnvironmentVariable("FDB_STUDIO_DB_PATH");
+        if (!string.IsNullOrWhiteSpace(envPath))
+        {
+            var dir = Path.GetDirectoryName(envPath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+            return envPath;
+        }
+
+        string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        string appFolder = Path.Combine(appData, "FdbStudio");
+        if (!Directory.Exists(appFolder))
+        {
+            Directory.CreateDirectory(appFolder);
+        }
+        return Path.Combine(appFolder, "fdb_studio.db");
+    }
+
     public DatabaseStorageService()
     {
-        string dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "fdb_studio.db");
+        DatabasePath = ResolveDatabasePath();
         _connectionString = new SqliteConnectionStringBuilder
         {
-            DataSource = dbPath,
+            DataSource = DatabasePath,
             Mode = SqliteOpenMode.ReadWriteCreate
         }.ToString();
     }
@@ -113,91 +138,74 @@ public class DatabaseStorageService
             await using var connection = new SqliteConnection(_connectionString);
             await connection.OpenAsync();
 
-            // Locate init_database.sql file
-            string sqlFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "init_database.sql");
-            if (!File.Exists(sqlFilePath))
+            // Check if database was already initialized on a previous run
+            bool isAlreadyInitialized = false;
+            try
             {
-                sqlFilePath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "init_database.sql");
+                var initVal = await connection.ExecuteScalarAsync<string>(
+                    "SELECT Value FROM AppSettings WHERE Key = 'DatabaseInitialized';");
+                isAlreadyInitialized = initVal == "true" || initVal == "1";
+            }
+            catch
+            {
+                // AppSettings table does not exist -> First run
+                isAlreadyInitialized = false;
             }
 
-            if (File.Exists(sqlFilePath))
+            IsFirstRun = !isAlreadyInitialized;
+
+            if (!isAlreadyInitialized)
             {
-                string fullSql = await File.ReadAllTextAsync(sqlFilePath);
-                await ExecuteInitScriptStepsAsync(connection, fullSql, reportProgress);
+                // FIRST RUN INITIALIZATION: Run schema setup and seed keywords
+                reportProgress?.Invoke(20, "First-time setup: Initializing SQLite database schema...");
+
+                string sqlFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "init_database.sql");
+                if (!File.Exists(sqlFilePath))
+                {
+                    sqlFilePath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "init_database.sql");
+                }
+
+                if (File.Exists(sqlFilePath))
+                {
+                    string fullSql = await File.ReadAllTextAsync(sqlFilePath);
+                    await ExecuteInitScriptStepsAsync(connection, fullSql, reportProgress);
+                }
+                else
+                {
+                    reportProgress?.Invoke(30, "Running core SQLite schema initialization...");
+                    await ExecuteFallbackSchemaAsync(connection);
+                }
+
+                // Mark database as initialized in AppSettings so it NEVER re-runs init script again
+                await connection.ExecuteAsync(@"
+                    INSERT OR REPLACE INTO AppSettings (Key, Value, UpdatedAt) 
+                    VALUES ('DatabaseInitialized', 'true', datetime('now'));
+                    INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) 
+                    VALUES ('Theme', 'Light', datetime('now'));
+                    INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) 
+                    VALUES ('KeywordColor', 'Blue', datetime('now'));
+                    INSERT OR REPLACE INTO AppSettings (Key, Value, UpdatedAt) 
+                    VALUES ('InstalledAt', datetime('now'), datetime('now'));
+                ");
+
+                reportProgress?.Invoke(85, "Initial SQLite setup complete.");
             }
             else
             {
-                // Fallback direct execution if file is missing
-                reportProgress?.Invoke(30, "Running core SQLite schema initialization...");
-                await ExecuteFallbackSchemaAsync(connection);
+                // SUBSEQUENT RUNS: Skip all init scripts & preserve user data
+                reportProgress?.Invoke(40, "SQLite database ready. Loading cached configurations...");
             }
 
-            // Schema migrations / safety checks
+            // Schema migrations / safety checks (safe for both first-run and existing installs)
             try
             {
                 await connection.ExecuteAsync("ALTER TABLE Connections ADD COLUMN DatabaseType TEXT DEFAULT 'MSSQL';");
-            }
-            catch
-            {
-                // Column already exists
-            }
-
-            try
-            {
-                await connection.ExecuteAsync("ALTER TABLE Connections ADD COLUMN Password TEXT DEFAULT '';");
-            }
-            catch
-            {
-                // Column already exists
-            }
-
-            try
-            {
-                await connection.ExecuteAsync("DELETE FROM Connections WHERE Server LIKE '%fdb_studio%' OR DatabaseName LIKE '%fdb_studio%';");
-            }
-            catch
-            {
-            }
-
-            try
-            {
-                // Backfill any empty passwords from records that have a password for the same server/database
-                await connection.ExecuteAsync(@"
-                    UPDATE Connections 
-                    SET Password = (
-                        SELECT c2.Password 
-                        FROM Connections c2 
-                        WHERE c2.Server = Connections.Server 
-                          AND c2.DatabaseName = Connections.DatabaseName 
-                          AND c2.Password IS NOT NULL 
-                          AND c2.Password != '' 
-                        ORDER BY c2.Id DESC 
-                        LIMIT 1
-                    )
-                    WHERE (Password IS NULL OR Password = '') 
-                      AND EXISTS (
-                        SELECT 1 
-                        FROM Connections c2 
-                        WHERE c2.Server = Connections.Server 
-                          AND c2.DatabaseName = Connections.DatabaseName 
-                          AND c2.Password IS NOT NULL 
-                          AND c2.Password != ''
-                    );
-                ");
             }
             catch { }
 
             try
             {
-                // Deduplicate old duplicates in Connections, keeping the newest one
-                await connection.ExecuteAsync(@"
-                    DELETE FROM Connections 
-                    WHERE Id NOT IN (
-                        SELECT MAX(Id) 
-                        FROM Connections 
-                        GROUP BY Server, Port, DatabaseName, DatabaseType
-                    );
-                ");
+                await connection.ExecuteAsync("ALTER TABLE Connections ADD COLUMN Password TEXT DEFAULT '';");
             }
             catch { }
 

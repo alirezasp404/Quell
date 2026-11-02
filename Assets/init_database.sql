@@ -66,6 +66,8 @@ CREATE TABLE IF NOT EXISTS AppSettings (
 );
 
 INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('Theme', 'Light', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('KeywordColor', 'Blue', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('DatabaseInitialized', 'true', datetime('now'));
 
 CREATE INDEX IF NOT EXISTS idx_dialect_keywords ON DialectKeywords(Dialect, Keyword);
 CREATE INDEX IF NOT EXISTS idx_dialect_snippets ON DialectSnippets(Dialect, Keyword);
@@ -258,8 +260,7 @@ INSERT OR IGNORE INTO DialectSnippets (Dialect, Keyword, Snippet, Description) V
 ('SQLite', 'PRAGMA TABLE INFO', 'PRAGMA table_info(TableName);', 'Inspect table columns metadata (SQLite)');
 
 -- [STEP 4/4] Seed Initial App Data & Default Session
-INSERT OR IGNORE INTO Connections (Id, Server, Port, DatabaseName, AuthType, Username, LastConnectedAt)
-VALUES (1, 'localhost', 1433, 'master', 'SQL Server Authentication', 'sa', datetime('now'));
+-- Connections table starts completely clean and empty for new users (no developer connections)
 
 INSERT OR IGNORE INTO QueryHistory (Id, QueryText, ExecutedAt, ExecutionTime, RowCount, Status)
 VALUES 
