@@ -309,6 +309,16 @@ public partial class QueryResultTableComponent : UserControl
             }
         }
 
+        if (e.Key == Key.F5)
+        {
+            if (_viewModel?.RefreshCommand.CanExecute(null) == true)
+            {
+                _viewModel.RefreshCommand.Execute(null);
+                e.Handled = true;
+                return;
+            }
+        }
+
         if (ResultsDataGrid.CollectionView is not DataGridCollectionView view || view.Count == 0)
             return;
 

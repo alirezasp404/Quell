@@ -23,7 +23,12 @@
                          CornerRadius="4" 
                          PlaceholderText="Filter table rows..." 
                          Text="{Binding SearchFilter}"/>
-                <Button Classes="classic-tool-btn" Command="{Binding RefreshCommand}" Height="23" Padding="6,2">
+                <Button Classes="classic-tool-btn" 
+                        Command="{Binding RefreshCommand}" 
+                        IsEnabled="{Binding !IsRefreshing}"
+                        Height="23" 
+                        Padding="6,2" 
+                        ToolTip.Tip="Refresh table data from database (F5)">
                     <StackPanel Orientation="Horizontal" Spacing="5">
                         <ui:FASymbolIcon Symbol="Refresh" FontSize="11" VerticalAlignment="Center"/>
                         <TextBlock Text="Refresh" VerticalAlignment="Center"/>

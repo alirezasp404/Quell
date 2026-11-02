@@ -96,6 +96,16 @@ public partial class QueryResultTableViewModel : ViewModelBase
     private string _searchFilter = string.Empty;
 
     [ObservableProperty]
+    private string _lastExecutedQuery = string.Empty;
+
+    [ObservableProperty]
+    private bool _isRefreshing;
+
+    public Func<Task>? RefreshCallback { get; set; }
+
+    private readonly List<QueryResultRow> _allRows = new();
+
+    [ObservableProperty]
     private int _totalRows = 5;
 
     [ObservableProperty]
@@ -115,6 +125,58 @@ public partial class QueryResultTableViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _hasPrimaryKey = true;
+
+    partial void OnSearchFilterChanged(string value)
+    {
+        ApplyFilter(value);
+    }
+
+    public void ApplyFilter(string? filter)
+    {
+        if (_allRows.Count == 0 && Rows.Count > 0)
+        {
+            _allRows.AddRange(Rows);
+        }
+
+        if (string.IsNullOrWhiteSpace(filter))
+        {
+            if (Rows.Count != _allRows.Count)
+            {
+                Rows.Clear();
+                foreach (var r in _allRows) Rows.Add(r);
+                TotalRows = Rows.Count;
+            }
+            return;
+        }
+
+        string term = filter.Trim();
+        var filtered = _allRows.Where(r => MatchesFilter(r, term)).ToList();
+
+        Rows.Clear();
+        foreach (var r in filtered) Rows.Add(r);
+        TotalRows = Rows.Count;
+    }
+
+    private static bool MatchesFilter(QueryResultRow row, string term)
+    {
+        if (row.Name.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+            row.Email.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+            row.Role.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+            row.Status.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+            row.Id.ToString().Contains(term, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        foreach (var val in row.Values.Values)
+        {
+            if (val != null && val.Contains(term, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public HashSet<string> PrimaryKeyColumns { get; } = new(StringComparer.OrdinalIgnoreCase) { "Id", "ID", "user_id" };
 
@@ -229,6 +291,8 @@ public partial class QueryResultTableViewModel : ViewModelBase
             r.OriginalValues["Status"] = r.Status;
             r.OriginalValues["CreatedAt"] = r.CreatedAt;
         }
+        _allRows.Clear();
+        _allRows.AddRange(Rows);
     }
 
     public void SetResults(IReadOnlyList<string> columns, IReadOnlyList<QueryResultRow> newRows, string execTime)
@@ -236,6 +300,9 @@ public partial class QueryResultTableViewModel : ViewModelBase
         void Apply()
         {
             _lastColumns = columns;
+            _allRows.Clear();
+            _allRows.AddRange(newRows);
+
             Rows.Clear();
             foreach (var r in newRows)
             {
@@ -245,7 +312,15 @@ public partial class QueryResultTableViewModel : ViewModelBase
                 }
                 Rows.Add(r);
             }
-            TotalRows = newRows.Count;
+
+            if (!string.IsNullOrWhiteSpace(SearchFilter))
+            {
+                ApplyFilter(SearchFilter);
+            }
+            else
+            {
+                TotalRows = newRows.Count;
+            }
             ExecutionTime = execTime;
 
             if (PrimaryKeyColumns.Count == 0 || !columns.Any(c => PrimaryKeyColumns.Contains(c)))
@@ -499,9 +574,73 @@ public partial class QueryResultTableViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void Refresh()
+    public async Task Refresh()
     {
-        // Ready for refresh query execution
+        IsRefreshing = true;
+        try
+        {
+            if (RefreshCallback != null)
+            {
+                await RefreshCallback();
+            }
+            else
+            {
+                ResetToSampleData();
+            }
+        }
+        catch (Exception ex)
+        {
+            LastQueryMessage = $"Refresh failed: {ex.Message}";
+            HasLastQueryMessage = true;
+        }
+        finally
+        {
+            IsRefreshing = false;
+        }
+    }
+
+    public void ResetToSampleData()
+    {
+        var sampleRows = new List<QueryResultRow>
+        {
+            new QueryResultRow { RowIndex = 1, Id = 101, Name = "Alice Johnson", Email = "alice@example.com", Role = "DBA", Status = "Active", CreatedAt = "2026-01-15 08:30:00" },
+            new QueryResultRow { RowIndex = 2, Id = 102, Name = "Bob Smith", Email = "bob@example.com", Role = "Developer", Status = "Active", CreatedAt = "2026-02-10 11:15:22" },
+            new QueryResultRow { RowIndex = 3, Id = 103, Name = "Charlie Davis", Email = "charlie@example.com", Role = "Analyst", Status = "Pending", CreatedAt = "2026-03-01 14:45:00" },
+            new QueryResultRow { RowIndex = 4, Id = 104, Name = "Dana White", Email = "dana@example.com", Role = "Admin", Status = "Active", CreatedAt = "2026-03-12 09:20:11" },
+            new QueryResultRow { RowIndex = 5, Id = 105, Name = "Evan Wright", Email = "evan@example.com", Role = "Developer", Status = "Inactive", CreatedAt = "2026-04-05 16:00:45" }
+        };
+
+        foreach (var r in sampleRows)
+        {
+            r.OriginalValues["Id"] = r.Id.ToString();
+            r.OriginalValues["Name"] = r.Name;
+            r.OriginalValues["Email"] = r.Email;
+            r.OriginalValues["Role"] = r.Role;
+            r.OriginalValues["Status"] = r.Status;
+            r.OriginalValues["CreatedAt"] = r.CreatedAt;
+        }
+
+        _allRows.Clear();
+        _allRows.AddRange(sampleRows);
+
+        Rows.Clear();
+        foreach (var r in sampleRows)
+        {
+            Rows.Add(r);
+        }
+
+        if (!string.IsNullOrWhiteSpace(SearchFilter))
+        {
+            ApplyFilter(SearchFilter);
+        }
+        else
+        {
+            TotalRows = Rows.Count;
+        }
+
+        ExecutionTime = "0 ms";
+        LastQueryMessage = $"Table refreshed ({TotalRows} rows)";
+        HasLastQueryMessage = true;
     }
 
     [RelayCommand]

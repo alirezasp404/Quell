@@ -96,6 +96,7 @@ public partial class MainViewModel : ViewModelBase
         };
         _sampleQueryResult.ExecuteQueryCallback = _sampleQueryResult.EditCellModal.ExecuteQueryCallback;
         _sampleQueryResult.InsertQueryToEditorCallback = _sampleQueryResult.EditCellModal.InsertQueryToEditorCallback;
+        _sampleQueryResult.RefreshCallback = RefreshQueryResultAsync;
 
         // Wire sidebar actions to editor and connect modal
         _sidebar.InsertQueryToEditor = q =>
@@ -391,6 +392,7 @@ public partial class MainViewModel : ViewModelBase
         if (result.Success && result.ColumnNames.Count > 0)
         {
             SampleQueryResult.SetResults(result.ColumnNames, result.Rows, result.ExecutionTime);
+            SampleQueryResult.LastExecutedQuery = query;
             rowCount = result.Rows.Count;
         }
         else if (!result.Success)
@@ -438,6 +440,72 @@ public partial class MainViewModel : ViewModelBase
 
         _ = Sidebar.RefreshAsync();
         ShowFooter();
+    }
+
+    public async Task RefreshQueryResultAsync()
+    {
+        string? activeKey = SelectedTargetDatabase?.Key;
+        if (string.IsNullOrEmpty(activeKey) || SelectedTargetDatabase == null || !DatabaseSessionService.Instance.IsSessionOpen(activeKey))
+        {
+            SampleQueryResult.ResetToSampleData();
+            return;
+        }
+
+        string queryToRun;
+        if (!string.IsNullOrWhiteSpace(SampleQueryResult.LastExecutedQuery) &&
+            SampleQueryResult.LastExecutedQuery.TrimStart().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
+        {
+            queryToRun = SampleQueryResult.LastExecutedQuery;
+        }
+        else if (!string.IsNullOrWhiteSpace(SampleQueryResult.CurrentTableName))
+        {
+            queryToRun = SampleQueryResult.CurrentDatabaseType == "MSSQL"
+                ? $"SELECT TOP 100 * FROM {SampleQueryResult.CurrentTableName};"
+                : $"SELECT * FROM {SampleQueryResult.CurrentTableName} LIMIT 100;";
+        }
+        else if (!string.IsNullOrWhiteSpace(Editor.SelectedTab?.Text) &&
+                 Editor.SelectedTab.Text.TrimStart().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
+        {
+            queryToRun = Editor.SelectedTab.Text;
+        }
+        else
+        {
+            queryToRun = "SELECT * FROM Users LIMIT 100;";
+        }
+
+        var result = await DatabaseSessionService.Instance.ExecuteQueryAsync(queryToRun, activeKey);
+        if (result.Success && result.ColumnNames.Count > 0)
+        {
+            SampleQueryResult.SetResults(result.ColumnNames, result.Rows, result.ExecutionTime);
+            SampleQueryResult.LastExecutedQuery = queryToRun;
+            SampleQueryResult.LastQueryMessage = $"Table refreshed ({result.Rows.Count} rows) · {result.ExecutionTime}";
+            SampleQueryResult.HasLastQueryMessage = true;
+
+            string? inferredTable = ExtractTableNameFromQuery(queryToRun) ?? SampleQueryResult.CurrentTableName;
+            if (!string.IsNullOrWhiteSpace(inferredTable))
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var pks = await DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(inferredTable, activeKey);
+                        if (pks != null && pks.Count > 0)
+                        {
+                            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                            {
+                                SampleQueryResult.SetPrimaryKeys(pks);
+                            });
+                        }
+                    }
+                    catch { }
+                });
+            }
+        }
+        else if (!result.Success)
+        {
+            SampleQueryResult.LastQueryMessage = $"Refresh failed: {result.Message}";
+            SampleQueryResult.HasLastQueryMessage = true;
+        }
     }
 
     [RelayCommand]

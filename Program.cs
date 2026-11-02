@@ -872,7 +872,51 @@ sealed class Program
             }
             Console.WriteLine($"[Success] Row deletion verified: '{vm.SampleQueryResult.LastQueryMessage}'");
 
-            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY UI DISTINCTIVENESS & TABLE ROW DELETION) PASSED! <<<");
+            // [Action] Verifying Footer Table Refresh Command & Real-time Row Search Filter
+            Console.WriteLine("\n[Action] Verifying Footer Table Refresh & Search Filter...");
+            Console.WriteLine($"Rows before refresh: {vm.SampleQueryResult.Rows.Count}");
+            
+            // 1. Test Refresh in Disconnected Mode (Restores clean sample dataset)
+            await vm.SampleQueryResult.RefreshCommand.ExecuteAsync(null);
+            Console.WriteLine($"After Refresh: Rows={vm.SampleQueryResult.Rows.Count}, TotalRows={vm.SampleQueryResult.TotalRows}, LastMessage='{vm.SampleQueryResult.LastQueryMessage}'");
+            if (vm.SampleQueryResult.Rows.Count != 5 || vm.SampleQueryResult.TotalRows != 5 || vm.SampleQueryResult.Rows[0].Name != "Alice Johnson")
+            {
+                throw new Exception($"Refresh failed to restore 5 sample rows! Count={vm.SampleQueryResult.Rows.Count}, Row 0={(vm.SampleQueryResult.Rows.Count > 0 ? vm.SampleQueryResult.Rows[0].Name : null)}");
+            }
+
+            // 2. Test Real-time Search Filter
+            Console.WriteLine("[Action] Testing SearchFilter with 'Bob'...");
+            vm.SampleQueryResult.SearchFilter = "Bob";
+            Console.WriteLine($"Filtered Rows Count: {vm.SampleQueryResult.Rows.Count}, Item 0: '{vm.SampleQueryResult.Rows[0].Name}'");
+            if (vm.SampleQueryResult.Rows.Count != 1 || vm.SampleQueryResult.Rows[0].Name != "Bob Smith")
+            {
+                throw new Exception($"SearchFilter 'Bob' failed! Got {vm.SampleQueryResult.Rows.Count} rows.");
+            }
+
+            // Clear search filter
+            vm.SampleQueryResult.SearchFilter = string.Empty;
+            Console.WriteLine($"After clearing filter: Rows={vm.SampleQueryResult.Rows.Count}");
+            if (vm.SampleQueryResult.Rows.Count != 5)
+            {
+                throw new Exception($"Clearing SearchFilter failed! Expected 5 rows, got {vm.SampleQueryResult.Rows.Count}");
+            }
+
+            // 3. Test Refresh on Active Database Session
+            var activeSession = Fdb.Services.DatabaseProviders.DatabaseSessionService.Instance.ActiveSession;
+            if (activeSession != null)
+            {
+                Console.WriteLine($"[Action] Testing Refresh on active session: {activeSession.DisplayName}...");
+                vm.SampleQueryResult.LastExecutedQuery = "SELECT 1 AS RefreshTest, 'Active' AS State;";
+                await vm.SampleQueryResult.RefreshCommand.ExecuteAsync(null);
+                Console.WriteLine($"After active DB refresh: Rows={vm.SampleQueryResult.Rows.Count}, Message='{vm.SampleQueryResult.LastQueryMessage}'");
+                if (vm.SampleQueryResult.Rows.Count != 1 || !vm.SampleQueryResult.LastQueryMessage.Contains("Table refreshed"))
+                {
+                    throw new Exception("Refresh on active database session failed to reload query results!");
+                }
+            }
+            Console.WriteLine("[Success] Footer table Refresh command & real-time search filter verified!");
+
+            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY UI DISTINCTIVENESS, TABLE ROW DELETION & FOOTER REFRESH/FILTER) PASSED! <<<");
             return;
         }
 

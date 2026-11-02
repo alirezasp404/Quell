@@ -203,6 +203,12 @@
                             </MenuItem.Icon>
                         </MenuItem>
                         <Separator />
+                        <MenuItem Header="Refresh Table Data" Command="{Binding RefreshCommand}" InputGesture="F5">
+                            <MenuItem.Icon>
+                                <ui:FASymbolIcon Symbol="Refresh" FontSize="11" />
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <Separator />
                         <MenuItem Header="Copy Cell Value" Command="{Binding CopyCellCommand}" InputGesture="Ctrl+C" />
                         <MenuItem Header="Copy Entire Row" Command="{Binding CopyRowCommand}" />
                         <Separator />
