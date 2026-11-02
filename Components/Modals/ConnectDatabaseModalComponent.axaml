@@ -45,7 +45,7 @@
                         </Border>
 
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="Connect to Database" 
+                            <TextBlock Text="{Binding ModalTitle}" 
                                        Foreground="{DynamicResource AppTextPrimaryBrush}" 
                                        FontSize="13" 
                                        FontWeight="Bold"/>
@@ -341,7 +341,7 @@
                                     FontSize="11" 
                                     CornerRadius="4" 
                                     Padding="16,6"
-                                    Content="Connect" 
+                                    Content="{Binding ConnectButtonText}" 
                                     Command="{Binding ConnectCommand}"
                                     IsEnabled="{Binding !IsConnecting}"/>
                         </StackPanel>

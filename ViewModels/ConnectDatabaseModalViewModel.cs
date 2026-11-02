@@ -31,6 +31,16 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
     private bool _isOpen;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsEditMode))]
+    [NotifyPropertyChangedFor(nameof(ModalTitle))]
+    [NotifyPropertyChangedFor(nameof(ConnectButtonText))]
+    private int? _editingConnectionId;
+
+    public bool IsEditMode => EditingConnectionId.HasValue && EditingConnectionId.Value > 0;
+    public string ModalTitle => IsEditMode ? "Edit Database Connection" : "Connect to Database";
+    public string ConnectButtonText => IsEditMode ? "Save & Connect" : "Connect";
+
+    [ObservableProperty]
     private string _selectedDatabaseType = "MSSQL";
 
     public ObservableCollection<DatabaseEngineItem> EngineOptions { get; } = new()
@@ -185,9 +195,27 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
     [RelayCommand]
     public void Open()
     {
+        EditingConnectionId = null;
         IsOpen = true;
         StatusMessage = null;
         IsSuccess = null;
+        _ = LoadSavedConnectionsAsync();
+    }
+
+    public void OpenForEdit(ConnectionRecord record)
+    {
+        if (record == null) return;
+        EditingConnectionId = record.Id;
+        SelectEngine(record.DatabaseType ?? "MSSQL");
+        Server = record.Server;
+        Port = record.Port;
+        Database = record.DatabaseName;
+        if (!string.IsNullOrEmpty(record.AuthType)) AuthType = record.AuthType;
+        if (!string.IsNullOrEmpty(record.Username)) Username = record.Username;
+        if (record.DatabaseType == "SQLite") FilePath = record.Server;
+        StatusMessage = null;
+        IsSuccess = null;
+        IsOpen = true;
         _ = LoadSavedConnectionsAsync();
     }
 
@@ -264,9 +292,19 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
         {
             var config = BuildCurrentConfig();
 
-            // 1. Persist connection record to SQLite storage
-            int connId = await DatabaseStorageService.Instance.SaveConnectionAsync(
-                Server, Port, Database, AuthType, Username, SelectedDatabaseType);
+            // 1. Persist or update connection record in SQLite storage
+            int connId;
+            if (IsEditMode)
+            {
+                connId = EditingConnectionId!.Value;
+                await DatabaseStorageService.Instance.UpdateConnectionAsync(
+                    connId, Server, Port, Database, AuthType, Username, SelectedDatabaseType);
+            }
+            else
+            {
+                connId = await DatabaseStorageService.Instance.SaveConnectionAsync(
+                    Server, Port, Database, AuthType, Username, SelectedDatabaseType);
+            }
 
             // Reload saved connections
             await LoadSavedConnectionsAsync();

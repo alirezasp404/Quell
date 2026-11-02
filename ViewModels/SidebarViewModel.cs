@@ -32,16 +32,16 @@ public partial class SidebarViewModel : ViewModelBase
     private bool _isConnected;
 
     [ObservableProperty]
-    private string _connectionTitle = "Local Storage (SQLite)";
+    private string _connectionTitle = "Not Connected";
 
     [ObservableProperty]
-    private string _databaseType = "SQLite";
+    private string _databaseType = string.Empty;
 
     [ObservableProperty]
-    private string _databaseName = "fdb_studio.db";
+    private string _databaseName = string.Empty;
 
     [ObservableProperty]
-    private string _serverVersion = "SQLite";
+    private string _serverVersion = string.Empty;
 
     [ObservableProperty]
     private string _statusText = "Ready";
@@ -53,7 +53,14 @@ public partial class SidebarViewModel : ViewModelBase
     private TableMetadata? _selectedTable;
 
     [ObservableProperty]
+    private SidebarTreeNodeBase? _selectedTreeNode;
+
+    [ObservableProperty]
     private bool _isLoading;
+
+    public ObservableCollection<DatabaseConnectionTreeNode> DatabaseNodes { get; } = new();
+
+    public ObservableCollection<DatabaseConnectionTreeNode> FilteredDatabaseNodes { get; } = new();
 
     public ObservableCollection<TableMetadata> Tables { get; } = new();
 
@@ -67,11 +74,12 @@ public partial class SidebarViewModel : ViewModelBase
     public Func<string, Task>? ExecuteQueryInEditor { get; set; }
     public Action? OpenConnectModal { get; set; }
     public Action<ConnectionRecord>? RequestActivateConnection { get; set; }
+    public Action<ConnectionRecord>? RequestEditConnection { get; set; }
     public event Action<ConnectionRecord>? ConnectionDeleted;
+    public event Action<ConnectionRecord>? ConnectionDisconnected;
 
     public SidebarViewModel()
     {
-        // Listen to live database connection changes
         DatabaseSessionService.Instance.ConnectionChanged += () =>
         {
             Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
@@ -90,12 +98,25 @@ public partial class SidebarViewModel : ViewModelBase
 
     partial void OnTableSearchFilterChanged(string value)
     {
-        ApplyTableFilter();
+        ApplyFilter();
     }
 
-    private void ApplyTableFilter()
+    partial void OnSelectedTreeNodeChanged(SidebarTreeNodeBase? value)
+    {
+        if (value is DatabaseConnectionTreeNode dbNode)
+        {
+            _ = ConnectDatabaseNodeAsync(dbNode);
+        }
+        else if (value is TableTreeNode tableNode)
+        {
+            _ = SelectTableNode(tableNode);
+        }
+    }
+
+    private void ApplyFilter()
     {
         FilteredTables.Clear();
+        FilteredDatabaseNodes.Clear();
         var filter = TableSearchFilter?.Trim().ToLowerInvariant();
 
         foreach (var t in Tables)
@@ -103,6 +124,32 @@ public partial class SidebarViewModel : ViewModelBase
             if (string.IsNullOrEmpty(filter) || t.FullName.ToLowerInvariant().Contains(filter))
             {
                 FilteredTables.Add(t);
+            }
+        }
+
+        if (string.IsNullOrEmpty(filter))
+        {
+            foreach (var node in DatabaseNodes)
+            {
+                FilteredDatabaseNodes.Add(node);
+            }
+            return;
+        }
+
+        foreach (var node in DatabaseNodes)
+        {
+            bool dbMatch = node.Title.ToLowerInvariant().Contains(filter) ||
+                           node.DatabaseType.ToLowerInvariant().Contains(filter) ||
+                           node.Server.ToLowerInvariant().Contains(filter) ||
+                           node.DatabaseName.ToLowerInvariant().Contains(filter);
+
+            bool tableMatch = node.TablesFolder?.Children.Any(c => c.Title.ToLowerInvariant().Contains(filter)) == true;
+
+            if (dbMatch || tableMatch)
+            {
+                node.IsExpanded = true;
+                if (node.TablesFolder != null) node.TablesFolder.IsExpanded = true;
+                FilteredDatabaseNodes.Add(node);
             }
         }
     }
@@ -113,43 +160,7 @@ public partial class SidebarViewModel : ViewModelBase
         IsLoading = true;
         try
         {
-            var session = DatabaseSessionService.Instance;
-            if (session.IsConnected && session.ActiveConfig != null)
-            {
-                IsConnected = true;
-                ConnectionTitle = session.ConnectionDisplayText;
-                DatabaseType = session.ActiveConfig.DatabaseType;
-                DatabaseName = session.ActiveConfig.Database;
-                ServerVersion = session.ServerVersion ?? "Connected";
-
-                var dbTables = await session.GetTablesAsync();
-                Tables.Clear();
-                foreach (var t in dbTables)
-                {
-                    Tables.Add(t);
-                }
-                StatusText = $"{Tables.Count} table(s) found";
-            }
-            else
-            {
-                IsConnected = false;
-                ConnectionTitle = "Local Storage (SQLite)";
-                DatabaseType = "SQLite";
-                DatabaseName = "fdb_studio.db";
-                ServerVersion = "SQLite 3";
-
-                var localTables = await DatabaseStorageService.Instance.GetLocalTablesAsync();
-                Tables.Clear();
-                foreach (var t in localTables)
-                {
-                    Tables.Add(t);
-                }
-                StatusText = $"{Tables.Count} local table(s)";
-            }
-
-            ApplyTableFilter();
-
-            // Load saved connections
+            // Load saved connections from SQLite
             var conns = await DatabaseStorageService.Instance.GetRecentConnectionsAsync();
             SavedConnections.Clear();
             foreach (var c in conns)
@@ -159,7 +170,79 @@ public partial class SidebarViewModel : ViewModelBase
                 SavedConnections.Add(c);
             }
 
-            // Load history
+            // Sync DatabaseNodes with saved connections
+            var currentKeys = conns.Select(c => c.Id > 0 ? $"id_{c.Id}" : $"{c.DatabaseType}_{c.Server}_{c.Port}_{c.DatabaseName}").ToHashSet();
+            for (int i = DatabaseNodes.Count - 1; i >= 0; i--)
+            {
+                if (!currentKeys.Contains(DatabaseNodes[i].ConnectionKey))
+                {
+                    DatabaseNodes.RemoveAt(i);
+                }
+            }
+
+            foreach (var c in conns)
+            {
+                string key = c.Id > 0 ? $"id_{c.Id}" : $"{c.DatabaseType}_{c.Server}_{c.Port}_{c.DatabaseName}";
+                var existing = DatabaseNodes.FirstOrDefault(n => n.ConnectionKey == key);
+                bool isOpen = DatabaseSessionService.Instance.IsSessionOpen(key);
+                bool isActive = (DatabaseSessionService.Instance.ActiveSession?.Key == key);
+
+                if (existing == null)
+                {
+                    existing = new DatabaseConnectionTreeNode(c);
+                    DatabaseNodes.Add(existing);
+                }
+                else
+                {
+                    existing.UpdateRecord(c);
+                }
+
+                existing.IsConnected = isOpen;
+                existing.IsActive = isActive;
+
+                if (isOpen)
+                {
+                    var dbTables = await DatabaseSessionService.Instance.GetTablesAsync(key);
+                    existing.LoadTables(dbTables);
+                }
+                else
+                {
+                    existing.ClearTables();
+                }
+            }
+
+            // Active session state
+            var session = DatabaseSessionService.Instance;
+            if (session.IsConnected && session.ActiveConfig != null)
+            {
+                IsConnected = true;
+                ConnectionTitle = session.ConnectionDisplayText;
+                DatabaseType = session.ActiveConfig.DatabaseType;
+                DatabaseName = session.ActiveConfig.Database;
+                ServerVersion = session.ServerVersion ?? "Connected";
+
+                var activeTables = await session.GetTablesAsync();
+                Tables.Clear();
+                foreach (var t in activeTables)
+                {
+                    Tables.Add(t);
+                }
+                StatusText = $"{Tables.Count} table(s) found";
+            }
+            else
+            {
+                IsConnected = false;
+                ConnectionTitle = "Not Connected";
+                DatabaseType = string.Empty;
+                DatabaseName = string.Empty;
+                ServerVersion = string.Empty;
+                Tables.Clear();
+                StatusText = DatabaseNodes.Count > 0 ? $"{DatabaseNodes.Count} saved database(s)" : "No database connected";
+            }
+
+            ApplyFilter();
+
+            // Load query history
             var history = await DatabaseStorageService.Instance.GetQueryHistoryAsync();
             HistoryItems.Clear();
             foreach (var h in history)
@@ -178,20 +261,225 @@ public partial class SidebarViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    public void SelectTable(TableMetadata table)
+    public async Task ConnectDatabaseNodeAsync(DatabaseConnectionTreeNode? node)
     {
-        if (table == null) return;
-        SelectedTable = table;
+        if (node == null) return;
 
-        string query = DatabaseType == "MSSQL"
-            ? $"SELECT TOP 100 * FROM {table.FullName};"
-            : $"SELECT * FROM {table.FullName} LIMIT 100;";
+        if (!node.IsConnected)
+        {
+            node.IsLoading = true;
+            node.Subtitle = "Connecting...";
+            try
+            {
+                var config = new DatabaseConnectionConfig
+                {
+                    Id = node.Record.Id,
+                    DatabaseType = node.Record.DatabaseType ?? "MSSQL",
+                    Server = node.Record.Server,
+                    Port = node.Record.Port,
+                    Database = node.Record.DatabaseName,
+                    AuthType = node.Record.AuthType,
+                    Username = node.Record.Username,
+                    FilePath = node.Record.Server,
+                    TrustServerCertificate = true
+                };
 
-        InsertQueryToEditor?.Invoke(query);
+                var testResult = await DatabaseSessionService.Instance.ConnectAsync(config);
+                if (testResult.Success)
+                {
+                    node.IsConnected = true;
+                    node.IsActive = true;
+                    foreach (var other in DatabaseNodes)
+                    {
+                        if (other != node) other.IsActive = false;
+                    }
+
+                    var tables = await DatabaseSessionService.Instance.GetTablesAsync(node.ConnectionKey);
+                    node.LoadTables(tables);
+                    node.IsExpanded = true;
+                    node.Subtitle = $"{tables.Count} table(s) found";
+
+                    await SqlKeywordsService.Instance.LoadKeywordsFromDatabaseAsync(node.DatabaseType);
+
+                    IsConnected = true;
+                    ConnectionTitle = node.Title;
+                    DatabaseType = node.DatabaseType;
+                    DatabaseName = node.DatabaseName;
+                    Tables.Clear();
+                    foreach (var t in tables)
+                    {
+                        Tables.Add(t);
+                    }
+                    StatusText = $"{tables.Count} table(s) loaded";
+
+                    ApplyFilter();
+                    RequestActivateConnection?.Invoke(node.Record);
+                }
+                else
+                {
+                    node.IsConnected = false;
+                    node.Subtitle = $"Failed: {testResult.Message}";
+                }
+            }
+            catch (Exception ex)
+            {
+                node.IsConnected = false;
+                node.Subtitle = $"Error: {ex.Message}";
+            }
+            finally
+            {
+                node.IsLoading = false;
+            }
+        }
+        else
+        {
+            DatabaseSessionService.Instance.SetActiveSession(node.ConnectionKey);
+            node.IsActive = true;
+            foreach (var other in DatabaseNodes)
+            {
+                if (other != node) other.IsActive = false;
+            }
+            node.IsExpanded = true;
+
+            var tables = await DatabaseSessionService.Instance.GetTablesAsync(node.ConnectionKey);
+            node.LoadTables(tables);
+
+            IsConnected = true;
+            ConnectionTitle = node.Title;
+            DatabaseType = node.DatabaseType;
+            DatabaseName = node.DatabaseName;
+            Tables.Clear();
+            foreach (var t in tables)
+            {
+                Tables.Add(t);
+            }
+            StatusText = $"{tables.Count} table(s) loaded";
+
+            ApplyFilter();
+            RequestActivateConnection?.Invoke(node.Record);
+        }
     }
 
     [RelayCommand]
-    public async Task ExecuteTableQuery(TableMetadata table)
+    public async Task DisconnectDatabaseNodeAsync(DatabaseConnectionTreeNode? node)
+    {
+        if (node == null) return;
+        await DatabaseSessionService.Instance.DisconnectAsync(node.ConnectionKey);
+        node.IsConnected = false;
+        node.IsActive = false;
+        node.ClearTables();
+        node.Subtitle = "Disconnected · Click to connect";
+
+        if (DatabaseSessionService.Instance.ActiveSession == null)
+        {
+            IsConnected = false;
+            ConnectionTitle = "Not Connected";
+            DatabaseType = string.Empty;
+            DatabaseName = string.Empty;
+            Tables.Clear();
+            StatusText = "No active database connection";
+        }
+        else
+        {
+            var active = DatabaseNodes.FirstOrDefault(n => n.ConnectionKey == DatabaseSessionService.Instance.ActiveSession.Key);
+            if (active != null)
+            {
+                await ConnectDatabaseNodeAsync(active);
+            }
+        }
+
+        ApplyFilter();
+        ConnectionDisconnected?.Invoke(node.Record);
+    }
+
+    [RelayCommand]
+    public async Task RefreshDatabaseNodeAsync(DatabaseConnectionTreeNode? node)
+    {
+        if (node == null) return;
+        if (node.IsConnected)
+        {
+            var tables = await DatabaseSessionService.Instance.GetTablesAsync(node.ConnectionKey);
+            node.LoadTables(tables);
+            if (node.IsActive)
+            {
+                Tables.Clear();
+                foreach (var t in tables) Tables.Add(t);
+                StatusText = $"{tables.Count} table(s) found";
+            }
+        }
+        else
+        {
+            await ConnectDatabaseNodeAsync(node);
+        }
+        ApplyFilter();
+    }
+
+    [RelayCommand]
+    public async Task DeleteDatabaseNodeAsync(DatabaseConnectionTreeNode? node)
+    {
+        if (node == null) return;
+        await DisconnectDatabaseNodeAsync(node);
+        await DatabaseStorageService.Instance.DeleteConnectionAsync(node.Record.Id);
+        DatabaseNodes.Remove(node);
+        FilteredDatabaseNodes.Remove(node);
+        SavedConnections.Remove(node.Record);
+        ConnectionDeleted?.Invoke(node.Record);
+    }
+
+    [RelayCommand]
+    public void EditDatabaseNode(DatabaseConnectionTreeNode? node)
+    {
+        if (node == null) return;
+        RequestEditConnection?.Invoke(node.Record);
+    }
+
+    [RelayCommand]
+    public void EditSavedConnection(ConnectionRecord? record)
+    {
+        if (record == null) return;
+        RequestEditConnection?.Invoke(record);
+    }
+
+    [RelayCommand]
+    public async Task DisconnectSavedConnection(ConnectionRecord? record)
+    {
+        if (record == null) return;
+        string sessionKey = record.Id > 0 ? $"id_{record.Id}" : $"{record.DatabaseType}_{record.Server}_{record.Port}_{record.DatabaseName}";
+        await DatabaseSessionService.Instance.DisconnectAsync(sessionKey);
+        await RefreshAsync();
+        ConnectionDisconnected?.Invoke(record);
+    }
+
+    [RelayCommand]
+    public async Task SelectTableNode(TableTreeNode? node)
+    {
+        if (node == null) return;
+        SelectedTable = node.Table;
+
+        if (!node.DatabaseNode.IsConnected || !node.DatabaseNode.IsActive)
+        {
+            await ConnectDatabaseNodeAsync(node.DatabaseNode);
+        }
+
+        string query = node.DatabaseNode.DatabaseType == "MSSQL"
+            ? $"SELECT TOP 100 * FROM {node.FullName};"
+            : $"SELECT * FROM {node.FullName} LIMIT 100;";
+
+        InsertQueryToEditor?.Invoke(query);
+        if (ExecuteQueryInEditor != null)
+        {
+            await ExecuteQueryInEditor.Invoke(query);
+        }
+    }
+
+    [RelayCommand]
+    public async Task ExecuteTableNodeAsync(TableTreeNode? node)
+    {
+        await SelectTableNode(node);
+    }
+
+    [RelayCommand]
+    public async Task SelectTable(TableMetadata table)
     {
         if (table == null) return;
         SelectedTable = table;
@@ -208,18 +496,26 @@ public partial class SidebarViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    public async Task ExecuteTableQuery(TableMetadata table)
+    {
+        await SelectTable(table);
+    }
+
+    [RelayCommand]
     public async Task ConnectSavedConnection(ConnectionRecord record)
     {
         if (record == null) return;
 
         var config = new DatabaseConnectionConfig
         {
+            Id = record.Id,
             DatabaseType = record.DatabaseType ?? "MSSQL",
             Server = record.Server,
             Port = record.Port,
             Database = record.DatabaseName,
             AuthType = record.AuthType,
             Username = record.Username,
+            FilePath = record.Server,
             TrustServerCertificate = true
         };
 
@@ -228,6 +524,7 @@ public partial class SidebarViewModel : ViewModelBase
         {
             await SqlKeywordsService.Instance.LoadKeywordsFromDatabaseAsync(config.DatabaseType);
             await RefreshAsync();
+            RequestActivateConnection?.Invoke(record);
         }
     }
 

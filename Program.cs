@@ -573,8 +573,102 @@ sealed class Program
                 throw new Exception("ConnectModal failed to restore default parameters for MSSQL!");
             }
 
-                        // 12. Test Real Query Execution into Table, Sidebar Tables & Saved Connections
-            Console.WriteLine("\n[Action] Verifying Real Query Execution & Dynamic Table Data...");
+            // 12. Test Startup Disconnection & Target Isolation (No auto-connection to internal SQLite)
+            Console.WriteLine("\n[Action] Verifying Startup Disconnection & Target Isolation...");
+            Console.WriteLine($"Startup State: Sidebar.IsConnected={vm.Sidebar.IsConnected}, SelectedTarget={vm.SelectedTargetDatabase?.DisplayName ?? "null"}, TargetDbName={vm.SampleQueryResult.TargetDatabaseName}");
+            if (vm.Sidebar.IsConnected || vm.SelectedTargetDatabase != null)
+            {
+                throw new Exception("Application must NOT auto-connect to internal sqlite on startup!");
+            }
+            if (vm.SampleQueryResult.TargetDatabaseName != "(No Connection)")
+            {
+                throw new Exception($"Expected target '(No Connection)', got '{vm.SampleQueryResult.TargetDatabaseName}'!");
+            }
+
+            // Test executing query while disconnected returns friendly warning without querying internal sqlite
+            vm.Editor.SelectedTab!.Text = "SELECT 1;";
+            await vm.ExecuteQuery();
+            Console.WriteLine($"Disconnected execution: Status={vm.SampleQueryResult.Rows[0]["Status"]}, Message={vm.SampleQueryResult.Rows[0]["Message"]}");
+            if (vm.SampleQueryResult.Rows[0]["Status"] != "Not Connected")
+            {
+                throw new Exception("Query execution without connection must return Not Connected status!");
+            }
+
+            // 13. Test Hierarchical Tree View: Adding connection, clicking to connect, displaying tables in tree
+            Console.WriteLine("\n[Action] Verifying Hierarchical Tree View & Connecting from Tree...");
+            int testDbId = await Fdb.Services.DatabaseStorageService.Instance.SaveConnectionAsync(
+                ":memory:", 0, "TestStudioDB", "None", "sa", "SQLite");
+            await vm.Sidebar.RefreshAsync();
+            await vm.RefreshAvailableDatabasesAsync();
+
+            var testDbNode = System.Linq.Enumerable.FirstOrDefault(vm.Sidebar.DatabaseNodes, n => n.DatabaseName == "TestStudioDB");
+            if (testDbNode == null)
+            {
+                throw new Exception("Failed to locate TestStudioDB in Sidebar DatabaseNodes!");
+            }
+            Console.WriteLine($"Located Tree Node: Title={testDbNode.Title}, IsConnected={testDbNode.IsConnected}");
+            if (testDbNode.IsConnected)
+            {
+                throw new Exception("New database in tree should initially be Disconnected until clicked!");
+            }
+
+            // Click/Connect to TestStudioDB from tree
+            Console.WriteLine($"Clicking/connecting to tree node '{testDbNode.Title}'...");
+            await vm.Sidebar.ConnectDatabaseNodeAsync(testDbNode);
+            Console.WriteLine($"After click: Node.IsConnected={testDbNode.IsConnected}, Node.IsActive={testDbNode.IsActive}, Node.IsExpanded={testDbNode.IsExpanded}");
+            if (!testDbNode.IsConnected || !testDbNode.IsActive || !testDbNode.IsExpanded)
+            {
+                throw new Exception("Clicking database node failed to connect and expand in tree!");
+            }
+
+            // Verify children hierarchy (Folder node 'Tables' -> Table items)
+            if (testDbNode.Children.Count == 0 || testDbNode.TablesFolder == null)
+            {
+                throw new Exception("Database node in tree must contain Tables folder node after connection!");
+            }
+            Console.WriteLine($"Tree Folder: '{testDbNode.TablesFolder.Title}', Child items count={testDbNode.TablesFolder.Children.Count}");
+
+            // Create a table with rows in the connected database and verify it appears in the tree
+            await Fdb.Services.DatabaseProviders.DatabaseSessionService.Instance.ExecuteQueryAsync("CREATE TABLE Users (Id INTEGER PRIMARY KEY, Name TEXT);", testDbNode.ConnectionKey);
+            await Fdb.Services.DatabaseProviders.DatabaseSessionService.Instance.ExecuteQueryAsync("INSERT INTO Users (Id, Name) VALUES (1, 'Alice'), (2, 'Bob');", testDbNode.ConnectionKey);
+            await vm.Sidebar.RefreshDatabaseNodeAsync(testDbNode);
+            Console.WriteLine($"After table creation: Tree Folder '{testDbNode.TablesFolder.Title}', Child count={testDbNode.TablesFolder.Children.Count}");
+            if (testDbNode.TablesFolder.Children.Count == 0)
+            {
+                throw new Exception("Expected at least 1 table in tree folder after CREATE TABLE!");
+            }
+            var tableItem = testDbNode.TablesFolder.Children[0] as Fdb.ViewModels.TableTreeNode;
+            Console.WriteLine($"Found Table in Tree: {tableItem?.FullName}");
+            if (tableItem?.TableName != "Users")
+            {
+                throw new Exception($"Expected TableName 'Users', got '{tableItem?.TableName}'!");
+            }
+
+            // Test clicking table node: Automatically generates TOP 100 query, executes it and populates TOP 100 items into table
+            await vm.Sidebar.SelectTableNode(tableItem);
+            Console.WriteLine($"Editor text after clicking table: {vm.Editor.SelectedTab!.Text}");
+            Console.WriteLine($"Auto-executed Table Rows Count: {vm.SampleQueryResult.TotalRows}, Footer.IsVisible: {vm.Footer.IsVisible}");
+            if (!vm.Editor.SelectedTab.Text.Contains("Users") || !vm.Editor.SelectedTab.Text.Contains("100"))
+            {
+                throw new Exception("Clicking table in tree failed to generate TOP/LIMIT 100 query in editor!");
+            }
+            if (vm.SampleQueryResult.TotalRows != 2)
+            {
+                throw new Exception($"Expected 2 rows from auto-executed table query, got {vm.SampleQueryResult.TotalRows}!");
+            }
+            if (vm.SampleQueryResult.Rows[0]["Name"] != "Alice" || vm.SampleQueryResult.Rows[1]["Name"] != "Bob")
+            {
+                throw new Exception("Auto-executed table query returned unexpected row data!");
+            }
+
+            // Verify SelectedTargetDatabase is now set to this database
+            if (vm.SelectedTargetDatabase == null || vm.SelectedTargetDatabase.DatabaseName != "TestStudioDB")
+            {
+                throw new Exception($"Expected active target 'TestStudioDB', got '{vm.SelectedTargetDatabase?.DisplayName}'!");
+            }
+
+            // 14. Test Real Query Execution into Table on Connected Database
+            Console.WriteLine("\n[Action] Verifying Real Query Execution on Connected Database...");
             vm.Editor.SelectedTab!.Text = "SELECT 42 AS Answer, 'Antigravity' AS Assistant, 'Active' AS Status;";
             await vm.ExecuteQuery();
             Console.WriteLine($"Query executed! Total Rows: {vm.SampleQueryResult.TotalRows}, ExecutionTime: {vm.SampleQueryResult.ExecutionTime}");
@@ -589,17 +683,7 @@ sealed class Program
                 throw new Exception($"Expected dynamic column values '42' and 'Antigravity', got '{resultRow["Answer"]}' and '{resultRow["Assistant"]}'!");
             }
 
-            // Test Sidebar Tables Loading
-            Console.WriteLine("\n[Action] Verifying Sidebar Tables & Metadata...");
-            await vm.Sidebar.RefreshAsync();
-            Console.WriteLine($"Sidebar Tables Count: {vm.Sidebar.Tables.Count}");
-            if (vm.Sidebar.Tables.Count == 0)
-            {
-                throw new Exception("Sidebar failed to load database tables!");
-            }
-            Console.WriteLine($"Found Tables: {string.Join(", ", System.Linq.Enumerable.Select(System.Linq.Enumerable.Take(vm.Sidebar.Tables, 5), t => t.FullName))}");
-
-            // Test Saving Connections in Connect Modal and SQLite Persistence
+            // 15. Test Saving Connections in Connect Modal and SQLite Persistence
             Console.WriteLine("\n[Action] Verifying Connection Persistence in SQLite...");
             int initialSaved = vm.Sidebar.SavedConnections.Count;
             vm.ConnectModal.Open();
@@ -621,53 +705,56 @@ sealed class Program
             }
             Console.WriteLine($"Successfully verified saved connection: {savedConn.DisplayTitle}");
 
-            // 13. Test Target Database Selection, Execution Routing & Disconnect / Deletion from SQLite
-            Console.WriteLine("\n[Action] Verifying Target Database Selection, Routing & Disconnect/Removal...");
-            await vm.RefreshAvailableDatabasesAsync();
-            Console.WriteLine($"Available Target Databases: {vm.AvailableTargetDatabases.Count}");
-            if (vm.AvailableTargetDatabases.Count < 2)
+            // Test Editing Connection via ContextMenu Action
+            Console.WriteLine("\n[Action] Verifying Edit Connection via ContextMenu Action...");
+            var salesNodeToEdit = System.Linq.Enumerable.FirstOrDefault(vm.Sidebar.DatabaseNodes, n => n.Server == "sql-cluster.production.local");
+            if (salesNodeToEdit != null)
             {
-                throw new Exception("Expected at least Local SQLite and saved database connections in target selector!");
-            }
-
-            // Test executing query on Local SQLite target
-            vm.SelectedTargetDatabase = System.Linq.Enumerable.First(vm.AvailableTargetDatabases, d => d.IsLocalSqlite);
-            Console.WriteLine($"Selected Target: {vm.SelectedTargetDatabase.FullDisplayName}");
-            vm.Editor.SelectedTab!.Text = "SELECT 'TargetTest' AS TestKey, 100 AS Metric;";
-            await vm.ExecuteQuery();
-            Console.WriteLine($"Executed Result Target: {vm.SampleQueryResult.TargetDatabaseName}, Rows: {vm.SampleQueryResult.TotalRows}");
-            if (vm.SampleQueryResult.TargetDatabaseName != "Local SQLite (fdb_studio.db)")
-            {
-                throw new Exception($"Expected target 'Local SQLite (fdb_studio.db)', but got '{vm.SampleQueryResult.TargetDatabaseName}'!");
-            }
-            if (vm.SampleQueryResult.Rows[0]["TestKey"] != "TargetTest")
-            {
-                throw new Exception("Query result row did not contain expected TestKey value!");
-            }
-
-            // Test Disconnecting and Removing a Connection from SQLite
-            var targetToDelete = System.Linq.Enumerable.FirstOrDefault(vm.Sidebar.SavedConnections, c => c.Server == "sql-cluster.production.local");
-            if (targetToDelete != null)
-            {
-                int prevCount = vm.Sidebar.SavedConnections.Count;
-                Console.WriteLine($"Deleting connection '{targetToDelete.DisplayTitle}' (Id={targetToDelete.Id}) from SQLite...");
-                await vm.Sidebar.DisconnectAndRemoveConnection(targetToDelete);
-                await vm.RefreshAvailableDatabasesAsync();
-                Console.WriteLine($"After deletion: Sidebar count = {vm.Sidebar.SavedConnections.Count} (was {prevCount})");
-                var checkDeleted = System.Linq.Enumerable.FirstOrDefault(vm.Sidebar.SavedConnections, c => c.Id == targetToDelete.Id);
-                if (checkDeleted != null)
+                vm.Sidebar.EditDatabaseNode(salesNodeToEdit);
+                Console.WriteLine($"ConnectModal Open: {vm.ConnectModal.IsOpen}, IsEditMode: {vm.ConnectModal.IsEditMode}, EditingId: {vm.ConnectModal.EditingConnectionId}");
+                if (!vm.ConnectModal.IsOpen || !vm.ConnectModal.IsEditMode || vm.ConnectModal.EditingConnectionId != salesNodeToEdit.Record.Id)
                 {
-                    throw new Exception("Failed to remove connection from SQLite!");
+                    throw new Exception("EditDatabaseNode failed to open ConnectModal in edit mode!");
                 }
-                var checkAvailable = System.Linq.Enumerable.FirstOrDefault(vm.AvailableTargetDatabases, d => d.ConnectionId == targetToDelete.Id);
-                if (checkAvailable != null)
+                // Update database name in modal and save
+                vm.ConnectModal.Database = "SalesDB_Updated";
+                await Fdb.Services.DatabaseStorageService.Instance.UpdateConnectionAsync(
+                    vm.ConnectModal.EditingConnectionId.Value,
+                    vm.ConnectModal.Server, vm.ConnectModal.Port, vm.ConnectModal.Database,
+                    vm.ConnectModal.AuthType, vm.ConnectModal.Username, vm.ConnectModal.SelectedDatabaseType);
+                await vm.Sidebar.RefreshAsync();
+                var updatedNode = System.Linq.Enumerable.FirstOrDefault(vm.Sidebar.DatabaseNodes, n => n.Record.Id == salesNodeToEdit.Record.Id);
+                Console.WriteLine($"Updated Node Title: {updatedNode?.Title}, DB: {updatedNode?.DatabaseName}");
+                if (updatedNode == null || updatedNode.DatabaseName != "SalesDB_Updated")
                 {
-                    throw new Exception("Failed to remove deleted connection from AvailableTargetDatabases selector!");
+                    throw new Exception("Editing connection failed to update database name in SQLite!");
                 }
-                Console.WriteLine("[Success] Connection successfully disconnected and removed from SQLite!");
+                Console.WriteLine("[Success] Connection successfully edited and persisted in SQLite!");
             }
 
-            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, REAL QUERY, TARGET DATABASE SELECTION & DISCONNECT/DELETE) PASSED! <<<");
+            // 16. Test Disconnecting and Removing a Connection from Tree and SQLite
+            Console.WriteLine("\n[Action] Verifying Disconnect and Deletion from Tree...");
+            await vm.Sidebar.DisconnectDatabaseNodeAsync(testDbNode);
+            Console.WriteLine($"After disconnect: Node.IsConnected={testDbNode.IsConnected}, Sidebar.IsConnected={vm.Sidebar.IsConnected}");
+            if (testDbNode.IsConnected || vm.Sidebar.IsConnected)
+            {
+                throw new Exception("DisconnectDatabaseNodeAsync failed to disconnect!");
+            }
+
+            await vm.Sidebar.DeleteDatabaseNodeAsync(testDbNode);
+            if (vm.Sidebar.DatabaseNodes.Contains(testDbNode))
+            {
+                throw new Exception("Failed to remove TestStudioDB from DatabaseNodes!");
+            }
+
+            var salesNode = System.Linq.Enumerable.FirstOrDefault(vm.Sidebar.DatabaseNodes, n => n.Server == "sql-cluster.production.local");
+            if (salesNode != null)
+            {
+                await vm.Sidebar.DeleteDatabaseNodeAsync(salesNode);
+            }
+            Console.WriteLine("[Success] Database disconnected and removed cleanly!");
+
+            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING & DISCONNECT/DELETE) PASSED! <<<");
             return;
         }
 

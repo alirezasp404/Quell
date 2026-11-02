@@ -26,7 +26,7 @@
                             FontSize="11" 
                             CornerRadius="4" 
                             Padding="10,4"
-                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ExecuteQueryCommand}"
+                            Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ExecuteQueryCommand}"
                             ToolTip.Tip="Execute active SQL query (F5)">
                         <StackPanel Orientation="Horizontal" Spacing="5">
                             <ui:FASymbolIcon Symbol="Play" FontSize="11" VerticalAlignment="Center"/>
@@ -35,7 +35,7 @@
                     </Button>
 
                     <Button Classes="classic-tool-btn"
-                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).Editor.AddTabCommand}"
+                            Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).Editor.AddTabCommand}"
                             ToolTip.Tip="Open New Query Tab (Ctrl+N)">
                         <StackPanel Orientation="Horizontal" Spacing="5">
                             <ui:FASymbolIcon Symbol="Add" FontSize="11" VerticalAlignment="Center"/>
@@ -44,7 +44,7 @@
                     </Button>
 
                     <Button Classes="classic-tool-btn"
-                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).SaveQueryCommand}"
+                            Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).SaveQueryCommand}"
                             ToolTip.Tip="Save Query to SQLite Storage (Ctrl+S)">
                         <StackPanel Orientation="Horizontal" Spacing="5">
                             <ui:FASymbolIcon Symbol="Save" FontSize="11" VerticalAlignment="Center"/>
@@ -66,8 +66,9 @@
                         <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                             <ui:FASymbolIcon Symbol="Folder" FontSize="11" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
                             <TextBlock Text="DB:" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
-                            <ComboBox ItemsSource="{Binding $parent[Window].((vm:MainViewModel)DataContext).AvailableTargetDatabases}"
-                                      SelectedItem="{Binding $parent[Window].((vm:MainViewModel)DataContext).SelectedTargetDatabase}"
+                            <ComboBox ItemsSource="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).AvailableTargetDatabases}"
+                                      SelectedItem="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).SelectedTargetDatabase}"
+                                      PlaceholderText="No Active Database"
                                       FontSize="11"
                                       Height="22"
                                       Padding="4,1"
@@ -94,7 +95,7 @@
 
                     <Button x:Name="ConnectButton"
                             Classes="classic-tool-btn" 
-                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ConnectModal.OpenCommand}">
+                            Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ConnectModal.OpenCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="5">
                             <ui:FASymbolIcon Symbol="Link" FontSize="11" VerticalAlignment="Center"/>
                             <TextBlock Text="Connect..." VerticalAlignment="Center"/>
@@ -102,7 +103,7 @@
                     </Button>
 
                     <Button Classes="classic-tool-btn"
-                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).DisconnectCommand}"
+                            Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).DisconnectCommand}"
                             ToolTip.Tip="Disconnect from active database session">
                         <StackPanel Orientation="Horizontal" Spacing="5">
                             <ui:FASymbolIcon Symbol="Dismiss" FontSize="10" VerticalAlignment="Center"/>

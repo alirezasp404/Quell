@@ -95,8 +95,23 @@ public partial class MainViewModel : ViewModelBase
             _ = ActivateDatabaseConnectionAsync(rec);
         };
 
+        _sidebar.RequestEditConnection = rec =>
+        {
+            _connectModal.OpenForEdit(rec);
+        };
+
         _sidebar.ConnectionDeleted += rec =>
         {
+            _ = RefreshAvailableDatabasesAsync();
+        };
+
+        _sidebar.ConnectionDisconnected += rec =>
+        {
+            if (SelectedTargetDatabase?.ConnectionId == rec.Id)
+            {
+                SelectedTargetDatabase = null;
+                SampleQueryResult.TargetDatabaseName = "(No Connection)";
+            }
             _ = RefreshAvailableDatabasesAsync();
         };
 
@@ -142,17 +157,6 @@ public partial class MainViewModel : ViewModelBase
         var currentSelectedKey = SelectedTargetDatabase?.Key;
 
         AvailableTargetDatabases.Clear();
-        var localItem = new TargetDatabaseItem
-        {
-            Key = "sqlite_local",
-            DatabaseType = "SQLite",
-            DisplayName = "Local SQLite",
-            DatabaseName = "fdb_studio.db",
-            IsLocalSqlite = true,
-            IsConnected = true
-        };
-        AvailableTargetDatabases.Add(localItem);
-
         TargetDatabaseItem? itemToSelect = null;
 
         foreach (var c in conns)
@@ -180,29 +184,35 @@ public partial class MainViewModel : ViewModelBase
             {
                 itemToSelect = targetItem;
             }
+            else if (itemToSelect == null && isOpen)
+            {
+                itemToSelect = targetItem;
+            }
         }
 
         if (itemToSelect != null)
         {
             SelectedTargetDatabase = itemToSelect;
         }
-        else if (SelectedTargetDatabase == null || !AvailableTargetDatabases.Contains(SelectedTargetDatabase))
+        else if (SelectedTargetDatabase != null && !AvailableTargetDatabases.Any(d => d.Key == SelectedTargetDatabase.Key))
         {
-            SelectedTargetDatabase = localItem;
+            SelectedTargetDatabase = null;
+            SampleQueryResult.TargetDatabaseName = "(No Connection)";
         }
     }
 
     partial void OnSelectedTargetDatabaseChanged(TargetDatabaseItem? value)
     {
-        if (value == null) return;
-        SampleQueryResult.TargetDatabaseName = value.FullDisplayName;
-
-        if (!value.IsLocalSqlite)
+        if (value == null)
         {
-            if (DatabaseSessionService.Instance.IsSessionOpen(value.Key))
-            {
-                DatabaseSessionService.Instance.SetActiveSession(value.Key);
-            }
+            SampleQueryResult.TargetDatabaseName = "(No Connection)";
+            return;
+        }
+
+        SampleQueryResult.TargetDatabaseName = value.FullDisplayName;
+        if (DatabaseSessionService.Instance.IsSessionOpen(value.Key))
+        {
+            DatabaseSessionService.Instance.SetActiveSession(value.Key);
         }
         _ = Sidebar.RefreshAsync();
     }
@@ -223,6 +233,7 @@ public partial class MainViewModel : ViewModelBase
                 Database = record.DatabaseName,
                 AuthType = record.AuthType,
                 Username = record.Username,
+                FilePath = record.Server,
                 TrustServerCertificate = true
             };
             await DatabaseSessionService.Instance.ConnectAsync(config);
@@ -248,58 +259,58 @@ public partial class MainViewModel : ViewModelBase
         string execTime = "0 ms";
         int rowCount = 0;
         string status = "Success";
-        string targetDbName = SelectedTargetDatabase?.FullDisplayName ?? "Local SQLite (fdb_studio.db)";
 
-        if (SelectedTargetDatabase != null && !SelectedTargetDatabase.IsLocalSqlite)
+        if (SelectedTargetDatabase == null)
         {
-            string key = SelectedTargetDatabase.Key;
-            if (!DatabaseSessionService.Instance.IsSessionOpen(key))
+            var activeSession = DatabaseSessionService.Instance.ActiveSession;
+            if (activeSession != null)
             {
-                var config = new DatabaseConnectionConfig
+                var match = AvailableTargetDatabases.FirstOrDefault(d => d.Key == activeSession.Key);
+                if (match != null)
                 {
-                    Id = SelectedTargetDatabase.ConnectionId ?? 0,
-                    DatabaseType = SelectedTargetDatabase.DatabaseType,
-                    Server = SelectedTargetDatabase.Server,
-                    Port = SelectedTargetDatabase.Port,
-                    Database = SelectedTargetDatabase.DatabaseName,
-                    AuthType = SelectedTargetDatabase.AuthType,
-                    Username = SelectedTargetDatabase.Username,
-                    TrustServerCertificate = true
-                };
-                var connResult = await DatabaseSessionService.Instance.ConnectAsync(config);
-                if (!connResult.Success)
-                {
-                    SampleQueryResult.SetResults(
-                        new List<string> { "Error", "TargetDatabase" },
-                        new List<QueryResultRow>
-                        {
-                            new QueryResultRow
-                            {
-                                RowIndex = 1,
-                                ["Error"] = connResult.Message,
-                                ["TargetDatabase"] = targetDbName
-                            }
-                        },
-                        "0 ms");
-                    SampleQueryResult.TargetDatabaseName = targetDbName;
-                    return;
+                    SelectedTargetDatabase = match;
                 }
             }
-            else
-            {
-                DatabaseSessionService.Instance.SetActiveSession(key);
-            }
+        }
 
-            var result = await DatabaseSessionService.Instance.ExecuteQueryAsync(query, key);
-            execTime = result.ExecutionTime;
-            status = result.Success ? "Success" : "Failed";
+        if (SelectedTargetDatabase == null)
+        {
+            SampleQueryResult.SetResults(
+                new List<string> { "Status", "Message" },
+                new List<QueryResultRow>
+                {
+                    new QueryResultRow
+                    {
+                        RowIndex = 1,
+                        ["Status"] = "Not Connected",
+                        ["Message"] = "No active database connection. Click a database in the Object Explorer to connect."
+                    }
+                },
+                "0 ms");
+            SampleQueryResult.TargetDatabaseName = "(No Connection)";
+            ShowFooter();
+            return;
+        }
 
-            if (result.Success && result.ColumnNames.Count > 0)
+        string targetDbName = SelectedTargetDatabase.FullDisplayName;
+        string key = SelectedTargetDatabase.Key;
+
+        if (!DatabaseSessionService.Instance.IsSessionOpen(key))
+        {
+            var config = new DatabaseConnectionConfig
             {
-                SampleQueryResult.SetResults(result.ColumnNames, result.Rows, result.ExecutionTime);
-                rowCount = result.Rows.Count;
-            }
-            else if (!result.Success)
+                Id = SelectedTargetDatabase.ConnectionId ?? 0,
+                DatabaseType = SelectedTargetDatabase.DatabaseType,
+                Server = SelectedTargetDatabase.Server,
+                Port = SelectedTargetDatabase.Port,
+                Database = SelectedTargetDatabase.DatabaseName,
+                AuthType = SelectedTargetDatabase.AuthType,
+                Username = SelectedTargetDatabase.Username,
+                FilePath = SelectedTargetDatabase.Server,
+                TrustServerCertificate = true
+            };
+            var connResult = await DatabaseSessionService.Instance.ConnectAsync(config);
+            if (!connResult.Success)
             {
                 SampleQueryResult.SetResults(
                     new List<string> { "Error", "TargetDatabase" },
@@ -308,25 +319,44 @@ public partial class MainViewModel : ViewModelBase
                         new QueryResultRow
                         {
                             RowIndex = 1,
-                            ["Error"] = result.Message,
+                            ["Error"] = connResult.Message,
                             ["TargetDatabase"] = targetDbName
                         }
                     },
-                    execTime);
+                    "0 ms");
+                SampleQueryResult.TargetDatabaseName = targetDbName;
+                ShowFooter();
+                return;
             }
         }
         else
         {
-            // Execute against local SQLite database so queries immediately return real results
-            var localResult = await Fdb.Services.DatabaseStorageService.Instance.ExecuteArbitraryQueryAsync(query);
-            execTime = localResult.ExecutionTime;
-            status = localResult.Success ? "Success" : "Failed";
+            DatabaseSessionService.Instance.SetActiveSession(key);
+        }
 
-            if (localResult.Success && localResult.ColumnNames.Count > 0)
-            {
-                SampleQueryResult.SetResults(localResult.ColumnNames, localResult.Rows, localResult.ExecutionTime);
-                rowCount = localResult.Rows.Count;
-            }
+        var result = await DatabaseSessionService.Instance.ExecuteQueryAsync(query, key);
+        execTime = result.ExecutionTime;
+        status = result.Success ? "Success" : "Failed";
+
+        if (result.Success && result.ColumnNames.Count > 0)
+        {
+            SampleQueryResult.SetResults(result.ColumnNames, result.Rows, result.ExecutionTime);
+            rowCount = result.Rows.Count;
+        }
+        else if (!result.Success)
+        {
+            SampleQueryResult.SetResults(
+                new List<string> { "Error", "TargetDatabase" },
+                new List<QueryResultRow>
+                {
+                    new QueryResultRow
+                    {
+                        RowIndex = 1,
+                        ["Error"] = result.Message,
+                        ["TargetDatabase"] = targetDbName
+                    }
+                },
+                execTime);
         }
 
         SampleQueryResult.TargetDatabaseName = targetDbName;
@@ -361,7 +391,7 @@ public partial class MainViewModel : ViewModelBase
             confirmText: "Disconnect",
             onConfirmed: async () =>
             {
-                if (SelectedTargetDatabase != null && !SelectedTargetDatabase.IsLocalSqlite)
+                if (SelectedTargetDatabase != null)
                 {
                     await DatabaseSessionService.Instance.DisconnectAsync(SelectedTargetDatabase.Key);
                 }
@@ -371,7 +401,8 @@ public partial class MainViewModel : ViewModelBase
                 }
 
                 await RefreshAvailableDatabasesAsync();
-                SelectedTargetDatabase = AvailableTargetDatabases.FirstOrDefault();
+                SelectedTargetDatabase = null;
+                SampleQueryResult.TargetDatabaseName = "(No Connection)";
                 Navbar.UpdateConnectionStatus();
                 await Sidebar.RefreshAsync();
             });

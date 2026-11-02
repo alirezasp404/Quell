@@ -490,6 +490,40 @@ public class DatabaseStorageService
         }
     }
 
+    public async Task<bool> UpdateConnectionAsync(int id, string server, int port, string databaseName, string authType, string username, string databaseType = "MSSQL")
+    {
+        try
+        {
+            await InitializeAsync();
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+
+            const string sql = @"
+                UPDATE Connections 
+                SET Server = @server, Port = @port, DatabaseName = @databaseName, 
+                    AuthType = @authType, Username = @username, DatabaseType = @databaseType, 
+                    LastConnectedAt = datetime('now')
+                WHERE Id = @id;";
+
+            int affected = await connection.ExecuteAsync(sql, new
+            {
+                id,
+                server = server ?? "localhost",
+                port,
+                databaseName = databaseName ?? "master",
+                authType = authType ?? "SQL Server Authentication",
+                username = username ?? string.Empty,
+                databaseType = databaseType ?? "MSSQL"
+            });
+            return affected > 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] UpdateConnectionAsync error: {ex.Message}");
+            return false;
+        }
+    }
+
     public async Task<bool> DeleteConnectionAsync(int id)
     {
         try
@@ -550,6 +584,29 @@ public class DatabaseStorageService
         {
             Console.WriteLine($"[DatabaseStorageService] GetRecentConnectionsAsync error: {ex.Message}");
             return new List<ConnectionRecord>();
+        }
+    }
+
+    public async Task<ConnectionRecord?> GetConnectionByIdAsync(int id)
+    {
+        try
+        {
+            await InitializeAsync();
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+
+            const string sql = @"
+                SELECT Id, Server, Port, DatabaseName, AuthType, COALESCE(Username, '') AS Username, 
+                       COALESCE(DatabaseType, 'MSSQL') AS DatabaseType, LastConnectedAt 
+                FROM Connections 
+                WHERE Id = @id;";
+
+            return await connection.QueryFirstOrDefaultAsync<ConnectionRecord>(sql, new { id });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] GetConnectionByIdAsync error: {ex.Message}");
+            return null;
         }
     }
 
