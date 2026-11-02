@@ -1,3 +1,4 @@
+using Fdb.Services.DatabaseProviders;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -206,6 +207,115 @@ public partial class QueryResultTableViewModel : ViewModelBase
         return c.EndsWith("_id") || (c.EndsWith("id") && c.Length > 2);
     }
 
+    public Dictionary<string, ForeignKeyRelation> ForeignKeyRelations { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public Func<string, string, string?, string?, Task>? NavigateToForeignKeyCallback { get; set; }
+
+    public bool IsColumnForeignKey(string? columnName)
+    {
+        if (string.IsNullOrWhiteSpace(columnName)) return false;
+        if (ForeignKeyRelations.ContainsKey(columnName)) return true;
+        return DetectProbableForeignKey(columnName, CurrentTableName) != null;
+    }
+
+    public ForeignKeyRelation? GetForeignKeyRelation(string? columnName)
+    {
+        if (string.IsNullOrWhiteSpace(columnName)) return null;
+        if (ForeignKeyRelations.TryGetValue(columnName, out var rel)) return rel;
+        return DetectProbableForeignKey(columnName, CurrentTableName);
+    }
+
+    public void SetForeignKeyRelations(IEnumerable<ForeignKeyRelation> fks)
+    {
+        ForeignKeyRelations.Clear();
+        foreach (var fk in fks)
+        {
+            if (!string.IsNullOrWhiteSpace(fk.ColumnName))
+            {
+                ForeignKeyRelations[fk.ColumnName] = fk;
+            }
+        }
+
+        if (_lastColumns != null)
+        {
+            ColumnsChanged?.Invoke(_lastColumns);
+        }
+    }
+
+    public static ForeignKeyRelation? DetectProbableForeignKey(string? columnName, string? tableName = null)
+    {
+        if (string.IsNullOrWhiteSpace(columnName)) return null;
+        string c = columnName.Trim();
+        string lower = c.ToLowerInvariant();
+
+        // Avoid detecting table PK as FK
+        if (QueryResultTableViewModel.IsProbablePrimaryKey(columnName, tableName))
+        {
+            if (!string.IsNullOrEmpty(tableName))
+            {
+                string t = tableName.Trim('[', ']', '"', '`').ToLowerInvariant();
+                if (t.Contains('.')) t = t.Split('.')[1];
+                string singular = t.EndsWith("s") ? t.Substring(0, t.Length - 1) : t;
+                if (lower == "id" || lower == $"{t}_id" || lower == $"{t}id" || lower == $"{singular}_id" || lower == $"{singular}id")
+                    return null;
+            }
+            else if (lower == "id" || lower == "pk" || lower == "rowid")
+            {
+                return null;
+            }
+        }
+
+        if (lower == "role" || lower == "role_name")
+        {
+            return new ForeignKeyRelation { ColumnName = c, TargetTable = "Roles", TargetColumn = "Title" };
+        }
+        if (lower == "role_id" || lower == "roleid")
+        {
+            return new ForeignKeyRelation { ColumnName = c, TargetTable = "Roles", TargetColumn = "Id" };
+        }
+        if (lower == "department" || lower == "department_name")
+        {
+            return new ForeignKeyRelation { ColumnName = c, TargetTable = "Departments", TargetColumn = "Name" };
+        }
+        if (lower == "department_id" || lower == "departmentid")
+        {
+            return new ForeignKeyRelation { ColumnName = c, TargetTable = "Departments", TargetColumn = "Id" };
+        }
+
+        if (lower.EndsWith("_id") && lower.Length > 3)
+        {
+            string entity = lower.Substring(0, lower.Length - 3);
+            string targetTable = entity.EndsWith("y") && !entity.EndsWith("ay") && !entity.EndsWith("ey")
+                ? entity.Substring(0, entity.Length - 1) + "ies"
+                : entity + "s";
+            string properTable = char.ToUpperInvariant(targetTable[0]) + targetTable.Substring(1);
+            return new ForeignKeyRelation { ColumnName = c, TargetTable = properTable, TargetColumn = "Id" };
+        }
+
+        if (lower.EndsWith("id") && lower.Length > 2 && char.IsUpper(c[0]))
+        {
+            string entity = lower.Substring(0, lower.Length - 2);
+            string targetTable = entity.EndsWith("y") && !entity.EndsWith("ay") && !entity.EndsWith("ey")
+                ? entity.Substring(0, entity.Length - 1) + "ies"
+                : entity + "s";
+            string properTable = char.ToUpperInvariant(targetTable[0]) + targetTable.Substring(1);
+            return new ForeignKeyRelation { ColumnName = c, TargetTable = properTable, TargetColumn = "Id" };
+        }
+
+        return null;
+    }
+
+    public async Task NavigateToForeignKeyAsync(string columnName, string? cellValue)
+    {
+        var rel = GetForeignKeyRelation(columnName);
+        if (rel == null) return;
+
+        if (NavigateToForeignKeyCallback != null)
+        {
+            await NavigateToForeignKeyCallback.Invoke(rel.TargetTable, rel.TargetColumn, cellValue, columnName);
+        }
+    }
+
     public void SetPrimaryKeys(IEnumerable<string> pks)
     {
         PrimaryKeyColumns.Clear();
@@ -295,6 +405,15 @@ public partial class QueryResultTableViewModel : ViewModelBase
             r.OriginalValues["Status"] = r.Status;
             r.OriginalValues["CreatedAt"] = r.CreatedAt;
         }
+                // Initialize default ForeignKey relation for Role -> Roles
+        ForeignKeyRelations["Role"] = new ForeignKeyRelation
+        {
+            ColumnName = "Role",
+            TargetTable = "Roles",
+            TargetColumn = "Title",
+            ConstraintName = "FK_Users_Roles"
+        };
+
         _allRows.Clear();
         _allRows.AddRange(Rows);
     }
@@ -347,6 +466,18 @@ public partial class QueryResultTableViewModel : ViewModelBase
             {
                 HasPrimaryKey = true;
                 PrimaryKeyColumnName = string.Join(", ", PrimaryKeyColumns.Where(c => columns.Contains(c, StringComparer.OrdinalIgnoreCase)));
+            }
+
+                        foreach (var col in columns)
+            {
+                if (!ForeignKeyRelations.ContainsKey(col))
+                {
+                    var probableFk = DetectProbableForeignKey(col, CurrentTableName);
+                    if (probableFk != null)
+                    {
+                        ForeignKeyRelations[col] = probableFk;
+                    }
+                }
             }
 
             ColumnsChanged?.Invoke(columns);
@@ -840,6 +971,100 @@ public partial class QueryResultTableViewModel : ViewModelBase
         }
     }
 
+        public void LoadSampleReferencedTable(string tableName, string? filterColumn = null, string? filterValue = null)
+    {
+        CurrentTableName = tableName;
+        if (tableName.Equals("Roles", StringComparison.OrdinalIgnoreCase))
+        {
+            var roleRows = new List<QueryResultRow>
+            {
+                new QueryResultRow { RowIndex = 1, Id = 1, Name = "DBA", Email = "dba@company.internal", Role = "SUPERUSER", Status = "Active", CreatedAt = "2025-01-01 00:00:00" },
+                new QueryResultRow { RowIndex = 2, Id = 2, Name = "Developer", Email = "dev@company.internal", Role = "READ_WRITE", Status = "Active", CreatedAt = "2025-01-10 10:00:00" },
+                new QueryResultRow { RowIndex = 3, Id = 3, Name = "Analyst", Email = "analyst@company.internal", Role = "READ_ONLY", Status = "Active", CreatedAt = "2025-01-15 12:30:00" },
+                new QueryResultRow { RowIndex = 4, Id = 4, Name = "Admin", Email = "admin@company.internal", Role = "FULL_CONTROL", Status = "Active", CreatedAt = "2025-01-01 00:00:00" }
+            };
+
+            foreach (var r in roleRows)
+            {
+                r.Values["ID"] = r.Id.ToString();
+                r.Values["TITLE"] = r.Name;
+                r.Values["DESCRIPTION"] = r.Id switch
+                {
+                    1 => "Database Administrator with full cluster access",
+                    2 => "Application Software Engineer",
+                    3 => "Business & Data Intelligence Analyst",
+                    4 => "System Administrator & Security Officer",
+                    _ => "Standard Role"
+                };
+                r.Values["PERMISSIONS"] = r.Role;
+                r.Values["CREATED AT"] = r.CreatedAt;
+
+                foreach (var kvp in r.Values)
+                {
+                    r.OriginalValues[kvp.Key] = kvp.Value;
+                }
+            }
+
+            var cols = new List<string> { "ID", "TITLE", "DESCRIPTION", "PERMISSIONS", "CREATED AT" };
+            SetResults(cols, roleRows, "12 ms");
+            SetPrimaryKeys(new[] { "ID" });
+            ForeignKeyRelations.Clear();
+            ColumnsChanged?.Invoke(cols);
+
+            if (!string.IsNullOrWhiteSpace(filterValue))
+            {
+                var match = roleRows.FirstOrDefault(r => r.Values.TryGetValue("TITLE", out var t) && t.Equals(filterValue, StringComparison.OrdinalIgnoreCase));
+                if (match != null)
+                {
+                    SelectedRow = match;
+                }
+            }
+        }
+        else if (tableName.Equals("Departments", StringComparison.OrdinalIgnoreCase))
+        {
+            var deptRows = new List<QueryResultRow>
+            {
+                new QueryResultRow { RowIndex = 1, Id = 1, Name = "Engineering", Email = "eng@company.internal", Role = "Tech Park A", Status = "Active", CreatedAt = "$2,500,000" },
+                new QueryResultRow { RowIndex = 2, Id = 2, Name = "Data Science", Email = "data@company.internal", Role = "Tech Park B", Status = "Active", CreatedAt = "$1,800,000" },
+                new QueryResultRow { RowIndex = 3, Id = 3, Name = "IT Operations", Email = "ops@company.internal", Role = "Main Tower", Status = "Active", CreatedAt = "$1,200,000" }
+            };
+
+            foreach (var r in deptRows)
+            {
+                r.Values["ID"] = r.Id.ToString();
+                r.Values["NAME"] = r.Name;
+                r.Values["BUILDING"] = r.Role;
+                r.Values["BUDGET"] = r.CreatedAt;
+
+                foreach (var kvp in r.Values)
+                {
+                    r.OriginalValues[kvp.Key] = kvp.Value;
+                }
+            }
+
+            var cols = new List<string> { "ID", "NAME", "BUILDING", "BUDGET" };
+            SetResults(cols, deptRows, "10 ms");
+            SetPrimaryKeys(new[] { "ID" });
+            ForeignKeyRelations.Clear();
+            ColumnsChanged?.Invoke(cols);
+        }
+        else
+        {
+            var genRows = new List<QueryResultRow>
+            {
+                new QueryResultRow { RowIndex = 1, Id = 1, Name = filterValue ?? "Item 1", Email = $"{tableName.ToLower()}@test", Role = "Active", Status = "Standard", CreatedAt = DateTime.Now.ToString("yyyy-MM-dd") }
+            };
+            genRows[0].Values["ID"] = "1";
+            genRows[0].Values["NAME"] = filterValue ?? "Item 1";
+            genRows[0].Values["STATUS"] = "Active";
+            var cols = new List<string> { "ID", "NAME", "STATUS" };
+            SetResults(cols, genRows, "8 ms");
+            SetPrimaryKeys(new[] { "ID" });
+            ColumnsChanged?.Invoke(cols);
+        }
+    }
+
+
     public void ResetToSampleData()
     {
         var sampleRows = new List<QueryResultRow>
@@ -878,6 +1103,20 @@ public partial class QueryResultTableViewModel : ViewModelBase
         {
             TotalRows = Rows.Count;
         }
+
+                CurrentTableName = "Users";
+        PrimaryKeyColumns.Clear();
+        PrimaryKeyColumns.Add("Id");
+        PrimaryKeyColumnName = "Id";
+        HasPrimaryKey = true;
+        ForeignKeyRelations.Clear();
+        ForeignKeyRelations["Role"] = new ForeignKeyRelation
+        {
+            ColumnName = "Role",
+            TargetTable = "Roles",
+            TargetColumn = "Title",
+            ConstraintName = "FK_Users_Roles"
+        };
 
         ExecutionTime = "0 ms";
         LastQueryMessage = $"Table refreshed ({TotalRows} rows)";

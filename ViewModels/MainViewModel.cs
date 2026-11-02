@@ -79,14 +79,14 @@ public partial class MainViewModel : ViewModelBase
 
         _sampleQueryResult.EditCellModal.InsertQueryToEditorCallback = sql =>
         {
-            if (_editor.SelectedTab != null)
+            if (Editor.SelectedTab != null)
             {
-                _editor.SelectedTab.Text = sql;
+                Editor.SelectedTab.Text = sql;
             }
             else
             {
-                _editor.AddTab();
-                if (_editor.SelectedTab != null) _editor.SelectedTab.Text = sql;
+                Editor.AddTab();
+                if (Editor.SelectedTab != null) Editor.SelectedTab.Text = sql;
             }
         };
 
@@ -96,32 +96,33 @@ public partial class MainViewModel : ViewModelBase
         };
         _sampleQueryResult.ExecuteQueryCallback = _sampleQueryResult.EditCellModal.ExecuteQueryCallback;
         _sampleQueryResult.InsertQueryToEditorCallback = _sampleQueryResult.EditCellModal.InsertQueryToEditorCallback;
-        _sampleQueryResult.RefreshCallback = RefreshQueryResultAsync;
+                _sampleQueryResult.RefreshCallback = RefreshQueryResultAsync;
+        _sampleQueryResult.NavigateToForeignKeyCallback = NavigateToForeignKeyTableAsync;
 
         // Wire sidebar actions to editor and connect modal
         _sidebar.InsertQueryToEditor = q =>
         {
-            if (_editor.SelectedTab != null)
+            if (Editor.SelectedTab != null)
             {
-                _editor.SelectedTab.Text = q;
+                Editor.SelectedTab.Text = q;
             }
             else
             {
-                _editor.AddTab();
-                if (_editor.SelectedTab != null) _editor.SelectedTab.Text = q;
+                Editor.AddTab();
+                if (Editor.SelectedTab != null) Editor.SelectedTab.Text = q;
             }
         };
 
         _sidebar.ExecuteQueryInEditor = async q =>
         {
-            if (_editor.SelectedTab != null)
+            if (Editor.SelectedTab != null)
             {
-                _editor.SelectedTab.Text = q;
+                Editor.SelectedTab.Text = q;
             }
             else
             {
-                _editor.AddTab();
-                if (_editor.SelectedTab != null) _editor.SelectedTab.Text = q;
+                Editor.AddTab();
+                if (Editor.SelectedTab != null) Editor.SelectedTab.Text = q;
             }
             await ExecuteQuery();
         };
@@ -420,13 +421,12 @@ public partial class MainViewModel : ViewModelBase
                 try
                 {
                     var pks = await DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(inferredTable, key);
-                    if (pks != null && pks.Count > 0)
+                    var fks = await DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(inferredTable, key);
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                     {
-                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                        {
-                            SampleQueryResult.SetPrimaryKeys(pks);
-                        });
-                    }
+                        if (pks != null && pks.Count > 0) SampleQueryResult.SetPrimaryKeys(pks);
+                        if (fks != null && fks.Count > 0) SampleQueryResult.SetForeignKeyRelations(fks);
+                    });
                 }
                 catch { }
             });
@@ -439,6 +439,68 @@ public partial class MainViewModel : ViewModelBase
             query, execTime, rowCount, status);
 
         _ = Sidebar.RefreshAsync();
+        ShowFooter();
+    }
+
+    public async Task NavigateToForeignKeyTableAsync(string targetTable, string targetColumn, string? cellValue, string? sourceColumn)
+    {
+        string? activeKey = SelectedTargetDatabase?.Key;
+        string cleanVal = cellValue?.Replace("'", "''") ?? string.Empty;
+        bool isNumeric = long.TryParse(cellValue, out _) || double.TryParse(cellValue, out _);
+
+        string whereClause = string.IsNullOrWhiteSpace(cellValue) || cellValue == "NULL"
+            ? string.Empty
+            : (isNumeric ? $"WHERE {targetColumn} = {cellValue}" : $"WHERE {targetColumn} = '{cleanVal}'");
+
+        string query = SelectedTargetDatabase?.DatabaseType == "MSSQL"
+            ? $"SELECT TOP 100 * FROM {targetTable} {whereClause};".Replace("  ", " ")
+            : $"SELECT * FROM {targetTable} {whereClause} LIMIT 100;".Replace("  ", " ");
+
+        if (Editor.SelectedTab != null)
+        {
+            Editor.SelectedTab.Text = query;
+        }
+        else
+        {
+            Editor.AddTab();
+            if (Editor.SelectedTab != null) Editor.SelectedTab.Text = query;
+        }
+
+        if (!string.IsNullOrEmpty(activeKey) && DatabaseSessionService.Instance.IsSessionOpen(activeKey))
+        {
+            var result = await DatabaseSessionService.Instance.ExecuteQueryAsync(query, activeKey);
+            if (result.Success && result.ColumnNames.Count > 0)
+            {
+                SampleQueryResult.CurrentTableName = targetTable;
+                SampleQueryResult.SetResults(result.ColumnNames, result.Rows, result.ExecutionTime);
+                SampleQueryResult.LastExecutedQuery = query;
+                SampleQueryResult.LastQueryMessage = $"Navigated to {targetTable} via FK [{sourceColumn} -> {targetTable}.{targetColumn}] ({result.Rows.Count} rows)";
+                SampleQueryResult.HasLastQueryMessage = true;
+
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var pks = await DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(targetTable, activeKey);
+                        var fks = await DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(targetTable, activeKey);
+                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                        {
+                            if (pks != null && pks.Count > 0) SampleQueryResult.SetPrimaryKeys(pks);
+                            if (fks != null && fks.Count > 0) SampleQueryResult.SetForeignKeyRelations(fks);
+                        });
+                    }
+                    catch { }
+                });
+
+                ShowFooter();
+                return;
+            }
+        }
+
+        SampleQueryResult.LoadSampleReferencedTable(targetTable, targetColumn, cellValue);
+        SampleQueryResult.LastExecutedQuery = query;
+        SampleQueryResult.LastQueryMessage = $"Navigated to {targetTable} via FK [{sourceColumn} -> {targetTable}.{targetColumn}] ({SampleQueryResult.TotalRows} rows)";
+        SampleQueryResult.HasLastQueryMessage = true;
         ShowFooter();
     }
 
@@ -489,13 +551,12 @@ public partial class MainViewModel : ViewModelBase
                     try
                     {
                         var pks = await DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(inferredTable, activeKey);
-                        if (pks != null && pks.Count > 0)
+                        var fks = await DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(inferredTable, activeKey);
+                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                         {
-                            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                            {
-                                SampleQueryResult.SetPrimaryKeys(pks);
-                            });
-                        }
+                            if (pks != null && pks.Count > 0) SampleQueryResult.SetPrimaryKeys(pks);
+                            if (fks != null && fks.Count > 0) SampleQueryResult.SetForeignKeyRelations(fks);
+                        });
                     }
                     catch { }
                 });

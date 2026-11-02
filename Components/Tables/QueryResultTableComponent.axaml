@@ -56,6 +56,36 @@
             <Setter Property="Background" Value="{DynamicResource AppTableActiveBackgroundBrush}"/>
         </Style>
 
+<!-- Foreign Key Column Cell Style (Neutral Slate Foreground - NO ORANGE) -->
+        <Style Selector="DataGridCell.fk-col">
+            <Setter Property="Background" Value="{DynamicResource AppTableAltColBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTableCellForegroundBrush}"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Padding" Value="8,2"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppTableCellBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+        </Style>
+        <Style Selector="DataGridRow:pointerover DataGridCell.fk-col">
+            <Setter Property="Background" Value="{DynamicResource AppTableHoverBackgroundBrush}"/>
+        </Style>
+        <Style Selector="DataGridRow:selected DataGridCell.fk-col">
+            <Setter Property="Background" Value="{DynamicResource AppTableActiveBackgroundBrush}"/>
+        </Style>
+
+        <Style Selector="Button.fk-nav-btn">
+            <Setter Property="Opacity" Value="0.65"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.15"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.fk-nav-btn:pointerover">
+            <Setter Property="Opacity" Value="1.0"/>
+            <Setter Property="Background" Value="{DynamicResource AppTableHoverBackgroundBrush}"/>
+        </Style>
+
         <!-- Row Pointer Over (Hover) -->
         <Style Selector="DataGridRow:pointerover DataGridCell.row-header-col">
             <Setter Property="Background" Value="{DynamicResource AppTableHoverBackgroundBrush}"/>
@@ -295,11 +325,61 @@
                                         Binding="{Binding Email}" 
                                         Width="210" />
 
-                    <!-- Col 4: ROLE (Dimmer Off-White) -->
-                    <DataGridTextColumn Header="ROLE" 
-                                        CellStyleClasses="alt-col"
-                                        Binding="{Binding Role}" 
-                                        Width="130" />
+                    <!-- Col 4: ROLE (Foreign Key with distinct FK badge and navigation arrow button) -->
+                    <DataGridTemplateColumn Header="ROLE" 
+                                            CellStyleClasses="alt-col fk-col"
+                                            Width="140">
+                        <DataGridTemplateColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center"
+                                            ToolTip.Tip="Foreign Key -> References Roles(Title)">
+                                    <Border Background="#F1F5F9" 
+                                            BorderBrush="#CBD5E1" 
+                                            BorderThickness="1" 
+                                            CornerRadius="3" 
+                                            Padding="3,1"
+                                            VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" Spacing="2">
+                                            <PathIcon Data="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z" 
+                                                      Width="9" Height="9" 
+                                                      Foreground="#475569" 
+                                                      VerticalAlignment="Center"/>
+                                            <TextBlock Text="FK" FontSize="9" FontWeight="Bold" Foreground="#475569" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <TextBlock Text="ROLE" FontWeight="Bold" Foreground="{DynamicResource AppTableHeaderForegroundBrush}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.HeaderTemplate>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="vm:QueryResultRow">
+                                <Grid ColumnDefinitions="*, Auto" Margin="4,0" VerticalAlignment="Stretch">
+                                    <TextBlock Grid.Column="0" 
+                                               Text="{Binding Role}" 
+                                               VerticalAlignment="Center" 
+                                               FontSize="11" 
+                                               Foreground="{DynamicResource AppTableCellForegroundBrush}"/>
+                                    <Button Grid.Column="1"
+                                            Classes="fk-nav-btn"
+                                            Width="20" Height="20"
+                                            Padding="0"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Cursor="Hand"
+                                            VerticalAlignment="Center"
+                                            HorizontalAlignment="Right"
+                                            ToolTip.Tip="Navigate to referenced record in Roles table"
+                                            Click="OnForeignKeyNavigationClick"
+                                            Tag="Role">
+                                        <PathIcon Data="M14 5l7 7m0 0l-7 7m7-7H3" 
+                                                  Width="10" Height="10" 
+                                                  Foreground="#64748B" 
+                                                  VerticalAlignment="Center"/>
+                                    </Button>
+                                </Grid>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
 
                     <!-- Col 5: STATUS (Pure White) -> Plain Text -->
                     <DataGridTextColumn Header="STATUS" 

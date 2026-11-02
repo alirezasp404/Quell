@@ -1027,7 +1027,69 @@ sealed class Program
             }
             Console.WriteLine($"[Success] Simultaneous multi-cell editing verified: '{vm.SampleQueryResult.LastQueryMessage}'");
 
-            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER & SIMULTANEOUS BATCH CELL EDITING) PASSED! <<<");
+            // 6. Test Foreign Key Indicators & Navigation Arrow to Referenced Table
+            Console.WriteLine("\n[Action] Verifying Foreign Key (FK) Indicators & Navigation to Referenced Table...");
+            
+            // A. Reset to sample Users table
+            await vm.SampleQueryResult.RefreshCommand.ExecuteAsync(null);
+            Console.WriteLine($"Current Table: {vm.SampleQueryResult.CurrentTableName}");
+            if (vm.SampleQueryResult.CurrentTableName != "Users") throw new Exception("Expected Users table!");
+
+            // B. Verify FK detection on 'Role' column
+            bool isRoleFk = vm.SampleQueryResult.IsColumnForeignKey("Role");
+            var roleRel = vm.SampleQueryResult.GetForeignKeyRelation("Role");
+            Console.WriteLine($"IsColumnForeignKey('Role'): {isRoleFk}, TargetTable: '{roleRel?.TargetTable}', TargetColumn: '{roleRel?.TargetColumn}'");
+            if (!isRoleFk || roleRel == null || roleRel.TargetTable != "Roles" || roleRel.TargetColumn != "Title")
+            {
+                throw new Exception("Foreign Key relation detection failed for 'Role' column!");
+            }
+
+            // C. Verify heuristic FK detection on other common schema patterns
+            var deptFk = Fdb.ViewModels.QueryResultTableViewModel.DetectProbableForeignKey("department_id", "Employees");
+            Console.WriteLine($"Heuristic FK 'department_id': Table={deptFk?.TargetTable}, Col={deptFk?.TargetColumn}");
+            if (deptFk == null || deptFk.TargetTable != "Departments" || deptFk.TargetColumn != "Id")
+            {
+                throw new Exception("Heuristic FK detection failed for 'department_id'!");
+            }
+
+            var custFk = Fdb.ViewModels.QueryResultTableViewModel.DetectProbableForeignKey("customer_id", "Orders");
+            Console.WriteLine($"Heuristic FK 'customer_id': Table={custFk?.TargetTable}, Col={custFk?.TargetColumn}");
+            if (custFk == null || custFk.TargetTable != "Customers" || custFk.TargetColumn != "Id")
+            {
+                throw new Exception("Heuristic FK detection failed for 'customer_id'!");
+            }
+
+            // D. Test Foreign Key Navigation to referenced 'Roles' table
+            Console.WriteLine("[Action] Clicking FK navigation arrow on cell (Role = 'Developer')...");
+            await vm.SampleQueryResult.NavigateToForeignKeyAsync("Role", "Developer");
+
+            Console.WriteLine($"After FK Navigation: CurrentTableName='{vm.SampleQueryResult.CurrentTableName}', TotalRows={vm.SampleQueryResult.TotalRows}");
+            Console.WriteLine($"Generated Navigation Query: '{vm.Editor.SelectedTab?.Text}'");
+            Console.WriteLine($"Status Message: '{vm.SampleQueryResult.LastQueryMessage}'");
+
+            if (vm.SampleQueryResult.CurrentTableName != "Roles")
+            {
+                throw new Exception($"Expected CurrentTableName to be 'Roles', got '{vm.SampleQueryResult.CurrentTableName}'!");
+            }
+            if (vm.SampleQueryResult.Rows.Count != 4)
+            {
+                throw new Exception($"Expected 4 role items in Roles table, got {vm.SampleQueryResult.Rows.Count}!");
+            }
+            if (vm.Editor.SelectedTab == null || !vm.Editor.SelectedTab.Text.Contains("Roles") || !vm.Editor.SelectedTab.Text.Contains("Developer"))
+            {
+                throw new Exception("Editor failed to receive referenced table navigation query!");
+            }
+            if (!vm.SampleQueryResult.LastQueryMessage.Contains("Navigated to Roles via FK"))
+            {
+                throw new Exception($"Notification status message missing expected FK text: '{vm.SampleQueryResult.LastQueryMessage}'");
+            }
+            if (vm.SampleQueryResult.SelectedRow == null || vm.SampleQueryResult.SelectedRow["TITLE"] != "Developer")
+            {
+                throw new Exception($"Referenced row was not selected or title was unexpected: {vm.SampleQueryResult.SelectedRow?["TITLE"]}");
+            }
+            Console.WriteLine("[Success] Foreign Key visual indicators and arrow navigation to referenced table verified!");
+
+            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER, SIMULTANEOUS BATCH CELL EDITING & FOREIGN KEY NAVIGATION) PASSED! <<<");
             return;
         }
 

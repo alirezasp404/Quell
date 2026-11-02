@@ -21,6 +21,14 @@ public record QueryExecutionResult
     public Exception? Exception { get; init; }
 }
 
+public record ForeignKeyRelation
+{
+    public string ColumnName { get; init; } = string.Empty;
+    public string TargetTable { get; init; } = string.Empty;
+    public string TargetColumn { get; init; } = "Id";
+    public string ConstraintName { get; init; } = string.Empty;
+}
+
 public class OpenDatabaseSession
 {
     public string Key { get; init; } = string.Empty;
@@ -479,6 +487,145 @@ public class DatabaseSessionService
         {
             Console.WriteLine($"[DatabaseSessionService] GetPrimaryKeyColumnsAsync error: {ex.Message}");
             return new List<string>();
+        }
+        finally
+        {
+            _connectionLock.Release();
+        }
+    }
+
+    public async Task<List<ForeignKeyRelation>> GetForeignKeyRelationsAsync(string tableName, string? sessionKey = null, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(tableName)) return new List<ForeignKeyRelation>();
+
+        await _connectionLock.WaitAsync(cancellationToken);
+        try
+        {
+            var session = ResolveSession(sessionKey);
+            if (session == null || session.Connection.State != ConnectionState.Open)
+            {
+                return new List<ForeignKeyRelation>();
+            }
+
+            string cleanTable = tableName.Trim('[', ']', '"', '`');
+            string schema = "dbo";
+            if (cleanTable.Contains('.'))
+            {
+                var parts = cleanTable.Split('.');
+                schema = parts[0];
+                cleanTable = parts[1];
+            }
+
+            var results = new List<ForeignKeyRelation>();
+
+            if (session.Config.DatabaseType == "SQLite")
+            {
+                using var cmd = session.Connection.CreateCommand();
+                cmd.CommandText = $"PRAGMA foreign_key_list('{cleanTable.Replace("'", "''")}');";
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    string targetTable = reader.GetString(2);
+                    string fromCol = reader.GetString(3);
+                    string toCol = reader.IsDBNull(4) ? "Id" : reader.GetString(4);
+                    results.Add(new ForeignKeyRelation
+                    {
+                        ColumnName = fromCol,
+                        TargetTable = targetTable,
+                        TargetColumn = toCol
+                    });
+                }
+            }
+            else if (session.Config.DatabaseType == "MSSQL")
+            {
+                using var cmd = session.Connection.CreateCommand();
+                cmd.CommandText = $@"
+                    SELECT 
+                        col.name AS ColumnName,
+                        ref_tab.name AS TargetTable,
+                        ref_col.name AS TargetColumn,
+                        fk.name AS ConstraintName
+                    FROM sys.foreign_keys fk
+                    INNER JOIN sys.foreign_key_columns fkc ON fk.object_id = fkc.constraint_object_id
+                    INNER JOIN sys.tables tab ON tab.object_id = fk.parent_object_id
+                    INNER JOIN sys.columns col ON col.object_id = fkc.parent_object_id AND col.column_id = fkc.parent_column_id
+                    INNER JOIN sys.tables ref_tab ON ref_tab.object_id = fk.referenced_object_id
+                    INNER JOIN sys.columns ref_col ON ref_col.object_id = fkc.referenced_object_id AND ref_col.column_id = fkc.referenced_column_id
+                    WHERE tab.name = '{cleanTable.Replace("'", "''")}';";
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    results.Add(new ForeignKeyRelation
+                    {
+                        ColumnName = reader.GetString(0),
+                        TargetTable = reader.GetString(1),
+                        TargetColumn = reader.GetString(2),
+                        ConstraintName = reader.IsDBNull(3) ? "" : reader.GetString(3)
+                    });
+                }
+            }
+            else if (session.Config.DatabaseType == "PostgreSQL")
+            {
+                using var cmd = session.Connection.CreateCommand();
+                cmd.CommandText = $@"
+                    SELECT
+                        kcu.column_name AS ColumnName,
+                        ccu.table_name AS TargetTable,
+                        ccu.column_name AS TargetColumn,
+                        tc.constraint_name AS ConstraintName
+                    FROM information_schema.table_constraints AS tc
+                    JOIN information_schema.key_column_usage AS kcu
+                      ON tc.constraint_name = kcu.constraint_name
+                      AND tc.table_schema = kcu.table_schema
+                    JOIN information_schema.constraint_column_usage AS ccu
+                      ON ccu.constraint_name = tc.constraint_name
+                      AND ccu.table_schema = tc.table_schema
+                    WHERE tc.constraint_type = 'FOREIGN KEY'
+                      AND tc.table_name = '{cleanTable.ToLowerInvariant().Replace("'", "''")}';";
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    results.Add(new ForeignKeyRelation
+                    {
+                        ColumnName = reader.GetString(0),
+                        TargetTable = reader.GetString(1),
+                        TargetColumn = reader.GetString(2),
+                        ConstraintName = reader.IsDBNull(3) ? "" : reader.GetString(3)
+                    });
+                }
+            }
+            else if (session.Config.DatabaseType == "MySQL")
+            {
+                using var cmd = session.Connection.CreateCommand();
+                cmd.CommandText = $@"
+                    SELECT 
+                        COLUMN_NAME AS ColumnName,
+                        REFERENCED_TABLE_NAME AS TargetTable,
+                        REFERENCED_COLUMN_NAME AS TargetColumn,
+                        CONSTRAINT_NAME AS ConstraintName
+                    FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND REFERENCED_TABLE_NAME IS NOT NULL
+                      AND TABLE_NAME = '{cleanTable.Replace("'", "''")}';";
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    results.Add(new ForeignKeyRelation
+                    {
+                        ColumnName = reader.GetString(0),
+                        TargetTable = reader.GetString(1),
+                        TargetColumn = reader.GetString(2),
+                        ConstraintName = reader.IsDBNull(3) ? "" : reader.GetString(3)
+                    });
+                }
+            }
+
+            return results;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseSessionService] GetForeignKeyRelationsAsync error: {ex.Message}");
+            return new List<ForeignKeyRelation>();
         }
         finally
         {

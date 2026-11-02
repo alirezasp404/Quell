@@ -83,6 +83,20 @@ public partial class QueryResultTableComponent : UserControl
         _viewModel.ColumnsChanged += OnColumnsChanged;
     }
 
+    private async void OnForeignKeyNavigationClick(object? sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+        if (sender is Button btn && btn.DataContext is QueryResultRow row)
+        {
+            string colName = btn.Tag?.ToString() ?? "Role";
+            string cellVal = row[colName];
+            if (_viewModel != null)
+            {
+                await _viewModel.NavigateToForeignKeyAsync(colName, cellVal);
+            }
+        }
+    }
+
     private void OnColumnsChanged(IReadOnlyList<string> columns)
     {
         void UpdateColumns()
@@ -96,7 +110,142 @@ public partial class QueryResultTableComponent : UserControl
             {
                 var colName = columns[i];
                 var isPk = _viewModel?.IsColumnPrimaryKey(colName) == true;
-                var styleClass = isPk ? "pk-col" : ((i % 2 == 0) ? "white-col" : "alt-col");
+                var fkRel = _viewModel?.GetForeignKeyRelation(colName);
+                var isFk = fkRel != null;
+                var styleClass = isPk ? "pk-col" : (isFk ? "fk-col" : ((i % 2 == 0) ? "white-col" : "alt-col"));
+
+                if (isFk && fkRel != null)
+                {
+                    var fkCol = new DataGridTemplateColumn
+                    {
+                        CanUserResize = true,
+                        CanUserSort = true,
+                        SortMemberPath = $"[{colName}]"
+                    };
+
+                    var headerPanel = new StackPanel
+                    {
+                        Orientation = Avalonia.Layout.Orientation.Horizontal,
+                        Spacing = 4,
+                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                    };
+                    ToolTip.SetTip(headerPanel, $"Foreign Key -> References {fkRel.TargetTable}({fkRel.TargetColumn})");
+
+                    var fkBadge = new Border
+                    {
+                        Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#F1F5F9")),
+                        BorderBrush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#CBD5E1")),
+                        BorderThickness = new Avalonia.Thickness(1),
+                        CornerRadius = new Avalonia.CornerRadius(3),
+                        Padding = new Avalonia.Thickness(3, 1),
+                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                    };
+
+                    var fkStack = new StackPanel
+                    {
+                        Orientation = Avalonia.Layout.Orientation.Horizontal,
+                        Spacing = 2
+                    };
+
+                    var linkIcon = new Avalonia.Controls.PathIcon
+                    {
+                        Data = Avalonia.Media.Geometry.Parse("M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"),
+                        Width = 9,
+                        Height = 9,
+                        Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#475569")),
+                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                    };
+
+                    var fkText = new TextBlock
+                    {
+                        Text = "FK",
+                        FontSize = 9,
+                        FontWeight = Avalonia.Media.FontWeight.Bold,
+                        Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#475569")),
+                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                    };
+
+                    fkStack.Children.Add(linkIcon);
+                    fkStack.Children.Add(fkText);
+                    fkBadge.Child = fkStack;
+
+                    var titleBlock = new TextBlock
+                    {
+                        Text = colName.ToUpperInvariant(),
+                        FontWeight = Avalonia.Media.FontWeight.Bold,
+                        Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#0F172A")),
+                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                    };
+
+                    headerPanel.Children.Add(fkBadge);
+                    headerPanel.Children.Add(titleBlock);
+                    fkCol.Header = headerPanel;
+
+                    string capturedCol = colName;
+                    var relCopy = fkRel;
+                    fkCol.CellTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<QueryResultRow>((row, ns) =>
+                    {
+                        var cellGrid = new Grid
+                        {
+                            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
+                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                            Margin = new Thickness(4, 0)
+                        };
+
+                        var cellText = new TextBlock
+                        {
+                            FontSize = 11,
+                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                        };
+                        cellText.Bind(TextBlock.TextProperty, new Avalonia.Data.Binding($"[{capturedCol}]"));
+                        Grid.SetColumn(cellText, 0);
+                        cellGrid.Children.Add(cellText);
+
+                        var arrowBtn = new Button
+                        {
+                            Classes = { "fk-nav-btn" },
+                            Width = 20,
+                            Height = 20,
+                            Padding = new Thickness(0),
+                            Background = Avalonia.Media.Brushes.Transparent,
+                            BorderThickness = new Thickness(0),
+                            Cursor = new Cursor(StandardCursorType.Hand),
+                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
+                            Tag = capturedCol
+                        };
+                        ToolTip.SetTip(arrowBtn, $"Navigate to referenced record in {relCopy.TargetTable} table");
+
+                        var arrowIcon = new Avalonia.Controls.PathIcon
+                        {
+                            Data = Avalonia.Media.Geometry.Parse("M14 5l7 7m0 0l-7 7m7-7H3"),
+                            Width = 10,
+                            Height = 10,
+                            Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#64748B")),
+                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                        };
+                        arrowBtn.Content = arrowIcon;
+
+                        arrowBtn.Click += async (s, e) =>
+                        {
+                            e.Handled = true;
+                            string val = row != null ? row[capturedCol] : string.Empty;
+                            if (_viewModel != null)
+                            {
+                                await _viewModel.NavigateToForeignKeyAsync(capturedCol, val);
+                            }
+                        };
+
+                        Grid.SetColumn(arrowBtn, 1);
+                        cellGrid.Children.Add(arrowBtn);
+
+                        return cellGrid;
+                    });
+
+                    fkCol.CellStyleClasses.Add(styleClass);
+                    ResultsDataGrid.Columns.Add(fkCol);
+                    continue;
+                }
 
                 var col = new DataGridTextColumn
                 {
