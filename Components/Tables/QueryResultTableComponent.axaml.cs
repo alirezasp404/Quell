@@ -298,6 +298,17 @@ public partial class QueryResultTableComponent : UserControl
             return;
         }
 
+        if (e.Key == Key.Delete)
+        {
+            var targetRow = _activeRow ?? _viewModel?.SelectedRow;
+            if (targetRow != null)
+            {
+                _viewModel?.DeleteRow(targetRow);
+                e.Handled = true;
+                return;
+            }
+        }
+
         if (ResultsDataGrid.CollectionView is not DataGridCollectionView view || view.Count == 0)
             return;
 

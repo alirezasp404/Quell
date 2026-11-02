@@ -194,6 +194,12 @@ public partial class QueryResultTableViewModel : ViewModelBase
 
     public EditCellModalViewModel EditCellModal { get; } = new();
 
+    public Action<string, string, string?, Action>? RequestConfirmation { get; set; }
+
+    public Func<string, Task<bool>>? ExecuteQueryCallback { get; set; }
+
+    public Action<string>? InsertQueryToEditorCallback { get; set; }
+
     public event Action<IReadOnlyList<string>>? ColumnsChanged;
 
     public ObservableCollection<QueryResultRow> Rows { get; } = new()
@@ -303,6 +309,186 @@ public partial class QueryResultTableViewModel : ViewModelBase
     public void GenerateUpdateQuery()
     {
         OpenEditCell(SelectedRow ?? Rows.FirstOrDefault(), null);
+    }
+
+    [RelayCommand]
+    public void DeleteSelectedRow()
+    {
+        DeleteRow(SelectedRow ?? Rows.FirstOrDefault());
+    }
+
+    [RelayCommand]
+    public void GenerateDeleteQuery()
+    {
+        var targetRow = SelectedRow ?? Rows.FirstOrDefault();
+        if (targetRow == null) return;
+
+        string query = BuildDeleteQuery(targetRow);
+        InsertQueryToEditorCallback?.Invoke(query);
+        LastQueryMessage = "Generated DELETE query in SQL editor";
+        HasLastQueryMessage = true;
+    }
+
+    public void DeleteRow(QueryResultRow? row)
+    {
+        var targetRow = row ?? SelectedRow ?? Rows.FirstOrDefault();
+        if (targetRow == null) return;
+
+        string query = BuildDeleteQuery(targetRow);
+
+        if (RequestConfirmation != null)
+        {
+            RequestConfirmation(
+                "Delete Row Confirmation",
+                $"Are you sure you want to permanently delete this row from table '{CurrentTableName}'? This will execute a DELETE statement against the database.",
+                query,
+                () => _ = ExecuteDeleteAsync(targetRow, query)
+            );
+        }
+        else
+        {
+            _ = ExecuteDeleteAsync(targetRow, query);
+        }
+    }
+
+    public async Task<bool> ExecuteDeleteAsync(QueryResultRow row, string query)
+    {
+        bool success = true;
+        if (ExecuteQueryCallback != null)
+        {
+            success = await ExecuteQueryCallback(query);
+        }
+
+        if (success)
+        {
+            Rows.Remove(row);
+            for (int i = 0; i < Rows.Count; i++)
+            {
+                Rows[i].RowIndex = i + 1;
+            }
+            TotalRows = Rows.Count;
+            InsertQueryToEditorCallback?.Invoke(query);
+            LastQueryMessage = $"Row deleted: {query}";
+            HasLastQueryMessage = true;
+            return true;
+        }
+        else
+        {
+            LastQueryMessage = "Failed to execute DELETE query against database.";
+            HasLastQueryMessage = true;
+            return false;
+        }
+    }
+
+    public string BuildDeleteQuery(QueryResultRow row)
+    {
+        string escapedTable = FormatIdentifier(CurrentTableName, CurrentDatabaseType);
+        string whereClause = BuildWhereClause(row, CurrentDatabaseType);
+        return $"DELETE FROM {escapedTable} WHERE {whereClause};";
+    }
+
+    public string BuildWhereClause(QueryResultRow row, string dbType)
+    {
+        if (PrimaryKeyColumns.Count > 0)
+        {
+            var pkConditions = new List<string>();
+            foreach (var pk in PrimaryKeyColumns)
+            {
+                string val = row[pk];
+                if (!string.IsNullOrEmpty(val))
+                {
+                    pkConditions.Add(FormatCondition(pk, val, dbType));
+                }
+            }
+            if (pkConditions.Count > 0)
+            {
+                return string.Join(" AND ", pkConditions);
+            }
+        }
+
+        string idCol = FindIdColumn(row);
+        if (!string.IsNullOrEmpty(idCol) && !string.IsNullOrEmpty(row[idCol]))
+        {
+            return FormatCondition(idCol, row[idCol], dbType);
+        }
+
+        if (row.Id > 0)
+        {
+            return $"{FormatIdentifier("Id", dbType)} = {row.Id}";
+        }
+
+        var conditions = new List<string>();
+        foreach (var kvp in row.Values)
+        {
+            if (string.Equals(kvp.Key, "Row #", StringComparison.OrdinalIgnoreCase)) continue;
+            if (string.Equals(kvp.Key, "RowIndex", StringComparison.OrdinalIgnoreCase)) continue;
+            if (string.IsNullOrEmpty(kvp.Value)) continue;
+
+            conditions.Add(FormatCondition(kvp.Key, kvp.Value, dbType));
+            if (conditions.Count >= 4) break;
+        }
+
+        if (conditions.Count > 0)
+        {
+            return string.Join(" AND ", conditions);
+        }
+
+        return "1 = 1";
+    }
+
+    private static string FormatCondition(string col, string val, string dbType)
+    {
+        string escapedCol = FormatIdentifier(col, dbType);
+        if (string.Equals(val, "NULL", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"{escapedCol} IS NULL";
+        }
+        if (long.TryParse(val, out _) || double.TryParse(val, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _))
+        {
+            return $"{escapedCol} = {val}";
+        }
+        return $"{escapedCol} = '{val.Replace("'", "''")}'";
+    }
+
+    public static string FindIdColumn(QueryResultRow row)
+    {
+        foreach (var key in row.Values.Keys)
+        {
+            if (string.Equals(key, "id", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(key, "user_id", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(key, "userid", StringComparison.OrdinalIgnoreCase) ||
+                key.EndsWith("_id", StringComparison.OrdinalIgnoreCase) ||
+                (key.EndsWith("id", StringComparison.OrdinalIgnoreCase) && key.Length > 2))
+            {
+                return key;
+            }
+        }
+        return row.Id > 0 ? "Id" : string.Empty;
+    }
+
+    public static string FormatIdentifier(string identifier, string dbType)
+    {
+        if (string.IsNullOrWhiteSpace(identifier)) return identifier;
+
+        if (identifier.Contains('.'))
+        {
+            var parts = identifier.Split('.');
+            for (int i = 0; i < parts.Length; i++)
+            {
+                parts[i] = FormatIdentifier(parts[i], dbType);
+            }
+            return string.Join(".", parts);
+        }
+
+        string clean = identifier.Trim('[', ']', '"', '`');
+
+        return dbType.ToUpperInvariant() switch
+        {
+            "MSSQL" => $"[{clean}]",
+            "MYSQL" => $"`{clean}`",
+            "POSTGRESQL" or "SQLITE" => $"\"{clean}\"",
+            _ => clean
+        };
     }
 
     [RelayCommand]

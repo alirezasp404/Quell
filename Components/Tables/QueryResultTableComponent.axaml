@@ -192,6 +192,16 @@
                                 <ui:FASymbolIcon Symbol="Code" FontSize="11" />
                             </MenuItem.Icon>
                         </MenuItem>
+                        <MenuItem Header="Delete Selected Row" Command="{Binding DeleteSelectedRowCommand}" InputGesture="Delete">
+                            <MenuItem.Icon>
+                                <ui:FASymbolIcon Symbol="Delete" FontSize="11" Foreground="#EF4444" />
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="Generate DELETE Query..." Command="{Binding GenerateDeleteQueryCommand}">
+                            <MenuItem.Icon>
+                                <ui:FASymbolIcon Symbol="Code" FontSize="11" />
+                            </MenuItem.Icon>
+                        </MenuItem>
                         <Separator />
                         <MenuItem Header="Copy Cell Value" Command="{Binding CopyCellCommand}" InputGesture="Ctrl+C" />
                         <MenuItem Header="Copy Entire Row" Command="{Binding CopyRowCommand}" />

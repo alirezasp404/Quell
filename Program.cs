@@ -828,7 +828,51 @@ sealed class Program
             }
             Console.WriteLine("[Success] Primary Key visual badge, key icon & distinct styling verified!");
 
-            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE & PRIMARY KEY UI DISTINCTIVENESS) PASSED! <<<");
+            // [Action] Verifying Table Row Deletion with Safety Confirmation & SQL Execution
+            Console.WriteLine("\n[Action] Verifying Table Row Deletion & Safety Confirmation...");
+            int rowsBeforeDelete = vm.SampleQueryResult.Rows.Count;
+            var targetDeleteRow = vm.SampleQueryResult.Rows[0];
+            Console.WriteLine($"Rows before delete: {rowsBeforeDelete}, Target Row: Id={targetDeleteRow.Id}, Name='{targetDeleteRow.Name}'");
+
+            // 1. Test GenerateDeleteQuery
+            vm.SampleQueryResult.GenerateDeleteQueryCommand.Execute(null);
+            Console.WriteLine($"SQL Editor Text after GenerateDeleteQuery: '{vm.Editor.SelectedTab?.Text}'");
+            if (vm.Editor.SelectedTab == null || !vm.Editor.SelectedTab.Text.Contains("DELETE FROM") || !vm.Editor.SelectedTab.Text.Contains("Users") || !vm.Editor.SelectedTab.Text.Contains("101"))
+            {
+                throw new Exception($"GenerateDeleteQuery failed to generate expected DELETE statement! Text='{vm.Editor.SelectedTab?.Text}'");
+            }
+
+            // 2. Test DeleteRow triggering ConfirmModal
+            vm.SampleQueryResult.DeleteSelectedRowCommand.Execute(null);
+            Console.WriteLine($"ConfirmModal open: {vm.ConfirmModal.IsOpen}, Title='{vm.ConfirmModal.Title}', Target='{vm.ConfirmModal.TargetName}'");
+            if (!vm.ConfirmModal.IsOpen || string.IsNullOrEmpty(vm.ConfirmModal.TargetName) || !vm.ConfirmModal.TargetName.Contains("DELETE FROM") || !vm.ConfirmModal.TargetName.Contains("101"))
+            {
+                throw new Exception($"DeleteSelectedRow failed to open ConfirmModal with generated DELETE query! IsOpen={vm.ConfirmModal.IsOpen}, Target='{vm.ConfirmModal.TargetName}'");
+            }
+
+            // Cancel first to test safety abort
+            vm.ConfirmModal.CancelCommand.Execute(null);
+            Console.WriteLine($"After cancel: ConfirmModal.IsOpen={vm.ConfirmModal.IsOpen}, Rows Count={vm.SampleQueryResult.Rows.Count}");
+            if (vm.ConfirmModal.IsOpen || vm.SampleQueryResult.Rows.Count != rowsBeforeDelete)
+            {
+                throw new Exception("Cancel delete failed: modal remained open or row was deleted!");
+            }
+
+            // 3. Confirm deletion
+            vm.SampleQueryResult.DeleteSelectedRowCommand.Execute(null);
+            vm.ConfirmModal.ConfirmCommand.Execute(null);
+            Console.WriteLine($"After confirm: ConfirmModal.IsOpen={vm.ConfirmModal.IsOpen}, Rows Count={vm.SampleQueryResult.Rows.Count}, TotalRows={vm.SampleQueryResult.TotalRows}");
+            if (vm.ConfirmModal.IsOpen || vm.SampleQueryResult.Rows.Count != rowsBeforeDelete - 1 || vm.SampleQueryResult.TotalRows != rowsBeforeDelete - 1)
+            {
+                throw new Exception($"Row deletion failed! Expected {rowsBeforeDelete - 1} rows, got {vm.SampleQueryResult.Rows.Count}");
+            }
+            if (System.Linq.Enumerable.Any(vm.SampleQueryResult.Rows, r => r.Id == 101))
+            {
+                throw new Exception("Deleted row with Id=101 still exists in Rows collection!");
+            }
+            Console.WriteLine($"[Success] Row deletion verified: '{vm.SampleQueryResult.LastQueryMessage}'");
+
+            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY UI DISTINCTIVENESS & TABLE ROW DELETION) PASSED! <<<");
             return;
         }
 

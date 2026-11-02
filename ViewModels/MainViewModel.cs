@@ -90,6 +90,13 @@ public partial class MainViewModel : ViewModelBase
             }
         };
 
+        _sampleQueryResult.RequestConfirmation = (title, msg, target, onConfirm) =>
+        {
+            _confirmModal.Show(title, msg, target, isDestructive: true, confirmText: "Delete Row", onConfirmed: onConfirm);
+        };
+        _sampleQueryResult.ExecuteQueryCallback = _sampleQueryResult.EditCellModal.ExecuteQueryCallback;
+        _sampleQueryResult.InsertQueryToEditorCallback = _sampleQueryResult.EditCellModal.InsertQueryToEditorCallback;
+
         // Wire sidebar actions to editor and connect modal
         _sidebar.InsertQueryToEditor = q =>
         {
