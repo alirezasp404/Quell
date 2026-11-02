@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -10,6 +11,12 @@ public partial class EditCellModalViewModel : ViewModelBase
 {
     [ObservableProperty]
     private bool _isOpen;
+
+    [ObservableProperty]
+    private string _modalTitle = "Edit Table Cell";
+
+    [ObservableProperty]
+    private string _modalSubtitle = "Modify cell value graphically and generate UPDATE query";
 
     [ObservableProperty]
     private string _tableName = "Users";
@@ -41,7 +48,20 @@ public partial class EditCellModalViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isExecuting;
 
+    [ObservableProperty]
+    private bool _isBatchEdit;
+
+    [ObservableProperty]
+    private int _batchRowCount = 1;
+
+    [ObservableProperty]
+    private int _batchCellCount = 1;
+
     public QueryResultRow? TargetRow { get; set; }
+
+    public List<QueryResultRow> TargetRows { get; } = new();
+
+    public List<string> TargetColumns { get; } = new();
 
     public Func<string, Task<bool>>? ExecuteQueryCallback { get; set; }
     public Action<string>? InsertQueryToEditorCallback { get; set; }
@@ -49,24 +69,58 @@ public partial class EditCellModalViewModel : ViewModelBase
 
     public void Open(QueryResultRow row, string? columnName, string tableName, string dbType)
     {
-        TargetRow = row;
+        OpenBatch(new[] { row }, new[] { string.IsNullOrWhiteSpace(columnName) ? "Name" : columnName }, tableName, dbType);
+    }
+
+    public void OpenBatch(IEnumerable<QueryResultRow> rows, IEnumerable<string> columnNames, string tableName, string dbType)
+    {
+        TargetRows.Clear();
+        TargetRows.AddRange(rows);
+
+        TargetColumns.Clear();
+        var cleanCols = columnNames.Where(c => !string.IsNullOrWhiteSpace(c) && c != "ROW #").ToList();
+        if (cleanCols.Count == 0) cleanCols.Add("Name");
+        TargetColumns.AddRange(cleanCols);
+
+        if (TargetRows.Count == 0) return;
+
+        TargetRow = TargetRows[0];
         TableName = string.IsNullOrWhiteSpace(tableName) ? "Users" : tableName.Trim();
-        ColumnName = string.IsNullOrWhiteSpace(columnName) ? "Name" : columnName.Trim();
+        ColumnName = string.Join(", ", TargetColumns);
         DatabaseType = string.IsNullOrWhiteSpace(dbType) ? "MSSQL" : dbType.Trim();
 
-        OldValue = row[ColumnName];
-        NewValue = OldValue;
-
-        // Determine Row ID representation
-        string idCol = FindIdColumn(row);
-        string idVal = !string.IsNullOrEmpty(idCol) ? row[idCol] : (row.Id > 0 ? row.Id.ToString() : "");
-        if (!string.IsNullOrEmpty(idVal))
+        if (TargetRows.Count > 1 || TargetColumns.Count > 1)
         {
-            RowIdText = $"{idCol} = {idVal}";
+            IsBatchEdit = true;
+            BatchRowCount = TargetRows.Count;
+            BatchCellCount = TargetRows.Count * TargetColumns.Count;
+            ModalTitle = $"Batch Edit {BatchCellCount} Selected Cells";
+            ModalSubtitle = $"Apply new value to {TargetRows.Count} rows in column '{ColumnName}' and generate UPDATE query";
+
+            var idList = TargetRows.Select(r =>
+            {
+                string idCol = FindIdColumn(r);
+                return !string.IsNullOrEmpty(idCol) && !string.IsNullOrEmpty(r[idCol]) ? r[idCol] : (r.Id > 0 ? r.Id.ToString() : $"#{r.RowIndex}");
+            }).ToList();
+
+            RowIdText = $"{TargetRows.Count} rows ({string.Join(", ", idList.Take(3))}{(idList.Count > 3 ? "..." : "")})";
+            OldValue = GetBatchOldValueDescription(TargetRows, TargetColumns[0]);
+            NewValue = string.Empty;
         }
         else
         {
-            RowIdText = $"Row #{row.RowIndex}";
+            IsBatchEdit = false;
+            BatchRowCount = 1;
+            BatchCellCount = 1;
+            ModalTitle = "Edit Table Cell";
+            ModalSubtitle = "Modify cell value graphically and generate UPDATE query";
+
+            string idCol = FindIdColumn(TargetRow);
+            string idVal = !string.IsNullOrEmpty(idCol) ? TargetRow[idCol] : (TargetRow.Id > 0 ? TargetRow.Id.ToString() : "");
+            RowIdText = !string.IsNullOrEmpty(idVal) ? $"{idCol} = {idVal}" : $"Row #{TargetRow.RowIndex}";
+
+            OldValue = TargetRow[TargetColumns[0]];
+            NewValue = OldValue;
         }
 
         StatusMessage = null;
@@ -75,6 +129,16 @@ public partial class EditCellModalViewModel : ViewModelBase
 
         UpdateGeneratedQuery();
         IsOpen = true;
+    }
+
+    private static string GetBatchOldValueDescription(IReadOnlyList<QueryResultRow> rows, string column)
+    {
+        var distinctVals = rows.Select(r => r[column]).Distinct().ToList();
+        if (distinctVals.Count == 1)
+        {
+            return distinctVals[0];
+        }
+        return $"(Multiple values: {string.Join(", ", distinctVals.Take(2))}{(distinctVals.Count > 2 ? "..." : "")})";
     }
 
     partial void OnNewValueChanged(string value)
@@ -89,13 +153,48 @@ public partial class EditCellModalViewModel : ViewModelBase
 
     public void UpdateGeneratedQuery()
     {
-        if (TargetRow == null)
+        if (TargetRows.Count == 0 && TargetRow == null)
         {
             GeneratedQuery = string.Empty;
             return;
         }
 
-        GeneratedQuery = BuildUpdateQuery(TableName, ColumnName, NewValue, TargetRow, DatabaseType);
+        if (IsBatchEdit && TargetRows.Count > 0)
+        {
+            GeneratedQuery = BuildBatchUpdateQuery(TableName, TargetColumns, NewValue, TargetRows, DatabaseType);
+        }
+        else if (TargetRow != null)
+        {
+            GeneratedQuery = BuildUpdateQuery(TableName, TargetColumns.FirstOrDefault() ?? ColumnName, NewValue, TargetRow, DatabaseType);
+        }
+    }
+
+    public static string BuildBatchUpdateQuery(string tableName, IReadOnlyList<string> columns, string newValue, IReadOnlyList<QueryResultRow> rows, string dbType)
+    {
+        string escapedTable = FormatIdentifier(tableName, dbType);
+        string valueLiteral = FormatLiteral(newValue);
+        var setClauses = columns.Select(col => $"{FormatIdentifier(col, dbType)} = {valueLiteral}");
+
+        // Try single PK IN (...)
+        string idCol = rows.Count > 0 ? FindIdColumn(rows[0]) : "Id";
+        if (!string.IsNullOrEmpty(idCol) && rows.All(r => !string.IsNullOrEmpty(r[idCol])))
+        {
+            string escapedId = FormatIdentifier(idCol, dbType);
+            var idList = rows.Select(r => FormatLiteralOrNumber(r[idCol]));
+            return $"UPDATE {escapedTable}\nSET {string.Join(", ", setClauses)}\nWHERE {escapedId} IN ({string.Join(", ", idList)});";
+        }
+
+        var whereClauses = rows.Select(r => $"({BuildWhereClause(r, columns[0], dbType)})");
+        return $"UPDATE {escapedTable}\nSET {string.Join(", ", setClauses)}\nWHERE {string.Join(" OR\n      ", whereClauses)};";
+    }
+
+    private static string FormatLiteralOrNumber(string val)
+    {
+        if (long.TryParse(val, out _) || double.TryParse(val, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _))
+        {
+            return val;
+        }
+        return $"'{val.Replace("'", "''")}'";
     }
 
     public static string BuildUpdateQuery(string tableName, string columnName, string newValue, QueryResultRow row, string dbType)
@@ -217,14 +316,27 @@ public partial class EditCellModalViewModel : ViewModelBase
 
             if (success)
             {
-                // Update in-memory row
-                TargetRow[ColumnName] = NewValue;
+                if (IsBatchEdit)
+                {
+                    foreach (var r in TargetRows)
+                    {
+                        foreach (var col in TargetColumns)
+                        {
+                            r[col] = NewValue;
+                        }
+                    }
 
-                // Insert into SQL editor so user sees the executed query
-                InsertQueryToEditorCallback?.Invoke(query);
-
-                string singleLineQuery = query.Replace("\n", " ");
-                OnUpdatedCallback?.Invoke($"Updated 1 row: {singleLineQuery}");
+                    InsertQueryToEditorCallback?.Invoke(query);
+                    string singleLineQuery = query.Replace("\n", " ");
+                    OnUpdatedCallback?.Invoke($"Updated {BatchCellCount} cells: {singleLineQuery}");
+                }
+                else
+                {
+                    TargetRow[TargetColumns.FirstOrDefault() ?? ColumnName] = NewValue;
+                    InsertQueryToEditorCallback?.Invoke(query);
+                    string singleLineQuery = query.Replace("\n", " ");
+                    OnUpdatedCallback?.Invoke($"Updated 1 row: {singleLineQuery}");
+                }
 
                 IsOpen = false;
             }

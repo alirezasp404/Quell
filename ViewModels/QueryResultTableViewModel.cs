@@ -371,23 +371,49 @@ public partial class QueryResultTableViewModel : ViewModelBase
 
     public void OpenEditCell(QueryResultRow? row, string? columnName = null)
     {
-        var targetRow = row ?? SelectedRow ?? Rows.FirstOrDefault();
+        var selectedRows = GetSelectedRowsCallback?.Invoke();
+        var selectedCols = GetSelectedColumnsCallback?.Invoke();
+
+        if (selectedRows != null && selectedRows.Count > 1)
+        {
+            var cols = !string.IsNullOrWhiteSpace(columnName) && columnName != "ROW #" 
+                ? new[] { columnName } 
+                : (selectedCols != null && selectedCols.Count > 0 ? selectedCols : new[] { "Name" });
+            EditCellModal.OpenBatch(selectedRows, cols, CurrentTableName, CurrentDatabaseType);
+            return;
+        }
+
+        var targetRow = row ?? selectedRows?.FirstOrDefault() ?? SelectedRow ?? Rows.FirstOrDefault();
         if (targetRow == null) return;
 
-        string col = string.IsNullOrWhiteSpace(columnName) || columnName == "ROW #" ? "Name" : columnName;
+        string col = string.IsNullOrWhiteSpace(columnName) || columnName == "ROW #" 
+            ? (selectedCols?.FirstOrDefault() ?? "Name") 
+            : columnName;
         EditCellModal.Open(targetRow, col, CurrentTableName, CurrentDatabaseType);
     }
 
     [RelayCommand]
     public void OpenEditSelectedCell()
     {
-        OpenEditCell(SelectedRow ?? Rows.FirstOrDefault(), null);
+        var selectedRows = GetSelectedRowsCallback?.Invoke();
+        var selectedCols = GetSelectedColumnsCallback?.Invoke();
+
+        if (selectedRows != null && selectedRows.Count > 1)
+        {
+            var cols = selectedCols != null && selectedCols.Count > 0 ? selectedCols : new[] { "Name" };
+            EditCellModal.OpenBatch(selectedRows, cols, CurrentTableName, CurrentDatabaseType);
+            return;
+        }
+
+        var row = selectedRows?.FirstOrDefault() ?? SelectedRow ?? Rows.FirstOrDefault();
+        string? col = selectedCols?.FirstOrDefault();
+        OpenEditCell(row, col);
     }
 
     [RelayCommand]
     public void GenerateUpdateQuery()
     {
-        OpenEditCell(SelectedRow ?? Rows.FirstOrDefault(), null);
+        OpenEditSelectedCell();
     }
 
     [RelayCommand]

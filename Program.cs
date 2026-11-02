@@ -985,7 +985,49 @@ sealed class Program
             }
             Console.WriteLine("[Success] PK has neutral styling with zero orange coloring!");
 
-            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP & FOOTER REFRESH/FILTER) PASSED! <<<");
+            // 5. Test Batch Cell Editing (Selecting multiple names and applying a single value simultaneously)
+            Console.WriteLine("\n[Action] Verifying Simultaneous Multi-Cell Editing (Batch Cell Edit)...");
+            await vm.SampleQueryResult.RefreshCommand.ExecuteAsync(null);
+            var bRow0 = vm.SampleQueryResult.Rows[0];
+            var bRow1 = vm.SampleQueryResult.Rows[1];
+            var bRow2 = vm.SampleQueryResult.Rows[2];
+            Console.WriteLine($"Initial Names: Row0='{bRow0.Name}', Row1='{bRow1.Name}', Row2='{bRow2.Name}'");
+
+            // Select 3 rows and column "Name"
+            vm.SampleQueryResult.GetSelectedRowsCallback = () => new[] { bRow0, bRow1, bRow2 };
+            vm.SampleQueryResult.GetSelectedColumnsCallback = () => new[] { "Name" };
+
+            // Open edit modal for selected cells
+            vm.SampleQueryResult.OpenEditSelectedCellCommand.Execute(null);
+            var batchEditModal = vm.SampleQueryResult.EditCellModal;
+            Console.WriteLine($"BatchEditModal State: IsOpen={batchEditModal.IsOpen}, IsBatchEdit={batchEditModal.IsBatchEdit}, Title='{batchEditModal.ModalTitle}', Rows={batchEditModal.BatchRowCount}");
+            if (!batchEditModal.IsOpen || !batchEditModal.IsBatchEdit || batchEditModal.BatchRowCount != 3)
+            {
+                throw new Exception($"BatchEditModal failed to open in batch mode for 3 rows! IsOpen={batchEditModal.IsOpen}, IsBatch={batchEditModal.IsBatchEdit}");
+            }
+
+            // Enter new value "Antigravity"
+            batchEditModal.NewValue = "Antigravity";
+            Console.WriteLine($"Generated Batch UPDATE Query: " + batchEditModal.GeneratedQuery);
+            if (!batchEditModal.GeneratedQuery.Contains("UPDATE") || !batchEditModal.GeneratedQuery.Contains("'Antigravity'") || !batchEditModal.GeneratedQuery.Contains("101") || !batchEditModal.GeneratedQuery.Contains("102") || !batchEditModal.GeneratedQuery.Contains("103"))
+            {
+                throw new Exception("Batch UPDATE query did not contain expected syntax or IDs: " + batchEditModal.GeneratedQuery);
+            }
+
+            // Save and Execute
+            await batchEditModal.ExecuteAndSaveAsync();
+            Console.WriteLine($"After Batch Save: Row0='{bRow0.Name}', Row1='{bRow1.Name}', Row2='{bRow2.Name}'");
+            if (bRow0.Name != "Antigravity" || bRow1.Name != "Antigravity" || bRow2.Name != "Antigravity")
+            {
+                throw new Exception($"Batch cell edit failed! Expected all 3 names to be 'Antigravity', but got '{bRow0.Name}', '{bRow1.Name}', '{bRow2.Name}'");
+            }
+            if (vm.Editor.SelectedTab == null || !vm.Editor.SelectedTab.Text.Contains("'Antigravity'"))
+            {
+                throw new Exception("SQL editor tab did not receive the executed batch UPDATE statement!");
+            }
+            Console.WriteLine($"[Success] Simultaneous multi-cell editing verified: '{vm.SampleQueryResult.LastQueryMessage}'");
+
+            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER & SIMULTANEOUS BATCH CELL EDITING) PASSED! <<<");
             return;
         }
 
