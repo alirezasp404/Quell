@@ -754,7 +754,64 @@ sealed class Program
             }
             Console.WriteLine("[Success] Database disconnected and removed cleanly!");
 
-            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING & DISCONNECT/DELETE) PASSED! <<<");
+            // [Action] Verifying Graphical Cell Editor & Query Generator in Footer
+            Console.WriteLine("\n[Action] Verifying Graphical Cell Editor & UPDATE Query Generator...");
+            var testUserRow = new Fdb.ViewModels.QueryResultRow
+            {
+                RowIndex = 1,
+                Id = 101,
+                Name = "Alice Johnson",
+                Email = "alice@example.com"
+            };
+            testUserRow["Id"] = "101";
+            testUserRow["Name"] = "Alice Johnson";
+            testUserRow["Email"] = "alice@example.com";
+            vm.SampleQueryResult.SetResults(
+                new System.Collections.Generic.List<string> { "Id", "Name", "Email" },
+                new System.Collections.Generic.List<Fdb.ViewModels.QueryResultRow> { testUserRow },
+                "5 ms");
+            vm.SampleQueryResult.CurrentTableName = "Users";
+            var firstRow = vm.SampleQueryResult.Rows[0];
+            Console.WriteLine($"Initial Row 0 Name: '{firstRow.Name}', Id: {firstRow.Id}");
+
+            // Open edit modal for Row 0, Column 'Name'
+            vm.SampleQueryResult.OpenEditCell(firstRow, "Name");
+            var editModal = vm.SampleQueryResult.EditCellModal;
+            Console.WriteLine($"EditModal State: IsOpen={editModal.IsOpen}, Table={editModal.TableName}, Col={editModal.ColumnName}, OldVal='{editModal.OldValue}'");
+            if (!editModal.IsOpen || editModal.OldValue != "Alice Johnson")
+            {
+                throw new Exception($"Expected EditModal open with 'Alice Johnson', but got IsOpen={editModal.IsOpen}, OldValue='{editModal.OldValue}'");
+            }
+
+            // Verify live generated query preview
+            Console.WriteLine($"Initial Generated Query:\n{editModal.GeneratedQuery}");
+            if (!editModal.GeneratedQuery.Contains("UPDATE") || !editModal.GeneratedQuery.Contains("SET") || (!editModal.GeneratedQuery.Contains("101") || !editModal.GeneratedQuery.Contains("Id")))
+            {
+                throw new Exception($"Generated query does not match expected UPDATE syntax!\n{editModal.GeneratedQuery}");
+            }
+
+            // Change name graphically to 'Ehsan'
+            editModal.NewValue = "Ehsan";
+            Console.WriteLine($"Updated Generated Query with 'Ehsan':\n{editModal.GeneratedQuery}");
+            if (!editModal.GeneratedQuery.Contains("'Ehsan'"))
+            {
+                throw new Exception("Live query preview did not update with 'Ehsan'!");
+            }
+
+            // Save and Execute UPDATE
+            await editModal.ExecuteAndSaveAsync();
+            Console.WriteLine($"After Save: EditModal.IsOpen={editModal.IsOpen}, Row 0 Name='{firstRow.Name}', Row['Name']='{firstRow["Name"]}'");
+            if (editModal.IsOpen || firstRow.Name != "Ehsan" || firstRow["Name"] != "Ehsan")
+            {
+                throw new Exception($"Row was not updated to 'Ehsan'! Got Name='{firstRow.Name}', Row['Name']='{firstRow["Name"]}'");
+            }
+            if (vm.Editor.SelectedTab == null || !vm.Editor.SelectedTab.Text.Contains("'Ehsan'"))
+            {
+                throw new Exception("SQL Editor did not receive the executed UPDATE query!");
+            }
+            Console.WriteLine($"[Success] Cell graphically edited, query executed, and reflected in grid and editor: '{vm.SampleQueryResult.LastQueryMessage}'");
+
+            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE & GRAPHICAL FOOTER CELL UPDATE) PASSED! <<<");
             return;
         }
 

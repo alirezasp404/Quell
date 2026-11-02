@@ -165,6 +165,17 @@
                 <!-- DataGrid Context Menu -->
                 <DataGrid.ContextMenu>
                     <ContextMenu>
+                        <MenuItem Header="Edit Cell Value..." Command="{Binding OpenEditSelectedCellCommand}" InputGesture="F2">
+                            <MenuItem.Icon>
+                                <ui:FASymbolIcon Symbol="Edit" FontSize="11" />
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="Generate UPDATE Query..." Command="{Binding GenerateUpdateQueryCommand}">
+                            <MenuItem.Icon>
+                                <ui:FASymbolIcon Symbol="Code" FontSize="11" />
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <Separator />
                         <MenuItem Header="Copy Cell Value" Command="{Binding CopyCellCommand}" InputGesture="Ctrl+C" />
                         <MenuItem Header="Copy Entire Row" Command="{Binding CopyRowCommand}" />
                         <Separator />

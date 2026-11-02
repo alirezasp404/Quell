@@ -1,0 +1,207 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Fdb.ViewModels"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+             x:Class="Fdb.Components.EditCellModalComponent"
+             x:DataType="vm:EditCellModalViewModel"
+             IsVisible="{Binding IsOpen}">
+
+    <!-- Graphical Cell Editor & UPDATE Query Generator Modal -->
+    <Grid>
+        <!-- Backdrop (Click to dismiss) -->
+        <Border Background="#660F172A" PointerPressed="OnBackdropPointerPressed" />
+
+        <!-- Centered Dialog Card -->
+        <Border Background="{DynamicResource AppWorkspaceBrush}" 
+                BorderBrush="{DynamicResource AppBorderBrush}" 
+                BorderThickness="1" 
+                CornerRadius="8" 
+                BoxShadow="0 10 25 0 #33000000"
+                Width="520"
+                HorizontalAlignment="Center" 
+                VerticalAlignment="Center">
+            
+            <Grid RowDefinitions="Auto, *, Auto">
+                
+                <!-- 1. Header -->
+                <Border Grid.Row="0" 
+                        Background="{DynamicResource AppSurfaceBrush}" 
+                        BorderBrush="{DynamicResource AppBorderBrush}" 
+                        BorderThickness="0,0,0,1" 
+                        CornerRadius="8,8,0,0"
+                        Padding="16,12">
+                    <Grid ColumnDefinitions="Auto, *, Auto">
+                        <Border Grid.Column="0" 
+                                Background="{DynamicResource AppAccentBrush}" 
+                                CornerRadius="6" 
+                                Width="28" 
+                                Height="28" 
+                                Margin="0,0,10,0"
+                                VerticalAlignment="Center">
+                            <ui:FASymbolIcon Symbol="Edit" FontSize="13" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="Edit Table Cell" 
+                                       Foreground="{DynamicResource AppTextPrimaryBrush}" 
+                                       FontSize="13" 
+                                       FontWeight="Bold"/>
+                            <TextBlock Text="Modify cell value graphically and generate UPDATE query" 
+                                       Foreground="{DynamicResource AppTextSecondaryBrush}" 
+                                       FontSize="11"/>
+                        </StackPanel>
+
+                        <Button Grid.Column="2" 
+                                Classes="classic-menu-btn" 
+                                Command="{Binding CancelCommand}"
+                                Padding="6,2" 
+                                MinHeight="22">
+                            <ui:FASymbolIcon Symbol="Dismiss" FontSize="10"/>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <!-- 2. Body -->
+                <StackPanel Grid.Row="1" Margin="20,16" Spacing="14">
+                    <!-- Target Meta Pills: Table, Column, Row ID -->
+                    <WrapPanel Orientation="Horizontal">
+                        <!-- Table Pill -->
+                        <Border Background="{DynamicResource AppSurfaceBrush}" 
+                                BorderBrush="{DynamicResource AppBorderBrush}" 
+                                BorderThickness="1" 
+                                CornerRadius="4" 
+                                Padding="6,2" 
+                                Margin="0,0,8,4">
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <ui:FASymbolIcon Symbol="Folder" FontSize="10" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="Table:" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding TableName}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Column Pill -->
+                        <Border Background="{DynamicResource AppSurfaceBrush}" 
+                                BorderBrush="{DynamicResource AppBorderBrush}" 
+                                BorderThickness="1" 
+                                CornerRadius="4" 
+                                Padding="6,2" 
+                                Margin="0,0,8,4">
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <ui:FASymbolIcon Symbol="Tag" FontSize="10" Foreground="#10B981" VerticalAlignment="Center"/>
+                                <TextBlock Text="Column:" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding ColumnName}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Row Identifier Pill -->
+                        <Border Background="{DynamicResource AppSurfaceBrush}" 
+                                BorderBrush="{DynamicResource AppBorderBrush}" 
+                                BorderThickness="1" 
+                                CornerRadius="4" 
+                                Padding="6,2" 
+                                Margin="0,0,8,4">
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <ui:FASymbolIcon Symbol="BulletList" FontSize="10" Foreground="#F59E0B" VerticalAlignment="Center"/>
+                                <TextBlock Text="Target:" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding RowIdText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </WrapPanel>
+
+                    <!-- Current vs New Value Inputs -->
+                    <Grid ColumnDefinitions="*, 12, *">
+                        <!-- Current Value (Readonly) -->
+                        <StackPanel Grid.Column="0" Spacing="4">
+                            <TextBlock Text="Current Value" FontSize="11" FontWeight="Medium" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                            <TextBox Text="{Binding OldValue}" IsReadOnly="True" Height="30" FontSize="12" CornerRadius="4" Padding="8,4" Background="{DynamicResource AppSurfaceBrush}" Opacity="0.8"/>
+                        </StackPanel>
+
+                        <!-- New Value (Editable) -->
+                        <StackPanel Grid.Column="2" Spacing="4">
+                            <TextBlock Text="New Value" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                            <TextBox x:Name="NewValueTextBox" 
+                                     Text="{Binding NewValue, Mode=TwoWay}" 
+                                     Height="30" 
+                                     FontSize="12" 
+                                     CornerRadius="4" 
+                                     Padding="8,4" 
+                                     PlaceholderText="Enter new value..."/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Live SQL UPDATE Query Preview -->
+                    <StackPanel Spacing="6">
+                        <Grid ColumnDefinitions="*, Auto">
+                            <TextBlock Grid.Column="0" Text="Generated SQL UPDATE Query (Live Preview)" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                            <Border Grid.Column="1" Background="{DynamicResource AppSurfaceBrush}" CornerRadius="3" Padding="4,1">
+                                <TextBlock Text="{Binding DatabaseType}" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AppAccentBrush}"/>
+                            </Border>
+                        </Grid>
+                        
+                        <Border Background="{DynamicResource AppSurfaceBrush}" 
+                                BorderBrush="{DynamicResource AppBorderBrush}" 
+                                BorderThickness="1" 
+                                CornerRadius="4" 
+                                Padding="10,8">
+                            <TextBox Text="{Binding GeneratedQuery}" 
+                                     IsReadOnly="True" 
+                                     FontFamily="Cascadia Code, Consolas, monospace" 
+                                     FontSize="11" 
+                                     Foreground="{DynamicResource AppAccentBrush}" 
+                                     Background="Transparent" 
+                                     BorderThickness="0" 
+                                     TextWrapping="Wrap" 
+                                     AcceptsReturn="True" 
+                                     MinHeight="48"/>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Status Message / Errors -->
+                    <TextBlock Text="{Binding StatusMessage}" 
+                               FontSize="11" 
+                               Foreground="#EF4444" 
+                               IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" 
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+
+                <!-- 3. Footer Buttons -->
+                <Border Grid.Row="2" 
+                        Background="{DynamicResource AppSurfaceBrush}" 
+                        BorderBrush="{DynamicResource AppBorderBrush}" 
+                        BorderThickness="0,1,0,0" 
+                        CornerRadius="0,0,8,8"
+                        Padding="16,10">
+                    <Grid ColumnDefinitions="Auto, *, Auto">
+                        <Button Grid.Column="0" 
+                                Classes="classic-tool-btn" 
+                                Content="Cancel" 
+                                Command="{Binding CancelCommand}"/>
+
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                            <Button Classes="classic-tool-btn" 
+                                    Command="{Binding CopyQueryToEditorCommand}"
+                                    ToolTip.Tip="Paste generated UPDATE query into SQL Editor">
+                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <ui:FASymbolIcon Symbol="Code" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Copy to SQL Editor" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Classes="accent" 
+                                    Command="{Binding ExecuteAndSaveCommand}"
+                                    IsEnabled="{Binding !IsExecuting}">
+                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <ui:FASymbolIcon Symbol="Checkmark" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Save &amp; Execute UPDATE" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

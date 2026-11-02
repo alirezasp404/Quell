@@ -137,6 +137,13 @@ public partial class QueryResultTableComponent : UserControl
         if (!point.Properties.IsLeftButtonPressed)
             return;
 
+        if (e.PointerPressedEventArgs.ClickCount == 2 && !header)
+        {
+            _viewModel?.OpenEditCell(item, e.Column.Header?.ToString());
+            e.PointerPressedEventArgs.Handled = true;
+            return;
+        }
+
         BeginPointerSelection(item, e.Column, extend);
         _dragging = true;
         _capturedPointer = e.PointerPressedEventArgs.Pointer;
@@ -212,6 +219,15 @@ public partial class QueryResultTableComponent : UserControl
         if (ctrl && e.Key == Key.A)
         {
             SelectAll();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.F2)
+        {
+            var targetRow = _activeRow ?? _viewModel?.SelectedRow;
+            var colHeader = (ResultsDataGrid.CurrentColumn ?? ResultsDataGrid.Columns.ElementAtOrDefault(_activeCol))?.Header?.ToString();
+            _viewModel?.OpenEditCell(targetRow, colHeader);
             e.Handled = true;
             return;
         }

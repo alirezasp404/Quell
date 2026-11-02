@@ -60,6 +60,36 @@ public partial class MainViewModel : ViewModelBase
         _sampleQueryResult = new QueryResultTableViewModel();
         _sampleSchema = new SchemaPropertiesTableViewModel();
 
+        _sampleQueryResult.EditCellModal.ExecuteQueryCallback = async sql =>
+        {
+            string? key = SelectedTargetDatabase?.Key ?? DatabaseSessionService.Instance.ActiveSession?.Key;
+            if (string.IsNullOrEmpty(key))
+            {
+                return true;
+            }
+            var res = await DatabaseSessionService.Instance.ExecuteQueryAsync(sql, key);
+            if (res.Success)
+            {
+                await Fdb.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
+                    sql, res.ExecutionTime, 1, "Success");
+                return true;
+            }
+            return false;
+        };
+
+        _sampleQueryResult.EditCellModal.InsertQueryToEditorCallback = sql =>
+        {
+            if (_editor.SelectedTab != null)
+            {
+                _editor.SelectedTab.Text = sql;
+            }
+            else
+            {
+                _editor.AddTab();
+                if (_editor.SelectedTab != null) _editor.SelectedTab.Text = sql;
+            }
+        };
+
         // Wire sidebar actions to editor and connect modal
         _sidebar.InsertQueryToEditor = q =>
         {
@@ -372,6 +402,13 @@ public partial class MainViewModel : ViewModelBase
                 execTime);
         }
 
+        string? inferredTable = ExtractTableNameFromQuery(query) ?? Sidebar.SelectedTable?.FullName;
+        if (!string.IsNullOrWhiteSpace(inferredTable))
+        {
+            SampleQueryResult.CurrentTableName = inferredTable;
+        }
+        SampleQueryResult.CurrentDatabaseType = SelectedTargetDatabase?.DatabaseType ?? "MSSQL";
+
         SampleQueryResult.TargetDatabaseName = targetDbName;
 
         await Fdb.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
@@ -510,6 +547,20 @@ public partial class MainViewModel : ViewModelBase
         Footer.Tabs.Add("Output");
         Footer.Tabs.Add("Problems");
         Footer.SelectedTab = "Terminal";
+    }
+
+    private static string? ExtractTableNameFromQuery(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return null;
+        var match = System.Text.RegularExpressions.Regex.Match(
+            query,
+            @"\bFROM\s+([\[\]""`\w\.]+)",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (match.Success)
+        {
+            return match.Groups[1].Value.Trim().TrimEnd(';');
+        }
+        return null;
     }
 
     [RelayCommand]

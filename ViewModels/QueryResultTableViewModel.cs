@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -10,17 +11,31 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Fdb.ViewModels;
 
-public class QueryResultRow
+public partial class QueryResultRow : ObservableObject
 {
-    public int RowIndex { get; set; }
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string Role { get; set; } = string.Empty;
-    public string Status { get; set; } = "Active";
-    public string CreatedAt { get; set; } = string.Empty;
+    [ObservableProperty]
+    private int _rowIndex;
+
+    [ObservableProperty]
+    private int _id;
+
+    [ObservableProperty]
+    private string _name = string.Empty;
+
+    [ObservableProperty]
+    private string _email = string.Empty;
+
+    [ObservableProperty]
+    private string _role = string.Empty;
+
+    [ObservableProperty]
+    private string _status = "Active";
+
+    [ObservableProperty]
+    private string _createdAt = string.Empty;
 
     public Dictionary<string, string> Values { get; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, string> OriginalValues { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     public string this[string key]
     {
@@ -65,6 +80,12 @@ public class QueryResultRow
                     CreatedAt = value;
                     break;
             }
+            OnPropertyChanged("Item[]");
+            OnPropertyChanged(nameof(Name));
+            OnPropertyChanged(nameof(Email));
+            OnPropertyChanged(nameof(Role));
+            OnPropertyChanged(nameof(Status));
+            OnPropertyChanged(nameof(CreatedAt));
         }
     }
 }
@@ -84,6 +105,18 @@ public partial class QueryResultTableViewModel : ViewModelBase
     private string _targetDatabaseName = "(No Connection)";
 
     [ObservableProperty]
+    private string _currentTableName = "Users";
+
+    [ObservableProperty]
+    private string _currentDatabaseType = "MSSQL";
+
+    [ObservableProperty]
+    private string _lastQueryMessage = string.Empty;
+
+    [ObservableProperty]
+    private bool _hasLastQueryMessage;
+
+    [ObservableProperty]
     private int _currentPage = 1;
 
     [ObservableProperty]
@@ -99,6 +132,8 @@ public partial class QueryResultTableViewModel : ViewModelBase
 
     public Func<string?>? CopyFocusedRow { get; set; }
 
+    public EditCellModalViewModel EditCellModal { get; } = new();
+
     public event Action<IReadOnlyList<string>>? ColumnsChanged;
 
     public ObservableCollection<QueryResultRow> Rows { get; } = new()
@@ -110,6 +145,26 @@ public partial class QueryResultTableViewModel : ViewModelBase
         new QueryResultRow { RowIndex = 5, Id = 105, Name = "Evan Wright", Email = "evan@example.com", Role = "Developer", Status = "Inactive", CreatedAt = "2026-04-05 16:00:45" }
     };
 
+    public QueryResultTableViewModel()
+    {
+        EditCellModal.OnUpdatedCallback = msg =>
+        {
+            LastQueryMessage = msg;
+            HasLastQueryMessage = true;
+        };
+
+        // Cache initial row values into OriginalValues
+        foreach (var r in Rows)
+        {
+            r.OriginalValues["Id"] = r.Id.ToString();
+            r.OriginalValues["Name"] = r.Name;
+            r.OriginalValues["Email"] = r.Email;
+            r.OriginalValues["Role"] = r.Role;
+            r.OriginalValues["Status"] = r.Status;
+            r.OriginalValues["CreatedAt"] = r.CreatedAt;
+        }
+    }
+
     public void SetResults(IReadOnlyList<string> columns, IReadOnlyList<QueryResultRow> newRows, string execTime)
     {
         void Apply()
@@ -117,6 +172,10 @@ public partial class QueryResultTableViewModel : ViewModelBase
             Rows.Clear();
             foreach (var r in newRows)
             {
+                foreach (var kvp in r.Values)
+                {
+                    r.OriginalValues[kvp.Key] = kvp.Value;
+                }
                 Rows.Add(r);
             }
             TotalRows = newRows.Count;
@@ -139,6 +198,34 @@ public partial class QueryResultTableViewModel : ViewModelBase
                 Avalonia.Threading.Dispatcher.UIThread.Post(Apply);
             }
         }
+    }
+
+    public void OpenEditCell(QueryResultRow? row, string? columnName = null)
+    {
+        var targetRow = row ?? SelectedRow ?? Rows.FirstOrDefault();
+        if (targetRow == null) return;
+
+        string col = string.IsNullOrWhiteSpace(columnName) || columnName == "ROW #" ? "Name" : columnName;
+        EditCellModal.Open(targetRow, col, CurrentTableName, CurrentDatabaseType);
+    }
+
+    [RelayCommand]
+    public void OpenEditSelectedCell()
+    {
+        OpenEditCell(SelectedRow ?? Rows.FirstOrDefault(), null);
+    }
+
+    [RelayCommand]
+    public void GenerateUpdateQuery()
+    {
+        OpenEditCell(SelectedRow ?? Rows.FirstOrDefault(), null);
+    }
+
+    [RelayCommand]
+    public void DismissMessage()
+    {
+        HasLastQueryMessage = false;
+        LastQueryMessage = string.Empty;
     }
 
     [RelayCommand]
