@@ -91,14 +91,80 @@ public partial class QueryResultTableComponent : UserControl
             for (int i = 0; i < columns.Count; i++)
             {
                 var colName = columns[i];
-                var styleClass = (i % 2 == 0) ? "white-col" : "alt-col";
+                var isPk = _viewModel?.IsColumnPrimaryKey(colName) == true;
+                var styleClass = isPk ? "pk-col" : ((i % 2 == 0) ? "white-col" : "alt-col");
+
                 var col = new DataGridTextColumn
                 {
-                    Header = colName,
                     Binding = new Avalonia.Data.Binding($"[{colName}]"),
                     CanUserResize = true,
                     CanUserSort = true
                 };
+
+                if (isPk)
+                {
+                    var headerPanel = new StackPanel
+                    {
+                        Orientation = Avalonia.Layout.Orientation.Horizontal,
+                        Spacing = 4,
+                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                    };
+
+                    var pkBadge = new Border
+                    {
+                        Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#FEF3C7")),
+                        BorderBrush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#F59E0B")),
+                        BorderThickness = new Avalonia.Thickness(1),
+                        CornerRadius = new Avalonia.CornerRadius(3),
+                        Padding = new Avalonia.Thickness(3, 1),
+                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                    };
+
+                    var pkStack = new StackPanel
+                    {
+                        Orientation = Avalonia.Layout.Orientation.Horizontal,
+                        Spacing = 2
+                    };
+
+                    var keyIcon = new Avalonia.Controls.PathIcon
+                    {
+                        Data = Avalonia.Media.Geometry.Parse("M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"),
+                        Width = 10,
+                        Height = 10,
+                        Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#D97706")),
+                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                    };
+
+                    var pkText = new TextBlock
+                    {
+                        Text = "PK",
+                        FontSize = 9,
+                        FontWeight = Avalonia.Media.FontWeight.Bold,
+                        Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#B45309")),
+                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                    };
+
+                    pkStack.Children.Add(keyIcon);
+                    pkStack.Children.Add(pkText);
+                    pkBadge.Child = pkStack;
+
+                    var titleBlock = new TextBlock
+                    {
+                        Text = colName.ToUpperInvariant(),
+                        FontWeight = Avalonia.Media.FontWeight.Bold,
+                        Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#D97706")),
+                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                    };
+
+                    headerPanel.Children.Add(pkBadge);
+                    headerPanel.Children.Add(titleBlock);
+                    col.Header = headerPanel;
+                }
+                else
+                {
+                    col.Header = colName.ToUpperInvariant();
+                }
+
                 col.CellStyleClasses.Add(styleClass);
                 ResultsDataGrid.Columns.Add(col);
             }

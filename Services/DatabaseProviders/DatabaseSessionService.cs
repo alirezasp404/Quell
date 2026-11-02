@@ -405,6 +405,87 @@ public class DatabaseSessionService
         }
     }
 
+    public async Task<List<string>> GetPrimaryKeyColumnsAsync(string tableName, string? sessionKey = null, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(tableName)) return new List<string>();
+
+        await _connectionLock.WaitAsync(cancellationToken);
+        try
+        {
+            var session = ResolveSession(sessionKey);
+            if (session == null || session.Connection.State != ConnectionState.Open)
+            {
+                return new List<string>();
+            }
+
+            string cleanTable = tableName.Trim('[', ']', '"', '`');
+            string schema = "dbo";
+            if (cleanTable.Contains('.'))
+            {
+                var parts = cleanTable.Split('.');
+                schema = parts[0];
+                cleanTable = parts[1];
+            }
+
+            string sql = session.Config.DatabaseType switch
+            {
+                "MSSQL" => $@"
+                    SELECT COLUMN_NAME 
+                    FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+                    WHERE OBJECTPROPERTY(OBJECT_ID(CONSTRAINT_SCHEMA + '.' + CONSTRAINT_NAME), 'IsPrimaryKey') = 1 
+                      AND TABLE_NAME = '{cleanTable.Replace("'", "''")}';",
+                "PostgreSQL" => $@"
+                    SELECT kcu.column_name 
+                    FROM information_schema.table_constraints tc 
+                    JOIN information_schema.key_column_usage kcu 
+                      ON tc.constraint_name = kcu.constraint_name 
+                    WHERE tc.constraint_type = 'PRIMARY KEY' 
+                      AND tc.table_name = '{cleanTable.ToLowerInvariant().Replace("'", "''")}';",
+                "MySQL" => $@"
+                    SELECT COLUMN_NAME 
+                    FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+                    WHERE CONSTRAINT_NAME = 'PRIMARY' 
+                      AND TABLE_NAME = '{cleanTable.Replace("'", "''")}';",
+                _ => $@"PRAGMA table_info('{cleanTable.Replace("'", "''")}');"
+            };
+
+            using var cmd = session.Connection.CreateCommand();
+            cmd.CommandText = sql;
+            using var reader = cmd.ExecuteReader();
+            var pks = new List<string>();
+
+            if (session.Config.DatabaseType == "SQLite")
+            {
+                while (reader.Read())
+                {
+                    int pkIndex = reader.GetInt32(5);
+                    if (pkIndex > 0)
+                    {
+                        pks.Add(reader.GetString(1));
+                    }
+                }
+            }
+            else
+            {
+                while (reader.Read())
+                {
+                    pks.Add(reader.GetString(0));
+                }
+            }
+
+            return pks;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseSessionService] GetPrimaryKeyColumnsAsync error: {ex.Message}");
+            return new List<string>();
+        }
+        finally
+        {
+            _connectionLock.Release();
+        }
+    }
+
     public async Task<QueryExecutionResult> ExecuteQueryAsync(string sql, string? sessionKey = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(sql))

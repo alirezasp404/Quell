@@ -155,15 +155,28 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <!-- Key Indicator (Pure White) -->
+                    <!-- Key Indicator (Golden PK Badge & FK Link Badge) -->
                     <DataGridTemplateColumn Header="KEY" 
                                             CellStyleClasses="white-col"
-                                            Width="55">
+                                            Width="70">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
-                                    <ui:FASymbolIcon Symbol="Checkmark" FontSize="10" Foreground="#2563EB" ToolTip.Tip="Primary Key" IsVisible="{Binding IsPrimaryKey}"/>
-                                    <ui:FASymbolIcon Symbol="Link" FontSize="10" Foreground="#64748B" ToolTip.Tip="Foreign Key" IsVisible="{Binding IsForeignKey}"/>
+                                    <Border Background="{DynamicResource AppTablePkBadgeBackgroundBrush}" 
+                                            BorderBrush="{DynamicResource AppTablePkBadgeBorderBrush}" 
+                                            BorderThickness="1" 
+                                            CornerRadius="3" 
+                                            Padding="4,1"
+                                            ToolTip.Tip="Primary Key (Unique Record Identifier)"
+                                            IsVisible="{Binding IsPrimaryKey}">
+                                        <StackPanel Orientation="Horizontal" Spacing="2">
+                                            <PathIcon Data="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" Width="9" Height="9" Foreground="{DynamicResource AppTablePkColumnForegroundBrush}" VerticalAlignment="Center"/>
+                                            <TextBlock Text="PK" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AppTablePkBadgeForegroundBrush}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Background="#E2E8F0" BorderBrush="#94A3B8" BorderThickness="1" CornerRadius="3" Padding="3,1" ToolTip.Tip="Foreign Key" IsVisible="{Binding IsForeignKey}">
+                                        <TextBlock Text="FK" FontSize="9" FontWeight="Bold" Foreground="#475569" VerticalAlignment="Center"/>
+                                    </Border>
                                 </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>

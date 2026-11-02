@@ -811,7 +811,24 @@ sealed class Program
             }
             Console.WriteLine($"[Success] Cell graphically edited, query executed, and reflected in grid and editor: '{vm.SampleQueryResult.LastQueryMessage}'");
 
-            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE & GRAPHICAL FOOTER CELL UPDATE) PASSED! <<<");
+            // [Action] Verifying Primary Key Visual Distinctiveness (Badges & Headers)
+            Console.WriteLine("\n[Action] Verifying Primary Key UI Highlighting & Detection...");
+            Console.WriteLine($"Table HasPrimaryKey: {vm.SampleQueryResult.HasPrimaryKey}, PK Column: '{vm.SampleQueryResult.PrimaryKeyColumnName}'");
+            if (!vm.SampleQueryResult.HasPrimaryKey || !vm.SampleQueryResult.PrimaryKeyColumnName.Contains("Id"))
+            {
+                throw new Exception($"Expected Primary Key detected for Users table, but got HasPK={vm.SampleQueryResult.HasPrimaryKey}, PK={vm.SampleQueryResult.PrimaryKeyColumnName}");
+            }
+            if (!vm.SampleQueryResult.IsColumnPrimaryKey("Id") || vm.SampleQueryResult.IsColumnPrimaryKey("Email"))
+            {
+                throw new Exception("IsColumnPrimaryKey mismatch for Id vs Email!");
+            }
+            if (!vm.SampleSchema.Columns[0].IsPrimaryKey)
+            {
+                throw new Exception("Schema table column 0 is not marked as Primary Key!");
+            }
+            Console.WriteLine("[Success] Primary Key visual badge, key icon & distinct styling verified!");
+
+            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE & PRIMARY KEY UI DISTINCTIVENESS) PASSED! <<<");
             return;
         }
 

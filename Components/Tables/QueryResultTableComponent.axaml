@@ -39,6 +39,23 @@
             <Setter Property="BorderThickness" Value="0,0,1,1"/>
         </Style>
 
+        <!-- Primary Key Column Cell Style (Distinct Gold Foreground & SemiBold Weight) -->
+        <Style Selector="DataGridCell.pk-col">
+            <Setter Property="Background" Value="{DynamicResource AppTableWhiteColBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTablePkColumnForegroundBrush}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Padding" Value="8,2"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppTableCellBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+        </Style>
+        <Style Selector="DataGridRow:pointerover DataGridCell.pk-col">
+            <Setter Property="Background" Value="{DynamicResource AppTableHoverBackgroundBrush}"/>
+        </Style>
+        <Style Selector="DataGridRow:selected DataGridCell.pk-col">
+            <Setter Property="Background" Value="{DynamicResource AppTableActiveBackgroundBrush}"/>
+        </Style>
+
         <!-- Row Pointer Over (Hover) -->
         <Style Selector="DataGridRow:pointerover DataGridCell.row-header-col">
             <Setter Property="Background" Value="{DynamicResource AppTableHoverBackgroundBrush}"/>
@@ -219,11 +236,30 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
                     
-                    <!-- Col 1: ID (Pure White) -->
+                    <!-- Col 1: ID (Primary Key with Distinct Golden PK Badge & Icon) -->
                     <DataGridTextColumn Header="ID" 
-                                        CellStyleClasses="white-col"
+                                        CellStyleClasses="pk-col"
                                         Binding="{Binding Id}" 
-                                        Width="80" />
+                                        FontWeight="Bold"
+                                        Width="95">
+                        <DataGridTextColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                    <Border Background="{DynamicResource AppTablePkBadgeBackgroundBrush}" 
+                                            BorderBrush="{DynamicResource AppTablePkBadgeBorderBrush}" 
+                                            BorderThickness="1" 
+                                            CornerRadius="3" 
+                                            Padding="3,1">
+                                        <StackPanel Orientation="Horizontal" Spacing="2">
+                                            <PathIcon Data="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" Width="9" Height="9" Foreground="{DynamicResource AppTablePkColumnForegroundBrush}" VerticalAlignment="Center"/>
+                                            <TextBlock Text="PK" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AppTablePkBadgeForegroundBrush}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <TextBlock Text="ID" FontWeight="Bold" Foreground="{DynamicResource AppTablePkColumnForegroundBrush}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTextColumn.HeaderTemplate>
+                    </DataGridTextColumn>
 
                     <!-- Col 2: NAME (Dimmer Off-White) -> Column with Title "NAME" & names below -->
                     <DataGridTextColumn Header="NAME" 

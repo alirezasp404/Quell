@@ -406,6 +406,21 @@ public partial class MainViewModel : ViewModelBase
         if (!string.IsNullOrWhiteSpace(inferredTable))
         {
             SampleQueryResult.CurrentTableName = inferredTable;
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var pks = await DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(inferredTable, key);
+                    if (pks != null && pks.Count > 0)
+                    {
+                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                        {
+                            SampleQueryResult.SetPrimaryKeys(pks);
+                        });
+                    }
+                }
+                catch { }
+            });
         }
         SampleQueryResult.CurrentDatabaseType = SelectedTargetDatabase?.DatabaseType ?? "MSSQL";
 

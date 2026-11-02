@@ -84,6 +84,26 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Primary Key Badge (Distinct Golden Pill) -->
+                <Border Background="{DynamicResource AppTablePkBadgeBackgroundBrush}" 
+                        BorderBrush="{DynamicResource AppTablePkBadgeBorderBrush}" 
+                        BorderThickness="1" 
+                        CornerRadius="4" 
+                        Height="23"
+                        Padding="8,1"
+                        IsVisible="{Binding HasPrimaryKey}"
+                        ToolTip.Tip="Primary Key column in current table">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <PathIcon Data="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" Width="10" Height="10" Foreground="{DynamicResource AppTablePkColumnForegroundBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="PK:" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AppTablePkBadgeForegroundBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding PrimaryKeyColumnName}" 
+                                   Foreground="{DynamicResource AppTablePkColumnForegroundBrush}" 
+                                   FontWeight="Bold" 
+                                   FontSize="11" 
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
                 <!-- Execution Time Badge -->
                 <Border Background="{DynamicResource AppWorkspaceBrush}" 
                         BorderBrush="{DynamicResource AppBorderBrush}" 

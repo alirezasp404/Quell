@@ -76,6 +76,12 @@
     <SolidColorBrush x:Key="AppTableActiveBorderBrush" Color="#60A5FA" />
     <SolidColorBrush x:Key="AppTableHoverBackgroundBrush" Color="#1E293B" />
 
+    <!-- Primary Key Semantic Brushes -->
+    <SolidColorBrush x:Key="AppTablePkBadgeBackgroundBrush" Color="#451A03" />
+    <SolidColorBrush x:Key="AppTablePkBadgeBorderBrush" Color="#F59E0B" />
+    <SolidColorBrush x:Key="AppTablePkBadgeForegroundBrush" Color="#FDE68A" />
+    <SolidColorBrush x:Key="AppTablePkColumnForegroundBrush" Color="#FBBF24" />
+
     <!-- IntelliSense & Overlay Component Semantic Brushes -->
     <SolidColorBrush x:Key="AppIntelliSenseHeaderBackgroundBrush" Color="#1E293B" />
     <SolidColorBrush x:Key="AppIntelliSenseBorderBrush" Color="#3B82F6" />

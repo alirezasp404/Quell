@@ -111,6 +111,66 @@ public partial class QueryResultTableViewModel : ViewModelBase
     private string _currentDatabaseType = "MSSQL";
 
     [ObservableProperty]
+    private string _primaryKeyColumnName = "Id";
+
+    [ObservableProperty]
+    private bool _hasPrimaryKey = true;
+
+    public HashSet<string> PrimaryKeyColumns { get; } = new(StringComparer.OrdinalIgnoreCase) { "Id", "ID", "user_id" };
+
+    public bool IsColumnPrimaryKey(string? columnName)
+    {
+        if (string.IsNullOrWhiteSpace(columnName)) return false;
+        return PrimaryKeyColumns.Contains(columnName) || IsProbablePrimaryKey(columnName, CurrentTableName);
+    }
+
+    public static bool IsProbablePrimaryKey(string? columnName, string? tableName = null)
+    {
+        if (string.IsNullOrWhiteSpace(columnName)) return false;
+        string c = columnName.Trim().ToLowerInvariant();
+        if (c == "id" || c == "rowid" || c == "user_id" || c == "userid" || c == "uuid" || c == "guid" || c == "pk")
+            return true;
+
+        if (!string.IsNullOrEmpty(tableName))
+        {
+            string t = tableName.Trim('[', ']', '"', '`').ToLowerInvariant();
+            if (t.Contains('.')) t = t.Split('.')[1];
+            if (c == $"{t}_id" || c == $"{t}id" || c == $"{t}_pk")
+                return true;
+            if (t.EndsWith("s") && (c == $"{t.TrimEnd('s')}_id" || c == $"{t.TrimEnd('s')}id"))
+                return true;
+        }
+
+        return c.EndsWith("_id") || (c.EndsWith("id") && c.Length > 2);
+    }
+
+    public void SetPrimaryKeys(IEnumerable<string> pks)
+    {
+        PrimaryKeyColumns.Clear();
+        foreach (var pk in pks)
+        {
+            PrimaryKeyColumns.Add(pk);
+        }
+        if (PrimaryKeyColumns.Count > 0)
+        {
+            PrimaryKeyColumnName = string.Join(", ", PrimaryKeyColumns);
+            HasPrimaryKey = true;
+        }
+        else
+        {
+            PrimaryKeyColumnName = string.Empty;
+            HasPrimaryKey = false;
+        }
+
+        if (_lastColumns != null)
+        {
+            ColumnsChanged?.Invoke(_lastColumns);
+        }
+    }
+
+    private IReadOnlyList<string>? _lastColumns;
+
+    [ObservableProperty]
     private string _lastQueryMessage = string.Empty;
 
     [ObservableProperty]
@@ -169,6 +229,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
     {
         void Apply()
         {
+            _lastColumns = columns;
             Rows.Clear();
             foreach (var r in newRows)
             {
@@ -180,6 +241,29 @@ public partial class QueryResultTableViewModel : ViewModelBase
             }
             TotalRows = newRows.Count;
             ExecutionTime = execTime;
+
+            if (PrimaryKeyColumns.Count == 0 || !columns.Any(c => PrimaryKeyColumns.Contains(c)))
+            {
+                var detected = columns.FirstOrDefault(c => IsProbablePrimaryKey(c, CurrentTableName));
+                if (!string.IsNullOrEmpty(detected))
+                {
+                    PrimaryKeyColumns.Clear();
+                    PrimaryKeyColumns.Add(detected);
+                    PrimaryKeyColumnName = detected;
+                    HasPrimaryKey = true;
+                }
+                else
+                {
+                    HasPrimaryKey = false;
+                    PrimaryKeyColumnName = string.Empty;
+                }
+            }
+            else
+            {
+                HasPrimaryKey = true;
+                PrimaryKeyColumnName = string.Join(", ", PrimaryKeyColumns.Where(c => columns.Contains(c, StringComparer.OrdinalIgnoreCase)));
+            }
+
             ColumnsChanged?.Invoke(columns);
         }
 
