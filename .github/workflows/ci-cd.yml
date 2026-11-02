@@ -158,6 +158,7 @@ jobs:
 
       - name: Package macOS .app Bundle and .dmg Installer
         run: |
+          mkdir -p ./dist/macos
           chmod +x packaging/macos/build-app.sh
           ./packaging/macos/build-app.sh ${{ matrix.rid }} 1.0.0 ./publish/${{ matrix.rid }} ./dist/macos
 

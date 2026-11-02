@@ -66,6 +66,7 @@ public partial class QueryResultTableComponent : UserControl
         {
             _viewModel.CopySelection = null;
             _viewModel.CopyFocusedRow = null;
+            _viewModel.ColumnsChanged -= OnColumnsChanged;
         }
 
         _viewModel = DataContext as QueryResultTableViewModel;
@@ -74,6 +75,43 @@ public partial class QueryResultTableComponent : UserControl
 
         _viewModel.CopySelection = BuildSelectionText;
         _viewModel.CopyFocusedRow = BuildFocusedRowText;
+        _viewModel.ColumnsChanged -= OnColumnsChanged;
+        _viewModel.ColumnsChanged += OnColumnsChanged;
+    }
+
+    private void OnColumnsChanged(IReadOnlyList<string> columns)
+    {
+        void UpdateColumns()
+        {
+            while (ResultsDataGrid.Columns.Count > 1)
+            {
+                ResultsDataGrid.Columns.RemoveAt(ResultsDataGrid.Columns.Count - 1);
+            }
+
+            for (int i = 0; i < columns.Count; i++)
+            {
+                var colName = columns[i];
+                var styleClass = (i % 2 == 0) ? "white-col" : "alt-col";
+                var col = new DataGridTextColumn
+                {
+                    Header = colName,
+                    Binding = new Avalonia.Data.Binding($"[{colName}]"),
+                    CanUserResize = true,
+                    CanUserSort = true
+                };
+                col.CellStyleClasses.Add(styleClass);
+                ResultsDataGrid.Columns.Add(col);
+            }
+        }
+
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            UpdateColumns();
+        }
+        else
+        {
+            Dispatcher.UIThread.Post(UpdateColumns);
+        }
     }
 
     private void OnCellPointerPressed(object? sender, DataGridCellPointerPressedEventArgs e)
@@ -588,17 +626,10 @@ public partial class QueryResultTableComponent : UserControl
 
     private static string CellText(QueryResultRow row, DataGridColumn column)
     {
-        var value = column.Header?.ToString() switch
-        {
-            "ROW #" => row.RowIndex.ToString(),
-            "ID" => row.Id.ToString(),
-            "NAME" => row.Name,
-            "EMAIL" => row.Email,
-            "ROLE" => row.Role,
-            "STATUS" => row.Status,
-            "CREATED AT" => row.CreatedAt,
-            _ => string.Empty
-        };
+        var header = column.Header?.ToString();
+        if (header == "ROW #") return row.RowIndex.ToString();
+
+        var value = header != null ? row[header] : string.Empty;
 
         if (value.Contains('\t') || value.Contains('\n') || value.Contains('\r') || value.Contains('"'))
             return "\"" + value.Replace("\"", "\"\"") + "\"";

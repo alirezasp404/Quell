@@ -98,6 +98,7 @@ sealed class Program
             {
                 throw new Exception($"Expected row index '1', but got '{textBlock?.Text}'");
             }
+            tableComp.DataContext = null;
 
             // 5. Test Modal Dialogs Lifecycle & Triggers
             Console.WriteLine("\n[Action] Verifying Modal Dialogs Lifecycle...");
@@ -406,6 +407,7 @@ sealed class Program
                     throw new Exception("Window MainEditor failed to commit 'SELECT '!");
                 }
             }
+            window.DataContext = null;
 
             // 8. Test Zero Emojis / All Vector Icons
             Console.WriteLine("\n[Action] Verifying Zero Emojis / Native Vector Icons...");
@@ -510,7 +512,116 @@ sealed class Program
                 throw new Exception("Failed to persist query history in SQLite!");
             }
 
-            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN & STORAGE) PASSED! <<<");
+                        // 11. Test Dynamic Database Providers & Connect Modal Engine Switching
+            Console.WriteLine("\n[Action] Verifying Dynamic Database Providers & Engine Switching...");
+            var registry = Fdb.Services.DatabaseProviders.DatabaseProviderRegistry.Instance;
+            var allProviders = registry.GetAllProviders();
+            Console.WriteLine($"Registered Providers: {string.Join(", ", System.Linq.Enumerable.Select(allProviders, p => p.Id))}");
+            if (allProviders.Count < 4)
+            {
+                throw new Exception("Expected at least 4 registered database providers (MSSQL, PostgreSQL, MySQL, SQLite)!");
+            }
+
+            var mssqlProv = registry.GetProvider("MSSQL");
+            var connStr = mssqlProv.BuildConnectionString(new Fdb.Services.DatabaseProviders.DatabaseConnectionConfig
+            {
+                Server = "127.0.0.1",
+                Port = 1433,
+                Database = "TestDb",
+                AuthType = "SQL Server Authentication",
+                Username = "sa",
+                Password = "SecretPassword123!",
+                TrustServerCertificate = true
+            });
+            Console.WriteLine($"Generated MSSQL Connection String: {connStr}");
+            if (!connStr.Contains("TestDb") || !connStr.Contains("sa") || !connStr.Contains("127.0.0.1"))
+            {
+                throw new Exception("MSSQL Connection string did not contain expected configuration parameters!");
+            }
+
+            // Test SQLite Provider In-Memory
+            var sqliteProv = registry.GetProvider("SQLite");
+            var sqliteTest = await sqliteProv.TestConnectionAsync(new Fdb.Services.DatabaseProviders.DatabaseConnectionConfig
+            {
+                FilePath = ":memory:"
+            });
+            Console.WriteLine($"SQLite In-Memory Test: Success={sqliteTest.Success}, Version='{sqliteTest.ServerVersion}'");
+            if (!sqliteTest.Success || string.IsNullOrEmpty(sqliteTest.ServerVersion))
+            {
+                throw new Exception("SQLite In-Memory test failed!");
+            }
+
+            // Test ConnectModal dynamic switching
+            vm.ConnectModal.SelectEngine("PostgreSQL");
+            Console.WriteLine($"Switched to PostgreSQL: Port={vm.ConnectModal.Port}, Database={vm.ConnectModal.Database}, Username={vm.ConnectModal.Username}, IsServerBased={vm.ConnectModal.IsServerBased}");
+            if (vm.ConnectModal.Port != 5432 || vm.ConnectModal.Database != "postgres" || vm.ConnectModal.Username != "postgres")
+            {
+                throw new Exception("ConnectModal failed to switch default parameters for PostgreSQL!");
+            }
+
+            vm.ConnectModal.SelectEngine("SQLite");
+            Console.WriteLine($"Switched to SQLite: IsFileBased={vm.ConnectModal.IsFileBased}, IsServerBased={vm.ConnectModal.IsServerBased}");
+            if (!vm.ConnectModal.IsFileBased || vm.ConnectModal.IsServerBased)
+            {
+                throw new Exception("ConnectModal failed to switch to file-based mode for SQLite!");
+            }
+
+            vm.ConnectModal.SelectEngine("MSSQL");
+            Console.WriteLine($"Switched back to MSSQL: Port={vm.ConnectModal.Port}, Database={vm.ConnectModal.Database}, Username={vm.ConnectModal.Username}");
+            if (vm.ConnectModal.Port != 1433 || vm.ConnectModal.Database != "master")
+            {
+                throw new Exception("ConnectModal failed to restore default parameters for MSSQL!");
+            }
+
+                        // 12. Test Real Query Execution into Table, Sidebar Tables & Saved Connections
+            Console.WriteLine("\n[Action] Verifying Real Query Execution & Dynamic Table Data...");
+            vm.Editor.SelectedTab!.Text = "SELECT 42 AS Answer, 'Antigravity' AS Assistant, 'Active' AS Status;";
+            await vm.ExecuteQuery();
+            Console.WriteLine($"Query executed! Total Rows: {vm.SampleQueryResult.TotalRows}, ExecutionTime: {vm.SampleQueryResult.ExecutionTime}");
+            if (vm.SampleQueryResult.TotalRows == 0)
+            {
+                throw new Exception("Real query execution failed to return rows!");
+            }
+            var resultRow = vm.SampleQueryResult.Rows[0];
+            Console.WriteLine($"Real Result Row: Answer={resultRow["Answer"]}, Assistant={resultRow["Assistant"]}, Status={resultRow["Status"]}");
+            if (resultRow["Answer"] != "42" || resultRow["Assistant"] != "Antigravity")
+            {
+                throw new Exception($"Expected dynamic column values '42' and 'Antigravity', got '{resultRow["Answer"]}' and '{resultRow["Assistant"]}'!");
+            }
+
+            // Test Sidebar Tables Loading
+            Console.WriteLine("\n[Action] Verifying Sidebar Tables & Metadata...");
+            await vm.Sidebar.RefreshAsync();
+            Console.WriteLine($"Sidebar Tables Count: {vm.Sidebar.Tables.Count}");
+            if (vm.Sidebar.Tables.Count == 0)
+            {
+                throw new Exception("Sidebar failed to load database tables!");
+            }
+            Console.WriteLine($"Found Tables: {string.Join(", ", System.Linq.Enumerable.Select(System.Linq.Enumerable.Take(vm.Sidebar.Tables, 5), t => t.FullName))}");
+
+            // Test Saving Connections in Connect Modal and SQLite Persistence
+            Console.WriteLine("\n[Action] Verifying Connection Persistence in SQLite...");
+            int initialSaved = vm.Sidebar.SavedConnections.Count;
+            vm.ConnectModal.Open();
+            vm.ConnectModal.Server = "sql-cluster.production.local";
+            vm.ConnectModal.Port = 1433;
+            vm.ConnectModal.Database = "SalesDB";
+            vm.ConnectModal.Username = "sales_admin";
+            // Persist connection
+            await Fdb.Services.DatabaseStorageService.Instance.SaveConnectionAsync(
+                vm.ConnectModal.Server, vm.ConnectModal.Port, vm.ConnectModal.Database,
+                vm.ConnectModal.AuthType, vm.ConnectModal.Username, "MSSQL");
+            await vm.Sidebar.RefreshAsync();
+            await vm.ConnectModal.LoadSavedConnectionsAsync();
+            Console.WriteLine($"Saved Connections Count: {vm.ConnectModal.SavedConnections.Count} (was {initialSaved})");
+            var savedConn = System.Linq.Enumerable.FirstOrDefault(vm.ConnectModal.SavedConnections, c => c.Server == "sql-cluster.production.local");
+            if (savedConn == null || savedConn.DatabaseName != "SalesDB")
+            {
+                throw new Exception("Failed to persist and retrieve connection from SQLite!");
+            }
+            Console.WriteLine($"Successfully verified saved connection: {savedConn.DisplayTitle}");
+
+            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, REAL QUERY & SIDEBAR TABLES) PASSED! <<<");
             return;
         }
 

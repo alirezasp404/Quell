@@ -8,11 +8,14 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 PUBLISH_DIR="${2:-$ROOT_DIR/publish/linux-x64}"
 DIST_DIR="${3:-$ROOT_DIR/dist/linux}"
 
+# Ensure directories exist and resolve to absolute paths
+mkdir -p "$DIST_DIR"
+DIST_DIR="$(cd "$DIST_DIR" && pwd)"
+PUBLISH_DIR="$(cd "$PUBLISH_DIR" && pwd)"
+
 echo "Building Debian package for Fdb Studio v$VERSION ($ARCH)..."
 echo "Source publish dir: $PUBLISH_DIR"
 echo "Target dist dir:    $DIST_DIR"
-
-mkdir -p "$DIST_DIR"
 
 PACKAGE_ROOT=$(mktemp -d)
 trap 'rm -rf "$PACKAGE_ROOT"' EXIT
@@ -37,7 +40,11 @@ ln -sf "/usr/lib/fdb-studio/Fdb" "$PACKAGE_ROOT/usr/bin/fdb-studio"
 cp "$SCRIPT_DIR/fdb-studio.desktop" "$PACKAGE_ROOT/usr/share/applications/fdb-studio.desktop"
 
 # Copy icon if available
-if [ -f "$ROOT_DIR/Assets/avalonia-logo.ico" ]; then
+if [ -f "$ROOT_DIR/Assets/logo.png" ]; then
+    cp "$ROOT_DIR/Assets/logo.png" "$PACKAGE_ROOT/usr/share/icons/hicolor/256x256/apps/fdb-studio.png"
+elif [ -f "$ROOT_DIR/Assets/logo.ico" ]; then
+    cp "$ROOT_DIR/Assets/logo.ico" "$PACKAGE_ROOT/usr/share/icons/hicolor/256x256/apps/fdb-studio.ico"
+elif [ -f "$ROOT_DIR/Assets/avalonia-logo.ico" ]; then
     cp "$ROOT_DIR/Assets/avalonia-logo.ico" "$PACKAGE_ROOT/usr/share/icons/hicolor/256x256/apps/fdb-studio.ico"
 fi
 

@@ -29,7 +29,7 @@ Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
 ArchitecturesInstallIn64BitMode=x64compatible
-SetupIconFile=..\..\Assets\avalonia-logo.ico
+SetupIconFile=..\..\Assets\logo.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 
 [Languages]

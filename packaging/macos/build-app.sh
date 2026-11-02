@@ -8,11 +8,14 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 PUBLISH_DIR="${3:-$ROOT_DIR/publish/$RID}"
 DIST_DIR="${4:-$ROOT_DIR/dist/macos}"
 
+# Ensure directories exist and resolve to absolute paths so subshell cd operations don't break relative paths
+mkdir -p "$DIST_DIR"
+DIST_DIR="$(cd "$DIST_DIR" && pwd)"
+PUBLISH_DIR="$(cd "$PUBLISH_DIR" && pwd)"
+
 echo "Building macOS application bundle and installer for $RID (v$VERSION)..."
 echo "Source publish dir: $PUBLISH_DIR"
 echo "Target dist dir:    $DIST_DIR"
-
-mkdir -p "$DIST_DIR"
 
 APP_NAME="Fdb Studio.app"
 STAGING_DIR=$(mktemp -d)

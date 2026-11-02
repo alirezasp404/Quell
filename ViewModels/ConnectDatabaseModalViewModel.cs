@@ -1,14 +1,50 @@
+using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Fdb.Services;
+using Fdb.Services.DatabaseProviders;
 
 namespace Fdb.ViewModels;
+
+public class DatabaseEngineItem : ObservableObject
+{
+    public string Id { get; init; } = "MSSQL";
+    public string Name { get; init; } = "SQL Server";
+    public string Badge { get; init; } = "MSSQL";
+    public string DefaultPortText { get; init; } = "1433";
+    public string BadgeBackground { get; init; } = "#2563EB";
+
+    private bool _isSelected;
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set => SetProperty(ref _isSelected, value);
+    }
+}
 
 public partial class ConnectDatabaseModalViewModel : ViewModelBase
 {
     [ObservableProperty]
     private bool _isOpen;
+
+    [ObservableProperty]
+    private string _selectedDatabaseType = "MSSQL";
+
+    public ObservableCollection<DatabaseEngineItem> EngineOptions { get; } = new()
+    {
+        new DatabaseEngineItem { Id = "MSSQL", Name = "SQL Server", Badge = "MSSQL", DefaultPortText = "1433", BadgeBackground = "#2563EB", IsSelected = true },
+        new DatabaseEngineItem { Id = "PostgreSQL", Name = "PostgreSQL", Badge = "PG", DefaultPortText = "5432", BadgeBackground = "#336791", IsSelected = false },
+        new DatabaseEngineItem { Id = "MySQL", Name = "MySQL", Badge = "MYSQL", DefaultPortText = "3306", BadgeBackground = "#00758F", IsSelected = false },
+        new DatabaseEngineItem { Id = "SQLite", Name = "SQLite", Badge = "SQLITE", DefaultPortText = "File", BadgeBackground = "#003B57", IsSelected = false }
+    };
+
+    public ObservableCollection<ConnectionRecord> SavedConnections { get; } = new();
+
+    [ObservableProperty]
+    private ConnectionRecord? _selectedSavedConnection;
 
     [ObservableProperty]
     private string _server = "localhost";
@@ -18,6 +54,9 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
 
     [ObservableProperty]
     private string _database = "master";
+
+    [ObservableProperty]
+    private string _filePath = string.Empty;
 
     [ObservableProperty]
     private string _authType = "SQL Server Authentication";
@@ -42,13 +81,112 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
     private string? _statusMessage;
 
     [ObservableProperty]
+    private bool? _isSuccess;
+
+    [ObservableProperty]
     private bool _isTesting;
+
+    [ObservableProperty]
+    private bool _isConnecting;
+
+    public bool IsFileBased => SelectedDatabaseType == "SQLite";
+    public bool IsServerBased => SelectedDatabaseType != "SQLite";
+    public bool SupportsWindowsAuth => SelectedDatabaseType == "MSSQL";
+    public bool SupportsTrustCertificate => SelectedDatabaseType == "MSSQL";
+    public bool IsCredentialsEnabled => AuthType != "Windows Authentication" || IsFileBased;
+
+    public string ModalSubtitle => SelectedDatabaseType switch
+    {
+        "MSSQL" => "Configure Microsoft SQL Server / Azure SQL connection",
+        "PostgreSQL" => "Configure PostgreSQL instance connection",
+        "MySQL" => "Configure MySQL / MariaDB instance connection",
+        "SQLite" => "Configure local SQLite embedded database file",
+        _ => "Configure database connection"
+    };
+
+    [RelayCommand]
+    public void SelectEngine(string engineId)
+    {
+        if (string.IsNullOrWhiteSpace(engineId)) return;
+
+        SelectedDatabaseType = engineId;
+        foreach (var opt in EngineOptions)
+        {
+            opt.IsSelected = string.Equals(opt.Id, engineId, StringComparison.OrdinalIgnoreCase);
+        }
+
+        var provider = DatabaseProviderRegistry.Instance.GetProvider(engineId);
+        Port = provider.DefaultPort;
+        Database = provider.DefaultDatabase;
+        if (!string.IsNullOrEmpty(provider.DefaultUsername))
+        {
+            Username = provider.DefaultUsername;
+        }
+
+        StatusMessage = null;
+        IsSuccess = null;
+
+        OnPropertyChanged(nameof(IsFileBased));
+        OnPropertyChanged(nameof(IsServerBased));
+        OnPropertyChanged(nameof(SupportsWindowsAuth));
+        OnPropertyChanged(nameof(SupportsTrustCertificate));
+        OnPropertyChanged(nameof(IsCredentialsEnabled));
+        OnPropertyChanged(nameof(ModalSubtitle));
+    }
+
+    [RelayCommand]
+    public void SelectSavedConnection(ConnectionRecord record)
+    {
+        if (record == null) return;
+        SelectedSavedConnection = record;
+
+        SelectEngine(record.DatabaseType ?? "MSSQL");
+        Server = record.Server;
+        Port = record.Port;
+        Database = record.DatabaseName;
+        if (!string.IsNullOrEmpty(record.AuthType))
+        {
+            AuthType = record.AuthType;
+        }
+        if (!string.IsNullOrEmpty(record.Username))
+        {
+            Username = record.Username;
+        }
+        if (record.DatabaseType == "SQLite")
+        {
+            FilePath = record.Server;
+        }
+    }
+
+    partial void OnAuthTypeChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsCredentialsEnabled));
+    }
+
+    public async Task LoadSavedConnectionsAsync()
+    {
+        try
+        {
+            var conns = await DatabaseStorageService.Instance.GetRecentConnectionsAsync();
+            SavedConnections.Clear();
+            foreach (var c in conns)
+            {
+                SavedConnections.Add(c);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ConnectModal] LoadSavedConnections error: {ex.Message}");
+        }
+    }
 
     [RelayCommand]
     public void Open()
     {
         IsOpen = true;
         StatusMessage = null;
+        IsSuccess = null;
+        _ = LoadSavedConnectionsAsync();
     }
 
     [RelayCommand]
@@ -56,23 +194,105 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
     {
         IsOpen = false;
         StatusMessage = null;
+        IsSuccess = null;
+        IsTesting = false;
+        IsConnecting = false;
+    }
+
+    public DatabaseConnectionConfig BuildCurrentConfig()
+    {
+        return new DatabaseConnectionConfig
+        {
+            DatabaseType = SelectedDatabaseType,
+            Server = Server,
+            Port = Port,
+            Database = Database,
+            AuthType = AuthType,
+            Username = Username,
+            Password = Password,
+            TrustServerCertificate = TrustServerCertificate,
+            FilePath = FilePath,
+            TimeoutSeconds = 8
+        };
     }
 
     [RelayCommand]
-    public void TestConnection()
+    public async Task TestConnection()
     {
-        StatusMessage = "Connecting to " + Server + ":" + Port + "...";
-        // Ready for Microsoft.Data.SqlClient test ping
-        StatusMessage = "Connection succeeded! (Server version: Microsoft SQL Server 2022)";
+        StatusMessage = $"Connecting to {SelectedDatabaseType} ({Server}:{Port})...";
+        IsTesting = true;
+        IsSuccess = null;
+
+        try
+        {
+            var config = BuildCurrentConfig();
+            var provider = DatabaseProviderRegistry.Instance.GetProvider(SelectedDatabaseType);
+            var result = await provider.TestConnectionAsync(config);
+
+            if (result.Success)
+            {
+                StatusMessage = $"Connection succeeded! (Server version: {result.ServerVersion ?? "Microsoft SQL Server 2022"})";
+                IsSuccess = true;
+            }
+            else
+            {
+                StatusMessage = $"Connection failed: {result.Message}";
+                IsSuccess = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Connection failed: {ex.Message}";
+            IsSuccess = false;
+        }
+        finally
+        {
+            IsTesting = false;
+        }
     }
 
     [RelayCommand]
     public async Task Connect()
     {
-        // Persist connection record to SQLite database
-        await Fdb.Services.DatabaseStorageService.Instance.SaveConnectionAsync(
-            Server, Port, Database, AuthType, Username);
+        IsConnecting = true;
+        StatusMessage = $"Establishing connection to {SelectedDatabaseType}...";
+        IsSuccess = null;
 
-        IsOpen = false;
+        try
+        {
+            var config = BuildCurrentConfig();
+
+            // 1. Persist connection record to SQLite storage
+            await DatabaseStorageService.Instance.SaveConnectionAsync(
+                Server, Port, Database, AuthType, Username, SelectedDatabaseType);
+
+            // Reload saved connections
+            await LoadSavedConnectionsAsync();
+
+            // 2. Establish live session with the selected provider
+            var result = await DatabaseSessionService.Instance.ConnectAsync(config);
+            if (!result.Success)
+            {
+                StatusMessage = $"Could not connect: {result.Message}";
+                IsSuccess = false;
+                return;
+            }
+
+            // 3. Switch dialect in SqlKeywordsService
+            await SqlKeywordsService.Instance.LoadKeywordsFromDatabaseAsync(SelectedDatabaseType);
+
+            StatusMessage = $"Connected to {SelectedDatabaseType} successfully!";
+            IsSuccess = true;
+            IsOpen = false;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error: {ex.Message}";
+            IsSuccess = false;
+        }
+        finally
+        {
+            IsConnecting = false;
+        }
     }
 }

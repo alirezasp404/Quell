@@ -4,7 +4,7 @@
         xmlns:components="using:Fdb.Components"
         x:Class="Fdb.Views.MainWindow"
         x:DataType="vm:MainViewModel"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/logo.ico"
         Title="Fdb Studio"
         MinWidth="800" MinHeight="500"
         Width="1200" Height="750"

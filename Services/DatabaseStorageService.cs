@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Dapper;
 using Microsoft.Data.Sqlite;
 using Fdb.ViewModels;
+using Fdb.Services.DatabaseProviders;
 
 namespace Fdb.Services;
 
@@ -17,7 +18,21 @@ public class ConnectionRecord
     public string DatabaseName { get; set; } = "master";
     public string AuthType { get; set; } = "SQL Server Authentication";
     public string Username { get; set; } = "sa";
+    public string DatabaseType { get; set; } = "MSSQL";
     public string LastConnectedAt { get; set; } = string.Empty;
+
+    public string DisplayTitle => DatabaseType == "SQLite"
+        ? Path.GetFileName(Server)
+        : $"{DatabaseName} ({Server}:{Port})";
+
+    public string BadgeColor => DatabaseType switch
+    {
+        "MSSQL" => "#2563EB",
+        "PostgreSQL" => "#336791",
+        "MySQL" => "#00758F",
+        "SQLite" => "#003B57",
+        _ => "#4B5563"
+    };
 }
 
 public class QueryHistoryRecord
@@ -110,6 +125,16 @@ public class DatabaseStorageService
                 await ExecuteFallbackSchemaAsync(connection);
             }
 
+            // Schema migrations / safety checks
+            try
+            {
+                await connection.ExecuteAsync("ALTER TABLE Connections ADD COLUMN DatabaseType TEXT DEFAULT 'MSSQL';");
+            }
+            catch
+            {
+                // Column already exists
+            }
+
             _initialized = true;
 
             reportProgress?.Invoke(90, "Pre-caching active SQL dialect keywords...");
@@ -131,7 +156,6 @@ public class DatabaseStorageService
 
     private static async Task ExecuteInitScriptStepsAsync(SqliteConnection connection, string fullSql, Action<double, string>? reportProgress)
     {
-        // Split script into logical steps delimited by step headers
         var stepSections = fullSql.Split(new[] { "-- [STEP " }, StringSplitOptions.RemoveEmptyEntries);
 
         double baseProgress = 15;
@@ -139,29 +163,21 @@ public class DatabaseStorageService
 
         for (int i = 0; i < stepSections.Length; i++)
         {
-            string section = stepSections[i].Trim();
-            if (string.IsNullOrWhiteSpace(section)) continue;
+            string section = stepSections[i];
+            int lineEndIndex = section.IndexOf('\n');
+            string stepTitle = lineEndIndex > 0 ? section[..lineEndIndex].Trim() : $"Step {i + 1}";
+            string stepSql = lineEndIndex > 0 ? section[lineEndIndex..] : section;
 
-            // Extract step description from first line
-            string firstLine = section.Split('\n')[0].Trim();
-            string stepTitle = firstLine.Contains(']') ? firstLine.Substring(firstLine.IndexOf(']') + 1).Trim() : firstLine;
-            double currentProgress = baseProgress + (i * progressIncrement);
+            double currentProgress = baseProgress + ((i + 1) * progressIncrement);
+            reportProgress?.Invoke(Math.Min(88, currentProgress), $"Executing SQL {stepTitle}...");
 
-            reportProgress?.Invoke(Math.Min(88, currentProgress), $"Executing SQL Queries: {stepTitle}...");
-
-            string sqlCode = section.Contains('\n') ? section.Substring(section.IndexOf('\n') + 1) : section;
-
-            // Execute SQL batch via Dapper
-            await connection.ExecuteAsync(sqlCode);
-
-            // Small yielding delay to ensure responsive UI progress render
-            await Task.Delay(40);
+            await connection.ExecuteAsync(stepSql);
         }
     }
 
     private static async Task ExecuteFallbackSchemaAsync(SqliteConnection connection)
     {
-        string fallbackSql = @"
+        const string fallbackSql = @"
             CREATE TABLE IF NOT EXISTS DialectKeywords (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 Dialect TEXT NOT NULL,
@@ -184,6 +200,7 @@ public class DatabaseStorageService
                 DatabaseName TEXT NOT NULL,
                 AuthType TEXT NOT NULL,
                 Username TEXT,
+                DatabaseType TEXT NOT NULL DEFAULT 'MSSQL',
                 LastConnectedAt TEXT NOT NULL
             );
             CREATE TABLE IF NOT EXISTS QueryHistory (
@@ -218,7 +235,6 @@ public class DatabaseStorageService
             INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('Theme', 'Light', datetime('now'));
         ";
 
-        // Execute fallback schema via Dapper
         await connection.ExecuteAsync(fallbackSql);
     }
 
@@ -309,6 +325,87 @@ public class DatabaseStorageService
         }
     }
 
+    public async Task<List<TableMetadata>> GetLocalTablesAsync()
+    {
+        try
+        {
+            await InitializeAsync();
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+
+            const string sql = @"
+                SELECT 'main' AS SchemaName, name AS TableName, type AS TableType 
+                FROM sqlite_master 
+                WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%' 
+                ORDER BY name;";
+
+            var result = await connection.QueryAsync<TableMetadata>(sql);
+            return result.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] GetLocalTablesAsync error: {ex.Message}");
+            return new List<TableMetadata>();
+        }
+    }
+
+    public async Task<QueryExecutionResult> ExecuteArbitraryQueryAsync(string sql)
+    {
+        try
+        {
+            await InitializeAsync();
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = sql;
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            var columns = new List<string>();
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                columns.Add(reader.GetName(i));
+            }
+
+            var rows = new List<QueryResultRow>();
+            int rowIndex = 1;
+
+            while (await reader.ReadAsync())
+            {
+                var row = new QueryResultRow { RowIndex = rowIndex++ };
+                for (int i = 0; i < reader.FieldCount; i++)
+                {
+                    string colName = reader.GetName(i);
+                    object val = reader.GetValue(i);
+                    string strVal = val == DBNull.Value || val == null ? "NULL" : val.ToString() ?? "";
+                    row[colName] = strVal;
+                }
+                rows.Add(row);
+            }
+
+            sw.Stop();
+            return new QueryExecutionResult
+            {
+                Success = true,
+                Message = $"Query executed successfully ({rows.Count} rows).",
+                ExecutionTime = $"{sw.ElapsedMilliseconds} ms",
+                RowCount = rows.Count,
+                ColumnNames = columns,
+                Rows = rows
+            };
+        }
+        catch (Exception ex)
+        {
+            return new QueryExecutionResult
+            {
+                Success = false,
+                Message = $"SQLite error: {ex.Message}",
+                Exception = ex
+            };
+        }
+    }
+
     public async Task SaveQueryHistoryAsync(string queryText, string executionTime, int rowCount, string status = "Success")
     {
         try
@@ -321,7 +418,13 @@ public class DatabaseStorageService
                 INSERT INTO QueryHistory (QueryText, ExecutedAt, ExecutionTime, RowCount, Status)
                 VALUES (@queryText, datetime('now'), @executionTime, @rowCount, @status);";
 
-            await connection.ExecuteAsync(sql, new { queryText, executionTime, rowCount, status });
+            await connection.ExecuteAsync(sql, new
+            {
+                queryText,
+                executionTime,
+                rowCount,
+                status
+            });
         }
         catch (Exception ex)
         {
@@ -353,7 +456,7 @@ public class DatabaseStorageService
         }
     }
 
-    public async Task SaveConnectionAsync(string server, int port, string databaseName, string authType, string username)
+    public async Task SaveConnectionAsync(string server, int port, string databaseName, string authType, string username, string databaseType = "MSSQL")
     {
         try
         {
@@ -362,16 +465,17 @@ public class DatabaseStorageService
             await connection.OpenAsync();
 
             const string sql = @"
-                INSERT INTO Connections (Server, Port, DatabaseName, AuthType, Username, LastConnectedAt)
-                VALUES (@server, @port, @databaseName, @authType, @username, datetime('now'));";
+                INSERT INTO Connections (Server, Port, DatabaseName, AuthType, Username, DatabaseType, LastConnectedAt)
+                VALUES (@server, @port, @databaseName, @authType, @username, @databaseType, datetime('now'));";
 
             await connection.ExecuteAsync(sql, new
             {
-                server,
+                server = server ?? "localhost",
                 port,
-                databaseName,
-                authType,
-                username = username ?? string.Empty
+                databaseName = databaseName ?? "master",
+                authType = authType ?? "SQL Server Authentication",
+                username = username ?? string.Empty,
+                databaseType = databaseType ?? "MSSQL"
             });
         }
         catch (Exception ex)
@@ -389,7 +493,8 @@ public class DatabaseStorageService
             await connection.OpenAsync();
 
             const string sql = @"
-                SELECT Id, Server, Port, DatabaseName, AuthType, COALESCE(Username, '') AS Username, LastConnectedAt 
+                SELECT Id, Server, Port, DatabaseName, AuthType, COALESCE(Username, '') AS Username, 
+                       COALESCE(DatabaseType, 'MSSQL') AS DatabaseType, LastConnectedAt 
                 FROM Connections 
                 ORDER BY Id DESC 
                 LIMIT 20;";

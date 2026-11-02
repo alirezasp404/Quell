@@ -16,10 +16,12 @@
         <Grid ColumnDefinitions="Auto, *, Auto">
             <!-- Brand Icon/Title + Menu -->
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                <!-- Vector Database / Engine Icon -->
-                <Border Background="{DynamicResource AppAccentBrush}" CornerRadius="4" Width="18" Height="18" Margin="0,0,6,0">
-                    <PathIcon Data="M12,2C10.5,5 8.5,7 8.5,10A3.5,3.5 0 0,0 12,13.5A3.5,3.5 0 0,0 15.5,10C15.5,7 13.5,5 12,2M12,4.5C12.8,6.2 13.5,7.7 13.5,10A1.5,1.5 0 0,1 12,11.5A1.5,1.5 0 0,1 10.5,10C10.5,7.7 11.2,6.2 12,4.5Z" 
-                              Width="11" Height="11" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <!-- Project Brand Logo -->
+                <Border CornerRadius="4" ClipToBounds="True" Width="18" Height="18" Margin="0,0,6,0">
+                    <Image Source="avares://Fdb/Assets/logo.png" 
+                           Width="18" Height="18" 
+                           Stretch="UniformToFill" 
+                           RenderOptions.BitmapInterpolationMode="HighQuality"/>
                 </Border>
                 <TextBlock Text="{Binding Title}" 
                            Foreground="{DynamicResource AppTextPrimaryBrush}" 
@@ -122,8 +124,8 @@
                         CornerRadius="4" 
                         Padding="8,2">
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <Ellipse Width="6" Height="6" Fill="#10B981" VerticalAlignment="Center"/>
-                        <TextBlock Text="master [localhost:1433]" 
+                        <Ellipse Width="6" Height="6" Fill="{Binding ConnectionDotColor}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding ConnectionStatusText}" 
                                    Foreground="{DynamicResource AppTextSecondaryBrush}" 
                                    FontSize="11" 
                                    VerticalAlignment="Center"/>
