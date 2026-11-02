@@ -1,0 +1,75 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Fdb.ViewModels"
+             xmlns:components="using:Fdb.Components"
+             x:Class="Fdb.Views.MainView"
+             x:DataType="vm:MainViewModel"
+             Background="{DynamicResource AppBackgroundBrush}">
+
+    <!-- Cross-Platform View (Mobile & Single-View Layout) -->
+    <Grid RowDefinitions="Auto, *, Auto">
+        
+        <!-- 1. FIXED TOP NAVBAR -->
+        <components:NavbarComponent x:Name="MainNavbar" Grid.Row="0" DataContext="{Binding Navbar}" />
+
+        <!-- 2. MAIN DYNAMIC WORKSPACE (Sidebar + Editor + Footer) -->
+        <Grid x:Name="MainGrid" Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <!-- Resizable Sidebar Column (Min: 160px, Max: 450px) -->
+                <ColumnDefinition Width="240" MinWidth="160" MaxWidth="450" />
+                <ColumnDefinition Width="Auto" />
+                <!-- Center Dynamic Workspace Column (Takes remaining width: *) -->
+                <ColumnDefinition Width="*" MinWidth="300" />
+            </Grid.ColumnDefinitions>
+            
+            <!-- LEFT RESIZABLE SIDEBAR -->
+            <components:SidebarComponent Grid.Column="0" 
+                                         DataContext="{Binding Sidebar}" />
+
+            <!-- VERTICAL DRAG SPLITTER FOR SIDEBAR -->
+            <GridSplitter x:Name="SidebarSplitter"
+                          Grid.Column="1" 
+                          Width="4" 
+                          ResizeDirection="Columns" 
+                          ResizeBehavior="PreviousAndNext" 
+                          Cursor="SizeWestEast" 
+                          IsVisible="{Binding Sidebar.IsVisible}" />
+
+            <!-- CENTER & FOOTER WORKSPACE -->
+            <Grid x:Name="CenterGrid" Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <!-- Center Document Canvas (Takes remaining height: *) -->
+                    <RowDefinition Height="*" MinHeight="180" />
+                    <RowDefinition Height="Auto" />
+                    <!-- Resizable Bottom Output Panel (Compact Default: 140px, Min: 70px, Max: 450px) -->
+                    <RowDefinition Height="140" MinHeight="70" MaxHeight="450" />
+                </Grid.RowDefinitions>
+                
+                <!-- CENTER DOCUMENT CANVAS -->
+                <components:EditorComponent x:Name="MainEditor" Grid.Row="0" DataContext="{Binding Editor}" />
+
+                <!-- HORIZONTAL DRAG SPLITTER FOR FOOTER -->
+                <GridSplitter x:Name="FooterSplitter"
+                              Grid.Row="1" 
+                              Height="4" 
+                              ResizeDirection="Rows" 
+                              ResizeBehavior="PreviousAndNext" 
+                              Cursor="SizeNorthSouth" 
+                              IsVisible="{Binding Footer.IsVisible}" />
+
+                <!-- BOTTOM OUTPUT TOOL WINDOW -->
+                <components:FooterComponent Grid.Row="2" 
+                                            DataContext="{Binding Footer}" />
+            </Grid>
+        </Grid>
+
+        <!-- 3. FIXED BOTTOM STATUS BAR -->
+        <components:StatusBarComponent Grid.Row="2" />
+
+        <!-- 4. MODAL DIALOGS OVERLAYS (Top-level ZIndex & Full Viewport) -->
+        <components:ConnectDatabaseModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="100" DataContext="{Binding ConnectModal}" />
+        <components:ConfirmActionModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="101" DataContext="{Binding ConfirmModal}" />
+        <components:ExportDataModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="102" DataContext="{Binding ExportModal}" />
+        <components:SettingsModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="103" DataContext="{Binding SettingsModal}" />
+    </Grid>
+</UserControl>

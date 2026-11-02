@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
+    <OutputType Condition="'$(IsAndroidApp)' != 'true'">WinExe</OutputType>
+    <OutputType Condition="'$(IsAndroidApp)' == 'true'">Library</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -14,6 +15,11 @@
     <Authors>CipherUnits</Authors>
     <ApplicationIcon>Assets\logo.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Fdb.Android\**" />
+    <None Remove="Fdb.Android\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Models\" />
