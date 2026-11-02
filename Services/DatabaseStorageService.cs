@@ -18,12 +18,15 @@ public class ConnectionRecord
     public string DatabaseName { get; set; } = "master";
     public string AuthType { get; set; } = "SQL Server Authentication";
     public string Username { get; set; } = "sa";
+    public string Password { get; set; } = string.Empty;
     public string DatabaseType { get; set; } = "MSSQL";
     public string LastConnectedAt { get; set; } = string.Empty;
 
     public string DisplayTitle => DatabaseType == "SQLite"
-        ? Path.GetFileName(Server)
-        : $"{DatabaseName} ({Server}:{Port})";
+        ? (string.IsNullOrWhiteSpace(DatabaseName) || DatabaseName == "main" || DatabaseName == "master"
+            ? (string.IsNullOrWhiteSpace(Path.GetFileName(Server)) || Server == "localhost" ? "SQLite DB" : Path.GetFileName(Server))
+            : DatabaseName)
+        : (!string.IsNullOrWhiteSpace(DatabaseName) ? DatabaseName : Server);
 
     public string BadgeColor => DatabaseType switch
     {
@@ -139,6 +142,23 @@ public class DatabaseStorageService
                 // Column already exists
             }
 
+            try
+            {
+                await connection.ExecuteAsync("ALTER TABLE Connections ADD COLUMN Password TEXT DEFAULT '';");
+            }
+            catch
+            {
+                // Column already exists
+            }
+
+            try
+            {
+                await connection.ExecuteAsync("DELETE FROM Connections WHERE Server LIKE '%fdb_studio%' OR DatabaseName LIKE '%fdb_studio%';");
+            }
+            catch
+            {
+            }
+
             _initialized = true;
 
             reportProgress?.Invoke(90, "Pre-caching active SQL dialect keywords...");
@@ -204,6 +224,7 @@ public class DatabaseStorageService
                 DatabaseName TEXT NOT NULL,
                 AuthType TEXT NOT NULL,
                 Username TEXT,
+                Password TEXT DEFAULT '',
                 DatabaseType TEXT NOT NULL DEFAULT 'MSSQL',
                 LastConnectedAt TEXT NOT NULL
             );
@@ -460,7 +481,7 @@ public class DatabaseStorageService
         }
     }
 
-    public async Task<int> SaveConnectionAsync(string server, int port, string databaseName, string authType, string username, string databaseType = "MSSQL")
+    public async Task<int> SaveConnectionAsync(string server, int port, string databaseName, string authType, string username, string databaseType = "MSSQL", string password = "")
     {
         try
         {
@@ -469,8 +490,8 @@ public class DatabaseStorageService
             await connection.OpenAsync();
 
             const string sql = @"
-                INSERT INTO Connections (Server, Port, DatabaseName, AuthType, Username, DatabaseType, LastConnectedAt)
-                VALUES (@server, @port, @databaseName, @authType, @username, @databaseType, datetime('now'));
+                INSERT INTO Connections (Server, Port, DatabaseName, AuthType, Username, Password, DatabaseType, LastConnectedAt)
+                VALUES (@server, @port, @databaseName, @authType, @username, @password, @databaseType, datetime('now'));
                 SELECT last_insert_rowid();";
 
             return await connection.ExecuteScalarAsync<int>(sql, new
@@ -480,6 +501,7 @@ public class DatabaseStorageService
                 databaseName = databaseName ?? "master",
                 authType = authType ?? "SQL Server Authentication",
                 username = username ?? string.Empty,
+                password = password ?? string.Empty,
                 databaseType = databaseType ?? "MSSQL"
             });
         }
@@ -490,7 +512,7 @@ public class DatabaseStorageService
         }
     }
 
-    public async Task<bool> UpdateConnectionAsync(int id, string server, int port, string databaseName, string authType, string username, string databaseType = "MSSQL")
+    public async Task<bool> UpdateConnectionAsync(int id, string server, int port, string databaseName, string authType, string username, string databaseType = "MSSQL", string password = "")
     {
         try
         {
@@ -501,7 +523,9 @@ public class DatabaseStorageService
             const string sql = @"
                 UPDATE Connections 
                 SET Server = @server, Port = @port, DatabaseName = @databaseName, 
-                    AuthType = @authType, Username = @username, DatabaseType = @databaseType, 
+                    AuthType = @authType, Username = @username,
+                    Password = CASE WHEN @password != '' THEN @password ELSE Password END,
+                    DatabaseType = @databaseType, 
                     LastConnectedAt = datetime('now')
                 WHERE Id = @id;";
 
@@ -513,6 +537,7 @@ public class DatabaseStorageService
                 databaseName = databaseName ?? "master",
                 authType = authType ?? "SQL Server Authentication",
                 username = username ?? string.Empty,
+                password = password ?? string.Empty,
                 databaseType = databaseType ?? "MSSQL"
             });
             return affected > 0;
@@ -572,8 +597,10 @@ public class DatabaseStorageService
 
             const string sql = @"
                 SELECT Id, Server, Port, DatabaseName, AuthType, COALESCE(Username, '') AS Username, 
+                       COALESCE(Password, '') AS Password,
                        COALESCE(DatabaseType, 'MSSQL') AS DatabaseType, LastConnectedAt 
                 FROM Connections 
+                WHERE Server NOT LIKE '%fdb_studio%' AND DatabaseName NOT LIKE '%fdb_studio%'
                 ORDER BY Id DESC 
                 LIMIT 20;";
 
@@ -597,9 +624,10 @@ public class DatabaseStorageService
 
             const string sql = @"
                 SELECT Id, Server, Port, DatabaseName, AuthType, COALESCE(Username, '') AS Username, 
+                       COALESCE(Password, '') AS Password,
                        COALESCE(DatabaseType, 'MSSQL') AS DatabaseType, LastConnectedAt 
                 FROM Connections 
-                WHERE Id = @id;";
+                WHERE Id = @id AND Server NOT LIKE '%fdb_studio%' AND DatabaseName NOT LIKE '%fdb_studio%';";
 
             return await connection.QueryFirstOrDefaultAsync<ConnectionRecord>(sql, new { id });
         }

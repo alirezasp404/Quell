@@ -20,10 +20,23 @@ public class SqliteDatabaseProvider : IDatabaseProvider
     public bool SupportsWindowsAuth => false;
     public bool SupportsTrustServerCert => false;
 
+    public static string ResolveSource(DatabaseConnectionConfig config)
+    {
+        if (!string.IsNullOrWhiteSpace(config.FilePath) && !string.Equals(config.FilePath, "localhost", StringComparison.OrdinalIgnoreCase))
+        {
+            return config.FilePath.Trim();
+        }
+        if (!string.IsNullOrWhiteSpace(config.Server) && !string.Equals(config.Server, "localhost", StringComparison.OrdinalIgnoreCase))
+        {
+            return config.Server.Trim();
+        }
+        return ":memory:";
+    }
+
     public string BuildConnectionString(DatabaseConnectionConfig config)
     {
         var builder = new SqliteConnectionStringBuilder();
-        string source = string.IsNullOrWhiteSpace(config.FilePath) ? ":memory:" : config.FilePath.Trim();
+        string source = ResolveSource(config);
         builder.DataSource = source;
         if (!string.IsNullOrWhiteSpace(config.Password))
         {
@@ -37,7 +50,7 @@ public class SqliteDatabaseProvider : IDatabaseProvider
         var sw = Stopwatch.StartNew();
         try
         {
-            string source = string.IsNullOrWhiteSpace(config.FilePath) ? ":memory:" : config.FilePath.Trim();
+            string source = ResolveSource(config);
             if (source != ":memory:" && !File.Exists(source))
             {
                 // Verify directory exists or can be created

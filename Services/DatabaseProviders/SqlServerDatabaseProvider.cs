@@ -25,9 +25,17 @@ public class SqlServerDatabaseProvider : IDatabaseProvider
         var builder = new SqlConnectionStringBuilder();
 
         string server = string.IsNullOrWhiteSpace(config.Server) ? "localhost" : config.Server.Trim();
-        if (config.Port > 0 && config.Port != 1433 && !server.Contains(','))
+        int port = config.Port > 0 ? config.Port : 1433;
+        if (server.Contains(':'))
         {
-            builder.DataSource = $"{server},{config.Port}";
+            var parts = server.Split(':');
+            server = parts[0];
+            if (int.TryParse(parts[1], out int p)) port = p;
+        }
+
+        if (port != 1433 && !server.Contains(','))
+        {
+            builder.DataSource = $"{server},{port}";
         }
         else
         {
@@ -35,7 +43,8 @@ public class SqlServerDatabaseProvider : IDatabaseProvider
         }
 
         builder.InitialCatalog = string.IsNullOrWhiteSpace(config.Database) ? "master" : config.Database.Trim();
-        builder.TrustServerCertificate = config.TrustServerCertificate;
+        builder.TrustServerCertificate = true; // Always allow self-signed / local dev certificates
+        builder.Encrypt = false; // Disable mandatory SSL requirement for standard dev environments
         builder.ConnectTimeout = Math.Clamp(config.TimeoutSeconds, 3, 30);
 
         if (string.Equals(config.AuthType, "Windows Authentication", StringComparison.OrdinalIgnoreCase))

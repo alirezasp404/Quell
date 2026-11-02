@@ -156,6 +156,7 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
         Server = record.Server;
         Port = record.Port;
         Database = record.DatabaseName;
+        Password = record.Password ?? string.Empty;
         if (!string.IsNullOrEmpty(record.AuthType))
         {
             AuthType = record.AuthType;
@@ -181,7 +182,7 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
         {
             var conns = await DatabaseStorageService.Instance.GetRecentConnectionsAsync();
             SavedConnections.Clear();
-            foreach (var c in conns)
+            foreach (var c in conns.Where(c => !c.Server.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase) && !c.DatabaseName.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase)))
             {
                 SavedConnections.Add(c);
             }
@@ -210,6 +211,7 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
         Server = record.Server;
         Port = record.Port;
         Database = record.DatabaseName;
+        Password = record.Password ?? string.Empty;
         if (!string.IsNullOrEmpty(record.AuthType)) AuthType = record.AuthType;
         if (!string.IsNullOrEmpty(record.Username)) Username = record.Username;
         if (record.DatabaseType == "SQLite") FilePath = record.Server;
@@ -231,17 +233,26 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
 
     public DatabaseConnectionConfig BuildCurrentConfig()
     {
+        string actualServer = IsFileBased
+            ? (string.IsNullOrWhiteSpace(FilePath) ? ":memory:" : FilePath.Trim())
+            : (string.IsNullOrWhiteSpace(Server) ? "localhost" : Server.Trim());
+        string actualDb = IsFileBased
+            ? (string.IsNullOrWhiteSpace(Database) || Database == "master" || Database == "main"
+                ? (actualServer == ":memory:" ? "memory" : System.IO.Path.GetFileNameWithoutExtension(actualServer))
+                : Database)
+            : (string.IsNullOrWhiteSpace(Database) ? "master" : Database.Trim());
+
         return new DatabaseConnectionConfig
         {
             DatabaseType = SelectedDatabaseType,
-            Server = Server,
+            Server = actualServer,
             Port = Port,
-            Database = Database,
+            Database = actualDb,
             AuthType = AuthType,
             Username = Username,
             Password = Password,
             TrustServerCertificate = TrustServerCertificate,
-            FilePath = FilePath,
+            FilePath = IsFileBased ? actualServer : FilePath,
             TimeoutSeconds = 8
         };
     }
@@ -298,12 +309,12 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
             {
                 connId = EditingConnectionId!.Value;
                 await DatabaseStorageService.Instance.UpdateConnectionAsync(
-                    connId, Server, Port, Database, AuthType, Username, SelectedDatabaseType);
+                    connId, config.Server, config.Port, config.Database, config.AuthType, config.Username, SelectedDatabaseType, Password);
             }
             else
             {
                 connId = await DatabaseStorageService.Instance.SaveConnectionAsync(
-                    Server, Port, Database, AuthType, Username, SelectedDatabaseType);
+                    config.Server, config.Port, config.Database, config.AuthType, config.Username, SelectedDatabaseType, Password);
             }
 
             // Reload saved connections

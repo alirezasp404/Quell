@@ -22,10 +22,19 @@ public class PostgreSqlDatabaseProvider : IDatabaseProvider
 
     public string BuildConnectionString(DatabaseConnectionConfig config)
     {
+        string host = string.IsNullOrWhiteSpace(config.Server) ? "localhost" : config.Server.Trim();
+        int port = config.Port > 0 ? config.Port : 5432;
+        if (host.Contains(':'))
+        {
+            var parts = host.Split(':');
+            host = parts[0];
+            if (int.TryParse(parts[1], out int p)) port = p;
+        }
+
         var builder = new NpgsqlConnectionStringBuilder
         {
-            Host = string.IsNullOrWhiteSpace(config.Server) ? "localhost" : config.Server.Trim(),
-            Port = config.Port > 0 ? config.Port : 5432,
+            Host = host,
+            Port = port,
             Database = string.IsNullOrWhiteSpace(config.Database) ? "postgres" : config.Database.Trim(),
             Username = string.IsNullOrWhiteSpace(config.Username) ? "postgres" : config.Username.Trim(),
             Password = config.Password ?? string.Empty,

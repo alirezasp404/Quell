@@ -27,10 +27,10 @@ public class TargetDatabaseItem : ObservableObject
     };
 
     public string FullDisplayName => IsLocalSqlite
-        ? "Local SQLite (fdb_studio.db)"
+        ? "Local SQLite"
         : (DatabaseType == "SQLite" 
-            ? $"{DisplayName} [SQLite]" 
-            : $"{DatabaseName} [{DatabaseType}] ({Server}:{Port})");
+            ? DisplayName 
+            : (!string.IsNullOrWhiteSpace(DatabaseName) ? DatabaseName : Server));
 
     public override string ToString() => FullDisplayName;
 }

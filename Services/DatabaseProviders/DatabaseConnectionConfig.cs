@@ -24,6 +24,6 @@ public record DatabaseConnectionConfig
             : $"{DatabaseType}_{Server}_{Port}_{Database}";
 
     public string DisplayName => DatabaseType == "SQLite"
-        ? (string.IsNullOrEmpty(Path.GetFileName(FilePath)) ? "SQLite (:memory:)" : Path.GetFileName(FilePath))
-        : $"{Database} ({Server}:{Port})";
+        ? (string.IsNullOrEmpty(Path.GetFileName(FilePath)) ? ":memory:" : Path.GetFileName(FilePath))
+        : (!string.IsNullOrWhiteSpace(Database) ? Database : Server);
 }

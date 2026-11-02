@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS Connections (
     DatabaseName TEXT NOT NULL,
     AuthType TEXT NOT NULL,
     Username TEXT,
+    Password TEXT DEFAULT '',
+    DatabaseType TEXT NOT NULL DEFAULT 'MSSQL',
     LastConnectedAt TEXT NOT NULL
 );
 

@@ -73,10 +73,10 @@ public class DatabaseSessionService
             {
                 string name = System.IO.Path.GetFileName(ActiveConfig.FilePath);
                 if (string.IsNullOrEmpty(name)) name = ":memory:";
-                return $"[SQLite] {name}";
+                return name;
             }
 
-            return $"{ActiveConfig.Database} [{ActiveConfig.Server}:{ActiveConfig.Port}]";
+            return !string.IsNullOrWhiteSpace(ActiveConfig.Database) ? ActiveConfig.Database : ActiveConfig.Server;
         }
     }
 
@@ -86,15 +86,16 @@ public class DatabaseSessionService
         {
             if (ActiveConfig == null)
             {
-                return "localhost:1433 (master)";
+                return "(No Connection)";
             }
 
             if (ActiveProvider?.IsFileBased == true)
             {
-                return System.IO.Path.GetFileName(ActiveConfig.FilePath);
+                string name = System.IO.Path.GetFileName(ActiveConfig.FilePath);
+                return string.IsNullOrEmpty(name) ? ":memory:" : name;
             }
 
-            return $"{ActiveConfig.Server}:{ActiveConfig.Port} ({ActiveConfig.Database})";
+            return !string.IsNullOrWhiteSpace(ActiveConfig.Database) ? ActiveConfig.Database : ActiveConfig.Server;
         }
     }
 

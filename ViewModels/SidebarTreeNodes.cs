@@ -112,7 +112,7 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
     {
         Record = record;
         Title = record.DisplayTitle;
-        Subtitle = $"{record.DatabaseType} · {record.Server}:{record.Port}";
+        Subtitle = IsConnected ? $"{TableCount} table(s) found" : (record.DatabaseType ?? "MSSQL");
         OnPropertyChanged(nameof(Record));
         OnPropertyChanged(nameof(DatabaseName));
         OnPropertyChanged(nameof(Server));
@@ -149,7 +149,7 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
         Record = record;
         Id = ConnectionKey;
         Title = record.DisplayTitle;
-        Subtitle = $"{record.DatabaseType} · {record.Server}:{record.Port}";
+        Subtitle = record.DatabaseType ?? "MSSQL";
         IsConnected = false;
         IsActive = false;
         // Add placeholder child so TreeView shows the expand "+" toggle even when disconnected

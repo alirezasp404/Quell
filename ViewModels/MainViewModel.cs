@@ -153,7 +153,9 @@ public partial class MainViewModel : ViewModelBase
 
     public async Task RefreshAvailableDatabasesAsync()
     {
-        var conns = await Fdb.Services.DatabaseStorageService.Instance.GetRecentConnectionsAsync();
+        var conns = (await Fdb.Services.DatabaseStorageService.Instance.GetRecentConnectionsAsync())
+            .Where(c => !c.Server.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase) && !c.DatabaseName.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase))
+            .ToList();
         var currentSelectedKey = SelectedTargetDatabase?.Key;
 
         AvailableTargetDatabases.Clear();
@@ -233,6 +235,7 @@ public partial class MainViewModel : ViewModelBase
                 Database = record.DatabaseName,
                 AuthType = record.AuthType,
                 Username = record.Username,
+                Password = record.Password ?? string.Empty,
                 FilePath = record.Server,
                 TrustServerCertificate = true
             };

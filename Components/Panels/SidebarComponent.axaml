@@ -548,7 +548,7 @@
                                                                 VerticalAlignment="Center"/>
                                                     </StackPanel>
 
-                                                    <TextBlock Text="{Binding Username, StringFormat='{}User: {0}'}" 
+                                                    <TextBlock Text="{Binding DatabaseType}" 
                                                                FontSize="10" 
                                                                Foreground="{DynamicResource AppTextMutedBrush}" 
                                                                TextTrimming="CharacterEllipsis"/>

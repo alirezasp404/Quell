@@ -21,10 +21,19 @@ public class MySqlDatabaseProvider : IDatabaseProvider
 
     public string BuildConnectionString(DatabaseConnectionConfig config)
     {
+        string server = string.IsNullOrWhiteSpace(config.Server) ? "localhost" : config.Server.Trim();
+        uint port = (uint)(config.Port > 0 ? config.Port : 3306);
+        if (server.Contains(':'))
+        {
+            var parts = server.Split(':');
+            server = parts[0];
+            if (uint.TryParse(parts[1], out uint p)) port = p;
+        }
+
         var builder = new MySqlConnectionStringBuilder
         {
-            Server = string.IsNullOrWhiteSpace(config.Server) ? "localhost" : config.Server.Trim(),
-            Port = (uint)(config.Port > 0 ? config.Port : 3306),
+            Server = server,
+            Port = port,
             Database = string.IsNullOrWhiteSpace(config.Database) ? "mysql" : config.Database.Trim(),
             UserID = string.IsNullOrWhiteSpace(config.Username) ? "root" : config.Username.Trim(),
             Password = config.Password ?? string.Empty,

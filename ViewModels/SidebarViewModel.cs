@@ -160,7 +160,9 @@ public partial class SidebarViewModel : ViewModelBase
         try
         {
             // Load saved connections from SQLite
-            var conns = await DatabaseStorageService.Instance.GetRecentConnectionsAsync();
+            var conns = (await DatabaseStorageService.Instance.GetRecentConnectionsAsync())
+                .Where(c => !c.Server.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase) && !c.DatabaseName.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase))
+                .ToList();
             SavedConnections.Clear();
             foreach (var c in conns)
             {
@@ -286,6 +288,7 @@ public partial class SidebarViewModel : ViewModelBase
                     Database = node.Record.DatabaseName,
                     AuthType = node.Record.AuthType,
                     Username = node.Record.Username,
+                    Password = node.Record.Password ?? string.Empty,
                     FilePath = node.Record.Server,
                     TrustServerCertificate = true
                 };
@@ -374,7 +377,7 @@ public partial class SidebarViewModel : ViewModelBase
         node.IsConnected = false;
         node.IsActive = false;
         node.ClearTables();
-        node.Subtitle = "Disconnected · Click to connect";
+        node.Subtitle = node.Record.DatabaseType ?? "MSSQL";
 
         if (DatabaseSessionService.Instance.ActiveSession == null)
         {
@@ -521,6 +524,7 @@ public partial class SidebarViewModel : ViewModelBase
             Database = record.DatabaseName,
             AuthType = record.AuthType,
             Username = record.Username,
+            Password = record.Password ?? string.Empty,
             FilePath = record.Server,
             TrustServerCertificate = true
         };
