@@ -60,21 +60,26 @@ public partial class MainViewModel : ViewModelBase
         _sampleQueryResult = new QueryResultTableViewModel();
         _sampleSchema = new SchemaPropertiesTableViewModel();
 
-        _sampleQueryResult.EditCellModal.ExecuteQueryCallback = async sql =>
+        _sampleQueryResult.EditCellModal.ExecuteQueryDetailedCallback = async sql =>
         {
             string? key = SelectedTargetDatabase?.Key ?? DatabaseSessionService.Instance.ActiveSession?.Key;
             if (string.IsNullOrEmpty(key))
             {
-                return true;
+                return (true, null);
             }
             var res = await DatabaseSessionService.Instance.ExecuteQueryAsync(sql, key);
             if (res.Success)
             {
                 await Fdb.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
-                    sql, res.ExecutionTime, 1, "Success");
-                return true;
+                    sql, res.ExecutionTime, res.RowCount > 0 ? res.RowCount : 1, "Success");
+                return (true, null);
             }
-            return false;
+            return (false, res.Message);
+        };
+        _sampleQueryResult.EditCellModal.ExecuteQueryCallback = async sql =>
+        {
+            var (ok, _) = await _sampleQueryResult.EditCellModal.ExecuteQueryDetailedCallback(sql);
+            return ok;
         };
 
         _sampleQueryResult.EditCellModal.InsertQueryToEditorCallback = sql =>
@@ -396,6 +401,23 @@ public partial class MainViewModel : ViewModelBase
             SampleQueryResult.LastExecutedQuery = query;
             rowCount = result.Rows.Count;
         }
+        else if (result.Success && result.ColumnNames.Count == 0)
+        {
+            SampleQueryResult.SetResults(
+                new List<string> { "Status", "Message", "TargetDatabase" },
+                new List<QueryResultRow>
+                {
+                    new QueryResultRow
+                    {
+                        RowIndex = 1,
+                        ["Status"] = "Success",
+                        ["Message"] = result.Message,
+                        ["TargetDatabase"] = targetDbName
+                    }
+                },
+                execTime);
+            rowCount = result.RowCount;
+        }
         else if (!result.Success)
         {
             SampleQueryResult.SetResults(
@@ -431,7 +453,7 @@ public partial class MainViewModel : ViewModelBase
                 catch { }
             });
         }
-        SampleQueryResult.CurrentDatabaseType = SelectedTargetDatabase?.DatabaseType ?? "MSSQL";
+        SampleQueryResult.CurrentDatabaseType = SelectedTargetDatabase?.DatabaseType ?? DatabaseSessionService.Instance.ActiveSession?.Config.DatabaseType ?? "MSSQL";
 
         SampleQueryResult.TargetDatabaseName = targetDbName;
 

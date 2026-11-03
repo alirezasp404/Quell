@@ -22,6 +22,7 @@ sealed class Program
 
         if (args.Length > 0 && args[0] == "--verify")
         {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
             Console.WriteLine("=== Fdb Dynamic Layout Verification ===");
             var vm = new Fdb.ViewModels.MainViewModel();
             var app = BuildAvaloniaApp().SetupWithoutStarting();
@@ -685,6 +686,69 @@ sealed class Program
                 throw new Exception("Auto-executed table query returned unexpected row data!");
             }
 
+            // Verify Active/Highlighted state on clicked TableTreeNode
+            if (!tableItem.IsActive || vm.Sidebar.ActiveTableNode != tableItem)
+            {
+                throw new Exception("Clicked table node is not marked as Active!");
+            }
+            Console.WriteLine($"[Success] TableTreeNode is highlighted and active: IsActive={tableItem.IsActive}, ActiveTableNode={vm.Sidebar.ActiveTableNode?.FullName}");
+
+            // Verify Real-time Search & Filtering of Tables in Active Database
+            Console.WriteLine("\n[Action] Verifying Sidebar Active Database Table Searching & Filtering...");
+            Console.WriteLine($"Active Database: {testDbNode.DatabaseName}, Initial Tables Count: {testDbNode.TablesFolder.Children.Count}");
+
+            // 1. Search matching table name 'user'
+            vm.Sidebar.TableSearchFilter = "user";
+            Console.WriteLine($"Filtered with 'user': Tables Count = {testDbNode.TablesFolder.Children.Count}, HasSearchFilter = {vm.Sidebar.HasSearchFilter}");
+            if (testDbNode.TablesFolder.Children.Count != 1)
+            {
+                throw new Exception($"Expected 1 matching table for 'user', got {testDbNode.TablesFolder.Children.Count}!");
+            }
+            if (((Fdb.ViewModels.TableTreeNode)testDbNode.TablesFolder.Children[0]).TableName != "Users")
+            {
+                throw new Exception("Filtered table did not match 'Users'!");
+            }
+
+            // 2. Search non-existent table name 'nonexistent'
+            vm.Sidebar.TableSearchFilter = "nonexistent";
+            Console.WriteLine($"Filtered with 'nonexistent': Tables Count = {testDbNode.TablesFolder.Children.Count}");
+            if (testDbNode.TablesFolder.Children.Count != 0)
+            {
+                throw new Exception($"Expected 0 matching tables for 'nonexistent', got {testDbNode.TablesFolder.Children.Count}!");
+            }
+
+            // 3. Test ClearSearchFilterCommand
+            vm.Sidebar.ClearSearchFilterCommand.Execute(null);
+            Console.WriteLine($"After clear: Filter='{vm.Sidebar.TableSearchFilter}', Tables Count = {testDbNode.TablesFolder.Children.Count}");
+            if (testDbNode.TablesFolder.Children.Count != 1 || vm.Sidebar.HasSearchFilter)
+            {
+                throw new Exception("Clearing search filter failed to restore all tables!");
+            }
+
+            // 4. Verify tableItem still retains its Active state
+            if (!tableItem.IsActive || vm.Sidebar.ActiveTableNode != tableItem)
+            {
+                throw new Exception("Table node did not stay active/highlighted after filter clear!");
+            }
+            Console.WriteLine("[Success] Real-time table searching, filtering, and active table highlighting verified!");
+
+            // 13.5 Test Table Auto-Completion from Active Database (e.g. SELECT * FROM u -> Users)
+            Console.WriteLine("\n[Action] Verifying Active Database Table Auto-Completion in Editor...");
+            Console.WriteLine($"Active Database in KeywordsService: '{Fdb.Services.SqlKeywordsService.Instance.ActiveDatabaseName}', Tables Count: {Fdb.Services.SqlKeywordsService.Instance.ActiveTables.Count}");
+            if (Fdb.Services.SqlKeywordsService.Instance.ActiveTables.Count != 1 || Fdb.Services.SqlKeywordsService.Instance.ActiveTables[0].TableName != "Users")
+            {
+                throw new Exception($"Expected active tables to contain 'Users', got {Fdb.Services.SqlKeywordsService.Instance.ActiveTables.Count} table(s)!");
+            }
+            bool isFromTableContext = Fdb.Components.SqlIntelliSenseOverlayComponent.IsTableContext("SELECT * FROM ");
+            bool isJoinTableContext = Fdb.Components.SqlIntelliSenseOverlayComponent.IsTableContext("SELECT * FROM Orders JOIN ");
+            bool isSelectContext = Fdb.Components.SqlIntelliSenseOverlayComponent.IsTableContext("SELECT ");
+            Console.WriteLine($"Context Detection: 'FROM ' -> {isFromTableContext}, 'JOIN ' -> {isJoinTableContext}, 'SELECT ' -> {isSelectContext}");
+            if (!isFromTableContext || !isJoinTableContext || isSelectContext)
+            {
+                throw new Exception("IsTableContext returned incorrect result for SQL clauses!");
+            }
+            Console.WriteLine("[Success] Active database table auto-completion verified!");
+
             // Verify SelectedTargetDatabase is now set to this database
             if (vm.SelectedTargetDatabase == null || vm.SelectedTargetDatabase.DatabaseName != "TestStudioDB")
             {
@@ -834,6 +898,46 @@ sealed class Program
                 throw new Exception("SQL Editor did not receive the executed UPDATE query!");
             }
             Console.WriteLine($"[Success] Cell graphically edited, query executed, and reflected in grid and editor: '{vm.SampleQueryResult.LastQueryMessage}'");
+
+            // Verify Persian / Unicode Text UPDATE & Literal Encoding
+            Console.WriteLine("\n[Action] Verifying Persian / Unicode Text UPDATE Query Generation & Execution...");
+            // Verify FormatLiteral across dialects
+            string mssqlPersian = Fdb.ViewModels.EditCellModalViewModel.FormatLiteral("احسان رضایی", "MSSQL");
+            string sqlitePersian = Fdb.ViewModels.EditCellModalViewModel.FormatLiteral("احسان رضایی", "SQLITE");
+            string mysqlPersian = Fdb.ViewModels.EditCellModalViewModel.FormatLiteral("احسان رضایی", "MYSQL");
+            string pgPersian = Fdb.ViewModels.EditCellModalViewModel.FormatLiteral("احسان رضایی", "POSTGRESQL");
+            Console.WriteLine($"Persian Formatted Literals:\nMSSQL: {mssqlPersian}\nSQLite: {sqlitePersian}\nMySQL: {mysqlPersian}\nPostgres: {pgPersian}");
+            if (mssqlPersian != "N'احسان رضایی'") throw new Exception($"MSSQL must use N prefix for Persian text! Got '{mssqlPersian}'");
+            if (sqlitePersian != "'احسان رضایی'") throw new Exception($"SQLite must use standard quotes without N prefix! Got '{sqlitePersian}'");
+            if (mysqlPersian != "N'احسان رضایی'") throw new Exception($"MySQL must use N prefix for Unicode! Got '{mysqlPersian}'");
+            if (pgPersian != "N'احسان رضایی'") throw new Exception($"Postgres must use N prefix for Unicode! Got '{pgPersian}'");
+
+            // Verify MSSQL UPDATE query with N prefix for Persian text
+            string mssqlUpdate = Fdb.ViewModels.EditCellModalViewModel.BuildUpdateQuery("Users", "Name", "احسان رضایی", firstRow, "MSSQL");
+            Console.WriteLine($"Generated MSSQL Query for Persian Name:\n{mssqlUpdate}");
+            if (!mssqlUpdate.Contains("N'احسان رضایی'") || !mssqlUpdate.Contains("SET [Name] = N'احسان رضایی'"))
+            {
+                throw new Exception($"MSSQL UPDATE query failed to contain 'SET [Name] = N\'احسان رضایی\'', got:\n{mssqlUpdate}");
+            }
+
+            // Test executing in the current active session (SQLite)
+            vm.SampleQueryResult.OpenEditCell(firstRow, "Name");
+            editModal.NewValue = "احسان رضایی";
+            Console.WriteLine($"Generated Active DB Query ({editModal.DatabaseType}):\n{editModal.GeneratedQuery}");
+            if (!editModal.GeneratedQuery.Contains("'احسان رضایی'"))
+            {
+                throw new Exception($"Expected active query to contain Persian text, got:\n{editModal.GeneratedQuery}");
+            }
+            await editModal.ExecuteAndSaveAsync();
+            if (editModal.IsOpen || firstRow.Name != "احسان رضایی" || firstRow["Name"] != "احسان رضایی")
+            {
+                throw new Exception($"Row was not updated to Persian 'احسان رضایی'! Got Name='{firstRow.Name}'");
+            }
+            if (vm.Editor.SelectedTab == null || !vm.Editor.SelectedTab.Text.Contains("احسان رضایی"))
+            {
+                throw new Exception("SQL Editor did not receive the executed Persian UPDATE statement!");
+            }
+            Console.WriteLine("[Success] Persian / Unicode text editing and UPDATE query generation verified!");
 
             // [Action] Verifying Primary Key Visual Distinctiveness (Badges & Headers)
             Console.WriteLine("\n[Action] Verifying Primary Key UI Highlighting & Detection...");

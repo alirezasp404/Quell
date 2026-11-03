@@ -562,7 +562,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
             var cols = !string.IsNullOrWhiteSpace(columnName) && columnName != "ROW #" 
                 ? new[] { columnName } 
                 : (selectedCols != null && selectedCols.Count > 0 ? selectedCols : new[] { "Name" });
-            EditCellModal.OpenBatch(selectedRows, cols, CurrentTableName, CurrentDatabaseType);
+            EditCellModal.OpenBatch(selectedRows, cols, CurrentTableName, CurrentDatabaseType, PrimaryKeyColumns);
             return;
         }
 
@@ -572,7 +572,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
         string col = string.IsNullOrWhiteSpace(columnName) || columnName == "ROW #" 
             ? (selectedCols?.FirstOrDefault() ?? "Name") 
             : columnName;
-        EditCellModal.Open(targetRow, col, CurrentTableName, CurrentDatabaseType);
+        EditCellModal.Open(targetRow, col, CurrentTableName, CurrentDatabaseType, PrimaryKeyColumns);
     }
 
     [RelayCommand]
@@ -584,7 +584,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
         if (selectedRows != null && selectedRows.Count > 1)
         {
             var cols = selectedCols != null && selectedCols.Count > 0 ? selectedCols : new[] { "Name" };
-            EditCellModal.OpenBatch(selectedRows, cols, CurrentTableName, CurrentDatabaseType);
+            EditCellModal.OpenBatch(selectedRows, cols, CurrentTableName, CurrentDatabaseType, PrimaryKeyColumns);
             return;
         }
 
@@ -729,7 +729,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
         if (!string.IsNullOrEmpty(pkCol) && rows.All(r => !string.IsNullOrEmpty(r[pkCol])))
         {
             string escapedPk = FormatIdentifier(pkCol, CurrentDatabaseType);
-            var idList = rows.Select(r => FormatLiteralOrNumber(r[pkCol]));
+            var idList = rows.Select(r => FormatLiteralOrNumber(r[pkCol], CurrentDatabaseType));
             return $"DELETE FROM {escapedTable} WHERE {escapedPk} IN ({string.Join(", ", idList)});";
         }
 
@@ -737,13 +737,13 @@ public partial class QueryResultTableViewModel : ViewModelBase
         return $"DELETE FROM {escapedTable} WHERE {string.Join(" OR ", whereClauses)};";
     }
 
-    private static string FormatLiteralOrNumber(string val)
+    private static string FormatLiteralOrNumber(string val, string dbType)
     {
         if (long.TryParse(val, out _) || double.TryParse(val, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _))
         {
             return val;
         }
-        return $"'{val.Replace("'", "''")}'";
+        return EditCellModalViewModel.FormatLiteral(val, dbType);
     }
 
     public void DeleteColumns(IReadOnlyList<string> columns)
@@ -946,7 +946,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
         {
             return $"{escapedCol} = {val}";
         }
-        return $"{escapedCol} = '{val.Replace("'", "''")}'";
+        return $"{escapedCol} = {EditCellModalViewModel.FormatLiteral(val, dbType)}";
     }
 
     public static string FindIdColumn(QueryResultRow row)

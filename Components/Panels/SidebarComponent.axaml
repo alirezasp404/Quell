@@ -11,6 +11,50 @@
               x:Name="SidebarRoot"
               IsVisible="{Binding IsVisible}">
 
+    <UserControl.Styles>
+        <Style Selector="ToggleButton.classic-chip-btn">
+            <Setter Property="Background" Value="{DynamicResource AppWorkspaceBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextMutedBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="3"/>
+            <Setter Property="Padding" Value="5,1"/>
+            <Setter Property="MinHeight" Value="18"/>
+        </Style>
+        <Style Selector="ToggleButton.classic-chip-btn:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+        </Style>
+        <Style Selector="ToggleButton.classic-chip-btn:checked">
+            <Setter Property="Background" Value="{DynamicResource AppTableActiveBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppTableActiveBorderBrush}"/>
+        </Style>
+
+        <!-- Table Node Item Styling: Hover & Active/Clicked States -->
+        <Style Selector="Border.table-node-item:not(.active):pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppTableHoverBackgroundBrush}"/>
+        </Style>
+        <Style Selector="Border.table-node-item.active">
+            <Setter Property="Background" Value="{DynamicResource AppTableActiveBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppTableActiveBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        <Style Selector="Border.table-node-item.active TextBlock.table-name">
+            <Setter Property="Foreground" Value="{DynamicResource AppTableActiveForegroundBrush}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Border.table-node-item.active ui|FASymbolIcon.table-icon">
+            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
+        </Style>
+        <Style Selector="Border.table-node-item:not(.active) TextBlock.table-name">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+        </Style>
+        <Style Selector="Border.table-node-item:not(.active) ui|FASymbolIcon.table-icon">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}"/>
+        </Style>
+    </UserControl.Styles>
+
     <!-- Reusable Sidebar Panel Component (Hierarchical Tree View: Databases -> Tables) -->
     <Border Background="{DynamicResource AppSurfaceBrush}" 
             BorderBrush="{DynamicResource AppBorderBrush}" 
@@ -98,15 +142,63 @@
                         </Grid>
                     </Border>
 
-                    <!-- B. Real-time Search / Filter Box -->
-                    <Border Grid.Row="1" Margin="0,0,0,6">
-                        <TextBox Text="{Binding TableSearchFilter}" 
-                                 Height="26" 
-                                 FontSize="11" 
-                                 Padding="6,2"
-                                 CornerRadius="4" 
-                                 PlaceholderText="Filter databases and tables..."/>
-                    </Border>
+                    <!-- B. Real-time Search / Filter Box & Active DB Indicator -->
+                    <StackPanel Grid.Row="1" Margin="0,0,0,6" Spacing="4">
+                        <!-- Active Database Banner Pill with 'Active Only' Filter Toggle -->
+                        <Grid ColumnDefinitions="*, Auto" IsVisible="{Binding IsConnected}">
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                <Border Width="6" Height="6" CornerRadius="3" Background="#10B981" VerticalAlignment="Center"/>
+                                <TextBlock Text="Active:" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding DatabaseName}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="110"/>
+                            </StackPanel>
+                            <ToggleButton Grid.Column="1"
+                                          IsChecked="{Binding FilterActiveOnly}"
+                                          Classes="classic-chip-btn"
+                                          ToolTip.Tip="Search only in active database tables"
+                                          Cursor="Hand">
+                                <StackPanel Orientation="Horizontal" Spacing="3">
+                                    <ui:FASymbolIcon Symbol="Filter" FontSize="8" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Active Only" FontSize="9" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </ToggleButton>
+                        </Grid>
+
+                        <!-- Search Input with Magnifier & Clear Button -->
+                        <Grid ColumnDefinitions="*, Auto">
+                            <TextBox Grid.Column="0"
+                                     Text="{Binding TableSearchFilter, Mode=TwoWay}" 
+                                     Height="28" 
+                                     FontSize="11" 
+                                     Padding="24,4,24,4"
+                                     CornerRadius="4" 
+                                     PlaceholderText="{Binding SearchPlaceholderText}"
+                                     VerticalContentAlignment="Center"/>
+
+                            <!-- Left Search Lens Icon -->
+                            <ui:FASymbolIcon Grid.Column="0" 
+                                             Symbol="Find" 
+                                             FontSize="11" 
+                                             Foreground="{DynamicResource AppTextMutedBrush}" 
+                                             HorizontalAlignment="Left" 
+                                             VerticalAlignment="Center" 
+                                             Margin="7,0,0,0" 
+                                             IsHitTestVisible="False"/>
+
+                            <!-- Right Clear (X) Button -->
+                            <Button Grid.Column="0"
+                                    Classes="classic-menu-btn"
+                                    Command="{Binding ClearSearchFilterCommand}"
+                                    IsVisible="{Binding HasSearchFilter}"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center"
+                                    Width="20" Height="20"
+                                    Padding="0"
+                                    Margin="0,0,4,0"
+                                    ToolTip.Tip="Clear search filter">
+                                <ui:FASymbolIcon Symbol="Dismiss" FontSize="9" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                            </Button>
+                        </Grid>
+                    </StackPanel>
 
                     <!-- C. Hierarchical TreeView: Database -> Tables -> Table Items -->
                     <Grid Grid.Row="2">
@@ -127,6 +219,16 @@
                                     <Style Selector="TreeViewItem /template/ ToggleButton#PART_ExpandCollapseChevron">
                                         <Setter Property="IsVisible" Value="False"/>
                                         <Setter Property="Width" Value="0"/>
+                                    </Style>
+                                    <!-- Ensure default tree selection background does not conflict with custom table styling -->
+                                    <Style Selector="TreeViewItem:selected /template/ Border#PART_LayoutRoot">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                    </Style>
+                                    <Style Selector="TreeViewItem:selected:focus /template/ Border#PART_LayoutRoot">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                    </Style>
+                                    <Style Selector="TreeViewItem:selected:pointerover /template/ Border#PART_LayoutRoot">
+                                        <Setter Property="Background" Value="Transparent"/>
                                     </Style>
                                 </TreeView.Styles>
 
@@ -326,11 +428,16 @@
 
                                     <!-- LEVEL 3: TABLE LEAF NODE -->
                                     <DataTemplate DataType="vm:TableTreeNode">
-                                        <Border CornerRadius="3" 
-                                                Padding="4,2" 
+                                        <Border Classes="table-node-item"
+                                                Classes.active="{Binding IsActive}"
+                                                CornerRadius="4" 
+                                                Padding="0" 
                                                 Margin="0,1" 
                                                 Background="Transparent"
-                                                HorizontalAlignment="Stretch">
+                                                BorderThickness="1"
+                                                BorderBrush="Transparent"
+                                                HorizontalAlignment="Stretch"
+                                                PointerPressed="OnTableNodePointerPressed">
                                             <!-- Right-Click ContextMenu for Table Node -->
                                             <Border.ContextMenu>
                                                 <ContextMenu>
@@ -349,38 +456,58 @@
                                                 </ContextMenu>
                                             </Border.ContextMenu>
 
-                                            <Border.Styles>
-                                                <Style Selector="Border:pointerover">
-                                                    <Setter Property="Background" Value="{DynamicResource AppTableHoverBackgroundBrush}"/>
-                                                </Style>
-                                            </Border.Styles>
-                                            <Grid ColumnDefinitions="Auto, *, Auto">
-                                                <ui:FASymbolIcon Grid.Column="0" 
-                                                                 Symbol="Document" 
-                                                                 FontSize="10" 
-                                                                 Foreground="{DynamicResource AppTextSecondaryBrush}" 
-                                                                 VerticalAlignment="Center" 
-                                                                 Margin="28,0,6,0"/>
+                                            <Grid ColumnDefinitions="Auto, Auto, *, Auto" Margin="3,3">
+                                                <!-- Dynamic 3px Left Accent Indicator Bar for Active Table -->
+                                                <Border Grid.Column="0" 
+                                                        Width="3" 
+                                                        Height="16" 
+                                                        CornerRadius="1.5" 
+                                                        Background="{DynamicResource AppAccentBrush}" 
+                                                        Margin="0,0,4,0"
+                                                        IsVisible="{Binding IsActive}"/>
 
-                                                <TextBlock Grid.Column="1"
+                                                <!-- Table Document Icon -->
+                                                <ui:FASymbolIcon Grid.Column="1" 
+                                                                 Classes="table-icon"
+                                                                 Symbol="Document" 
+                                                                 FontSize="11" 
+                                                                 VerticalAlignment="Center" 
+                                                                 Margin="24,0,6,0"/>
+
+                                                <!-- Table Full Name -->
+                                                <TextBlock Grid.Column="2"
+                                                           Classes="table-name"
                                                            Text="{Binding FullName}" 
                                                            FontSize="11" 
-                                                           Foreground="{DynamicResource AppTextPrimaryBrush}" 
                                                            VerticalAlignment="Center" 
                                                            TextTrimming="CharacterEllipsis"/>
 
-                                                <Border Grid.Column="2" 
-                                                        Background="{DynamicResource AppSurfaceBrush}" 
-                                                        BorderBrush="{DynamicResource AppBorderBrush}" 
-                                                        BorderThickness="1" 
-                                                        CornerRadius="3" 
-                                                        Padding="3,1"
-                                                        VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding DisplayType}" 
-                                                               FontSize="8" 
-                                                               Foreground="{DynamicResource AppTextMutedBrush}" 
-                                                               FontWeight="Medium"/>
-                                                </Border>
+                                                <!-- Right Badge: ACTIVE Pill when active, or DisplayType when inactive -->
+                                                <Panel Grid.Column="3" VerticalAlignment="Center">
+                                                    <Border Background="{DynamicResource AppAccentBrush}" 
+                                                            CornerRadius="3" 
+                                                            Padding="4,1"
+                                                            IsVisible="{Binding IsActive}">
+                                                        <StackPanel Orientation="Horizontal" Spacing="3">
+                                                            <Border Width="4" Height="4" CornerRadius="2" Background="White" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="ACTIVE" 
+                                                                       FontSize="7" 
+                                                                       FontWeight="Bold" 
+                                                                       Foreground="White"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <Border Background="{DynamicResource AppSurfaceBrush}" 
+                                                            BorderBrush="{DynamicResource AppBorderBrush}" 
+                                                            BorderThickness="1" 
+                                                            CornerRadius="3" 
+                                                            Padding="3,1"
+                                                            IsVisible="{Binding !IsActive}">
+                                                        <TextBlock Text="{Binding DisplayType}" 
+                                                                   FontSize="8" 
+                                                                   Foreground="{DynamicResource AppTextMutedBrush}" 
+                                                                   FontWeight="Medium"/>
+                                                    </Border>
+                                                </Panel>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
@@ -410,37 +537,73 @@
                                 VerticalAlignment="Center" 
                                 HorizontalAlignment="Center" 
                                 Margin="12,30">
-                            <StackPanel HorizontalAlignment="Center" Spacing="8">
-                                <Border Width="36" Height="36" 
-                                        CornerRadius="18" 
-                                        Background="{DynamicResource AppWorkspaceBrush}" 
-                                        BorderBrush="{DynamicResource AppBorderBrush}" 
-                                        BorderThickness="1" 
-                                        HorizontalAlignment="Center">
-                                    <ui:FASymbolIcon Symbol="Link" FontSize="16" Foreground="{DynamicResource AppAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <TextBlock Text="No Databases" 
-                                           FontSize="12" 
-                                           FontWeight="SemiBold" 
-                                           Foreground="{DynamicResource AppTextPrimaryBrush}" 
-                                           HorizontalAlignment="Center"/>
-                                <TextBlock Text="Add a connection to explore tables in the tree." 
-                                           FontSize="10" 
-                                           Foreground="{DynamicResource AppTextMutedBrush}" 
-                                           TextWrapping="Wrap" 
-                                           TextAlignment="Center" 
-                                           MaxWidth="180" 
-                                           HorizontalAlignment="Center"/>
-                                <Button Classes="classic-tool-btn" 
-                                        Command="{Binding OpenConnectDialogCommand}" 
-                                        HorizontalAlignment="Center" 
-                                        Margin="0,4,0,0">
-                                    <StackPanel Orientation="Horizontal" Spacing="5">
-                                        <ui:FASymbolIcon Symbol="Add" FontSize="10" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Connect Database" FontSize="11" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Button>
-                            </StackPanel>
+                            <Panel>
+                                <!-- State 1: When searching and no results match -->
+                                <StackPanel HorizontalAlignment="Center" Spacing="8" IsVisible="{Binding HasSearchFilter}">
+                                    <Border Width="36" Height="36" 
+                                            CornerRadius="18" 
+                                            Background="{DynamicResource AppWorkspaceBrush}" 
+                                            BorderBrush="{DynamicResource AppBorderBrush}" 
+                                            BorderThickness="1" 
+                                            HorizontalAlignment="Center">
+                                        <ui:FASymbolIcon Symbol="Find" FontSize="16" Foreground="{DynamicResource AppTextMutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Text="No Matching Tables" 
+                                               FontSize="12" 
+                                               FontWeight="SemiBold" 
+                                               Foreground="{DynamicResource AppTextPrimaryBrush}" 
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock Text="No tables match your search filter." 
+                                               FontSize="10" 
+                                               Foreground="{DynamicResource AppTextMutedBrush}" 
+                                               TextWrapping="Wrap" 
+                                               TextAlignment="Center" 
+                                               MaxWidth="180" 
+                                               HorizontalAlignment="Center"/>
+                                    <Button Classes="classic-tool-btn" 
+                                            Command="{Binding ClearSearchFilterCommand}" 
+                                            HorizontalAlignment="Center" 
+                                            Margin="0,4,0,0">
+                                        <StackPanel Orientation="Horizontal" Spacing="5">
+                                            <ui:FASymbolIcon Symbol="Dismiss" FontSize="10" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Clear Filter" FontSize="11" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+
+                                <!-- State 2: When no databases exist at all -->
+                                <StackPanel HorizontalAlignment="Center" Spacing="8" IsVisible="{Binding !HasSearchFilter}">
+                                    <Border Width="36" Height="36" 
+                                            CornerRadius="18" 
+                                            Background="{DynamicResource AppWorkspaceBrush}" 
+                                            BorderBrush="{DynamicResource AppBorderBrush}" 
+                                            BorderThickness="1" 
+                                            HorizontalAlignment="Center">
+                                        <ui:FASymbolIcon Symbol="Link" FontSize="16" Foreground="{DynamicResource AppAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Text="No Databases" 
+                                               FontSize="12" 
+                                               FontWeight="SemiBold" 
+                                               Foreground="{DynamicResource AppTextPrimaryBrush}" 
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Add a connection to explore tables in the tree." 
+                                               FontSize="10" 
+                                               Foreground="{DynamicResource AppTextMutedBrush}" 
+                                               TextWrapping="Wrap" 
+                                               TextAlignment="Center" 
+                                               MaxWidth="180" 
+                                               HorizontalAlignment="Center"/>
+                                    <Button Classes="classic-tool-btn" 
+                                            Command="{Binding OpenConnectDialogCommand}" 
+                                            HorizontalAlignment="Center" 
+                                            Margin="0,4,0,0">
+                                        <StackPanel Orientation="Horizontal" Spacing="5">
+                                            <ui:FASymbolIcon Symbol="Add" FontSize="10" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Connect Database" FontSize="11" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Panel>
                         </Border>
                     </Grid>
                 </Grid>

@@ -29,6 +29,7 @@ public partial class SidebarViewModel : ViewModelBase
     };
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SearchPlaceholderText))]
     private bool _isConnected;
 
     [ObservableProperty]
@@ -38,6 +39,7 @@ public partial class SidebarViewModel : ViewModelBase
     private string _databaseType = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SearchPlaceholderText))]
     private string _databaseName = string.Empty;
 
     [ObservableProperty]
@@ -47,10 +49,36 @@ public partial class SidebarViewModel : ViewModelBase
     private string _statusText = "Ready";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSearchFilter))]
     private string _tableSearchFilter = string.Empty;
+
+    public bool HasSearchFilter => !string.IsNullOrWhiteSpace(TableSearchFilter);
+
+    [ObservableProperty]
+    private bool _filterActiveOnly;
+
+    partial void OnFilterActiveOnlyChanged(bool value)
+    {
+        ApplyFilter();
+    }
+
+    public string SearchPlaceholderText
+    {
+        get
+        {
+            if (IsConnected && !string.IsNullOrWhiteSpace(DatabaseName))
+            {
+                return $"Search tables in {DatabaseName}...";
+            }
+            return "Filter databases and tables...";
+        }
+    }
 
     [ObservableProperty]
     private TableMetadata? _selectedTable;
+
+    [ObservableProperty]
+    private TableTreeNode? _activeTableNode;
 
     [ObservableProperty]
     private SidebarTreeNodeBase? _selectedTreeNode;
@@ -112,6 +140,12 @@ public partial class SidebarViewModel : ViewModelBase
         }
     }
 
+    [RelayCommand]
+    public void ClearSearchFilter()
+    {
+        TableSearchFilter = string.Empty;
+    }
+
     private void ApplyFilter()
     {
         FilteredTables.Clear();
@@ -120,7 +154,9 @@ public partial class SidebarViewModel : ViewModelBase
 
         foreach (var t in Tables)
         {
-            if (string.IsNullOrEmpty(filter) || t.FullName.ToLowerInvariant().Contains(filter))
+            if (string.IsNullOrEmpty(filter) ||
+                t.FullName.ToLowerInvariant().Contains(filter) ||
+                t.TableName.ToLowerInvariant().Contains(filter))
             {
                 FilteredTables.Add(t);
             }
@@ -130,27 +166,60 @@ public partial class SidebarViewModel : ViewModelBase
         {
             foreach (var node in DatabaseNodes)
             {
-                FilteredDatabaseNodes.Add(node);
+                node.FilterTables(null);
+                if (FilterActiveOnly)
+                {
+                    if (node.IsActive)
+                    {
+                        FilteredDatabaseNodes.Add(node);
+                    }
+                }
+                else
+                {
+                    FilteredDatabaseNodes.Add(node);
+                }
+            }
+
+            var active = DatabaseNodes.FirstOrDefault(n => n.IsActive);
+            if (active != null)
+            {
+                StatusText = $"{active.TableCount} table(s) in {active.DatabaseName}";
+            }
+            else if (DatabaseNodes.Count > 0)
+            {
+                StatusText = $"{DatabaseNodes.Count} saved database(s)";
+            }
+            else
+            {
+                StatusText = "No database connected";
             }
             return;
         }
 
+        int totalMatchingTables = 0;
         foreach (var node in DatabaseNodes)
         {
+            if (FilterActiveOnly && !node.IsActive)
+            {
+                continue;
+            }
+
+            int matchingCount = node.FilterTables(filter);
             bool dbMatch = node.Title.ToLowerInvariant().Contains(filter) ||
                            node.DatabaseType.ToLowerInvariant().Contains(filter) ||
                            node.Server.ToLowerInvariant().Contains(filter) ||
                            node.DatabaseName.ToLowerInvariant().Contains(filter);
 
-            bool tableMatch = node.TablesFolder?.Children.Any(c => c.Title.ToLowerInvariant().Contains(filter)) == true;
-
-            if (dbMatch || tableMatch)
+            if (dbMatch || matchingCount > 0)
             {
+                totalMatchingTables += matchingCount;
                 node.IsExpanded = true;
                 if (node.TablesFolder != null) node.TablesFolder.IsExpanded = true;
                 FilteredDatabaseNodes.Add(node);
             }
         }
+
+        StatusText = $"{totalMatchingTables} matching table(s)";
     }
 
     [RelayCommand]
@@ -236,9 +305,11 @@ public partial class SidebarViewModel : ViewModelBase
                     Tables.Add(t);
                 }
                 StatusText = $"{Tables.Count} table(s) found";
+                SqlKeywordsService.Instance.UpdateActiveTables(DatabaseName, Tables);
             }
             else
             {
+                SqlKeywordsService.Instance.ClearActiveTables();
                 IsConnected = false;
                 ConnectionTitle = "Not Connected";
                 DatabaseType = string.Empty;
@@ -249,6 +320,22 @@ public partial class SidebarViewModel : ViewModelBase
             }
 
             ApplyFilter();
+
+            // Re-apply active table highlight if one was previously selected
+            if (SelectedTable != null || ActiveTableNode != null)
+            {
+                var targetFullName = ActiveTableNode?.FullName ?? SelectedTable?.FullName;
+                var activeDb = DatabaseNodes.FirstOrDefault(n => n.IsActive);
+                if (activeDb != null && targetFullName != null)
+                {
+                    var match = activeDb.AllTableNodes.FirstOrDefault(t => t.FullName.Equals(targetFullName, StringComparison.OrdinalIgnoreCase));
+                    if (match != null)
+                    {
+                        match.IsActive = true;
+                        ActiveTableNode = match;
+                    }
+                }
+            }
 
             // Load query history
             var history = await DatabaseStorageService.Instance.GetQueryHistoryAsync();
@@ -320,8 +407,25 @@ public partial class SidebarViewModel : ViewModelBase
                         Tables.Add(t);
                     }
                     StatusText = $"{tables.Count} table(s) loaded";
+                    SqlKeywordsService.Instance.UpdateActiveTables(node.DatabaseName, Tables);
 
                     ApplyFilter();
+
+            // Re-apply active table highlight if one was previously selected
+            if (SelectedTable != null || ActiveTableNode != null)
+            {
+                var targetFullName = ActiveTableNode?.FullName ?? SelectedTable?.FullName;
+                var activeDb = DatabaseNodes.FirstOrDefault(n => n.IsActive);
+                if (activeDb != null && targetFullName != null)
+                {
+                    var match = activeDb.AllTableNodes.FirstOrDefault(t => t.FullName.Equals(targetFullName, StringComparison.OrdinalIgnoreCase));
+                    if (match != null)
+                    {
+                        match.IsActive = true;
+                        ActiveTableNode = match;
+                    }
+                }
+            }
                     RequestActivateConnection?.Invoke(node.Record);
                 }
                 else
@@ -363,8 +467,25 @@ public partial class SidebarViewModel : ViewModelBase
                 Tables.Add(t);
             }
             StatusText = $"{tables.Count} table(s) loaded";
+            SqlKeywordsService.Instance.UpdateActiveTables(node.DatabaseName, Tables);
 
             ApplyFilter();
+
+            // Re-apply active table highlight if one was previously selected
+            if (SelectedTable != null || ActiveTableNode != null)
+            {
+                var targetFullName = ActiveTableNode?.FullName ?? SelectedTable?.FullName;
+                var activeDb = DatabaseNodes.FirstOrDefault(n => n.IsActive);
+                if (activeDb != null && targetFullName != null)
+                {
+                    var match = activeDb.AllTableNodes.FirstOrDefault(t => t.FullName.Equals(targetFullName, StringComparison.OrdinalIgnoreCase));
+                    if (match != null)
+                    {
+                        match.IsActive = true;
+                        ActiveTableNode = match;
+                    }
+                }
+            }
             RequestActivateConnection?.Invoke(node.Record);
         }
     }
@@ -463,7 +584,20 @@ public partial class SidebarViewModel : ViewModelBase
     public async Task SelectTableNode(TableTreeNode? node)
     {
         if (node == null) return;
+
+        // Reset active state across all tables in all databases
+        foreach (var db in DatabaseNodes)
+        {
+            foreach (var t in db.AllTableNodes)
+            {
+                t.IsActive = false;
+            }
+        }
+
+        node.IsActive = true;
+        ActiveTableNode = node;
         SelectedTable = node.Table;
+        SelectedTreeNode = node;
 
         if (!node.DatabaseNode.IsConnected || !node.DatabaseNode.IsActive)
         {
@@ -492,6 +626,25 @@ public partial class SidebarViewModel : ViewModelBase
     {
         if (table == null) return;
         SelectedTable = table;
+
+        // Highlight matching TableTreeNode in active DB
+        var activeDb = DatabaseNodes.FirstOrDefault(n => n.IsActive) ?? DatabaseNodes.FirstOrDefault(n => n.IsConnected);
+        if (activeDb != null)
+        {
+            var match = activeDb.AllTableNodes.FirstOrDefault(t =>
+                t.FullName.Equals(table.FullName, StringComparison.OrdinalIgnoreCase) ||
+                t.TableName.Equals(table.TableName, StringComparison.OrdinalIgnoreCase));
+            if (match != null)
+            {
+                foreach (var db in DatabaseNodes)
+                {
+                    foreach (var t in db.AllTableNodes) t.IsActive = false;
+                }
+                match.IsActive = true;
+                ActiveTableNode = match;
+                SelectedTreeNode = match;
+            }
+        }
 
         string query = DatabaseType == "MSSQL"
             ? $"SELECT TOP 100 * FROM {table.FullName};"

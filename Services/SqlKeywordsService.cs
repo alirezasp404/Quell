@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Fdb.Services.DatabaseProviders;
 
 namespace Fdb.Services;
 
@@ -21,7 +22,21 @@ public class SqlKeywordsService
     public string CurrentDialect { get; private set; } = "MSSQL";
     public List<string> Keywords { get; private set; } = new();
     public List<SqlSnippet> Snippets { get; private set; } = new();
+    public List<TableMetadata> ActiveTables { get; private set; } = new();
+    public string ActiveDatabaseName { get; private set; } = string.Empty;
     public Regex? KeywordRegex { get; private set; }
+
+    public void UpdateActiveTables(string? databaseName, IEnumerable<TableMetadata>? tables)
+    {
+        ActiveDatabaseName = databaseName ?? string.Empty;
+        ActiveTables = tables != null ? tables.ToList() : new List<TableMetadata>();
+    }
+
+    public void ClearActiveTables()
+    {
+        ActiveDatabaseName = string.Empty;
+        ActiveTables.Clear();
+    }
 
     public SqlKeywordsService()
     {

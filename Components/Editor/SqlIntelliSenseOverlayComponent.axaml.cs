@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
 using Fdb.Services;
+using Fdb.Services.DatabaseProviders;
 
 namespace Fdb.Components;
 
@@ -27,6 +28,31 @@ public partial class SqlIntelliSenseOverlayComponent : UserControl
         "CREATE", "TABLE", "GROUP BY", "ORDER BY", "HAVING", "LIMIT", "OFFSET", "UNION", "VALUES",
         "ALTER", "DROP", "EXEC", "WITH", "SET", "AND", "OR", "NOT", "IN", "AS", "BY", "ON"
     };
+
+    private static readonly HashSet<string> TableContextKeywords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "FROM", "JOIN", "INTO", "UPDATE", "TABLE", "TRUNCATE", "REFERENCES", "DESCRIBE", "DESC"
+    };
+
+    public static bool IsTableContext(string? textBeforeWord)
+    {
+        if (string.IsNullOrWhiteSpace(textBeforeWord)) return false;
+
+        var trimmed = textBeforeWord.TrimEnd();
+        int end = trimmed.Length;
+        int start = end;
+        while (start > 0 && (char.IsLetterOrDigit(trimmed[start - 1]) || trimmed[start - 1] == '_'))
+        {
+            start--;
+        }
+
+        if (start < end)
+        {
+            string lastKeyword = trimmed.Substring(start, end - start);
+            return TableContextKeywords.Contains(lastKeyword);
+        }
+        return false;
+    }
 
     public SqlIntelliSenseOverlayComponent()
     {
@@ -63,13 +89,29 @@ public partial class SqlIntelliSenseOverlayComponent : UserControl
         return score;
     }
 
-    public bool UpdateFilter(string currentWord, bool showAll = false)
+    public bool UpdateFilter(string currentWord, bool showAll = false, string? textBefore = null)
     {
         try
         {
             var keywordsService = SqlKeywordsService.Instance;
+            var activeTables = keywordsService.ActiveTables.Count > 0
+                ? keywordsService.ActiveTables
+                : DatabaseSessionService.Instance.GetActiveCachedTables().ToList();
 
-            // 1. Find matching keywords (Prefix match first, then substring match for length >= 2)
+            bool inTableContext = IsTableContext(textBefore);
+
+            // 1. Find matching tables from active database
+            var matchingTables = showAll
+                ? activeTables
+                : activeTables.Where(t =>
+                    string.IsNullOrEmpty(currentWord) ||
+                    t.TableName.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase) ||
+                    t.FullName.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase) ||
+                    (currentWord.Length >= 2 && (t.TableName.IndexOf(currentWord, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                 t.FullName.IndexOf(currentWord, StringComparison.OrdinalIgnoreCase) >= 0)))
+                    .ToList();
+
+            // 2. Find matching keywords (Prefix match first, then substring match for length >= 2)
             var matchingKeywords = showAll
                 ? keywordsService.Keywords
                 : keywordsService.Keywords
@@ -80,7 +122,7 @@ public partial class SqlIntelliSenseOverlayComponent : UserControl
                     .ThenBy(k => k)
                     .ToList();
 
-            // 2. Find matching snippets
+            // 3. Find matching snippets
             var matchingSnippets = showAll
                 ? keywordsService.Snippets
                 : keywordsService.Snippets
@@ -93,10 +135,55 @@ public partial class SqlIntelliSenseOverlayComponent : UserControl
 
             _currentMatches.Clear();
 
+            // Add active database tables
+            foreach (var table in matchingTables)
+            {
+                double priority = inTableContext ? 3000.0 : 1200.0;
+                if (table.TableName.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase))
+                {
+                    priority += 400.0;
+                }
+
+                string dbInfo = !string.IsNullOrEmpty(keywordsService.ActiveDatabaseName)
+                    ? $" [DB: {keywordsService.ActiveDatabaseName}]"
+                    : "";
+
+                _currentMatches.Add(new SqlCompletionData(
+                    text: table.TableName,
+                    description: $"{table.DisplayType}: {table.FullName}{dbInfo}\nActive Database Table",
+                    priority: priority,
+                    isSnippet: false,
+                    insertionText: table.TableName,
+                    category: table.DisplayType,
+                    isTable: true
+                ));
+
+                // If non-standard schema (not dbo/main), also offer full qualified name
+                if (!string.IsNullOrEmpty(table.SchemaName) &&
+                    !table.SchemaName.Equals("dbo", StringComparison.OrdinalIgnoreCase) &&
+                    !table.SchemaName.Equals("main", StringComparison.OrdinalIgnoreCase) &&
+                    (string.IsNullOrEmpty(currentWord) || table.FullName.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase)))
+                {
+                    _currentMatches.Add(new SqlCompletionData(
+                        text: table.FullName,
+                        description: $"{table.DisplayType}: {table.FullName}{dbInfo}\nActive Database Table (Qualified)",
+                        priority: priority - 10.0,
+                        isSnippet: false,
+                        insertionText: table.FullName,
+                        category: table.DisplayType,
+                        isTable: true
+                    ));
+                }
+            }
+
             // Add keywords
             foreach (var kw in matchingKeywords)
             {
                 double priority = GetKeywordPriority(kw, currentWord);
+                if (inTableContext)
+                {
+                    priority = Math.Min(priority, 500.0);
+                }
                 _currentMatches.Add(new SqlCompletionData(kw, description: $"SQL Keyword: {kw}", priority: priority, isSnippet: false));
             }
 
@@ -104,6 +191,10 @@ public partial class SqlIntelliSenseOverlayComponent : UserControl
             foreach (var snip in matchingSnippets)
             {
                 double priority = GetSnippetPriority(snip.Keyword, currentWord);
+                if (inTableContext)
+                {
+                    priority = Math.Min(priority, 400.0);
+                }
                 _currentMatches.Add(new SqlCompletionData(
                     text: snip.Keyword,
                     description: $"{snip.Keyword} — {snip.Description}\nTemplate: {snip.Snippet}",

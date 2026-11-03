@@ -239,7 +239,9 @@ public partial class EditorComponent : UserControl
 
                 if (currentWord.Length >= 1)
                 {
-                    ShowIntelliSense(currentWord, showAll: false);
+                    int startOffset = Math.Max(0, caretOffset - currentWord.Length);
+                    string textBefore = CodeEditor.Document.GetText(0, startOffset);
+                    ShowIntelliSense(currentWord, showAll: false, textBefore: textBefore);
                 }
                 else
                 {
@@ -295,7 +297,9 @@ public partial class EditorComponent : UserControl
             {
                 int caretOffset = CodeEditor.CaretOffset;
                 string currentWord = GetWordBeforeOffset(caretOffset);
-                ShowIntelliSense(currentWord, showAll: true);
+                int startOffset = Math.Max(0, caretOffset - currentWord.Length);
+                string textBefore = CodeEditor.Document.GetText(0, startOffset);
+                ShowIntelliSense(currentWord, showAll: true, textBefore: textBefore);
                 e.Handled = true;
                 return;
             }
@@ -306,11 +310,18 @@ public partial class EditorComponent : UserControl
         }
     }
 
-    public void ShowIntelliSense(string currentWord, bool showAll = false)
+    public void ShowIntelliSense(string currentWord, bool showAll = false, string? textBefore = null)
     {
         if (IntelliSenseOverlay == null || CodeEditor?.Document == null) return;
 
-        bool hasMatches = IntelliSenseOverlay.UpdateFilter(currentWord, showAll);
+        if (textBefore == null)
+        {
+            int caretOffset = CodeEditor.CaretOffset;
+            int startOffset = Math.Max(0, caretOffset - currentWord.Length);
+            textBefore = CodeEditor.Document.GetText(0, startOffset);
+        }
+
+        bool hasMatches = IntelliSenseOverlay.UpdateFilter(currentWord, showAll, textBefore);
         if (hasMatches)
         {
             PositionIntelliSense();

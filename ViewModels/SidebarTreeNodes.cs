@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Input.Platform;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -144,6 +146,8 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
 
     public FolderTreeNode? TablesFolder { get; set; }
 
+    public List<TableTreeNode> AllTableNodes { get; } = new();
+
     public DatabaseConnectionTreeNode(ConnectionRecord record)
     {
         Record = record;
@@ -167,9 +171,47 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
 
     public void LoadTables(System.Collections.Generic.IEnumerable<TableMetadata> tables, Func<TableTreeNode, Task>? executeAction = null)
     {
-        Children.Clear();
         var tableList = tables is System.Collections.Generic.List<TableMetadata> list ? list : new System.Collections.Generic.List<TableMetadata>(tables);
         TableCount = tableList.Count;
+
+        // If TablesFolder already exists, reconcile existing nodes to preserve state (like IsActive)!
+        if (TablesFolder != null && AllTableNodes.Count > 0)
+        {
+            var existingMap = AllTableNodes.ToDictionary(n => n.FullName, StringComparer.OrdinalIgnoreCase);
+            var updatedNodes = new List<TableTreeNode>();
+
+            foreach (var table in tableList)
+            {
+                if (existingMap.TryGetValue(table.FullName, out var existingNode))
+                {
+                    existingNode.ExecuteAction = executeAction;
+                    updatedNodes.Add(existingNode);
+                }
+                else
+                {
+                    var newNode = new TableTreeNode(table, this)
+                    {
+                        ExecuteAction = executeAction
+                    };
+                    updatedNodes.Add(newNode);
+                }
+            }
+
+            AllTableNodes.Clear();
+            AllTableNodes.AddRange(updatedNodes);
+
+            TablesFolder.Children.Clear();
+            foreach (var node in AllTableNodes)
+            {
+                TablesFolder.Children.Add(node);
+            }
+            TablesFolder.Title = $"Tables ({TableCount})";
+            Subtitle = $"{TableCount} table(s) found";
+            return;
+        }
+
+        Children.Clear();
+        AllTableNodes.Clear();
 
         var folder = new FolderTreeNode($"Tables ({TableCount})", this)
         {
@@ -182,6 +224,7 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
             {
                 ExecuteAction = executeAction
             };
+            AllTableNodes.Add(node);
             folder.Children.Add(node);
         }
 
@@ -190,9 +233,48 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
         Subtitle = $"{TableCount} table(s) found";
     }
 
+    public int FilterTables(string? filter)
+    {
+        if (TablesFolder == null) return 0;
+
+        TablesFolder.Children.Clear();
+        var normalizedFilter = filter?.Trim().ToLowerInvariant();
+
+        if (string.IsNullOrEmpty(normalizedFilter))
+        {
+            foreach (var node in AllTableNodes)
+            {
+                TablesFolder.Children.Add(node);
+            }
+            TablesFolder.Title = $"Tables ({AllTableNodes.Count})";
+            return AllTableNodes.Count;
+        }
+
+        var matches = AllTableNodes.Where(n =>
+            n.FullName.ToLowerInvariant().Contains(normalizedFilter) ||
+            n.TableName.ToLowerInvariant().Contains(normalizedFilter) ||
+            n.SchemaName.ToLowerInvariant().Contains(normalizedFilter)
+        ).ToList();
+
+        foreach (var node in matches)
+        {
+            TablesFolder.Children.Add(node);
+        }
+
+        TablesFolder.Title = $"Tables ({matches.Count}/{AllTableNodes.Count})";
+        if (matches.Count > 0)
+        {
+            IsExpanded = true;
+            TablesFolder.IsExpanded = true;
+        }
+
+        return matches.Count;
+    }
+
     public void ClearTables()
     {
         Children.Clear();
+        AllTableNodes.Clear();
         TablesFolder = null;
         TableCount = 0;
         Subtitle = DatabaseType ?? "MSSQL";
@@ -230,6 +312,9 @@ public partial class TableTreeNode : SidebarTreeNodeBase
     public string DisplayType => Table.DisplayType;
 
     public Func<TableTreeNode, Task>? ExecuteAction { get; set; }
+
+    [ObservableProperty]
+    private bool _isActive;
 
     [RelayCommand]
     public async Task ExecuteTop100Async()

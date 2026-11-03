@@ -49,6 +49,20 @@ public class DatabaseSessionService
 
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private readonly Dictionary<string, OpenDatabaseSession> _openSessions = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, List<TableMetadata>> _cachedTables = new(StringComparer.OrdinalIgnoreCase);
+
+    public IReadOnlyList<TableMetadata> GetActiveCachedTables()
+    {
+        if (ActiveSession == null) return Array.Empty<TableMetadata>();
+        lock (_cachedTables)
+        {
+            if (_cachedTables.TryGetValue(ActiveSession.Key, out var list))
+            {
+                return list;
+            }
+        }
+        return Array.Empty<TableMetadata>();
+    }
 
     public OpenDatabaseSession? ActiveSession { get; private set; }
 
@@ -149,6 +163,13 @@ public class DatabaseSessionService
 
         if (changed)
         {
+            lock (_cachedTables)
+            {
+                if (ActiveSession != null && _cachedTables.TryGetValue(ActiveSession.Key, out var cached))
+                {
+                    SqlKeywordsService.Instance.UpdateActiveTables(ActiveSession.Config.Database, cached);
+                }
+            }
             NotifyConnectionChanged();
             return true;
         }
@@ -398,6 +419,16 @@ public class DatabaseSessionService
                         TableType = reader[2]?.ToString() ?? "TABLE"
                     });
                 }
+            }
+
+            lock (_cachedTables)
+            {
+                _cachedTables[session.Key] = list;
+            }
+
+            if (ActiveSession?.Key == session.Key)
+            {
+                SqlKeywordsService.Instance.UpdateActiveTables(session.Config.Database, list);
             }
 
             return list;
@@ -688,12 +719,16 @@ public class DatabaseSessionService
                 }
 
                 sw.Stop();
+                string execMsg = reader.FieldCount == 0
+                    ? (reader.RecordsAffected >= 0 ? $"Command executed successfully ({reader.RecordsAffected} row(s) affected)." : "Command executed successfully.")
+                    : $"Query executed successfully ({rows.Count} rows).";
+
                 return new QueryExecutionResult
                 {
                     Success = true,
-                    Message = $"Query executed successfully ({rows.Count} rows).",
+                    Message = execMsg,
                     ExecutionTime = $"{sw.ElapsedMilliseconds} ms",
-                    RowCount = rows.Count,
+                    RowCount = reader.FieldCount == 0 ? Math.Max(0, reader.RecordsAffected) : rows.Count,
                     ColumnNames = columns,
                     Rows = rows
                 };
@@ -723,12 +758,16 @@ public class DatabaseSessionService
                 }
 
                 sw.Stop();
+                string execMsg = reader.FieldCount == 0
+                    ? (reader.RecordsAffected >= 0 ? $"Command executed successfully ({reader.RecordsAffected} row(s) affected)." : "Command executed successfully.")
+                    : $"Query executed successfully ({rows.Count} rows).";
+
                 return new QueryExecutionResult
                 {
                     Success = true,
-                    Message = $"Query executed successfully ({rows.Count} rows).",
+                    Message = execMsg,
                     ExecutionTime = $"{sw.ElapsedMilliseconds} ms",
-                    RowCount = rows.Count,
+                    RowCount = reader.FieldCount == 0 ? Math.Max(0, reader.RecordsAffected) : rows.Count,
                     ColumnNames = columns,
                     Rows = rows
                 };

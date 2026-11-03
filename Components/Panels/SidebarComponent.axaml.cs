@@ -42,6 +42,18 @@ public partial class SidebarComponent : UserControl
         }
     }
 
+    private void OnTableNodePointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        var point = e.GetCurrentPoint(this);
+        if (point.Properties.IsLeftButtonPressed && (sender as Control)?.DataContext is TableTreeNode tableNode)
+        {
+            if (DataContext is SidebarViewModel vm)
+            {
+                _ = vm.SelectTableNode(tableNode);
+            }
+        }
+    }
+
     private bool HandleContextMenuRequest(Visual? visual)
     {
         if (visual == null) return false;

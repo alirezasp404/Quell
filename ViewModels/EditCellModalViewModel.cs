@@ -63,16 +63,19 @@ public partial class EditCellModalViewModel : ViewModelBase
 
     public List<string> TargetColumns { get; } = new();
 
+    public List<string> PrimaryKeyColumns { get; } = new();
+
     public Func<string, Task<bool>>? ExecuteQueryCallback { get; set; }
+    public Func<string, Task<(bool Success, string? ErrorMessage)>>? ExecuteQueryDetailedCallback { get; set; }
     public Action<string>? InsertQueryToEditorCallback { get; set; }
     public Action<string>? OnUpdatedCallback { get; set; }
 
-    public void Open(QueryResultRow row, string? columnName, string tableName, string dbType)
+    public void Open(QueryResultRow row, string? columnName, string tableName, string dbType, IEnumerable<string>? primaryKeys = null)
     {
-        OpenBatch(new[] { row }, new[] { string.IsNullOrWhiteSpace(columnName) ? "Name" : columnName }, tableName, dbType);
+        OpenBatch(new[] { row }, new[] { string.IsNullOrWhiteSpace(columnName) ? "Name" : columnName }, tableName, dbType, primaryKeys);
     }
 
-    public void OpenBatch(IEnumerable<QueryResultRow> rows, IEnumerable<string> columnNames, string tableName, string dbType)
+    public void OpenBatch(IEnumerable<QueryResultRow> rows, IEnumerable<string> columnNames, string tableName, string dbType, IEnumerable<string>? primaryKeys = null)
     {
         TargetRows.Clear();
         TargetRows.AddRange(rows);
@@ -81,6 +84,12 @@ public partial class EditCellModalViewModel : ViewModelBase
         var cleanCols = columnNames.Where(c => !string.IsNullOrWhiteSpace(c) && c != "ROW #").ToList();
         if (cleanCols.Count == 0) cleanCols.Add("Name");
         TargetColumns.AddRange(cleanCols);
+
+        PrimaryKeyColumns.Clear();
+        if (primaryKeys != null)
+        {
+            PrimaryKeyColumns.AddRange(primaryKeys.Where(pk => !string.IsNullOrWhiteSpace(pk)));
+        }
 
         if (TargetRows.Count == 0) return;
 
@@ -99,7 +108,7 @@ public partial class EditCellModalViewModel : ViewModelBase
 
             var idList = TargetRows.Select(r =>
             {
-                string idCol = FindIdColumn(r);
+                string idCol = PrimaryKeyColumns.Count == 1 ? PrimaryKeyColumns[0] : FindIdColumn(r);
                 return !string.IsNullOrEmpty(idCol) && !string.IsNullOrEmpty(r[idCol]) ? r[idCol] : (r.Id > 0 ? r.Id.ToString() : $"#{r.RowIndex}");
             }).ToList();
 
@@ -115,7 +124,7 @@ public partial class EditCellModalViewModel : ViewModelBase
             ModalTitle = "Edit Table Cell";
             ModalSubtitle = "Modify cell value graphically and generate UPDATE query";
 
-            string idCol = FindIdColumn(TargetRow);
+            string idCol = PrimaryKeyColumns.Count == 1 ? PrimaryKeyColumns[0] : FindIdColumn(TargetRow);
             string idVal = !string.IsNullOrEmpty(idCol) ? TargetRow[idCol] : (TargetRow.Id > 0 ? TargetRow.Id.ToString() : "");
             RowIdText = !string.IsNullOrEmpty(idVal) ? $"{idCol} = {idVal}" : $"Row #{TargetRow.RowIndex}";
 
@@ -161,64 +170,73 @@ public partial class EditCellModalViewModel : ViewModelBase
 
         if (IsBatchEdit && TargetRows.Count > 0)
         {
-            GeneratedQuery = BuildBatchUpdateQuery(TableName, TargetColumns, NewValue, TargetRows, DatabaseType);
+            GeneratedQuery = BuildBatchUpdateQuery(TableName, TargetColumns, NewValue, TargetRows, DatabaseType, PrimaryKeyColumns);
         }
         else if (TargetRow != null)
         {
-            GeneratedQuery = BuildUpdateQuery(TableName, TargetColumns.FirstOrDefault() ?? ColumnName, NewValue, TargetRow, DatabaseType);
+            GeneratedQuery = BuildUpdateQuery(TableName, TargetColumns.FirstOrDefault() ?? ColumnName, NewValue, TargetRow, DatabaseType, PrimaryKeyColumns);
         }
     }
 
-    public static string BuildBatchUpdateQuery(string tableName, IReadOnlyList<string> columns, string newValue, IReadOnlyList<QueryResultRow> rows, string dbType)
+    public static string BuildBatchUpdateQuery(string tableName, IReadOnlyList<string> columns, string newValue, IReadOnlyList<QueryResultRow> rows, string dbType, IReadOnlyList<string>? primaryKeys = null)
     {
         string escapedTable = FormatIdentifier(tableName, dbType);
-        string valueLiteral = FormatLiteral(newValue);
+        string valueLiteral = FormatLiteral(newValue, dbType);
         var setClauses = columns.Select(col => $"{FormatIdentifier(col, dbType)} = {valueLiteral}");
 
         // Try single PK IN (...)
-        string idCol = rows.Count > 0 ? FindIdColumn(rows[0]) : "Id";
+        string idCol = (primaryKeys != null && primaryKeys.Count == 1)
+            ? primaryKeys[0]
+            : (rows.Count > 0 ? FindIdColumn(rows[0]) : "Id");
+
         if (!string.IsNullOrEmpty(idCol) && rows.All(r => !string.IsNullOrEmpty(r[idCol])))
         {
             string escapedId = FormatIdentifier(idCol, dbType);
-            var idList = rows.Select(r => FormatLiteralOrNumber(r[idCol]));
+            var idList = rows.Select(r => FormatLiteralOrNumber(r[idCol], dbType));
             return $"UPDATE {escapedTable}\nSET {string.Join(", ", setClauses)}\nWHERE {escapedId} IN ({string.Join(", ", idList)});";
         }
 
-        var whereClauses = rows.Select(r => $"({BuildWhereClause(r, columns[0], dbType)})");
+        var whereClauses = rows.Select(r => $"({BuildWhereClause(r, columns[0], dbType, primaryKeys)})");
         return $"UPDATE {escapedTable}\nSET {string.Join(", ", setClauses)}\nWHERE {string.Join(" OR\n      ", whereClauses)};";
     }
 
-    private static string FormatLiteralOrNumber(string val)
-    {
-        if (long.TryParse(val, out _) || double.TryParse(val, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _))
-        {
-            return val;
-        }
-        return $"'{val.Replace("'", "''")}'";
-    }
-
-    public static string BuildUpdateQuery(string tableName, string columnName, string newValue, QueryResultRow row, string dbType)
+    public static string BuildUpdateQuery(string tableName, string columnName, string newValue, QueryResultRow row, string dbType, IReadOnlyList<string>? primaryKeys = null)
     {
         string escapedTable = FormatIdentifier(tableName, dbType);
         string escapedCol = FormatIdentifier(columnName, dbType);
-        string valueLiteral = FormatLiteral(newValue);
+        string valueLiteral = FormatLiteral(newValue, dbType);
 
-        string whereClause = BuildWhereClause(row, columnName, dbType);
+        string whereClause = BuildWhereClause(row, columnName, dbType, primaryKeys);
 
         return $"UPDATE {escapedTable}\nSET {escapedCol} = {valueLiteral}\nWHERE {whereClause};";
     }
 
-    private static string BuildWhereClause(QueryResultRow row, string excludeColumn, string dbType)
+    private static string BuildWhereClause(QueryResultRow row, string excludeColumn, string dbType, IReadOnlyList<string>? primaryKeys = null)
     {
+        // 1. If explicit primary keys are known from the table schema, prioritize them
+        if (primaryKeys != null && primaryKeys.Count > 0)
+        {
+            var pkConditions = new List<string>();
+            foreach (var pk in primaryKeys)
+            {
+                string val = row[pk];
+                if (!string.IsNullOrEmpty(val))
+                {
+                    pkConditions.Add($"{FormatIdentifier(pk, dbType)} = {FormatLiteralOrNumber(val, dbType)}");
+                }
+            }
+            if (pkConditions.Count > 0)
+            {
+                return string.Join(" AND ", pkConditions);
+            }
+        }
+
+        // 2. Try detected ID column
         string idCol = FindIdColumn(row);
         if (!string.IsNullOrEmpty(idCol) && !string.IsNullOrEmpty(row[idCol]))
         {
             string idVal = row[idCol];
-            if (long.TryParse(idVal, out _))
-            {
-                return $"{FormatIdentifier(idCol, dbType)} = {idVal}";
-            }
-            return $"{FormatIdentifier(idCol, dbType)} = '{idVal.Replace("'", "''")}'";
+            return $"{FormatIdentifier(idCol, dbType)} = {FormatLiteralOrNumber(idVal, dbType)}";
         }
 
         if (row.Id > 0)
@@ -226,16 +244,16 @@ public partial class EditCellModalViewModel : ViewModelBase
             return $"{FormatIdentifier("Id", dbType)} = {row.Id}";
         }
 
-        // Fallback: Use other non-empty columns
+        // 3. Fallback: Use other non-empty columns
         var conditions = new List<string>();
         foreach (var kvp in row.Values)
         {
             if (string.Equals(kvp.Key, excludeColumn, StringComparison.OrdinalIgnoreCase)) continue;
             if (string.Equals(kvp.Key, "Row #", StringComparison.OrdinalIgnoreCase)) continue;
+            if (string.Equals(kvp.Key, "RowIndex", StringComparison.OrdinalIgnoreCase)) continue;
             if (string.IsNullOrEmpty(kvp.Value)) continue;
 
-            string escaped = kvp.Value.Replace("'", "''");
-            conditions.Add($"{FormatIdentifier(kvp.Key, dbType)} = '{escaped}'");
+            conditions.Add($"{FormatIdentifier(kvp.Key, dbType)} = {FormatLiteralOrNumber(kvp.Value, dbType)}");
             if (conditions.Count >= 3) break;
         }
 
@@ -244,8 +262,7 @@ public partial class EditCellModalViewModel : ViewModelBase
             return string.Join(" AND ", conditions);
         }
 
-        string oldVal = row[excludeColumn].Replace("'", "''");
-        return $"{FormatIdentifier(excludeColumn, dbType)} = '{oldVal}'";
+        return $"{FormatIdentifier(excludeColumn, dbType)} = {FormatLiteral(row[excludeColumn], dbType)}";
     }
 
     private static string FindIdColumn(QueryResultRow row)
@@ -288,11 +305,53 @@ public partial class EditCellModalViewModel : ViewModelBase
         };
     }
 
-    private static string FormatLiteral(string val)
+    public static string FormatLiteral(string? val, string dbType)
     {
         if (val == null) return "NULL";
         if (string.Equals(val, "NULL", StringComparison.OrdinalIgnoreCase)) return "NULL";
-        return $"'{val.Replace("'", "''")}'";
+
+        string escaped = val.Replace("'", "''");
+
+        // MSSQL requires the N prefix for Unicode/NVARCHAR text (mandatory for Persian, Arabic, etc.)
+        // In MSSQL, N'...' is standard for all text literals to ensure non-English/Persian characters
+        // are preserved properly in NVARCHAR/NCHAR columns rather than replaced with ???? by collation.
+        if (string.Equals(dbType, "MSSQL", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"N'{escaped}'";
+        }
+
+        // MySQL and PostgreSQL support national character literals N'...'
+        // If string contains Unicode characters (e.g. Persian/Arabic), N'...' ensures proper charset interpretation.
+        if (string.Equals(dbType, "MYSQL", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(dbType, "POSTGRESQL", StringComparison.OrdinalIgnoreCase))
+        {
+            return HasUnicode(escaped) ? $"N'{escaped}'" : $"'{escaped}'";
+        }
+
+        // SQLite does not support N'...' prefix and natively stores UTF-8 inside standard single quotes '...'.
+        return $"'{escaped}'";
+    }
+
+    public static string FormatLiteralOrNumber(string? val, string dbType)
+    {
+        if (val == null) return "NULL";
+        if (string.Equals(val, "NULL", StringComparison.OrdinalIgnoreCase)) return "NULL";
+
+        if (long.TryParse(val, out _) || double.TryParse(val, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _))
+        {
+            return val;
+        }
+
+        return FormatLiteral(val, dbType);
+    }
+
+    private static bool HasUnicode(string text)
+    {
+        for (int i = 0; i < text.Length; i++)
+        {
+            if (text[i] > 127) return true;
+        }
+        return false;
     }
 
     [RelayCommand]
@@ -309,7 +368,15 @@ public partial class EditCellModalViewModel : ViewModelBase
         try
         {
             bool success = true;
-            if (ExecuteQueryCallback != null)
+            string? errorMsg = null;
+
+            if (ExecuteQueryDetailedCallback != null)
+            {
+                var detailedResult = await ExecuteQueryDetailedCallback.Invoke(query);
+                success = detailedResult.Success;
+                errorMsg = detailedResult.ErrorMessage;
+            }
+            else if (ExecuteQueryCallback != null)
             {
                 success = await ExecuteQueryCallback.Invoke(query);
             }
@@ -342,7 +409,9 @@ public partial class EditCellModalViewModel : ViewModelBase
             }
             else
             {
-                StatusMessage = "Query execution failed on database.";
+                StatusMessage = !string.IsNullOrEmpty(errorMsg) 
+                    ? errorMsg 
+                    : "Query execution failed on database. Check column type, constraints, or connection.";
                 IsSuccess = false;
             }
         }

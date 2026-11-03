@@ -50,12 +50,18 @@
                     <DataTemplate x:DataType="services:SqlCompletionData">
                         <Border Padding="4,2" CornerRadius="4">
                             <Grid ColumnDefinitions="Auto, *, Auto">
-                                <!-- Vector Icon: Tag (Keyword) or Code (Snippet) -->
+                                <!-- Vector Icon: Document (Table), Tag (Keyword), or Code (Snippet) -->
                                 <Panel Grid.Column="0" Width="18" Height="18" Margin="0,0,6,0">
+                                    <ui:FASymbolIcon Symbol="Document" 
+                                                     FontSize="11" 
+                                                     Foreground="#10B981" 
+                                                     IsVisible="{Binding IsTable}"
+                                                     VerticalAlignment="Center" 
+                                                     HorizontalAlignment="Center"/>
                                     <ui:FASymbolIcon Symbol="Tag" 
                                                      FontSize="11" 
                                                      Foreground="{DynamicResource AppKeywordBrush}" 
-                                                     IsVisible="{Binding !IsSnippet}"
+                                                     IsVisible="{Binding IsKeyword}"
                                                      VerticalAlignment="Center" 
                                                      HorizontalAlignment="Center"/>
                                     <ui:FASymbolIcon Symbol="Code" 
