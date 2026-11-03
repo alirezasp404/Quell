@@ -28,6 +28,9 @@ public partial class App : Application
                 Services.ThemeService.Instance.ApplyTheme(theme);
                 var keywordColor = Services.DatabaseStorageService.Instance.GetKeywordColorAsync().GetAwaiter().GetResult();
                 Services.ThemeService.Instance.SetKeywordColor(keywordColor);
+                var panelCustom = Services.DatabaseStorageService.Instance.GetPanelCustomizationAsync().GetAwaiter().GetResult();
+                Services.ThemeService.Instance.ApplyPanelCustomization(panelCustom);
+                Services.ShortcutService.Instance.InitializeAsync().GetAwaiter().GetResult();
 
                 desktop.MainWindow = new MainWindow
                 {

@@ -3,6 +3,7 @@ using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Fdb.Services;
 using Fdb.ViewModels;
 
 namespace Fdb.Views;
@@ -184,64 +185,108 @@ public partial class MainWindow : Window
 
         if (_viewModel == null) return;
 
-        // Toggle Fullscreen Table/Footer via F11 or Ctrl+Shift+F
-        if (e.Key == Key.F11 || (e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.KeyModifiers.HasFlag(KeyModifiers.Shift) && e.Key == Key.F))
+        // Toggle Fullscreen Table/Footer
+        if (ShortcutService.Instance.IsMatch(ShortcutActions.ToggleFullscreen, e) ||
+            e.Key == Key.F11 || (e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.KeyModifiers.HasFlag(KeyModifiers.Shift) && e.Key == Key.F))
         {
             _viewModel.ToggleFooterMaximizedCommand.Execute(null);
             e.Handled = true;
             return;
         }
 
-        // F5: Run active SQL query
-        if (e.Key == Key.F5)
+        // Run active SQL query
+        if (ShortcutService.Instance.IsMatch(ShortcutActions.RunQuery, e) || e.Key == Key.F5)
         {
             _viewModel.ExecuteQueryCommand.Execute(null);
             e.Handled = true;
             return;
         }
 
-        // Ctrl+S: Save current query
-        if (e.Key == Key.S && e.KeyModifiers == KeyModifiers.Control)
+        // Save current query
+        if (ShortcutService.Instance.IsMatch(ShortcutActions.SaveQuery, e) || (e.Key == Key.S && e.KeyModifiers == KeyModifiers.Control))
         {
             _viewModel.SaveQueryCommand.Execute(null);
             e.Handled = true;
             return;
         }
 
-        // Ctrl+N: New query tab
-        if (e.Key == Key.N && e.KeyModifiers == KeyModifiers.Control)
+        // New query tab
+        if (ShortcutService.Instance.IsMatch(ShortcutActions.NewTab, e) || (e.Key == Key.N && e.KeyModifiers == KeyModifiers.Control))
         {
             _viewModel.Editor.AddTabCommand.Execute(null);
             e.Handled = true;
             return;
         }
 
-        // Ctrl+,: Open Settings
-        if (e.Key == Key.OemComma && e.KeyModifiers == KeyModifiers.Control)
+        // Close query tab
+        if (ShortcutService.Instance.IsMatch(ShortcutActions.CloseTab, e) || (e.Key == Key.W && e.KeyModifiers == KeyModifiers.Control))
+        {
+            if (_viewModel.Editor.SelectedTab != null)
+            {
+                _viewModel.Editor.CloseTabCommand.Execute(_viewModel.Editor.SelectedTab);
+                e.Handled = true;
+                return;
+            }
+        }
+
+        // Connect Database
+        if (ShortcutService.Instance.IsMatch(ShortcutActions.ConnectDatabase, e) || (e.Key == Key.O && e.KeyModifiers == KeyModifiers.Control))
+        {
+            _viewModel.ConnectModal.IsOpen = true;
+            e.Handled = true;
+            return;
+        }
+
+        // Toggle Sidebar
+        if (ShortcutService.Instance.IsMatch(ShortcutActions.ToggleSidebar, e) || (e.Key == Key.B && e.KeyModifiers == KeyModifiers.Control))
+        {
+            _viewModel.ToggleSidebarCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
+
+        // Toggle Footer
+        if (ShortcutService.Instance.IsMatch(ShortcutActions.ToggleFooter, e) || (e.Key == Key.J && e.KeyModifiers == KeyModifiers.Control))
+        {
+            _viewModel.ToggleFooterCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
+
+        // Export Data
+        if (ShortcutService.Instance.IsMatch(ShortcutActions.ExportData, e) || (e.Key == Key.E && e.KeyModifiers == KeyModifiers.Control))
+        {
+            _viewModel.ExportModal.OpenCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
+
+        // Open Settings
+        if (ShortcutService.Instance.IsMatch(ShortcutActions.OpenSettings, e) || (e.Key == Key.OemComma && e.KeyModifiers == KeyModifiers.Control))
         {
             _viewModel.SettingsModal.OpenCommand.Execute(null);
             e.Handled = true;
             return;
         }
 
-        // Ctrl + + / Ctrl + Add: Zoom In SQL Editor Text
-        if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && (e.Key is Key.OemPlus or Key.Add))
+        // Zoom In SQL Editor Text
+        if (ShortcutService.Instance.IsMatch(ShortcutActions.ZoomIn, e) || (e.KeyModifiers.HasFlag(KeyModifiers.Control) && (e.Key is Key.OemPlus or Key.Add)))
         {
             MainEditor?.ZoomIn();
             e.Handled = true;
             return;
         }
 
-        // Ctrl + - / Ctrl + Subtract: Zoom Out SQL Editor Text
-        if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && (e.Key is Key.OemMinus or Key.Subtract))
+        // Zoom Out SQL Editor Text
+        if (ShortcutService.Instance.IsMatch(ShortcutActions.ZoomOut, e) || (e.KeyModifiers.HasFlag(KeyModifiers.Control) && (e.Key is Key.OemMinus or Key.Subtract)))
         {
             MainEditor?.ZoomOut();
             e.Handled = true;
             return;
         }
 
-        // Ctrl + 0: Reset SQL Editor Zoom
-        if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && (e.Key is Key.D0 or Key.NumPad0))
+        // Reset SQL Editor Zoom
+        if (ShortcutService.Instance.IsMatch(ShortcutActions.ResetZoom, e) || (e.KeyModifiers.HasFlag(KeyModifiers.Control) && (e.Key is Key.D0 or Key.NumPad0)))
         {
             MainEditor?.ResetZoom();
             e.Handled = true;

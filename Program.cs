@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Fdb;
@@ -216,6 +217,98 @@ sealed class Program
             string restoredKeywordColor = await Fdb.Services.DatabaseStorageService.Instance.GetKeywordColorAsync();
             Console.WriteLine($"Restored Keyword Color in SQLite: '{restoredKeywordColor}'");
             if (restoredKeywordColor != "Blue") throw new Exception("Failed to restore Blue Keyword Color to SQLite!");
+
+            // 5b. Test Panel Customization (Editor Background, Foreground, Sidebar & Font Size in SQLite)
+            Console.WriteLine("\n[Action] Verifying Panel Customization & SQLite Persistence...");
+            await vm.SettingsModal.OpenAsync();
+            vm.SettingsModal.SelectCategory("Customization");
+            Console.WriteLine($"Settings Category: Selected='{vm.SettingsModal.SelectedCategory}', IsCustomization={vm.SettingsModal.IsCustomizationCategory}");
+            if (!vm.SettingsModal.IsCustomizationCategory) throw new Exception("Customization category selection failed!");
+
+            // Customize Editor, Sidebar, and Table
+            vm.SettingsModal.SelectEditorBackground("#1E293B");
+            vm.SettingsModal.SelectEditorForeground("#34D399");
+            vm.SettingsModal.SelectSidebarBackground("#141E2E");
+            vm.SettingsModal.SelectTableBackground("#1E293B");
+            vm.SettingsModal.EditorFontSize = 15.0;
+            vm.SettingsModal.EditorShowLineNumbers = true;
+
+            await vm.SettingsModal.SaveAsync();
+
+            var savedCustom = await Fdb.Services.DatabaseStorageService.Instance.GetPanelCustomizationAsync();
+            Console.WriteLine($"SQLite Saved Panel Customization: EditorBg={savedCustom.EditorBackground}, EditorFg={savedCustom.EditorForeground}, SidebarBg={savedCustom.SidebarBackground}, FontSize={savedCustom.EditorFontSize}");
+            if (savedCustom.EditorBackground != "#1E293B" || savedCustom.EditorForeground != "#34D399" || savedCustom.SidebarBackground != "#141E2E" || savedCustom.EditorFontSize != 15.0)
+            {
+                throw new Exception("Panel customization failed to persist to SQLite!");
+            }
+
+            // Test Reset Panel Customization
+            await vm.SettingsModal.OpenAsync();
+            vm.SettingsModal.ResetPanelCustomization();
+            await vm.SettingsModal.SaveAsync();
+            var resetCustom = await Fdb.Services.DatabaseStorageService.Instance.GetPanelCustomizationAsync();
+            Console.WriteLine($"SQLite Restored Panel Customization: EditorBg={resetCustom.EditorBackground}, FontSize={resetCustom.EditorFontSize}");
+            if (resetCustom.EditorBackground != "Default" || resetCustom.EditorFontSize != 13.0)
+            {
+                throw new Exception("Reset panel customization failed!");
+            }
+            Console.WriteLine("[Success] Panel customization, presets and SQLite persistence verified!");
+
+            // 5c. Test Dynamic Shortcuts System (Read, Customize, and Reset from SQLite)
+            Console.WriteLine("\n[Action] Verifying Dynamic Shortcuts System & SQLite Persistence...");
+            await vm.SettingsModal.OpenAsync();
+            vm.SettingsModal.SelectCategory("Shortcuts");
+            Console.WriteLine($"Settings Category: Selected='{vm.SettingsModal.SelectedCategory}', IsShortcuts={vm.SettingsModal.IsShortcutsCategory}");
+            if (!vm.SettingsModal.IsShortcutsCategory) throw new Exception("Shortcuts category selection failed!");
+
+            Console.WriteLine($"Loaded Shortcuts Count: {vm.SettingsModal.Shortcuts.Count}");
+            if (vm.SettingsModal.Shortcuts.Count == 0) throw new Exception("No shortcuts loaded from SQLite!");
+
+            var runQueryShortcut = vm.SettingsModal.Shortcuts.FirstOrDefault(s => s.Id == Fdb.Services.ShortcutActions.RunQuery);
+            if (runQueryShortcut == null) throw new Exception("RunQuery shortcut definition missing!");
+            Console.WriteLine($"Initial RunQuery Shortcut: '{runQueryShortcut.CurrentGesture}' (Default: '{runQueryShortcut.DefaultGesture}')");
+
+            // Customize RunQuery shortcut to 'F9'
+            vm.SettingsModal.StartEditShortcut(runQueryShortcut);
+            runQueryShortcut.EditingGesture = "F9";
+            vm.SettingsModal.ApplyEditShortcut(runQueryShortcut);
+            Console.WriteLine($"Customized RunQuery Shortcut: '{runQueryShortcut.CurrentGesture}', IsModified={runQueryShortcut.IsModified}");
+            if (runQueryShortcut.CurrentGesture != "F9" || !runQueryShortcut.IsModified)
+            {
+                throw new Exception("Customizing shortcut in ViewModel failed!");
+            }
+
+            await vm.SettingsModal.SaveAsync();
+
+            // Verify in SQLite
+            var dbShortcuts = await Fdb.Services.DatabaseStorageService.Instance.GetShortcutsFromDbAsync();
+            var dbRunQuery = dbShortcuts.FirstOrDefault(s => s.Id == Fdb.Services.ShortcutActions.RunQuery);
+            Console.WriteLine($"SQLite Persisted RunQuery Shortcut: '{dbRunQuery?.KeyGesture}'");
+            if (dbRunQuery?.KeyGesture != "F9")
+            {
+                throw new Exception("Customized shortcut failed to persist to SQLite!");
+            }
+
+            // Verify ShortcutService key matching engine
+            bool isF9Match = Fdb.Services.ShortcutService.Instance.IsMatch(Fdb.Services.ShortcutActions.RunQuery,
+                new Avalonia.Input.KeyEventArgs { Key = Avalonia.Input.Key.F9, KeyModifiers = Avalonia.Input.KeyModifiers.None });
+            Console.WriteLine($"ShortcutService matches 'F9' for RunQuery: {isF9Match}");
+            if (!isF9Match) throw new Exception("ShortcutService key matching engine failed for customized 'F9'!");
+
+            // Test Reset Shortcut to Default
+            await vm.SettingsModal.OpenAsync();
+            var runQueryToReset = vm.SettingsModal.Shortcuts.FirstOrDefault(s => s.Id == Fdb.Services.ShortcutActions.RunQuery);
+            vm.SettingsModal.ResetShortcut(runQueryToReset!);
+            await vm.SettingsModal.SaveAsync();
+
+            var dbResetShortcuts = await Fdb.Services.DatabaseStorageService.Instance.GetShortcutsFromDbAsync();
+            var dbResetRunQuery = dbResetShortcuts.FirstOrDefault(s => s.Id == Fdb.Services.ShortcutActions.RunQuery);
+            Console.WriteLine($"SQLite Restored RunQuery Shortcut: '{dbResetRunQuery?.KeyGesture}'");
+            if (dbResetRunQuery?.KeyGesture != "F5")
+            {
+                throw new Exception("Reset shortcut failed to restore default 'F5' in SQLite!");
+            }
+            Console.WriteLine("[Success] Dynamic shortcuts system, live customization & SQLite persistence verified!");
 
             // 6. Test Editor Tab Switching & Active State
             Console.WriteLine("\n[Action] Verifying Editor Tab Switching & State...");

@@ -24,6 +24,7 @@ public partial class EditorComponent : UserControl
         CodeEditor.TextArea.TextView.LineTransformers.Add(new SqlKeywordColorizer());
         ThemeService.Instance.KeywordColorChanged += (s, e) => CodeEditor.TextArea?.TextView?.Redraw();
         ThemeService.Instance.ThemeChanged += (s, e) => CodeEditor.TextArea?.TextView?.Redraw();
+        ThemeService.Instance.PanelCustomizationChanged += OnPanelCustomizationChanged;
 
         // 2. Install Code Completion & Keyboard Handlers
         CodeEditor.TextArea.TextEntered += OnTextEntered;
@@ -68,6 +69,19 @@ public partial class EditorComponent : UserControl
         {
             CodeEditor.Document = _viewModel.SelectedTab.Document;
             CodeEditor.TextArea.Focus();
+        }
+    }
+
+    private void OnPanelCustomizationChanged(object? sender, PanelCustomizationRecord custom)
+    {
+        if (CodeEditor != null)
+        {
+            if (custom.EditorFontSize >= 8.0)
+            {
+                CodeEditor.FontSize = custom.EditorFontSize;
+            }
+            CodeEditor.ShowLineNumbers = custom.EditorShowLineNumbers;
+            CodeEditor.TextArea?.TextView?.Redraw();
         }
     }
 

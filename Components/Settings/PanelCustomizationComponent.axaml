@@ -1,0 +1,271 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+              xmlns:vm="using:Fdb.ViewModels"
+              xmlns:ui="using:FluentAvalonia.UI.Controls"
+              mc:Ignorable="d" d:DesignWidth="550" d:DesignHeight="700"
+              x:Class="Fdb.Components.PanelCustomizationComponent"
+              x:DataType="vm:SettingsModalViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="Button.color-swatch-btn">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.color-swatch-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+        </Style>
+
+        <Style Selector="Button.preset-bundle-btn">
+            <Setter Property="Background" Value="{DynamicResource AppCardBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.preset-bundle-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}" />
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel Spacing="16">
+        <!-- Section Header -->
+        <Grid ColumnDefinitions="*, Auto">
+            <StackPanel Grid.Column="0" Spacing="2">
+                <TextBlock Text="Panel &amp; Workspace Customization" 
+                           FontSize="15" 
+                           FontWeight="Bold" 
+                           Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                <TextBlock Text="Personalize colors, fonts, and styling for the Text Editor, Sidebar, and Tables." 
+                           FontSize="11" 
+                           Foreground="{DynamicResource AppTextMutedBrush}"/>
+            </StackPanel>
+
+            <Button Grid.Column="1" 
+                    Content="Reset Defaults" 
+                    Command="{Binding ResetPanelCustomizationCommand}"
+                    Classes="classic-tool-btn" 
+                    FontSize="11"
+                    Padding="10,4"
+                    VerticalAlignment="Center"/>
+        </Grid>
+
+        <Separator Background="{DynamicResource AppBorderBrush}" Margin="0,2"/>
+
+        <!-- 1. Quick Workspace Bundles -->
+        <StackPanel Spacing="8">
+            <TextBlock Text="QUICK COLOR PRESETS" 
+                       FontSize="11" 
+                       FontWeight="Bold" 
+                       Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+            
+            <WrapPanel Orientation="Horizontal">
+                <Button Classes="preset-bundle-btn" Command="{Binding ApplyPanelBundleCommand}" CommandParameter="Default" Margin="0,0,6,6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Border Width="12" Height="12" CornerRadius="6" Background="#3B82F6"/>
+                        <TextBlock Text="Default Theme" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Classes="preset-bundle-btn" Command="{Binding ApplyPanelBundleCommand}" CommandParameter="slate" Margin="0,0,6,6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Border Width="12" Height="12" CornerRadius="6" Background="#1E293B"/>
+                        <TextBlock Text="Dark Slate Pro" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Classes="preset-bundle-btn" Command="{Binding ApplyPanelBundleCommand}" CommandParameter="midnight" Margin="0,0,6,6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Border Width="12" Height="12" CornerRadius="6" Background="#0F1117"/>
+                        <TextBlock Text="Midnight Onyx" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Classes="preset-bundle-btn" Command="{Binding ApplyPanelBundleCommand}" CommandParameter="monokai" Margin="0,0,6,6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Border Width="12" Height="12" CornerRadius="6" Background="#272822"/>
+                        <TextBlock Text="Monokai Retro" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Classes="preset-bundle-btn" Command="{Binding ApplyPanelBundleCommand}" CommandParameter="solarized" Margin="0,0,6,6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Border Width="12" Height="12" CornerRadius="6" Background="#002B36"/>
+                        <TextBlock Text="Solarized Dark" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Classes="preset-bundle-btn" Command="{Binding ApplyPanelBundleCommand}" CommandParameter="paper" Margin="0,0,6,6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Border Width="12" Height="12" CornerRadius="6" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1"/>
+                        <TextBlock Text="Paper Light" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Button>
+            </WrapPanel>
+        </StackPanel>
+
+        <!-- 2. Text Editor Panel Colors -->
+        <Border Background="{DynamicResource AppSurfaceMutedBrush}" 
+                BorderBrush="{DynamicResource AppBorderBrush}" 
+                BorderThickness="1" 
+                CornerRadius="6" 
+                Padding="14,12">
+            <StackPanel Spacing="12">
+                <Grid ColumnDefinitions="*, Auto">
+                    <StackPanel Grid.Column="0" Spacing="2">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <ui:FASymbolIcon Symbol="Document" FontSize="12" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="Text Editor Panel" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        </StackPanel>
+                        <TextBlock Text="Change background, text font size, and code canvas styling" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    </StackPanel>
+
+                    <!-- Font size & Line numbers controls -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <TextBlock Text="Font:" FontSize="11" VerticalAlignment="Center" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                        <Button Content="-" Command="{Binding DecreaseFontSizeCommand}" Classes="classic-tool-btn" Padding="6,2" FontSize="11"/>
+                        <TextBlock Text="{Binding EditorFontSize, StringFormat={}{0:0}px}" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <Button Content="+" Command="{Binding IncreaseFontSizeCommand}" Classes="classic-tool-btn" Padding="6,2" FontSize="11"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Background Color Swatches -->
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Editor Background:" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="Default" Background="{DynamicResource AppWorkspaceBrush}" ToolTip.Tip="Default Theme" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#0F1117" Background="#0F1117" ToolTip.Tip="Pitch Black (#0F1117)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#1E293B" Background="#1E293B" ToolTip.Tip="Dark Slate (#1E293B)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#0A192F" Background="#0A192F" ToolTip.Tip="Deep Navy (#0A192F)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#272822" Background="#272822" ToolTip.Tip="Monokai (#272822)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#002B36" Background="#002B36" ToolTip.Tip="Solarized (#002B36)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#FFFFFF" Background="#FFFFFF" ToolTip.Tip="Pure White (#FFFFFF)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#FAF8F5" Background="#FAF8F5" ToolTip.Tip="Warm Sepia (#FAF8F5)" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Text Foreground Color Swatches -->
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Editor Text Color:" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="Default" Background="{DynamicResource AppTextPrimaryBrush}" ToolTip.Tip="Default Theme" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#F8FAFC" Background="#F8FAFC" ToolTip.Tip="Crisp White (#F8FAFC)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#CBD5E1" Background="#CBD5E1" ToolTip.Tip="Soft Silver (#CBD5E1)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#34D399" Background="#34D399" ToolTip.Tip="Mint Green (#34D399)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#38BDF8" Background="#38BDF8" ToolTip.Tip="Cyber Cyan (#38BDF8)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#FBBF24" Background="#FBBF24" ToolTip.Tip="Amber Gold (#FBBF24)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#0F172A" Background="#0F172A" ToolTip.Tip="Dark Charcoal (#0F172A)" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- 3. Sidebar Panel Colors -->
+        <Border Background="{DynamicResource AppSurfaceMutedBrush}" 
+                BorderBrush="{DynamicResource AppBorderBrush}" 
+                BorderThickness="1" 
+                CornerRadius="6" 
+                Padding="14,12">
+            <StackPanel Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <ui:FASymbolIcon Symbol="Folder" FontSize="12" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="Object Explorer (Sidebar) Panel" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                </StackPanel>
+                <TextBlock Text="Background color for database tree view and connection list" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
+
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="Default" Background="{DynamicResource AppSurfaceBrush}" ToolTip.Tip="Default Theme" />
+                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#1E293B" Background="#1E293B" ToolTip.Tip="Dark Slate (#1E293B)" />
+                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#111827" Background="#111827" ToolTip.Tip="Deep Midnight (#111827)" />
+                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#141E2E" Background="#141E2E" ToolTip.Tip="Ocean Slate (#141E2E)" />
+                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#F1F5F9" Background="#F1F5F9" ToolTip.Tip="Platinum Silver (#F1F5F9)" />
+                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#FFFFFF" Background="#FFFFFF" ToolTip.Tip="Clean White (#FFFFFF)" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- 4. Query Results Table Panel -->
+        <Border Background="{DynamicResource AppSurfaceMutedBrush}" 
+                BorderBrush="{DynamicResource AppBorderBrush}" 
+                BorderThickness="1" 
+                CornerRadius="6" 
+                Padding="14,12">
+            <StackPanel Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <ui:FASymbolIcon Symbol="Page" FontSize="12" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="Query Results &amp; Data Grid Panel" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                </StackPanel>
+                <TextBlock Text="Background tint for data grid rows and table components" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
+
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                    <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="Default" Background="{DynamicResource AppWorkspaceBrush}" ToolTip.Tip="Default Theme" />
+                    <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="#1E293B" Background="#1E293B" ToolTip.Tip="Dark Slate (#1E293B)" />
+                    <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="#141E2E" Background="#141E2E" ToolTip.Tip="Ocean Navy (#141E2E)" />
+                    <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="#FFFFFF" Background="#FFFFFF" ToolTip.Tip="Pure White (#FFFFFF)" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- 5. Interactive Live Mini Preview -->
+        <Border Background="{DynamicResource AppBackgroundBrush}" 
+                BorderBrush="{DynamicResource AppBorderBrush}" 
+                BorderThickness="1" 
+                CornerRadius="6" 
+                Padding="12">
+            <StackPanel Spacing="8">
+                <TextBlock Text="LIVE PANEL LAYOUT PREVIEW" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                
+                <Grid ColumnDefinitions="120, *" Height="90" ClipToBounds="True">
+                    <!-- Sidebar Mock -->
+                    <Border Grid.Column="0" 
+                            Background="{Binding PreviewSidebarBackgroundBrush}" 
+                            BorderBrush="{DynamicResource AppBorderBrush}" 
+                            BorderThickness="0,0,1,0" 
+                            Padding="8,6">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="EXPLORER" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                            <TextBlock Text="▼ fdb_studio.db" FontSize="9" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                            <TextBlock Text="  • Users (5)" FontSize="9" Foreground="{DynamicResource AppAccentBrush}"/>
+                            <TextBlock Text="  • Courses (5)" FontSize="9" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Editor & Table Mock -->
+                    <Grid Grid.Column="1" RowDefinitions="*, 36">
+                        <!-- Editor Mock -->
+                        <Border Grid.Row="0" 
+                                Background="{Binding PreviewEditorBackgroundBrush}" 
+                                Padding="8,4">
+                            <TextBlock Text="SELECT * FROM Users WHERE Role = 'Admin';" 
+                                       FontFamily="{DynamicResource AppFontFamilyMonospace}" 
+                                       FontSize="10" 
+                                       Foreground="{Binding PreviewEditorForegroundBrush}" 
+                                       VerticalAlignment="Center"/>
+                        </Border>
+
+                        <!-- Table Mock -->
+                        <Border Grid.Row="1" 
+                                Background="{Binding PreviewTableBackgroundBrush}" 
+                                BorderBrush="{DynamicResource AppBorderBrush}" 
+                                BorderThickness="0,1,0,0" 
+                                Padding="8,4">
+                            <Grid ColumnDefinitions="30, 80, *">
+                                <TextBlock Grid.Column="0" Text="1" FontSize="9" Foreground="{DynamicResource AppTextMutedBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="Alice Johnson" FontSize="9" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="Developer" FontSize="9" Foreground="{DynamicResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

@@ -5,7 +5,7 @@
               xmlns:vm="using:Fdb.ViewModels"
               xmlns:components="using:Fdb.Components"
               xmlns:ui="using:FluentAvalonia.UI.Controls"
-              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="650"
+              mc:Ignorable="d" d:DesignWidth="850" d:DesignHeight="680"
               x:Class="Fdb.Components.SettingsModalComponent"
               x:DataType="vm:SettingsModalViewModel">
 
@@ -16,8 +16,8 @@
                 PointerPressed="OnBackdropPointerPressed" />
 
         <!-- Centered Settings Dialog Card -->
-        <Border Width="700" 
-                Height="540" 
+        <Border Width="760" 
+                Height="580" 
                 HorizontalAlignment="Center" 
                 VerticalAlignment="Center"
                 Background="{DynamicResource AppSurfaceBrush}" 
@@ -37,7 +37,7 @@
                     <Grid ColumnDefinitions="Auto, *, Auto">
                         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                             <ui:FASymbolIcon Symbol="Settings" FontSize="14" Foreground="{DynamicResource AppAccentBrush}"/>
-                            <TextBlock Text="Preferences &amp; Settings" 
+                            <TextBlock Text="Preferences &amp; Customization" 
                                        FontSize="13" 
                                        FontWeight="Bold" 
                                        Foreground="{DynamicResource AppTextPrimaryBrush}"/>
@@ -60,31 +60,41 @@
 
                     <!-- Right Category Settings Pane -->
                     <ScrollViewer Grid.Column="1" Padding="20,16">
-                        <StackPanel Spacing="16">
-                            <!-- Section Title -->
-                            <StackPanel Spacing="2">
-                                <TextBlock Text="Appearance &amp; Color Theme" 
-                                           FontSize="15" 
-                                           FontWeight="Bold" 
-                                           Foreground="{DynamicResource AppTextPrimaryBrush}"/>
-                                <TextBlock Text="Choose how Fdb Studio looks and feels. Changes preview instantly." 
-                                           FontSize="11" 
-                                           Foreground="{DynamicResource AppTextMutedBrush}"/>
+                        <Panel>
+                            <!-- Category 1: Appearance & Color Theme -->
+                            <StackPanel Spacing="16" IsVisible="{Binding IsAppearanceCategory}">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="Appearance &amp; Color Theme" 
+                                               FontSize="15" 
+                                               FontWeight="Bold" 
+                                               Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                                    <TextBlock Text="Choose how Fdb Studio looks and feels. Changes preview instantly." 
+                                               FontSize="11" 
+                                               Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                </StackPanel>
+
+                                <Separator Background="{DynamicResource AppBorderBrush}" Margin="0,4"/>
+
+                                <!-- Theme Selection Cards Component -->
+                                <components:ThemeSelectionCardsComponent DataContext="{Binding}" />
+
+                                <Separator Background="{DynamicResource AppBorderBrush}" Margin="0,4"/>
+
+                                <!-- SQL Syntax & Keyword Highlighting Color Presets Component -->
+                                <components:SyntaxColorSelectorComponent DataContext="{Binding}" />
+
+                                <!-- Live Code Syntax Preview Box Component -->
+                                <components:LiveSyntaxPreviewComponent DataContext="{Binding}" />
                             </StackPanel>
 
-                            <Separator Background="{DynamicResource AppBorderBrush}" Margin="0,4"/>
+                            <!-- Category 2: Workspace & Panel Customization -->
+                            <components:PanelCustomizationComponent DataContext="{Binding}" 
+                                                                    IsVisible="{Binding IsCustomizationCategory}" />
 
-                            <!-- Theme Selection Cards Component -->
-                            <components:ThemeSelectionCardsComponent DataContext="{Binding}" />
-
-                            <Separator Background="{DynamicResource AppBorderBrush}" Margin="0,4"/>
-
-                            <!-- SQL Syntax & Keyword Highlighting Color Presets Component -->
-                            <components:SyntaxColorSelectorComponent DataContext="{Binding}" />
-
-                            <!-- Live Code Syntax Preview Box Component -->
-                            <components:LiveSyntaxPreviewComponent DataContext="{Binding}" />
-                        </StackPanel>
+                            <!-- Category 3: Keyboard Shortcuts -->
+                            <components:ShortcutsSettingsComponent DataContext="{Binding}" 
+                                                                   IsVisible="{Binding IsShortcutsCategory}" />
+                        </Panel>
                     </ScrollViewer>
                 </Grid>
 

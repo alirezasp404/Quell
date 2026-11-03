@@ -68,6 +68,26 @@ public class DialectKeywordRecord
     public string Category { get; set; } = "Keyword";
 }
 
+public class ShortcutDbRecord
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public string KeyGesture { get; set; } = string.Empty;
+    public string DefaultGesture { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+}
+
+public class PanelCustomizationRecord
+{
+    public string EditorBackground { get; set; } = "Default";
+    public string EditorForeground { get; set; } = "Default";
+    public string SidebarBackground { get; set; } = "Default";
+    public string TableBackground { get; set; } = "Default";
+    public double EditorFontSize { get; set; } = 13.0;
+    public bool EditorShowLineNumbers { get; set; } = true;
+}
+
 public class DatabaseStorageService
 {
     private static DatabaseStorageService? _instance;
@@ -209,6 +229,21 @@ public class DatabaseStorageService
             }
             catch { }
 
+            try
+            {
+                await connection.ExecuteAsync(@"
+                    CREATE TABLE IF NOT EXISTS UserShortcuts (
+                        Id TEXT PRIMARY KEY,
+                        Name TEXT NOT NULL,
+                        Category TEXT NOT NULL,
+                        KeyGesture TEXT NOT NULL,
+                        DefaultGesture TEXT NOT NULL,
+                        Description TEXT,
+                        UpdatedAt TEXT NOT NULL
+                    );");
+            }
+            catch { }
+
             _initialized = true;
 
             reportProgress?.Invoke(90, "Pre-caching active SQL dialect keywords...");
@@ -307,7 +342,23 @@ public class DatabaseStorageService
                 Value TEXT NOT NULL,
                 UpdatedAt TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS UserShortcuts (
+                Id TEXT PRIMARY KEY,
+                Name TEXT NOT NULL,
+                Category TEXT NOT NULL,
+                KeyGesture TEXT NOT NULL,
+                DefaultGesture TEXT NOT NULL,
+                Description TEXT,
+                UpdatedAt TEXT NOT NULL
+            );
             INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('Theme', 'Light', datetime('now'));
+            INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('KeywordColor', 'Blue', datetime('now'));
+            INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('EditorBackground', 'Default', datetime('now'));
+            INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('EditorForeground', 'Default', datetime('now'));
+            INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('SidebarBackground', 'Default', datetime('now'));
+            INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableBackground', 'Default', datetime('now'));
+            INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('EditorFontSize', '13', datetime('now'));
+            INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('EditorShowLineNumbers', 'true', datetime('now'));
         ";
 
         await connection.ExecuteAsync(fallbackSql);
@@ -753,4 +804,123 @@ public class DatabaseStorageService
 
     public async Task<string> GetKeywordColorAsync() => await GetSettingAsync("KeywordColor", "Blue");
     public async Task SaveKeywordColorAsync(string color) => await SaveSettingAsync("KeywordColor", color);
+
+    public async Task<List<ShortcutDbRecord>> GetShortcutsFromDbAsync()
+    {
+        try
+        {
+            await InitializeAsync();
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+
+            const string sql = "SELECT Id, Name, Category, KeyGesture, DefaultGesture, Description FROM UserShortcuts ORDER BY Category, Name;";
+            var result = await connection.QueryAsync<ShortcutDbRecord>(sql);
+            return result.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] GetShortcutsFromDbAsync error: {ex.Message}");
+            return new List<ShortcutDbRecord>();
+        }
+    }
+
+    public async Task SaveShortcutToDbAsync(string id, string keyGesture)
+    {
+        try
+        {
+            await InitializeAsync();
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+
+            const string sql = @"
+                UPDATE UserShortcuts 
+                SET KeyGesture = @keyGesture, UpdatedAt = datetime('now') 
+                WHERE Id = @id;";
+            await connection.ExecuteAsync(sql, new { id, keyGesture });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] SaveShortcutToDbAsync error: {ex.Message}");
+        }
+    }
+
+    public async Task SaveShortcutsBatchAsync(IEnumerable<ShortcutDbRecord> records)
+    {
+        try
+        {
+            await InitializeAsync();
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+
+            const string sql = @"
+                INSERT INTO UserShortcuts (Id, Name, Category, KeyGesture, DefaultGesture, Description, UpdatedAt)
+                VALUES (@Id, @Name, @Category, @KeyGesture, @DefaultGesture, @Description, datetime('now'))
+                ON CONFLICT(Id) DO UPDATE SET KeyGesture = @KeyGesture, UpdatedAt = datetime('now');";
+            await connection.ExecuteAsync(sql, records);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] SaveShortcutsBatchAsync error: {ex.Message}");
+        }
+    }
+
+    public async Task ResetAllShortcutsInDbAsync()
+    {
+        try
+        {
+            await InitializeAsync();
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+
+            const string sql = "UPDATE UserShortcuts SET KeyGesture = DefaultGesture, UpdatedAt = datetime('now');";
+            await connection.ExecuteAsync(sql);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] ResetAllShortcutsInDbAsync error: {ex.Message}");
+        }
+    }
+
+    public async Task<PanelCustomizationRecord> GetPanelCustomizationAsync()
+    {
+        var record = new PanelCustomizationRecord();
+        try
+        {
+            record.EditorBackground = await GetSettingAsync("EditorBackground", "Default");
+            record.EditorForeground = await GetSettingAsync("EditorForeground", "Default");
+            record.SidebarBackground = await GetSettingAsync("SidebarBackground", "Default");
+            record.TableBackground = await GetSettingAsync("TableBackground", "Default");
+
+            string fontSizeStr = await GetSettingAsync("EditorFontSize", "13");
+            if (double.TryParse(fontSizeStr, System.Globalization.CultureInfo.InvariantCulture, out double fs))
+            {
+                record.EditorFontSize = fs;
+            }
+
+            string lineNumsStr = await GetSettingAsync("EditorShowLineNumbers", "true");
+            record.EditorShowLineNumbers = lineNumsStr != "false" && lineNumsStr != "0";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] GetPanelCustomizationAsync error: {ex.Message}");
+        }
+        return record;
+    }
+
+    public async Task SavePanelCustomizationAsync(PanelCustomizationRecord record)
+    {
+        try
+        {
+            await SaveSettingAsync("EditorBackground", record.EditorBackground);
+            await SaveSettingAsync("EditorForeground", record.EditorForeground);
+            await SaveSettingAsync("SidebarBackground", record.SidebarBackground);
+            await SaveSettingAsync("TableBackground", record.TableBackground);
+            await SaveSettingAsync("EditorFontSize", record.EditorFontSize.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            await SaveSettingAsync("EditorShowLineNumbers", record.EditorShowLineNumbers ? "true" : "false");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] SavePanelCustomizationAsync error: {ex.Message}");
+        }
+    }
 }

@@ -69,6 +69,38 @@ INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('Theme', 'Ligh
 INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('KeywordColor', 'Blue', datetime('now'));
 INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('DatabaseInitialized', 'true', datetime('now'));
 
+CREATE TABLE IF NOT EXISTS UserShortcuts (
+    Id TEXT PRIMARY KEY,
+    Name TEXT NOT NULL,
+    Category TEXT NOT NULL,
+    KeyGesture TEXT NOT NULL,
+    DefaultGesture TEXT NOT NULL,
+    Description TEXT,
+    UpdatedAt TEXT NOT NULL
+);
+
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('EditorBackground', 'Default', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('EditorForeground', 'Default', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('SidebarBackground', 'Default', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableBackground', 'Default', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('EditorFontSize', '13', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('EditorShowLineNumbers', 'true', datetime('now'));
+
+INSERT OR IGNORE INTO UserShortcuts (Id, Name, Category, KeyGesture, DefaultGesture, Description, UpdatedAt) VALUES
+('RunQuery', 'Execute Active Query', 'Query & Execution', 'F5', 'F5', 'Executes the active query or selected text', datetime('now')),
+('SaveQuery', 'Save Query', 'File & Editor', 'Ctrl+S', 'Ctrl+S', 'Saves the active query to storage', datetime('now')),
+('NewTab', 'New Query Tab', 'File & Editor', 'Ctrl+N', 'Ctrl+N', 'Opens a new empty query editor tab', datetime('now')),
+('CloseTab', 'Close Query Tab', 'File & Editor', 'Ctrl+W', 'Ctrl+W', 'Closes the current query tab', datetime('now')),
+('ConnectDatabase', 'Connect Database', 'Database', 'Ctrl+O', 'Ctrl+O', 'Opens database connection modal', datetime('now')),
+('ToggleSidebar', 'Toggle Explorer Sidebar', 'Panels & View', 'Ctrl+B', 'Ctrl+B', 'Shows or hides the database explorer sidebar', datetime('now')),
+('ToggleFooter', 'Toggle Results Panel', 'Panels & View', 'Ctrl+J', 'Ctrl+J', 'Shows or hides the query results table', datetime('now')),
+('ToggleFullscreen', 'Toggle Fullscreen Results', 'Panels & View', 'F11', 'F11', 'Maximizes query results or restores split view', datetime('now')),
+('OpenSettings', 'Preferences & Settings', 'General', 'Ctrl+,', 'Ctrl+,', 'Opens preferences and customization dialog', datetime('now')),
+('ExportData', 'Export Results', 'Data', 'Ctrl+E', 'Ctrl+E', 'Opens export modal for CSV/JSON/SQL format', datetime('now')),
+('ZoomIn', 'Editor Zoom In', 'Editor', 'Ctrl++', 'Ctrl++', 'Increases editor font size', datetime('now')),
+('ZoomOut', 'Editor Zoom Out', 'Editor', 'Ctrl+-', 'Ctrl+-', 'Decreases editor font size', datetime('now')),
+('ResetZoom', 'Reset Editor Zoom', 'Editor', 'Ctrl+0', 'Ctrl+0', 'Resets editor font size to default', datetime('now'));
+
 CREATE INDEX IF NOT EXISTS idx_dialect_keywords ON DialectKeywords(Dialect, Keyword);
 CREATE INDEX IF NOT EXISTS idx_dialect_snippets ON DialectSnippets(Dialect, Keyword);
 

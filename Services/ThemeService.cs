@@ -34,12 +34,15 @@ public class ThemeService
 
     public event EventHandler<string>? ThemeChanged;
     public event EventHandler<string>? KeywordColorChanged;
+    public event EventHandler<PanelCustomizationRecord>? PanelCustomizationChanged;
 
     private string _currentTheme = "Light";
     public string CurrentTheme => _currentTheme;
 
     private string _currentKeywordColor = "Blue";
     public string CurrentKeywordColor => _currentKeywordColor;
+
+    public PanelCustomizationRecord CurrentPanelCustomization { get; private set; } = new();
 
     public IBrush CurrentKeywordBrush { get; private set; } = new SolidColorBrush(Color.Parse("#2563EB"));
 
@@ -67,6 +70,7 @@ public class ThemeService
             }
 
             UpdateKeywordBrushInternal();
+            ApplyPanelCustomizationInternal();
             ThemeChanged?.Invoke(this, _currentTheme);
             KeywordColorChanged?.Invoke(this, _currentKeywordColor);
         }
@@ -131,5 +135,90 @@ public class ThemeService
             return Application.Current.ActualThemeVariant == ThemeVariant.Dark;
         }
         return false;
+    }
+
+    public void ApplyPanelCustomization(PanelCustomizationRecord custom)
+    {
+        CurrentPanelCustomization = custom ?? new PanelCustomizationRecord();
+
+        void Update()
+        {
+            ApplyPanelCustomizationInternal();
+            PanelCustomizationChanged?.Invoke(this, CurrentPanelCustomization);
+        }
+
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            Update();
+        }
+        else
+        {
+            Dispatcher.UIThread.Post(Update);
+        }
+    }
+
+    private void ApplyPanelCustomizationInternal()
+    {
+        if (Application.Current == null) return;
+
+        var custom = CurrentPanelCustomization;
+
+        // 1. Editor Background
+        if (!string.IsNullOrWhiteSpace(custom.EditorBackground) && !custom.EditorBackground.Equals("Default", StringComparison.OrdinalIgnoreCase))
+        {
+            if (Color.TryParse(custom.EditorBackground, out var edBg))
+            {
+                Application.Current.Resources["AppEditorBackgroundBrush"] = new SolidColorBrush(edBg);
+            }
+        }
+        else
+        {
+            // Restore default theme editor background
+            string defaultHex = IsDarkTheme() ? "#0F172A" : "#FFFFFF";
+            Application.Current.Resources["AppEditorBackgroundBrush"] = new SolidColorBrush(Color.Parse(defaultHex));
+        }
+
+        // 2. Editor Foreground
+        if (!string.IsNullOrWhiteSpace(custom.EditorForeground) && !custom.EditorForeground.Equals("Default", StringComparison.OrdinalIgnoreCase))
+        {
+            if (Color.TryParse(custom.EditorForeground, out var edFg))
+            {
+                Application.Current.Resources["AppEditorForegroundBrush"] = new SolidColorBrush(edFg);
+            }
+        }
+        else
+        {
+            string defaultHex = IsDarkTheme() ? "#F8FAFC" : "#0F172A";
+            Application.Current.Resources["AppEditorForegroundBrush"] = new SolidColorBrush(Color.Parse(defaultHex));
+        }
+
+        // 3. Sidebar Background
+        if (!string.IsNullOrWhiteSpace(custom.SidebarBackground) && !custom.SidebarBackground.Equals("Default", StringComparison.OrdinalIgnoreCase))
+        {
+            if (Color.TryParse(custom.SidebarBackground, out var sbBg))
+            {
+                var brush = new SolidColorBrush(sbBg);
+                Application.Current.Resources["AppSidebarBackgroundBrush"] = brush;
+            }
+        }
+        else
+        {
+            string defaultHex = IsDarkTheme() ? "#1E293B" : "#F8FAFC";
+            Application.Current.Resources["AppSidebarBackgroundBrush"] = new SolidColorBrush(Color.Parse(defaultHex));
+        }
+
+        // 4. Table Alternating Background
+        if (!string.IsNullOrWhiteSpace(custom.TableBackground) && !custom.TableBackground.Equals("Default", StringComparison.OrdinalIgnoreCase))
+        {
+            if (Color.TryParse(custom.TableBackground, out var tbBg))
+            {
+                Application.Current.Resources["AppTableAltColBackgroundBrush"] = new SolidColorBrush(tbBg);
+            }
+        }
+        else
+        {
+            string defaultHex = IsDarkTheme() ? "#141E2E" : "#F8FAFC";
+            Application.Current.Resources["AppTableAltColBackgroundBrush"] = new SolidColorBrush(Color.Parse(defaultHex));
+        }
     }
 }

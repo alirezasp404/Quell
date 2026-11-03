@@ -80,6 +80,9 @@ public partial class SplashScreenWindow : Window
         ThemeService.Instance.ApplyTheme(savedTheme);
         string savedKeywordColor = await DatabaseStorageService.Instance.GetKeywordColorAsync().ConfigureAwait(false);
         ThemeService.Instance.SetKeywordColor(savedKeywordColor);
+        var panelCustom = await DatabaseStorageService.Instance.GetPanelCustomizationAsync().ConfigureAwait(false);
+        ThemeService.Instance.ApplyPanelCustomization(panelCustom);
+        await ShortcutService.Instance.InitializeAsync().ConfigureAwait(false);
 
         _isDatabaseReady = true;
 
