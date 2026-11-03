@@ -93,6 +93,7 @@
                                                   CommandParameter="{Binding}" />
                                         <Separator />
                                         <MenuItem Header="Close Sidebar Panel" 
+                                                  InputGesture="Ctrl+B"
                                                   Command="{Binding $parent[UserControl].((vm:SidebarViewModel)DataContext).ClosePanelCommand}" />
                                     </ContextMenu>
                                 </Button.ContextMenu>

@@ -68,8 +68,12 @@
                     <!-- View Menu -->
                     <MenuItem Header="View">
                         <MenuItem Header="Object Explorer (Sidebar)" 
+                                  InputGesture="Ctrl+B"
+                                  HotKey="Ctrl+B"
                                   Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ToggleSidebarCommand}" />
                         <MenuItem Header="Output &amp; Results (Footer)" 
+                                  InputGesture="Ctrl+J"
+                                  HotKey="Ctrl+J"
                                   Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ToggleFooterCommand}" />
                     </MenuItem>
 

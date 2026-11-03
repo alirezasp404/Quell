@@ -55,6 +55,41 @@ sealed class Program
                 throw new Exception("Sidebar collapse failed! Center area did not expand.");
             }
 
+            // 2b. Test Ctrl+B Keyboard Shortcut to Toggle / Close Sidebar
+            Console.WriteLine("\n[Action] Verifying Ctrl+B Shortcut closes Sidebar...");
+            vm.Sidebar.IsVisible = true;
+            window.UpdateSidebarLayout();
+            if (!vm.Sidebar.IsVisible || window.MainGrid.ColumnDefinitions[0].Width.Value == 0)
+            {
+                throw new Exception("Sidebar failed to initialize open before Ctrl+B test!");
+            }
+            // Fire Ctrl+B into Window tunneling handler
+            window.RaiseEvent(new Avalonia.Input.KeyEventArgs
+            {
+                RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent,
+                Key = Avalonia.Input.Key.B,
+                KeyModifiers = Avalonia.Input.KeyModifiers.Control
+            });
+            Console.WriteLine($"After Ctrl+B KeyDown: Sidebar.IsVisible={vm.Sidebar.IsVisible}, ColWidth={window.MainGrid.ColumnDefinitions[0].Width}");
+            if (vm.Sidebar.IsVisible || window.MainGrid.ColumnDefinitions[0].Width.Value != 0)
+            {
+                throw new Exception("Ctrl+B shortcut failed to close the Sidebar!");
+            }
+
+            // Fire Ctrl+B again to reopen Sidebar
+            window.RaiseEvent(new Avalonia.Input.KeyEventArgs
+            {
+                RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent,
+                Key = Avalonia.Input.Key.B,
+                KeyModifiers = Avalonia.Input.KeyModifiers.Control
+            });
+            Console.WriteLine($"After second Ctrl+B KeyDown: Sidebar.IsVisible={vm.Sidebar.IsVisible}, ColWidth={window.MainGrid.ColumnDefinitions[0].Width}");
+            if (!vm.Sidebar.IsVisible || window.MainGrid.ColumnDefinitions[0].Width.Value == 0)
+            {
+                throw new Exception("Ctrl+B shortcut failed to reopen the Sidebar!");
+            }
+            Console.WriteLine("[Success] Ctrl+B shortcut verified to close and reopen Sidebar cleanly!");
+
             // 3. Test Restoring from Window Menu
             Console.WriteLine("\n[Action] Restoring Sidebar & Footer from Window Menu...");
             vm.ShowSidebarCommand.Execute(null);

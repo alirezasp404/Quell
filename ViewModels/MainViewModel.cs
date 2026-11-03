@@ -671,6 +671,12 @@ public partial class MainViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    public void CloseSidebar()
+    {
+        Sidebar.IsVisible = false;
+    }
+
+    [RelayCommand]
     public void ToggleFooter()
     {
         Footer.IsVisible = !Footer.IsVisible;

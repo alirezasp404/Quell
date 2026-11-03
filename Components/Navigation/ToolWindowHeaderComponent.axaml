@@ -25,7 +25,7 @@
                         Command="{Binding $parent[components:ToolWindowHeaderComponent].CloseCommand}"
                         Padding="4,2" 
                         MinHeight="20" 
-                        ToolTip.Tip="Close Panel">
+                        ToolTip.Tip="Close Panel (Ctrl+B)">
                     <ui:FASymbolIcon Symbol="Dismiss" FontSize="9"/>
                 </Button>
             </StackPanel>

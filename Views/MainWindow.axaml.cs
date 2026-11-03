@@ -28,6 +28,15 @@ public partial class MainWindow : Window
         {
             FooterSplitter.DragCompleted += OnFooterSplitterDragCompleted;
         }
+
+        // Global Tunneling Key Handler: intercepts application shortcuts (Ctrl+B, F5, Ctrl+J, etc.)
+        // at the Window root level before any child control (e.g. AvaloniaEdit TextEditor) can swallow them!
+        AddHandler(KeyDownEvent, OnWindowKeyDownTunnel, RoutingStrategies.Tunnel);
+    }
+
+    private void OnWindowKeyDownTunnel(object? sender, KeyEventArgs e)
+    {
+        HandleApplicationShortcut(e);
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
@@ -182,8 +191,50 @@ public partial class MainWindow : Window
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
+        HandleApplicationShortcut(e);
+    }
 
-        if (_viewModel == null) return;
+    private void HandleApplicationShortcut(KeyEventArgs e)
+    {
+        if (e.Handled || _viewModel == null) return;
+
+        // If a modal dialog is open, do not execute workspace shortcuts (except Escape)
+        if (_viewModel.SettingsModal.IsOpen || _viewModel.ConnectModal.IsOpen || _viewModel.ConfirmModal.IsOpen || _viewModel.ExportModal.IsOpen)
+        {
+            if (e.Key == Key.Escape)
+            {
+                if (_viewModel.ConnectModal.IsOpen)
+                {
+                    _viewModel.ConnectModal.IsOpen = false;
+                    e.Handled = true;
+                }
+                else if (_viewModel.ConfirmModal.IsOpen)
+                {
+                    _viewModel.ConfirmModal.IsOpen = false;
+                    e.Handled = true;
+                }
+                else if (_viewModel.ExportModal.IsOpen)
+                {
+                    _viewModel.ExportModal.IsOpen = false;
+                    e.Handled = true;
+                }
+                else if (_viewModel.SettingsModal.IsOpen)
+                {
+                    _viewModel.SettingsModal.CloseCommand.Execute(null);
+                    e.Handled = true;
+                }
+            }
+            return;
+        }
+
+        // Toggle or Close Explorer Sidebar (Ctrl+B)
+        if (ShortcutService.Instance.IsMatch(ShortcutActions.ToggleSidebar, e) || 
+            (e.Key == Key.B && e.KeyModifiers == KeyModifiers.Control))
+        {
+            _viewModel.ToggleSidebarCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
 
         // Toggle Fullscreen Table/Footer
         if (ShortcutService.Instance.IsMatch(ShortcutActions.ToggleFullscreen, e) ||
@@ -237,14 +288,6 @@ public partial class MainWindow : Window
             return;
         }
 
-        // Toggle Sidebar
-        if (ShortcutService.Instance.IsMatch(ShortcutActions.ToggleSidebar, e) || (e.Key == Key.B && e.KeyModifiers == KeyModifiers.Control))
-        {
-            _viewModel.ToggleSidebarCommand.Execute(null);
-            e.Handled = true;
-            return;
-        }
-
         // Toggle Footer
         if (ShortcutService.Instance.IsMatch(ShortcutActions.ToggleFooter, e) || (e.Key == Key.J && e.KeyModifiers == KeyModifiers.Control))
         {
@@ -293,30 +336,10 @@ public partial class MainWindow : Window
             return;
         }
 
-        // Escape dismisses any open modal dialog cleanly, or restores footer if maximized
+        // Escape: restore footer if maximized
         if (e.Key == Key.Escape)
         {
-            if (_viewModel.ConnectModal.IsOpen)
-            {
-                _viewModel.ConnectModal.IsOpen = false;
-                e.Handled = true;
-            }
-            else if (_viewModel.ConfirmModal.IsOpen)
-            {
-                _viewModel.ConfirmModal.IsOpen = false;
-                e.Handled = true;
-            }
-            else if (_viewModel.ExportModal.IsOpen)
-            {
-                _viewModel.ExportModal.IsOpen = false;
-                e.Handled = true;
-            }
-            else if (_viewModel.SettingsModal.IsOpen)
-            {
-                _viewModel.SettingsModal.CloseCommand.Execute(null);
-                e.Handled = true;
-            }
-            else if (_viewModel.Footer.IsMaximized)
+            if (_viewModel.Footer.IsMaximized)
             {
                 _viewModel.Footer.IsMaximized = false;
                 e.Handled = true;
