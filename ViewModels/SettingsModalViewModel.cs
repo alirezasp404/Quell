@@ -17,11 +17,13 @@ public partial class SettingsModalViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsAppearanceCategory))]
+    [NotifyPropertyChangedFor(nameof(IsTableCategory))]
     [NotifyPropertyChangedFor(nameof(IsCustomizationCategory))]
     [NotifyPropertyChangedFor(nameof(IsShortcutsCategory))]
     private string _selectedCategory = "Appearance";
 
     public bool IsAppearanceCategory => string.Equals(SelectedCategory, "Appearance", StringComparison.OrdinalIgnoreCase);
+    public bool IsTableCategory => string.Equals(SelectedCategory, "Table", StringComparison.OrdinalIgnoreCase);
     public bool IsCustomizationCategory => string.Equals(SelectedCategory, "Customization", StringComparison.OrdinalIgnoreCase);
     public bool IsShortcutsCategory => string.Equals(SelectedCategory, "Shortcuts", StringComparison.OrdinalIgnoreCase);
 
@@ -61,7 +63,7 @@ public partial class SettingsModalViewModel : ObservableObject
 
     #endregion
 
-    #region Panel Customization Properties
+    #region Workspace & Panels Customization Properties
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PreviewEditorBackgroundBrush))]
@@ -74,10 +76,6 @@ public partial class SettingsModalViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PreviewSidebarBackgroundBrush))]
     private string _sidebarBackground = "Default";
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(PreviewTableBackgroundBrush))]
-    private string _tableBackground = "Default";
 
     [ObservableProperty]
     private double _editorFontSize = 13.0;
@@ -117,13 +115,157 @@ public partial class SettingsModalViewModel : ObservableObject
         }
     }
 
-    public IBrush PreviewTableBackgroundBrush
+    #endregion
+
+    #region Query Results Table Customization Properties
+
+    [ObservableProperty]
+    private double _tableRowHeight = 25.0;
+
+    [ObservableProperty]
+    private double _tableHeaderHeight = 26.0;
+
+    [ObservableProperty]
+    private double _tableGutterWidth = 56.0;
+
+    [ObservableProperty]
+    private double _tableCellFontSize = 11.0;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewTableMainRowBrush))]
+    private string _tableBackground = "Default";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewTableAltRowBrush))]
+    private string _tableAlternatingRowColor = "Default";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewTableCellTextBrush))]
+    private string _tableCellTextColor = "Default";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewTableHeaderBgBrush))]
+    private string _tableHeaderBackground = "Default";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewTableHeaderTextBrush))]
+    private string _tableHeaderTextColor = "Default";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewTableGutterBgBrush))]
+    private string _tableGutterBackground = "Default";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewTableGutterTextBrush))]
+    private string _tableGutterTextColor = "Default";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewTableGridLinesBrush))]
+    private string _tableGridLinesColor = "Default";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewTableSelectionBrush))]
+    private string _tableSelectionColor = "Default";
+
+    [ObservableProperty]
+    private bool _tableShowGridLines = true;
+
+    [ObservableProperty]
+    private bool _tableShowAlternatingRowColors = true;
+
+    private TableCustomizationRecord _initialTableCustomization = new();
+
+    public IBrush PreviewTableMainRowBrush
     {
         get
         {
             if (!string.IsNullOrWhiteSpace(TableBackground) && !TableBackground.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(TableBackground, out var color))
                 return new SolidColorBrush(color);
+            return IsDarkTheme ? new SolidColorBrush(Color.Parse("#0F172A")) : new SolidColorBrush(Color.Parse("#FFFFFF"));
+        }
+    }
+
+    public IBrush PreviewTableBackgroundBrush => PreviewTableMainRowBrush;
+
+    public IBrush PreviewTableAltRowBrush
+    {
+        get
+        {
+            if (!TableShowAlternatingRowColors) return PreviewTableMainRowBrush;
+            if (!string.IsNullOrWhiteSpace(TableAlternatingRowColor) && !TableAlternatingRowColor.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(TableAlternatingRowColor, out var color))
+                return new SolidColorBrush(color);
             return IsDarkTheme ? new SolidColorBrush(Color.Parse("#141E2E")) : new SolidColorBrush(Color.Parse("#F8FAFC"));
+        }
+    }
+
+    public IBrush PreviewTableCellTextBrush
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(TableCellTextColor) && !TableCellTextColor.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(TableCellTextColor, out var color))
+                return new SolidColorBrush(color);
+            return IsDarkTheme ? new SolidColorBrush(Color.Parse("#F8FAFC")) : new SolidColorBrush(Color.Parse("#0F172A"));
+        }
+    }
+
+    public IBrush PreviewTableHeaderBgBrush
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(TableHeaderBackground) && !TableHeaderBackground.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(TableHeaderBackground, out var color))
+                return new SolidColorBrush(color);
+            return IsDarkTheme ? new SolidColorBrush(Color.Parse("#1E293B")) : new SolidColorBrush(Color.Parse("#F1F5F9"));
+        }
+    }
+
+    public IBrush PreviewTableHeaderTextBrush
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(TableHeaderTextColor) && !TableHeaderTextColor.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(TableHeaderTextColor, out var color))
+                return new SolidColorBrush(color);
+            return IsDarkTheme ? new SolidColorBrush(Color.Parse("#F8FAFC")) : new SolidColorBrush(Color.Parse("#0F172A"));
+        }
+    }
+
+    public IBrush PreviewTableGutterBgBrush
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(TableGutterBackground) && !TableGutterBackground.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(TableGutterBackground, out var color))
+                return new SolidColorBrush(color);
+            return IsDarkTheme ? new SolidColorBrush(Color.Parse("#1E293B")) : new SolidColorBrush(Color.Parse("#F1F5F9"));
+        }
+    }
+
+    public IBrush PreviewTableGutterTextBrush
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(TableGutterTextColor) && !TableGutterTextColor.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(TableGutterTextColor, out var color))
+                return new SolidColorBrush(color);
+            return IsDarkTheme ? new SolidColorBrush(Color.Parse("#F8FAFC")) : new SolidColorBrush(Color.Parse("#0F172A"));
+        }
+    }
+
+    public IBrush PreviewTableGridLinesBrush
+    {
+        get
+        {
+            if (!TableShowGridLines) return Brushes.Transparent;
+            if (!string.IsNullOrWhiteSpace(TableGridLinesColor) && !TableGridLinesColor.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(TableGridLinesColor, out var color))
+                return new SolidColorBrush(color);
+            return IsDarkTheme ? new SolidColorBrush(Color.Parse("#334155")) : new SolidColorBrush(Color.Parse("#E2E8F0"));
+        }
+    }
+
+    public IBrush PreviewTableSelectionBrush
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(TableSelectionColor) && !TableSelectionColor.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(TableSelectionColor, out var color))
+                return new SolidColorBrush(color);
+            return IsDarkTheme ? new SolidColorBrush(Color.Parse("#1E3A5F")) : new SolidColorBrush(Color.Parse("#DBEAFE"));
         }
     }
 
@@ -172,11 +314,28 @@ public partial class SettingsModalViewModel : ObservableObject
             EditorBackground = _initialPanelCustomization.EditorBackground;
             EditorForeground = _initialPanelCustomization.EditorForeground;
             SidebarBackground = _initialPanelCustomization.SidebarBackground;
-            TableBackground = _initialPanelCustomization.TableBackground;
             EditorFontSize = _initialPanelCustomization.EditorFontSize;
             EditorShowLineNumbers = _initialPanelCustomization.EditorShowLineNumbers;
 
-            // 3. Load Dynamic Shortcuts from SQLite
+            // 3. Load Table Customizations from SQLite
+            _initialTableCustomization = await DatabaseStorageService.Instance.GetTableCustomizationAsync().ConfigureAwait(false);
+            TableRowHeight = _initialTableCustomization.RowHeight;
+            TableHeaderHeight = _initialTableCustomization.HeaderHeight;
+            TableGutterWidth = _initialTableCustomization.GutterWidth;
+            TableCellFontSize = _initialTableCustomization.FontSize;
+            TableBackground = _initialTableCustomization.TableBackground;
+            TableAlternatingRowColor = _initialTableCustomization.AlternatingRowColor;
+            TableCellTextColor = _initialTableCustomization.CellTextColor;
+            TableHeaderBackground = _initialTableCustomization.HeaderBackground;
+            TableHeaderTextColor = _initialTableCustomization.HeaderTextColor;
+            TableGutterBackground = _initialTableCustomization.GutterBackground;
+            TableGutterTextColor = _initialTableCustomization.GutterTextColor;
+            TableGridLinesColor = _initialTableCustomization.GridLinesColor;
+            TableSelectionColor = _initialTableCustomization.SelectionColor;
+            TableShowGridLines = _initialTableCustomization.ShowGridLines;
+            TableShowAlternatingRowColors = _initialTableCustomization.ShowAlternatingRowColors;
+
+            // 4. Load Dynamic Shortcuts from SQLite
             await ShortcutService.Instance.InitializeAsync().ConfigureAwait(false);
             LoadShortcutsList();
         }
@@ -255,7 +414,7 @@ public partial class SettingsModalViewModel : ObservableObject
         SelectedShortcutCategory = string.IsNullOrWhiteSpace(category) ? "All" : category;
     }
 
-    #region Panel Customization Commands
+    #region Workspace & Panels Customization Commands
 
     [RelayCommand]
     public void SelectEditorBackground(string hex)
@@ -275,13 +434,6 @@ public partial class SettingsModalViewModel : ObservableObject
     public void SelectSidebarBackground(string hex)
     {
         SidebarBackground = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
-        LivePreviewPanelCustomization();
-    }
-
-    [RelayCommand]
-    public void SelectTableBackground(string hex)
-    {
-        TableBackground = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
         LivePreviewPanelCustomization();
     }
 
@@ -315,37 +467,31 @@ public partial class SettingsModalViewModel : ObservableObject
                 EditorBackground = "#1E293B";
                 EditorForeground = "#F8FAFC";
                 SidebarBackground = "#141E2E";
-                TableBackground = "#1E293B";
                 break;
             case "midnight":
                 EditorBackground = "#0F1117";
                 EditorForeground = "#E2E8F0";
                 SidebarBackground = "#090D16";
-                TableBackground = "#0F1117";
                 break;
             case "monokai":
                 EditorBackground = "#272822";
                 EditorForeground = "#F8F8F2";
                 SidebarBackground = "#1E1F1C";
-                TableBackground = "#272822";
                 break;
             case "solarized":
                 EditorBackground = "#002B36";
                 EditorForeground = "#839496";
                 SidebarBackground = "#073642";
-                TableBackground = "#002B36";
                 break;
             case "paper":
                 EditorBackground = "#FFFFFF";
                 EditorForeground = "#0F172A";
                 SidebarBackground = "#F1F5F9";
-                TableBackground = "#FFFFFF";
                 break;
-            default: // Default
+            default:
                 EditorBackground = "Default";
                 EditorForeground = "Default";
                 SidebarBackground = "Default";
-                TableBackground = "Default";
                 break;
         }
         LivePreviewPanelCustomization();
@@ -357,7 +503,6 @@ public partial class SettingsModalViewModel : ObservableObject
         EditorBackground = "Default";
         EditorForeground = "Default";
         SidebarBackground = "Default";
-        TableBackground = "Default";
         EditorFontSize = 13.0;
         EditorShowLineNumbers = true;
         LivePreviewPanelCustomization();
@@ -380,6 +525,269 @@ public partial class SettingsModalViewModel : ObservableObject
         OnPropertyChanged(nameof(PreviewEditorForegroundBrush));
         OnPropertyChanged(nameof(PreviewSidebarBackgroundBrush));
         OnPropertyChanged(nameof(PreviewTableBackgroundBrush));
+        OnPropertyChanged(nameof(PreviewTableMainRowBrush));
+    }
+
+    #endregion
+
+    #region Query Results Table Customization Commands
+
+    [RelayCommand]
+    public void SetTableRowHeight(double height)
+    {
+        TableRowHeight = Math.Clamp(height, 18.0, 50.0);
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
+    public void IncreaseTableRowHeight()
+    {
+        TableRowHeight = Math.Min(50.0, TableRowHeight + 2.0);
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
+    public void DecreaseTableRowHeight()
+    {
+        TableRowHeight = Math.Max(18.0, TableRowHeight - 2.0);
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
+    public void SetTableHeaderHeight(double height)
+    {
+        TableHeaderHeight = Math.Clamp(height, 18.0, 45.0);
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
+    public void SetTableGutterWidth(double width)
+    {
+        TableGutterWidth = Math.Clamp(width, 36.0, 90.0);
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
+    public void SetTableCellFontSize(double size)
+    {
+        TableCellFontSize = Math.Clamp(size, 9.0, 18.0);
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
+    public void IncreaseTableCellFontSize()
+    {
+        TableCellFontSize = Math.Min(18.0, TableCellFontSize + 1.0);
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
+    public void DecreaseTableCellFontSize()
+    {
+        TableCellFontSize = Math.Max(9.0, TableCellFontSize - 1.0);
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
+    public void SelectTableBackground(string hex)
+    {
+        TableBackground = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
+    public void SelectTableAlternatingRowColor(string hex)
+    {
+        TableAlternatingRowColor = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
+    public void SelectTableCellTextColor(string hex)
+    {
+        TableCellTextColor = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
+    public void SelectTableHeaderBackground(string hex)
+    {
+        TableHeaderBackground = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
+    public void SelectTableHeaderTextColor(string hex)
+    {
+        TableHeaderTextColor = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
+    public void SelectTableGutterBackground(string hex)
+    {
+        TableGutterBackground = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
+    public void SelectTableGridLinesColor(string hex)
+    {
+        TableGridLinesColor = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
+    public void SelectTableSelectionColor(string hex)
+    {
+        TableSelectionColor = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
+    public void ToggleTableGridLines()
+    {
+        TableShowGridLines = !TableShowGridLines;
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
+    public void ToggleTableAlternatingRows()
+    {
+        TableShowAlternatingRowColors = !TableShowAlternatingRowColors;
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
+    public void ApplyTablePreset(string preset)
+    {
+        switch (preset?.ToLowerInvariant())
+        {
+            case "excel":
+                TableRowHeight = 25.0;
+                TableHeaderHeight = 26.0;
+                TableGutterWidth = 56.0;
+                TableCellFontSize = 11.0;
+                TableBackground = "#FFFFFF";
+                TableAlternatingRowColor = "#F8FAFC";
+                TableCellTextColor = "#0F172A";
+                TableHeaderBackground = "#F1F5F9";
+                TableHeaderTextColor = "#0F172A";
+                TableGutterBackground = "#F1F5F9";
+                TableGutterTextColor = "#0F172A";
+                TableGridLinesColor = "#CBD5E1";
+                TableSelectionColor = "#DBEAFE";
+                TableShowGridLines = true;
+                TableShowAlternatingRowColors = true;
+                break;
+            case "darkpro":
+                TableRowHeight = 26.0;
+                TableHeaderHeight = 28.0;
+                TableGutterWidth = 56.0;
+                TableCellFontSize = 11.0;
+                TableBackground = "#1E293B";
+                TableAlternatingRowColor = "#141E2E";
+                TableCellTextColor = "#F8FAFC";
+                TableHeaderBackground = "#1E293B";
+                TableHeaderTextColor = "#F8FAFC";
+                TableGutterBackground = "#1E293B";
+                TableGutterTextColor = "#94A3B8";
+                TableGridLinesColor = "#334155";
+                TableSelectionColor = "#1E3A5F";
+                TableShowGridLines = true;
+                TableShowAlternatingRowColors = true;
+                break;
+            case "compact":
+                TableRowHeight = 22.0;
+                TableHeaderHeight = 24.0;
+                TableGutterWidth = 44.0;
+                TableCellFontSize = 10.0;
+                TableShowGridLines = true;
+                TableShowAlternatingRowColors = true;
+                break;
+            case "comfortable":
+                TableRowHeight = 32.0;
+                TableHeaderHeight = 32.0;
+                TableGutterWidth = 60.0;
+                TableCellFontSize = 12.0;
+                TableShowGridLines = true;
+                TableShowAlternatingRowColors = true;
+                break;
+            case "highcontrast":
+                TableRowHeight = 26.0;
+                TableHeaderHeight = 28.0;
+                TableCellFontSize = 11.0;
+                TableBackground = "#000000";
+                TableAlternatingRowColor = "#111827";
+                TableCellTextColor = "#FFFFFF";
+                TableHeaderBackground = "#000000";
+                TableHeaderTextColor = "#FFFFFF";
+                TableGutterBackground = "#000000";
+                TableGutterTextColor = "#FFFFFF";
+                TableGridLinesColor = "#FFFFFF";
+                TableSelectionColor = "#2563EB";
+                TableShowGridLines = true;
+                TableShowAlternatingRowColors = true;
+                break;
+            default:
+                ResetTableCustomization();
+                return;
+        }
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
+    public void ResetTableCustomization()
+    {
+        TableRowHeight = 25.0;
+        TableHeaderHeight = 26.0;
+        TableGutterWidth = 56.0;
+        TableCellFontSize = 11.0;
+        TableBackground = "Default";
+        TableAlternatingRowColor = "Default";
+        TableCellTextColor = "Default";
+        TableHeaderBackground = "Default";
+        TableHeaderTextColor = "Default";
+        TableGutterBackground = "Default";
+        TableGutterTextColor = "Default";
+        TableGridLinesColor = "Default";
+        TableSelectionColor = "Default";
+        TableShowGridLines = true;
+        TableShowAlternatingRowColors = true;
+        LivePreviewTableCustomization();
+    }
+
+    private void LivePreviewTableCustomization()
+    {
+        var record = new TableCustomizationRecord
+        {
+            RowHeight = TableRowHeight,
+            HeaderHeight = TableHeaderHeight,
+            GutterWidth = TableGutterWidth,
+            FontSize = TableCellFontSize,
+            TableBackground = TableBackground,
+            AlternatingRowColor = TableAlternatingRowColor,
+            CellTextColor = TableCellTextColor,
+            HeaderBackground = TableHeaderBackground,
+            HeaderTextColor = TableHeaderTextColor,
+            GutterBackground = TableGutterBackground,
+            GutterTextColor = TableGutterTextColor,
+            GridLinesColor = TableGridLinesColor,
+            SelectionColor = TableSelectionColor,
+            ShowGridLines = TableShowGridLines,
+            ShowAlternatingRowColors = TableShowAlternatingRowColors
+        };
+        ThemeService.Instance.ApplyTableCustomization(record);
+
+        OnPropertyChanged(nameof(PreviewTableMainRowBrush));
+        OnPropertyChanged(nameof(PreviewTableAltRowBrush));
+        OnPropertyChanged(nameof(PreviewTableCellTextBrush));
+        OnPropertyChanged(nameof(PreviewTableHeaderBgBrush));
+        OnPropertyChanged(nameof(PreviewTableHeaderTextBrush));
+        OnPropertyChanged(nameof(PreviewTableGutterBgBrush));
+        OnPropertyChanged(nameof(PreviewTableGutterTextBrush));
+        OnPropertyChanged(nameof(PreviewTableGridLinesBrush));
+        OnPropertyChanged(nameof(PreviewTableSelectionBrush));
     }
 
     #endregion
@@ -390,7 +798,6 @@ public partial class SettingsModalViewModel : ObservableObject
     public void StartEditShortcut(ShortcutItem item)
     {
         if (item == null) return;
-        // Close editing for other items
         foreach (var s in Shortcuts)
         {
             if (s != item && s.IsEditing) s.IsEditing = false;
@@ -454,6 +861,16 @@ public partial class SettingsModalViewModel : ObservableObject
         OnPropertyChanged(nameof(PreviewEditorForegroundBrush));
         OnPropertyChanged(nameof(PreviewSidebarBackgroundBrush));
         OnPropertyChanged(nameof(PreviewTableBackgroundBrush));
+        OnPropertyChanged(nameof(PreviewTableMainRowBrush));
+        OnPropertyChanged(nameof(PreviewTableMainRowBrush));
+        OnPropertyChanged(nameof(PreviewTableAltRowBrush));
+        OnPropertyChanged(nameof(PreviewTableCellTextBrush));
+        OnPropertyChanged(nameof(PreviewTableHeaderBgBrush));
+        OnPropertyChanged(nameof(PreviewTableHeaderTextBrush));
+        OnPropertyChanged(nameof(PreviewTableGutterBgBrush));
+        OnPropertyChanged(nameof(PreviewTableGutterTextBrush));
+        OnPropertyChanged(nameof(PreviewTableGridLinesBrush));
+        OnPropertyChanged(nameof(PreviewTableSelectionBrush));
     }
 
     [RelayCommand]
@@ -492,7 +909,30 @@ public partial class SettingsModalViewModel : ObservableObject
             ThemeService.Instance.ApplyPanelCustomization(panelRecord);
             _initialPanelCustomization = panelRecord;
 
-            // 3. Save Shortcuts to SQLite
+            // 3. Save Table Customization
+            var tableRecord = new TableCustomizationRecord
+            {
+                RowHeight = TableRowHeight,
+                HeaderHeight = TableHeaderHeight,
+                GutterWidth = TableGutterWidth,
+                FontSize = TableCellFontSize,
+                TableBackground = TableBackground,
+                AlternatingRowColor = TableAlternatingRowColor,
+                CellTextColor = TableCellTextColor,
+                HeaderBackground = TableHeaderBackground,
+                HeaderTextColor = TableHeaderTextColor,
+                GutterBackground = TableGutterBackground,
+                GutterTextColor = TableGutterTextColor,
+                GridLinesColor = TableGridLinesColor,
+                SelectionColor = TableSelectionColor,
+                ShowGridLines = TableShowGridLines,
+                ShowAlternatingRowColors = TableShowAlternatingRowColors
+            };
+            await DatabaseStorageService.Instance.SaveTableCustomizationAsync(tableRecord).ConfigureAwait(false);
+            ThemeService.Instance.ApplyTableCustomization(tableRecord);
+            _initialTableCustomization = tableRecord;
+
+            // 4. Save Shortcuts to SQLite
             await ShortcutService.Instance.SaveAllAsync(Shortcuts).ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -522,6 +962,9 @@ public partial class SettingsModalViewModel : ObservableObject
 
         // Revert Panel Customization
         ThemeService.Instance.ApplyPanelCustomization(_initialPanelCustomization);
+
+        // Revert Table Customization
+        ThemeService.Instance.ApplyTableCustomization(_initialTableCustomization);
 
         IsOpen = false;
     }

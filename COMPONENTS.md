@@ -38,10 +38,11 @@ Components/
 │   └── SettingsModalComponent.axaml            # Composed preferences dialog (Theme + Syntax Colors)
 │
 ├── Settings Sub-Components:
-│   ├── SettingsCategoriesNavComponent.axaml    # Reusable categories navigation sidebar for settings (Appearance, Customization, Shortcuts)
+│   ├── SettingsCategoriesNavComponent.axaml    # Reusable categories navigation sidebar for settings (Appearance, Results Table, Customization, Shortcuts)
 │   ├── ThemeSelectionCardsComponent.axaml      # Reusable Light, Dark, and System theme selection cards
 │   ├── SyntaxColorSelectorComponent.axaml      # Reusable 6-preset SQL syntax keyword color palette
 │   ├── LiveSyntaxPreviewComponent.axaml        # Reusable live code snippet preview with dynamic syntax highlighting
+│   ├── TableCustomizationComponent.axaml       # Dedicated Query Results Table row height, font size, gutter, colors, and live preview
 │   ├── PanelCustomizationComponent.axaml       # Workspace, Editor, Sidebar, and Table panel color customization & presets
 │   └── ShortcutsSettingsComponent.axaml        # Dynamic keyboard shortcuts manager with SQLite persistence and key capture
 │

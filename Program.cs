@@ -310,6 +310,53 @@ sealed class Program
             }
             Console.WriteLine("[Success] Dynamic shortcuts system, live customization & SQLite persistence verified!");
 
+            // 5d. Test Query Results Table Customization (RowHeight, HeaderHeight, Colors, Presets & SQLite Persistence)
+            Console.WriteLine("\n[Action] Verifying Results Table Customization & SQLite Persistence...");
+            await vm.SettingsModal.OpenAsync();
+            vm.SettingsModal.SelectCategory("Table");
+            Console.WriteLine($"Settings Category: Selected='{vm.SettingsModal.SelectedCategory}', IsTable={vm.SettingsModal.IsTableCategory}");
+            if (!vm.SettingsModal.IsTableCategory) throw new Exception("Table category selection failed!");
+
+            // Test applying custom row height, colors, font sizes
+            vm.SettingsModal.SetTableRowHeight(28.0);
+            vm.SettingsModal.SetTableHeaderHeight(30.0);
+            vm.SettingsModal.SetTableGutterWidth(64.0);
+            vm.SettingsModal.SetTableCellFontSize(12.0);
+            vm.SettingsModal.SelectTableBackground("#1E293B");
+            vm.SettingsModal.SelectTableAlternatingRowColor("#141E2E");
+            vm.SettingsModal.SelectTableCellTextColor("#F8FAFC");
+            vm.SettingsModal.SelectTableGridLinesColor("#334155");
+            vm.SettingsModal.SelectTableSelectionColor("#1E3A5F");
+
+            await vm.SettingsModal.SaveAsync();
+
+            var savedTableCustom = await Fdb.Services.DatabaseStorageService.Instance.GetTableCustomizationAsync();
+            Console.WriteLine($"SQLite Saved Table Customization: RowHeight={savedTableCustom.RowHeight}, HeaderHeight={savedTableCustom.HeaderHeight}, GutterWidth={savedTableCustom.GutterWidth}, FontSize={savedTableCustom.FontSize}, TableBg={savedTableCustom.TableBackground}, AltRowBg={savedTableCustom.AlternatingRowColor}");
+            if (savedTableCustom.RowHeight != 28.0 || savedTableCustom.HeaderHeight != 30.0 || savedTableCustom.GutterWidth != 64.0 || savedTableCustom.FontSize != 12.0 || savedTableCustom.TableBackground != "#1E293B" || savedTableCustom.AlternatingRowColor != "#141E2E")
+            {
+                throw new Exception("Table customization failed to persist to SQLite!");
+            }
+
+            // Verify live dynamic update in ThemeService
+            Console.WriteLine($"ThemeService CurrentTableCustomization: RowHeight={Fdb.Services.ThemeService.Instance.CurrentTableCustomization.RowHeight}, FontSize={Fdb.Services.ThemeService.Instance.CurrentTableCustomization.FontSize}");
+            if (Fdb.Services.ThemeService.Instance.CurrentTableCustomization.RowHeight != 28.0 || Fdb.Services.ThemeService.Instance.CurrentTableCustomization.FontSize != 12.0)
+            {
+                throw new Exception("ThemeService failed to dynamically update CurrentTableCustomization!");
+            }
+
+            // Test Reset Table Customization
+            await vm.SettingsModal.OpenAsync();
+            vm.SettingsModal.ResetTableCustomization();
+            await vm.SettingsModal.SaveAsync();
+
+            var resetTableCustom = await Fdb.Services.DatabaseStorageService.Instance.GetTableCustomizationAsync();
+            Console.WriteLine($"SQLite Restored Table Customization: RowHeight={resetTableCustom.RowHeight}, FontSize={resetTableCustom.FontSize}, TableBg={resetTableCustom.TableBackground}");
+            if (resetTableCustom.RowHeight != 25.0 || resetTableCustom.FontSize != 11.0 || resetTableCustom.TableBackground != "Default")
+            {
+                throw new Exception("Reset table customization failed to restore defaults!");
+            }
+            Console.WriteLine("[Success] Results table customization, sizing, presets and SQLite persistence verified!");
+
             // 6. Test Editor Tab Switching & Active State
             Console.WriteLine("\n[Action] Verifying Editor Tab Switching & State...");
             Console.WriteLine($"Initial Selected Tab: {vm.Editor.SelectedTab?.Title}, IsActive={vm.Editor.SelectedTab?.IsActive}");

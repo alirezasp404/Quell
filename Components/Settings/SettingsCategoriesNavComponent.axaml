@@ -52,7 +52,24 @@
                 </Grid>
             </Button>
 
-            <!-- 2. Customization (Panels & Editor) Category Item -->
+            <!-- 2. Results Table Customization Category Item -->
+            <Button Classes="nav-cat-btn"
+                    Command="{Binding SelectCategoryCommand}" 
+                    CommandParameter="Table">
+                <Grid ColumnDefinitions="Auto, *">
+                    <ui:FASymbolIcon Grid.Column="0" Symbol="ViewAll" FontSize="13" 
+                                     Foreground="{DynamicResource AppAccentBrush}"
+                                     VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" Text="Results Table" 
+                               FontSize="12" 
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource AppTextPrimaryBrush}"
+                               Margin="8,0,0,0"
+                               VerticalAlignment="Center"/>
+                </Grid>
+            </Button>
+
+            <!-- 3. Customization (Panels & Editor) Category Item -->
             <Button Classes="nav-cat-btn"
                     Command="{Binding SelectCategoryCommand}" 
                     CommandParameter="Customization">
@@ -69,7 +86,7 @@
                 </Grid>
             </Button>
 
-            <!-- 3. Shortcuts Category Item -->
+            <!-- 4. Shortcuts Category Item -->
             <Button Classes="nav-cat-btn"
                     Command="{Binding SelectCategoryCommand}" 
                     CommandParameter="Shortcuts">

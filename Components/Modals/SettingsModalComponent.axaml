@@ -87,11 +87,15 @@
                                 <components:LiveSyntaxPreviewComponent DataContext="{Binding}" />
                             </StackPanel>
 
-                            <!-- Category 2: Workspace & Panel Customization -->
+                            <!-- Category 2: Results Table Customization -->
+                            <components:TableCustomizationComponent DataContext="{Binding}" 
+                                                                    IsVisible="{Binding IsTableCategory}" />
+
+                            <!-- Category 3: Workspace & Panel Customization -->
                             <components:PanelCustomizationComponent DataContext="{Binding}" 
                                                                     IsVisible="{Binding IsCustomizationCategory}" />
 
-                            <!-- Category 3: Keyboard Shortcuts -->
+                            <!-- Category 4: Keyboard Shortcuts -->
                             <components:ShortcutsSettingsComponent DataContext="{Binding}" 
                                                                    IsVisible="{Binding IsShortcutsCategory}" />
                         </Panel>

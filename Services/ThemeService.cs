@@ -35,6 +35,7 @@ public class ThemeService
     public event EventHandler<string>? ThemeChanged;
     public event EventHandler<string>? KeywordColorChanged;
     public event EventHandler<PanelCustomizationRecord>? PanelCustomizationChanged;
+    public event EventHandler<TableCustomizationRecord>? TableCustomizationChanged;
 
     private string _currentTheme = "Light";
     public string CurrentTheme => _currentTheme;
@@ -43,6 +44,7 @@ public class ThemeService
     public string CurrentKeywordColor => _currentKeywordColor;
 
     public PanelCustomizationRecord CurrentPanelCustomization { get; private set; } = new();
+    public TableCustomizationRecord CurrentTableCustomization { get; private set; } = new();
 
     public IBrush CurrentKeywordBrush { get; private set; } = new SolidColorBrush(Color.Parse("#2563EB"));
 
@@ -71,6 +73,7 @@ public class ThemeService
 
             UpdateKeywordBrushInternal();
             ApplyPanelCustomizationInternal();
+            ApplyTableCustomizationInternal();
             ThemeChanged?.Invoke(this, _currentTheme);
             KeywordColorChanged?.Invoke(this, _currentKeywordColor);
         }
@@ -219,6 +222,214 @@ public class ThemeService
         {
             string defaultHex = IsDarkTheme() ? "#141E2E" : "#F8FAFC";
             Application.Current.Resources["AppTableAltColBackgroundBrush"] = new SolidColorBrush(Color.Parse(defaultHex));
+        }
+    }
+
+    public void ApplyTableCustomization(TableCustomizationRecord custom)
+    {
+        CurrentTableCustomization = custom ?? new TableCustomizationRecord();
+
+        void Update()
+        {
+            ApplyTableCustomizationInternal();
+            TableCustomizationChanged?.Invoke(this, CurrentTableCustomization);
+        }
+
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            Update();
+        }
+        else
+        {
+            Dispatcher.UIThread.Post(Update);
+        }
+    }
+
+    public void ResetTableCustomization()
+    {
+        ApplyTableCustomization(new TableCustomizationRecord());
+    }
+
+    private void ApplyTableCustomizationInternal()
+    {
+        if (Application.Current == null) return;
+
+        var custom = CurrentTableCustomization;
+        bool isDark = IsDarkTheme();
+
+        // 1. Dimensions
+        if (custom.RowHeight >= 18.0)
+        {
+            Application.Current.Resources["AppTableRowHeight"] = custom.RowHeight;
+        }
+
+        if (custom.HeaderHeight >= 18.0)
+        {
+            Application.Current.Resources["AppTableHeaderHeight"] = custom.HeaderHeight;
+        }
+
+        if (custom.GutterWidth >= 30.0)
+        {
+            Application.Current.Resources["AppTableGutterWidth"] = custom.GutterWidth;
+        }
+
+        if (custom.FontSize >= 8.0)
+        {
+            Application.Current.Resources["AppTableCellFontSize"] = custom.FontSize;
+        }
+
+        // 2. Main Row Background
+        if (!string.IsNullOrWhiteSpace(custom.TableBackground) && !custom.TableBackground.Equals("Default", StringComparison.OrdinalIgnoreCase))
+        {
+            if (Color.TryParse(custom.TableBackground, out var bg))
+            {
+                Application.Current.Resources["AppTableWhiteColBackgroundBrush"] = new SolidColorBrush(bg);
+                Application.Current.Resources["AppWorkspaceBrush"] = new SolidColorBrush(bg);
+            }
+        }
+        else
+        {
+            string defBg = isDark ? "#0F172A" : "#FFFFFF";
+            Application.Current.Resources["AppTableWhiteColBackgroundBrush"] = new SolidColorBrush(Color.Parse(defBg));
+            Application.Current.Resources["AppWorkspaceBrush"] = new SolidColorBrush(Color.Parse(defBg));
+        }
+
+        // 3. Alternating Row Color
+        if (custom.ShowAlternatingRowColors)
+        {
+            if (!string.IsNullOrWhiteSpace(custom.AlternatingRowColor) && !custom.AlternatingRowColor.Equals("Default", StringComparison.OrdinalIgnoreCase))
+            {
+                if (Color.TryParse(custom.AlternatingRowColor, out var altBg))
+                {
+                    Application.Current.Resources["AppTableAltColBackgroundBrush"] = new SolidColorBrush(altBg);
+                }
+            }
+            else
+            {
+                string defAlt = isDark ? "#141E2E" : "#F8FAFC";
+                Application.Current.Resources["AppTableAltColBackgroundBrush"] = new SolidColorBrush(Color.Parse(defAlt));
+            }
+        }
+        else
+        {
+            var mainBrush = Application.Current.Resources["AppTableWhiteColBackgroundBrush"] as IBrush;
+            if (mainBrush != null)
+            {
+                Application.Current.Resources["AppTableAltColBackgroundBrush"] = mainBrush;
+            }
+        }
+
+        // 4. Cell Text Color
+        if (!string.IsNullOrWhiteSpace(custom.CellTextColor) && !custom.CellTextColor.Equals("Default", StringComparison.OrdinalIgnoreCase))
+        {
+            if (Color.TryParse(custom.CellTextColor, out var txtColor))
+            {
+                Application.Current.Resources["AppTableCellForegroundBrush"] = new SolidColorBrush(txtColor);
+            }
+        }
+        else
+        {
+            string defTxt = isDark ? "#F8FAFC" : "#0F172A";
+            Application.Current.Resources["AppTableCellForegroundBrush"] = new SolidColorBrush(Color.Parse(defTxt));
+        }
+
+        // 5. Header Background & Text
+        if (!string.IsNullOrWhiteSpace(custom.HeaderBackground) && !custom.HeaderBackground.Equals("Default", StringComparison.OrdinalIgnoreCase))
+        {
+            if (Color.TryParse(custom.HeaderBackground, out var hBg))
+            {
+                Application.Current.Resources["AppTableHeaderBackgroundBrush"] = new SolidColorBrush(hBg);
+            }
+        }
+        else
+        {
+            string defHBg = isDark ? "#1E293B" : "#F1F5F9";
+            Application.Current.Resources["AppTableHeaderBackgroundBrush"] = new SolidColorBrush(Color.Parse(defHBg));
+        }
+
+        if (!string.IsNullOrWhiteSpace(custom.HeaderTextColor) && !custom.HeaderTextColor.Equals("Default", StringComparison.OrdinalIgnoreCase))
+        {
+            if (Color.TryParse(custom.HeaderTextColor, out var hFg))
+            {
+                Application.Current.Resources["AppTableHeaderForegroundBrush"] = new SolidColorBrush(hFg);
+            }
+        }
+        else
+        {
+            string defHFg = isDark ? "#F8FAFC" : "#0F172A";
+            Application.Current.Resources["AppTableHeaderForegroundBrush"] = new SolidColorBrush(Color.Parse(defHFg));
+        }
+
+        // 6. Gutter (Row number column) Background & Text
+        if (!string.IsNullOrWhiteSpace(custom.GutterBackground) && !custom.GutterBackground.Equals("Default", StringComparison.OrdinalIgnoreCase))
+        {
+            if (Color.TryParse(custom.GutterBackground, out var gBg))
+            {
+                Application.Current.Resources["AppTableGutterBackgroundBrush"] = new SolidColorBrush(gBg);
+            }
+        }
+        else
+        {
+            string defGBg = isDark ? "#1E293B" : "#F1F5F9";
+            Application.Current.Resources["AppTableGutterBackgroundBrush"] = new SolidColorBrush(Color.Parse(defGBg));
+        }
+
+        if (!string.IsNullOrWhiteSpace(custom.GutterTextColor) && !custom.GutterTextColor.Equals("Default", StringComparison.OrdinalIgnoreCase))
+        {
+            if (Color.TryParse(custom.GutterTextColor, out var gFg))
+            {
+                Application.Current.Resources["AppTableGutterForegroundBrush"] = new SolidColorBrush(gFg);
+            }
+        }
+        else
+        {
+            string defGFg = isDark ? "#F8FAFC" : "#0F172A";
+            Application.Current.Resources["AppTableGutterForegroundBrush"] = new SolidColorBrush(Color.Parse(defGFg));
+        }
+
+        // 7. Grid Lines
+        if (custom.ShowGridLines)
+        {
+            if (!string.IsNullOrWhiteSpace(custom.GridLinesColor) && !custom.GridLinesColor.Equals("Default", StringComparison.OrdinalIgnoreCase))
+            {
+                if (Color.TryParse(custom.GridLinesColor, out var glColor))
+                {
+                    Application.Current.Resources["AppTableGridLinesHorizontalBrush"] = new SolidColorBrush(glColor);
+                    Application.Current.Resources["AppTableGridLinesVerticalBrush"] = new SolidColorBrush(glColor);
+                    Application.Current.Resources["AppTableCellBorderBrush"] = new SolidColorBrush(glColor);
+                }
+            }
+            else
+            {
+                string defH = isDark ? "#334155" : "#CBD5E1";
+                string defV = isDark ? "#1E293B" : "#E2E8F0";
+                Application.Current.Resources["AppTableGridLinesHorizontalBrush"] = new SolidColorBrush(Color.Parse(defH));
+                Application.Current.Resources["AppTableGridLinesVerticalBrush"] = new SolidColorBrush(Color.Parse(defV));
+                Application.Current.Resources["AppTableCellBorderBrush"] = new SolidColorBrush(Color.Parse(defV));
+            }
+        }
+        else
+        {
+            Application.Current.Resources["AppTableGridLinesHorizontalBrush"] = Brushes.Transparent;
+            Application.Current.Resources["AppTableGridLinesVerticalBrush"] = Brushes.Transparent;
+            Application.Current.Resources["AppTableCellBorderBrush"] = Brushes.Transparent;
+        }
+
+        // 8. Selection / Active Cell Highlight
+        if (!string.IsNullOrWhiteSpace(custom.SelectionColor) && !custom.SelectionColor.Equals("Default", StringComparison.OrdinalIgnoreCase))
+        {
+            if (Color.TryParse(custom.SelectionColor, out var selColor))
+            {
+                Application.Current.Resources["AppTableSelectedBackgroundBrush"] = new SolidColorBrush(selColor);
+                Application.Current.Resources["AppTableActiveBackgroundBrush"] = new SolidColorBrush(selColor);
+            }
+        }
+        else
+        {
+            string defSel = isDark ? "#1E3A5F" : "#DBEAFE";
+            string defAct = isDark ? "#172554" : "#EFF6FF";
+            Application.Current.Resources["AppTableSelectedBackgroundBrush"] = new SolidColorBrush(Color.Parse(defSel));
+            Application.Current.Resources["AppTableActiveBackgroundBrush"] = new SolidColorBrush(Color.Parse(defAct));
         }
     }
 }

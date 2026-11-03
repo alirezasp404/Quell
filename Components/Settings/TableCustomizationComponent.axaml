@@ -1,0 +1,444 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+              xmlns:vm="using:Fdb.ViewModels"
+              xmlns:ui="using:FluentAvalonia.UI.Controls"
+              mc:Ignorable="d" d:DesignWidth="550" d:DesignHeight="850"
+              x:Class="Fdb.Components.TableCustomizationComponent"
+              x:DataType="vm:SettingsModalViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="Button.color-swatch-btn">
+            <Setter Property="Width" Value="26" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="CornerRadius" Value="13" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.color-swatch-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+        </Style>
+
+        <Style Selector="Button.preset-bundle-btn">
+            <Setter Property="Background" Value="{DynamicResource AppCardBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.preset-bundle-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}" />
+        </Style>
+
+        <Style Selector="Button.size-chip-btn">
+            <Setter Property="Background" Value="{DynamicResource AppCardBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.size-chip-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}" />
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel Spacing="16">
+        <!-- 1. Section Header -->
+        <Grid ColumnDefinitions="*, Auto">
+            <StackPanel Grid.Column="0" Spacing="2">
+                <TextBlock Text="Results Table &amp; Data Grid Customization" 
+                           FontSize="15" 
+                           FontWeight="Bold" 
+                           Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                <TextBlock Text="Customize row height, gutter width, font sizes, alternating row colors, and gridlines." 
+                           FontSize="11" 
+                           Foreground="{DynamicResource AppTextMutedBrush}"/>
+            </StackPanel>
+
+            <Button Grid.Column="1" 
+                    Content="Reset Table Defaults" 
+                    Command="{Binding ResetTableCustomizationCommand}"
+                    Classes="classic-tool-btn" 
+                    FontSize="11"
+                    Padding="10,4"
+                    VerticalAlignment="Center"/>
+        </Grid>
+
+        <Separator Background="{DynamicResource AppBorderBrush}" Margin="0,2"/>
+
+        <!-- 2. Table Presets -->
+        <StackPanel Spacing="8">
+            <TextBlock Text="TABLE THEME PRESETS" 
+                       FontSize="11" 
+                       FontWeight="Bold" 
+                       Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+            
+            <WrapPanel Orientation="Horizontal">
+                <Button Classes="preset-bundle-btn" Command="{Binding ApplyTablePresetCommand}" CommandParameter="default" Margin="0,0,6,6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Border Width="12" Height="12" CornerRadius="6" Background="#3B82F6"/>
+                        <TextBlock Text="Default Theme" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Classes="preset-bundle-btn" Command="{Binding ApplyTablePresetCommand}" CommandParameter="excel" Margin="0,0,6,6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Border Width="12" Height="12" CornerRadius="6" Background="#107C41"/>
+                        <TextBlock Text="Excel Professional" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Classes="preset-bundle-btn" Command="{Binding ApplyTablePresetCommand}" CommandParameter="darkpro" Margin="0,0,6,6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Border Width="12" Height="12" CornerRadius="6" Background="#1E293B"/>
+                        <TextBlock Text="Dark Studio Pro" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Classes="preset-bundle-btn" Command="{Binding ApplyTablePresetCommand}" CommandParameter="compact" Margin="0,0,6,6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Border Width="12" Height="12" CornerRadius="6" Background="#0284C7"/>
+                        <TextBlock Text="Compact Dense (22px)" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Classes="preset-bundle-btn" Command="{Binding ApplyTablePresetCommand}" CommandParameter="comfortable" Margin="0,0,6,6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Border Width="12" Height="12" CornerRadius="6" Background="#8B5CF6"/>
+                        <TextBlock Text="Comfortable Spaced (32px)" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Classes="preset-bundle-btn" Command="{Binding ApplyTablePresetCommand}" CommandParameter="highcontrast" Margin="0,0,6,6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Border Width="12" Height="12" CornerRadius="6" Background="#000000" BorderBrush="#FFFFFF" BorderThickness="1"/>
+                        <TextBlock Text="High Contrast" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Button>
+            </WrapPanel>
+        </StackPanel>
+
+        <!-- 3. Dimensions & Sizing (Row Height, Gutter, Font) -->
+        <Border Background="{DynamicResource AppSurfaceMutedBrush}" 
+                BorderBrush="{DynamicResource AppBorderBrush}" 
+                BorderThickness="1" 
+                CornerRadius="6" 
+                Padding="14,12">
+            <StackPanel Spacing="12">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <ui:FASymbolIcon Symbol="ViewAll" FontSize="12" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="Dimensions, Row Heights &amp; Typography" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                </StackPanel>
+
+                <!-- Row Height Control -->
+                <Grid ColumnDefinitions="140, *, Auto" RowDefinitions="Auto">
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock Text="Row Height (ارتفاع سطر)" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <TextBlock Text="Height of data rows" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Button Classes="size-chip-btn" Content="Compact (22px)" Command="{Binding SetTableRowHeightCommand}">
+                            <Button.CommandParameter><x:Double>22.0</x:Double></Button.CommandParameter>
+                        </Button>
+                        <Button Classes="size-chip-btn" Content="Standard (25px)" Command="{Binding SetTableRowHeightCommand}">
+                            <Button.CommandParameter><x:Double>25.0</x:Double></Button.CommandParameter>
+                        </Button>
+                        <Button Classes="size-chip-btn" Content="Cozy (30px)" Command="{Binding SetTableRowHeightCommand}">
+                            <Button.CommandParameter><x:Double>30.0</x:Double></Button.CommandParameter>
+                        </Button>
+                        <Button Classes="size-chip-btn" Content="Large (36px)" Command="{Binding SetTableRowHeightCommand}">
+                            <Button.CommandParameter><x:Double>36.0</x:Double></Button.CommandParameter>
+                        </Button>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Button Content="-" Command="{Binding DecreaseTableRowHeightCommand}" Classes="classic-tool-btn" Padding="8,3" FontSize="11"/>
+                        <TextBlock Text="{Binding TableRowHeight, StringFormat={}{0:0}px}" 
+                                   Width="42" 
+                                   TextAlignment="Center" 
+                                   FontSize="11" 
+                                   FontWeight="Bold" 
+                                   VerticalAlignment="Center" 
+                                   Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <Button Content="+" Command="{Binding IncreaseTableRowHeightCommand}" Classes="classic-tool-btn" Padding="8,3" FontSize="11"/>
+                    </StackPanel>
+                </Grid>
+
+                <Separator Background="{DynamicResource AppBorderBrush}" Margin="0,2"/>
+
+                <!-- Cell Font Size Control -->
+                <Grid ColumnDefinitions="140, *, Auto" RowDefinitions="Auto">
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock Text="Cell Font Size" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <TextBlock Text="Data cell text size" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Button Classes="size-chip-btn" Content="Small (10px)" Command="{Binding SetTableCellFontSizeCommand}">
+                            <Button.CommandParameter><x:Double>10.0</x:Double></Button.CommandParameter>
+                        </Button>
+                        <Button Classes="size-chip-btn" Content="Standard (11px)" Command="{Binding SetTableCellFontSizeCommand}">
+                            <Button.CommandParameter><x:Double>11.0</x:Double></Button.CommandParameter>
+                        </Button>
+                        <Button Classes="size-chip-btn" Content="Medium (12px)" Command="{Binding SetTableCellFontSizeCommand}">
+                            <Button.CommandParameter><x:Double>12.0</x:Double></Button.CommandParameter>
+                        </Button>
+                        <Button Classes="size-chip-btn" Content="Large (14px)" Command="{Binding SetTableCellFontSizeCommand}">
+                            <Button.CommandParameter><x:Double>14.0</x:Double></Button.CommandParameter>
+                        </Button>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Button Content="-" Command="{Binding DecreaseTableCellFontSizeCommand}" Classes="classic-tool-btn" Padding="8,3" FontSize="11"/>
+                        <TextBlock Text="{Binding TableCellFontSize, StringFormat={}{0:0}px}" 
+                                   Width="42" 
+                                   TextAlignment="Center" 
+                                   FontSize="11" 
+                                   FontWeight="Bold" 
+                                   VerticalAlignment="Center" 
+                                   Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <Button Content="+" Command="{Binding IncreaseTableCellFontSizeCommand}" Classes="classic-tool-btn" Padding="8,3" FontSize="11"/>
+                    </StackPanel>
+                </Grid>
+
+                <Separator Background="{DynamicResource AppBorderBrush}" Margin="0,2"/>
+
+                <!-- Header Height & Gutter Width -->
+                <Grid ColumnDefinitions="*, *">
+                    <!-- Header Height -->
+                    <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,8,0">
+                        <TextBlock Text="Column Header Height" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Button Classes="size-chip-btn" Content="24px" Command="{Binding SetTableHeaderHeightCommand}">
+                                <Button.CommandParameter><x:Double>24.0</x:Double></Button.CommandParameter>
+                            </Button>
+                            <Button Classes="size-chip-btn" Content="26px (Std)" Command="{Binding SetTableHeaderHeightCommand}">
+                                <Button.CommandParameter><x:Double>26.0</x:Double></Button.CommandParameter>
+                            </Button>
+                            <Button Classes="size-chip-btn" Content="30px" Command="{Binding SetTableHeaderHeightCommand}">
+                                <Button.CommandParameter><x:Double>30.0</x:Double></Button.CommandParameter>
+                            </Button>
+                            <Button Classes="size-chip-btn" Content="36px" Command="{Binding SetTableHeaderHeightCommand}">
+                                <Button.CommandParameter><x:Double>36.0</x:Double></Button.CommandParameter>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Gutter Width -->
+                    <StackPanel Grid.Column="1" Spacing="4" Margin="8,0,0,0">
+                        <TextBlock Text="Row Number Gutter Width" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Button Classes="size-chip-btn" Content="Narrow (44px)" Command="{Binding SetTableGutterWidthCommand}">
+                                <Button.CommandParameter><x:Double>44.0</x:Double></Button.CommandParameter>
+                            </Button>
+                            <Button Classes="size-chip-btn" Content="Std (56px)" Command="{Binding SetTableGutterWidthCommand}">
+                                <Button.CommandParameter><x:Double>56.0</x:Double></Button.CommandParameter>
+                            </Button>
+                            <Button Classes="size-chip-btn" Content="Wide (72px)" Command="{Binding SetTableGutterWidthCommand}">
+                                <Button.CommandParameter><x:Double>72.0</x:Double></Button.CommandParameter>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- 4. Colors & Alternating Rows -->
+        <Border Background="{DynamicResource AppSurfaceMutedBrush}" 
+                BorderBrush="{DynamicResource AppBorderBrush}" 
+                BorderThickness="1" 
+                CornerRadius="6" 
+                Padding="14,12">
+            <StackPanel Spacing="12">
+                <Grid ColumnDefinitions="*, Auto">
+                    <StackPanel Grid.Column="0" Spacing="2">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <ui:FASymbolIcon Symbol="Page" FontSize="12" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="Table Colors &amp; Appearance" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        </StackPanel>
+                        <TextBlock Text="Configure row background, alternating stripes, cell text, and grid borders" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    </StackPanel>
+
+                    <!-- Toggles -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <CheckBox Content="Alternating Rows" 
+                                  IsChecked="{Binding TableShowAlternatingRowColors}" 
+                                  FontSize="11"/>
+                        <CheckBox Content="Gridlines" 
+                                  IsChecked="{Binding TableShowGridLines}" 
+                                  FontSize="11"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Row 1: Primary Row Background -->
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Primary Row Background:" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="Default" Background="{DynamicResource AppWorkspaceBrush}" ToolTip.Tip="Default Theme" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="#FFFFFF" Background="#FFFFFF" ToolTip.Tip="White (#FFFFFF)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="#0F172A" Background="#0F172A" ToolTip.Tip="Dark Slate (#0F172A)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="#1E293B" Background="#1E293B" ToolTip.Tip="Muted Slate (#1E293B)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="#0F1117" Background="#0F1117" ToolTip.Tip="Onyx Black (#0F1117)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="#0A192F" Background="#0A192F" ToolTip.Tip="Deep Navy (#0A192F)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="#FAF8F5" Background="#FAF8F5" ToolTip.Tip="Warm Paper (#FAF8F5)" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Row 2: Alternating Row Background -->
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Alternating Row Background (Stripe):" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTableAlternatingRowColorCommand}" CommandParameter="Default" Background="{DynamicResource AppCardBackgroundBrush}" ToolTip.Tip="Default Theme" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTableAlternatingRowColorCommand}" CommandParameter="#F8FAFC" Background="#F8FAFC" ToolTip.Tip="Soft Cloud (#F8FAFC)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTableAlternatingRowColorCommand}" CommandParameter="#141E2E" Background="#141E2E" ToolTip.Tip="Deep Ocean (#141E2E)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTableAlternatingRowColorCommand}" CommandParameter="#232E42" Background="#232E42" ToolTip.Tip="Slate Blue (#232E42)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTableAlternatingRowColorCommand}" CommandParameter="#161B22" Background="#161B22" ToolTip.Tip="GitHub Dark (#161B22)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTableAlternatingRowColorCommand}" CommandParameter="#F1F5F9" Background="#F1F5F9" ToolTip.Tip="Silver (#F1F5F9)" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Row 3: Cell Text Color -->
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Cell Text Color:" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTableCellTextColorCommand}" CommandParameter="Default" Background="{DynamicResource AppTextPrimaryBrush}" ToolTip.Tip="Default Theme" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTableCellTextColorCommand}" CommandParameter="#F8FAFC" Background="#F8FAFC" ToolTip.Tip="Crisp White (#F8FAFC)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTableCellTextColorCommand}" CommandParameter="#CBD5E1" Background="#CBD5E1" ToolTip.Tip="Soft Silver (#CBD5E1)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTableCellTextColorCommand}" CommandParameter="#38BDF8" Background="#38BDF8" ToolTip.Tip="Cyan (#38BDF8)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTableCellTextColorCommand}" CommandParameter="#34D399" Background="#34D399" ToolTip.Tip="Emerald (#34D399)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTableCellTextColorCommand}" CommandParameter="#FBBF24" Background="#FBBF24" ToolTip.Tip="Amber (#FBBF24)" />
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTableCellTextColorCommand}" CommandParameter="#0F172A" Background="#0F172A" ToolTip.Tip="Dark Charcoal (#0F172A)" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Row 4: Gridlines & Selection Highlight -->
+                <Grid ColumnDefinitions="*, *">
+                    <!-- Grid Lines Color -->
+                    <StackPanel Grid.Column="0" Spacing="6" Margin="0,0,8,0">
+                        <TextBlock Text="Gridlines Color:" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Classes="color-swatch-btn" Command="{Binding SelectTableGridLinesColorCommand}" CommandParameter="Default" Background="{DynamicResource AppBorderBrush}" ToolTip.Tip="Default Theme" />
+                            <Button Classes="color-swatch-btn" Command="{Binding SelectTableGridLinesColorCommand}" CommandParameter="#334155" Background="#334155" ToolTip.Tip="Slate (#334155)" />
+                            <Button Classes="color-swatch-btn" Command="{Binding SelectTableGridLinesColorCommand}" CommandParameter="#475569" Background="#475569" ToolTip.Tip="Muted Grey (#475569)" />
+                            <Button Classes="color-swatch-btn" Command="{Binding SelectTableGridLinesColorCommand}" CommandParameter="#CBD5E1" Background="#CBD5E1" ToolTip.Tip="Silver (#CBD5E1)" />
+                            <Button Classes="color-swatch-btn" Command="{Binding SelectTableGridLinesColorCommand}" CommandParameter="#E2E8F0" Background="#E2E8F0" ToolTip.Tip="Light Border (#E2E8F0)" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Selection Highlight Color -->
+                    <StackPanel Grid.Column="1" Spacing="6" Margin="8,0,0,0">
+                        <TextBlock Text="Row Selection Color:" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Classes="color-swatch-btn" Command="{Binding SelectTableSelectionColorCommand}" CommandParameter="Default" Background="{DynamicResource AppAccentBrush}" ToolTip.Tip="Default Theme" />
+                            <Button Classes="color-swatch-btn" Command="{Binding SelectTableSelectionColorCommand}" CommandParameter="#1E3A5F" Background="#1E3A5F" ToolTip.Tip="Navy Blue (#1E3A5F)" />
+                            <Button Classes="color-swatch-btn" Command="{Binding SelectTableSelectionColorCommand}" CommandParameter="#2563EB" Background="#2563EB" ToolTip.Tip="Royal Blue (#2563EB)" />
+                            <Button Classes="color-swatch-btn" Command="{Binding SelectTableSelectionColorCommand}" CommandParameter="#0D9488" Background="#0D9488" ToolTip.Tip="Teal (#0D9488)" />
+                            <Button Classes="color-swatch-btn" Command="{Binding SelectTableSelectionColorCommand}" CommandParameter="#DBEAFE" Background="#DBEAFE" ToolTip.Tip="Soft Blue (#DBEAFE)" />
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- 5. Interactive Live Results Table Preview -->
+        <Border Background="{DynamicResource AppBackgroundBrush}" 
+                BorderBrush="{DynamicResource AppBorderBrush}" 
+                BorderThickness="1" 
+                CornerRadius="6" 
+                Padding="12">
+            <StackPanel Spacing="8">
+                <Grid ColumnDefinitions="*, Auto">
+                    <TextBlock Grid.Column="0" Text="LIVE RESULTS TABLE PREVIEW" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AppTextMutedBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" 
+                               Text="{Binding TableRowHeight, StringFormat={}Row: {0:0}px | Font: {1:0}px}" 
+                               FontSize="10" 
+                               Foreground="{DynamicResource AppAccentBrush}" 
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                </Grid>
+
+                <Border BorderBrush="{Binding PreviewTableGridLinesBrush}" 
+                        BorderThickness="1" 
+                        CornerRadius="4" 
+                        ClipToBounds="True">
+                    <Grid RowDefinitions="Auto, Auto, Auto, Auto">
+                        <!-- Table Header Row -->
+                        <Border Grid.Row="0" 
+                                Height="{Binding TableHeaderHeight}" 
+                                Background="{Binding PreviewTableHeaderBgBrush}"
+                                BorderBrush="{Binding PreviewTableGridLinesBrush}" 
+                                BorderThickness="0,0,0,1">
+                            <Grid ColumnDefinitions="48, 60, 110, 100, *">
+                                <Border Grid.Column="0" Background="{Binding PreviewTableGutterBgBrush}" BorderBrush="{Binding PreviewTableGridLinesBrush}" BorderThickness="0,0,1,0">
+                                    <TextBlock Text="#" FontSize="10" FontWeight="Bold" Foreground="{Binding PreviewTableGutterTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Grid.Column="1" Text="Id" FontSize="10" FontWeight="Bold" Foreground="{Binding PreviewTableHeaderTextBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="Username" FontSize="10" FontWeight="Bold" Foreground="{Binding PreviewTableHeaderTextBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="3" Text="Role" FontSize="10" FontWeight="Bold" Foreground="{Binding PreviewTableHeaderTextBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="4" Text="Status" FontSize="10" FontWeight="Bold" Foreground="{Binding PreviewTableHeaderTextBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Row 1: Selected Row -->
+                        <Border Grid.Row="1" 
+                                Height="{Binding TableRowHeight}" 
+                                Background="{Binding PreviewTableSelectionBrush}"
+                                BorderBrush="{Binding PreviewTableGridLinesBrush}" 
+                                BorderThickness="0,0,0,1">
+                            <Grid ColumnDefinitions="48, 60, 110, 100, *">
+                                <Border Grid.Column="0" Background="{Binding PreviewTableGutterBgBrush}" BorderBrush="{Binding PreviewTableGridLinesBrush}" BorderThickness="0,0,1,0">
+                                    <TextBlock Text="1" FontSize="{Binding TableCellFontSize}" Foreground="{Binding PreviewTableGutterTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Grid.Column="1" Text="101" FontSize="{Binding TableCellFontSize}" Foreground="{Binding PreviewTableCellTextBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="john_doe" FontSize="{Binding TableCellFontSize}" FontWeight="SemiBold" Foreground="{Binding PreviewTableCellTextBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="3" Text="Administrator" FontSize="{Binding TableCellFontSize}" Foreground="{Binding PreviewTableCellTextBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="4" Text="Active" FontSize="{Binding TableCellFontSize}" Foreground="{DynamicResource AppAccentBrush}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Row 2: Alternating Row -->
+                        <Border Grid.Row="2" 
+                                Height="{Binding TableRowHeight}" 
+                                Background="{Binding PreviewTableAltRowBrush}"
+                                BorderBrush="{Binding PreviewTableGridLinesBrush}" 
+                                BorderThickness="0,0,0,1">
+                            <Grid ColumnDefinitions="48, 60, 110, 100, *">
+                                <Border Grid.Column="0" Background="{Binding PreviewTableGutterBgBrush}" BorderBrush="{Binding PreviewTableGridLinesBrush}" BorderThickness="0,0,1,0">
+                                    <TextBlock Text="2" FontSize="{Binding TableCellFontSize}" Foreground="{Binding PreviewTableGutterTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Grid.Column="1" Text="102" FontSize="{Binding TableCellFontSize}" Foreground="{Binding PreviewTableCellTextBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="sarah_connor" FontSize="{Binding TableCellFontSize}" Foreground="{Binding PreviewTableCellTextBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="3" Text="Editor" FontSize="{Binding TableCellFontSize}" Foreground="{Binding PreviewTableCellTextBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="4" Text="Active" FontSize="{Binding TableCellFontSize}" Foreground="{Binding PreviewTableCellTextBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Row 3: Primary Row -->
+                        <Border Grid.Row="3" 
+                                Height="{Binding TableRowHeight}" 
+                                Background="{Binding PreviewTableMainRowBrush}">
+                            <Grid ColumnDefinitions="48, 60, 110, 100, *">
+                                <Border Grid.Column="0" Background="{Binding PreviewTableGutterBgBrush}" BorderBrush="{Binding PreviewTableGridLinesBrush}" BorderThickness="0,0,1,0">
+                                    <TextBlock Text="3" FontSize="{Binding TableCellFontSize}" Foreground="{Binding PreviewTableGutterTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Grid.Column="1" Text="103" FontSize="{Binding TableCellFontSize}" Foreground="{Binding PreviewTableCellTextBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="michael_scott" FontSize="{Binding TableCellFontSize}" Foreground="{Binding PreviewTableCellTextBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="3" Text="Manager" FontSize="{Binding TableCellFontSize}" Foreground="{Binding PreviewTableCellTextBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="4" Text="Pending" FontSize="{Binding TableCellFontSize}" Foreground="{Binding PreviewTableCellTextBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

@@ -20,5 +20,6 @@
     <x:Double x:Key="AppTableRowHeight">25</x:Double>
     <x:Double x:Key="AppTableHeaderHeight">25</x:Double>
     <x:Double x:Key="AppTableGutterWidth">56</x:Double>
+    <x:Double x:Key="AppTableCellFontSize">11</x:Double>
 
 </ResourceDictionary>

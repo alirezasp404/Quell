@@ -85,6 +85,20 @@ INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('SidebarBackgr
 INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableBackground', 'Default', datetime('now'));
 INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('EditorFontSize', '13', datetime('now'));
 INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('EditorShowLineNumbers', 'true', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableRowHeight', '25', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableHeaderHeight', '26', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableGutterWidth', '56', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableCellFontSize', '11', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableAlternatingRowColor', 'Default', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableCellTextColor', 'Default', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableHeaderBackground', 'Default', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableHeaderTextColor', 'Default', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableGutterBackground', 'Default', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableGutterTextColor', 'Default', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableGridLinesColor', 'Default', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableSelectionColor', 'Default', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableShowGridLines', 'true', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableShowAlternatingRowColors', 'true', datetime('now'));
 
 INSERT OR IGNORE INTO UserShortcuts (Id, Name, Category, KeyGesture, DefaultGesture, Description, UpdatedAt) VALUES
 ('RunQuery', 'Execute Active Query', 'Query & Execution', 'F5', 'F5', 'Executes the active query or selected text', datetime('now')),

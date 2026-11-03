@@ -88,6 +88,25 @@ public class PanelCustomizationRecord
     public bool EditorShowLineNumbers { get; set; } = true;
 }
 
+public class TableCustomizationRecord
+{
+    public double RowHeight { get; set; } = 25.0;
+    public double HeaderHeight { get; set; } = 26.0;
+    public double GutterWidth { get; set; } = 56.0;
+    public double FontSize { get; set; } = 11.0;
+    public string TableBackground { get; set; } = "Default";
+    public string AlternatingRowColor { get; set; } = "Default";
+    public string CellTextColor { get; set; } = "Default";
+    public string HeaderBackground { get; set; } = "Default";
+    public string HeaderTextColor { get; set; } = "Default";
+    public string GutterBackground { get; set; } = "Default";
+    public string GutterTextColor { get; set; } = "Default";
+    public string GridLinesColor { get; set; } = "Default";
+    public string SelectionColor { get; set; } = "Default";
+    public bool ShowGridLines { get; set; } = true;
+    public bool ShowAlternatingRowColors { get; set; } = true;
+}
+
 public class DatabaseStorageService
 {
     private static DatabaseStorageService? _instance;
@@ -921,6 +940,84 @@ public class DatabaseStorageService
         catch (Exception ex)
         {
             Console.WriteLine($"[DatabaseStorageService] SavePanelCustomizationAsync error: {ex.Message}");
+        }
+    }
+
+    public async Task<TableCustomizationRecord> GetTableCustomizationAsync()
+    {
+        var record = new TableCustomizationRecord();
+        try
+        {
+            string rhStr = await GetSettingAsync("TableRowHeight", "25");
+            if (double.TryParse(rhStr, System.Globalization.CultureInfo.InvariantCulture, out double rh))
+            {
+                record.RowHeight = rh;
+            }
+
+            string hhStr = await GetSettingAsync("TableHeaderHeight", "26");
+            if (double.TryParse(hhStr, System.Globalization.CultureInfo.InvariantCulture, out double hh))
+            {
+                record.HeaderHeight = hh;
+            }
+
+            string gwStr = await GetSettingAsync("TableGutterWidth", "56");
+            if (double.TryParse(gwStr, System.Globalization.CultureInfo.InvariantCulture, out double gw))
+            {
+                record.GutterWidth = gw;
+            }
+
+            string fsStr = await GetSettingAsync("TableCellFontSize", "11");
+            if (double.TryParse(fsStr, System.Globalization.CultureInfo.InvariantCulture, out double fs))
+            {
+                record.FontSize = fs;
+            }
+
+            record.TableBackground = await GetSettingAsync("TableBackground", "Default");
+            record.AlternatingRowColor = await GetSettingAsync("TableAlternatingRowColor", "Default");
+            record.CellTextColor = await GetSettingAsync("TableCellTextColor", "Default");
+            record.HeaderBackground = await GetSettingAsync("TableHeaderBackground", "Default");
+            record.HeaderTextColor = await GetSettingAsync("TableHeaderTextColor", "Default");
+            record.GutterBackground = await GetSettingAsync("TableGutterBackground", "Default");
+            record.GutterTextColor = await GetSettingAsync("TableGutterTextColor", "Default");
+            record.GridLinesColor = await GetSettingAsync("TableGridLinesColor", "Default");
+            record.SelectionColor = await GetSettingAsync("TableSelectionColor", "Default");
+
+            string gridLinesStr = await GetSettingAsync("TableShowGridLines", "true");
+            record.ShowGridLines = gridLinesStr != "false" && gridLinesStr != "0";
+
+            string altRowsStr = await GetSettingAsync("TableShowAlternatingRowColors", "true");
+            record.ShowAlternatingRowColors = altRowsStr != "false" && altRowsStr != "0";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] GetTableCustomizationAsync error: {ex.Message}");
+        }
+        return record;
+    }
+
+    public async Task SaveTableCustomizationAsync(TableCustomizationRecord record)
+    {
+        try
+        {
+            await SaveSettingAsync("TableRowHeight", record.RowHeight.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            await SaveSettingAsync("TableHeaderHeight", record.HeaderHeight.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            await SaveSettingAsync("TableGutterWidth", record.GutterWidth.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            await SaveSettingAsync("TableCellFontSize", record.FontSize.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            await SaveSettingAsync("TableBackground", record.TableBackground);
+            await SaveSettingAsync("TableAlternatingRowColor", record.AlternatingRowColor);
+            await SaveSettingAsync("TableCellTextColor", record.CellTextColor);
+            await SaveSettingAsync("TableHeaderBackground", record.HeaderBackground);
+            await SaveSettingAsync("TableHeaderTextColor", record.HeaderTextColor);
+            await SaveSettingAsync("TableGutterBackground", record.GutterBackground);
+            await SaveSettingAsync("TableGutterTextColor", record.GutterTextColor);
+            await SaveSettingAsync("TableGridLinesColor", record.GridLinesColor);
+            await SaveSettingAsync("TableSelectionColor", record.SelectionColor);
+            await SaveSettingAsync("TableShowGridLines", record.ShowGridLines ? "true" : "false");
+            await SaveSettingAsync("TableShowAlternatingRowColors", record.ShowAlternatingRowColors ? "true" : "false");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] SaveTableCustomizationAsync error: {ex.Message}");
         }
     }
 }

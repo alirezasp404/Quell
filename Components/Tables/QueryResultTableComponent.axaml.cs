@@ -10,6 +10,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Fdb.Services;
 using Fdb.ViewModels;
 
 namespace Fdb.Components;
@@ -58,6 +59,8 @@ public partial class QueryResultTableComponent : UserControl
             InputElement.KeyDownEvent,
             OnGridKeyDown,
             RoutingStrategies.Tunnel);
+
+        ThemeService.Instance.TableCustomizationChanged += OnTableCustomizationChanged;
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
@@ -94,6 +97,24 @@ public partial class QueryResultTableComponent : UserControl
             {
                 await _viewModel.NavigateToForeignKeyAsync(colName, cellVal);
             }
+        }
+    }
+
+    private void OnTableCustomizationChanged(object? sender, TableCustomizationRecord custom)
+    {
+        if (ResultsDataGrid != null)
+        {
+            if (custom.RowHeight >= 18)
+            {
+                ResultsDataGrid.RowHeight = custom.RowHeight;
+            }
+            if (ResultsDataGrid.Columns.Count > 0 && custom.GutterWidth >= 30)
+            {
+                ResultsDataGrid.Columns[0].Width = new DataGridLength(custom.GutterWidth);
+            }
+            ResultsDataGrid.GridLinesVisibility = custom.ShowGridLines 
+                ? DataGridGridLinesVisibility.All 
+                : DataGridGridLinesVisibility.None;
         }
     }
 

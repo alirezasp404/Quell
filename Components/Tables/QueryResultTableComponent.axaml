@@ -14,7 +14,7 @@
         <Style Selector="DataGridCell.row-header-col">
             <Setter Property="Background" Value="{DynamicResource AppTableGutterBackgroundBrush}"/>
             <Setter Property="Foreground" Value="{DynamicResource AppTableGutterForegroundBrush}"/>
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontSize" Value="{DynamicResource AppTableCellFontSize}"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppTableGutterBorderBrush}"/>
@@ -25,7 +25,7 @@
         <Style Selector="DataGridCell.white-col">
             <Setter Property="Background" Value="{DynamicResource AppTableWhiteColBackgroundBrush}"/>
             <Setter Property="Foreground" Value="{DynamicResource AppTableCellForegroundBrush}"/>
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontSize" Value="{DynamicResource AppTableCellFontSize}"/>
             <Setter Property="Padding" Value="8,2"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppTableCellBorderBrush}"/>
             <Setter Property="BorderThickness" Value="0,0,1,1"/>
@@ -33,7 +33,7 @@
         <Style Selector="DataGridCell.alt-col">
             <Setter Property="Background" Value="{DynamicResource AppTableAltColBackgroundBrush}"/>
             <Setter Property="Foreground" Value="{DynamicResource AppTableCellForegroundBrush}"/>
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontSize" Value="{DynamicResource AppTableCellFontSize}"/>
             <Setter Property="Padding" Value="8,2"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppTableCellBorderBrush}"/>
             <Setter Property="BorderThickness" Value="0,0,1,1"/>
@@ -44,7 +44,7 @@
             <Setter Property="Background" Value="{DynamicResource AppTableWhiteColBackgroundBrush}"/>
             <Setter Property="Foreground" Value="{DynamicResource AppTableCellForegroundBrush}"/>
             <Setter Property="FontWeight" Value="Normal"/>
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontSize" Value="{DynamicResource AppTableCellFontSize}"/>
             <Setter Property="Padding" Value="8,2"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppTableCellBorderBrush}"/>
             <Setter Property="BorderThickness" Value="0,0,1,1"/>
@@ -61,7 +61,7 @@
             <Setter Property="Background" Value="{DynamicResource AppTableAltColBackgroundBrush}"/>
             <Setter Property="Foreground" Value="{DynamicResource AppTableCellForegroundBrush}"/>
             <Setter Property="FontWeight" Value="Normal"/>
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontSize" Value="{DynamicResource AppTableCellFontSize}"/>
             <Setter Property="Padding" Value="8,2"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppTableCellBorderBrush}"/>
             <Setter Property="BorderThickness" Value="0,0,1,1"/>
