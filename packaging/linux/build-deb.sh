@@ -40,7 +40,11 @@ ln -sf "/usr/lib/fdb-studio/Fdb" "$PACKAGE_ROOT/usr/bin/fdb-studio"
 cp "$SCRIPT_DIR/fdb-studio.desktop" "$PACKAGE_ROOT/usr/share/applications/fdb-studio.desktop"
 
 # Copy icon if available
-if [ -f "$ROOT_DIR/Assets/logo.png" ]; then
+if [ -f "$ROOT_DIR/Assets/fdb_icon.png" ]; then
+    cp "$ROOT_DIR/Assets/fdb_icon.png" "$PACKAGE_ROOT/usr/share/icons/hicolor/256x256/apps/fdb-studio.png"
+elif [ -f "$ROOT_DIR/Assets/fdb_icon.ico" ]; then
+    cp "$ROOT_DIR/Assets/fdb_icon.ico" "$PACKAGE_ROOT/usr/share/icons/hicolor/256x256/apps/fdb-studio.ico"
+elif [ -f "$ROOT_DIR/Assets/logo.png" ]; then
     cp "$ROOT_DIR/Assets/logo.png" "$PACKAGE_ROOT/usr/share/icons/hicolor/256x256/apps/fdb-studio.png"
 elif [ -f "$ROOT_DIR/Assets/logo.ico" ]; then
     cp "$ROOT_DIR/Assets/logo.ico" "$PACKAGE_ROOT/usr/share/icons/hicolor/256x256/apps/fdb-studio.ico"
