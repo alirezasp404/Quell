@@ -696,10 +696,6 @@ public partial class MainViewModel : ViewModelBase
     public void ShowFooter()
     {
         Footer.IsVisible = true;
-        if (Footer.Tabs.Count == 0)
-        {
-            ResetFooterTabs();
-        }
     }
 
     [RelayCommand]
@@ -749,10 +745,8 @@ public partial class MainViewModel : ViewModelBase
     private void ResetFooterTabs()
     {
         Footer.Tabs.Clear();
-        Footer.Tabs.Add("Terminal");
-        Footer.Tabs.Add("Output");
-        Footer.Tabs.Add("Problems");
-        Footer.SelectedTab = "Terminal";
+        Footer.Tabs.Add("Results");
+        Footer.SelectedTab = "Results";
     }
 
     private static string? ExtractTableNameFromQuery(string query)

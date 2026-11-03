@@ -115,25 +115,28 @@ public partial class QueryResultTableViewModel : ViewModelBase
     private readonly List<QueryResultRow> _allRows = new();
 
     [ObservableProperty]
-    private int _totalRows = 5;
+    [NotifyPropertyChangedFor(nameof(HasRows))]
+    private int _totalRows;
 
     [ObservableProperty]
-    private string _executionTime = "14 ms";
+    private string _executionTime = string.Empty;
 
     [ObservableProperty]
     private string _targetDatabaseName = "(No Connection)";
 
     [ObservableProperty]
-    private string _currentTableName = "Users";
+    private string _currentTableName = string.Empty;
 
     [ObservableProperty]
     private string _currentDatabaseType = "MSSQL";
 
     [ObservableProperty]
-    private string _primaryKeyColumnName = "Id";
+    private string _primaryKeyColumnName = string.Empty;
 
     [ObservableProperty]
-    private bool _hasPrimaryKey = true;
+    private bool _hasPrimaryKey;
+
+    public bool HasRows => Rows != null && Rows.Count > 0;
 
     partial void OnSearchFilterChanged(string value)
     {
@@ -416,14 +419,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
 
     public event Action<IReadOnlyList<string>>? ColumnsChanged;
 
-    public ObservableCollection<QueryResultRow> Rows { get; } = new()
-    {
-        new QueryResultRow { RowIndex = 1, Id = 101, Name = "Alice Johnson", Email = "alice@example.com", Role = "DBA", Status = "Active", CreatedAt = "2026-01-15 08:30:00" },
-        new QueryResultRow { RowIndex = 2, Id = 102, Name = "Bob Smith", Email = "bob@example.com", Role = "Developer", Status = "Active", CreatedAt = "2026-02-10 11:15:22" },
-        new QueryResultRow { RowIndex = 3, Id = 103, Name = "Charlie Davis", Email = "charlie@example.com", Role = "Analyst", Status = "Pending", CreatedAt = "2026-03-01 14:45:00" },
-        new QueryResultRow { RowIndex = 4, Id = 104, Name = "Dana White", Email = "dana@example.com", Role = "Admin", Status = "Active", CreatedAt = "2026-03-12 09:20:11" },
-        new QueryResultRow { RowIndex = 5, Id = 105, Name = "Evan Wright", Email = "evan@example.com", Role = "Developer", Status = "Inactive", CreatedAt = "2026-04-05 16:00:45" }
-    };
+    public ObservableCollection<QueryResultRow> Rows { get; } = new();
 
     public QueryResultTableViewModel()
     {
@@ -432,42 +428,6 @@ public partial class QueryResultTableViewModel : ViewModelBase
             LastQueryMessage = msg;
             HasLastQueryMessage = true;
         };
-
-        // Cache initial row values into OriginalValues
-        foreach (var r in Rows)
-        {
-            r.OriginalValues["Id"] = r.Id.ToString();
-            r.OriginalValues["Name"] = r.Name;
-            r.OriginalValues["Email"] = r.Email;
-            r.OriginalValues["Role"] = r.Role;
-            r.OriginalValues["Status"] = r.Status;
-            r.OriginalValues["CreatedAt"] = r.CreatedAt;
-        }
-                // Initialize default ForeignKey relation for Role -> Roles
-        ForeignKeyRelations["Role"] = new ForeignKeyRelation
-        {
-            ColumnName = "Role",
-            TargetTable = "Roles",
-            TargetColumn = "Title",
-            ConstraintName = "FK_Users_Roles"
-        };
-        ForeignKeyRelations["Course"] = new ForeignKeyRelation
-        {
-            ColumnName = "Course",
-            TargetTable = "Courses",
-            TargetColumn = "Title",
-            ConstraintName = "FK_Users_Courses"
-        };
-        ForeignKeyRelations["دوره"] = new ForeignKeyRelation
-        {
-            ColumnName = "دوره",
-            TargetTable = "Courses",
-            TargetColumn = "Title",
-            ConstraintName = "FK_Users_Courses_Fa"
-        };
-
-        _allRows.Clear();
-        _allRows.AddRange(Rows);
     }
 
     public void SetResults(IReadOnlyList<string> columns, IReadOnlyList<QueryResultRow> newRows, string execTime)
@@ -532,6 +492,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
                 }
             }
 
+            OnPropertyChanged(nameof(HasRows));
             ColumnsChanged?.Invoke(columns);
         }
 

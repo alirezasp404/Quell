@@ -116,19 +116,28 @@ sealed class Program
 
             // 4. Test Table Components Data
             Console.WriteLine("\n[Action] Verifying Table Components...");
-            Console.WriteLine($"QueryResultTable Rows: {vm.SampleQueryResult.Rows.Count} rows loaded.");
+            Console.WriteLine($"QueryResultTable Initial Rows: {vm.SampleQueryResult.Rows.Count} (Clean initial state, 0 default mock rows).");
+            if (vm.SampleQueryResult.Rows.Count != 0)
+            {
+                throw new Exception($"Expected clean initial table (0 rows), but got {vm.SampleQueryResult.Rows.Count}");
+            }
+            if (vm.Footer.Tabs.Count != 0)
+            {
+                throw new Exception($"Expected clean initial footer tabs (0 tabs), but got {vm.Footer.Tabs.Count}");
+            }
             Console.WriteLine($"SchemaPropertiesTable Columns: {vm.SampleSchema.Columns.Count} columns loaded.");
             var tableComp = new Fdb.Components.QueryResultTableComponent { DataContext = vm.SampleQueryResult };
             var dataGrid = tableComp.FindControl<Avalonia.Controls.DataGrid>("ResultsDataGrid");
-            Console.WriteLine($"DataGrid Columns Count: {tableComp.FindControl<Avalonia.Controls.DataGrid>("ResultsDataGrid")?.Columns.Count ?? 0}");
+            Console.WriteLine($"DataGrid Columns Count: {dataGrid?.Columns.Count ?? 0}");
             Console.WriteLine($"DataGrid RowHeight: {dataGrid?.RowHeight}px (Compact height)");
             if (dataGrid?.RowHeight != 25)
             {
                 throw new Exception($"Expected compact DataGrid RowHeight=25, but got {dataGrid?.RowHeight}");
             }
+            var testRow = new Fdb.ViewModels.QueryResultRow { RowIndex = 1, Id = 101, Name = "Alice Johnson" };
             var col0 = dataGrid?.Columns[0] as Avalonia.Controls.DataGridTemplateColumn;
-            var cellContent = col0?.CellTemplate?.Build(vm.SampleQueryResult.Rows[0]) as Avalonia.Controls.Grid;
-            if (cellContent != null) cellContent.DataContext = vm.SampleQueryResult.Rows[0];
+            var cellContent = col0?.CellTemplate?.Build(testRow) as Avalonia.Controls.Grid;
+            if (cellContent != null) cellContent.DataContext = testRow;
             var textBlock = cellContent?.Children[0] as Avalonia.Controls.TextBlock;
             Console.WriteLine($"Cell 0 TextBlock Text: '{textBlock?.Text}', DataContext: {textBlock?.DataContext}");
             if (textBlock?.Text != "1")

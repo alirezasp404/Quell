@@ -185,11 +185,13 @@
             
             <!-- 1. Table Toolbar Component -->
             <components:TableToolbarComponent Grid.Row="0" DataContext="{Binding}" />
+
             <!-- 2. Interactive DataGrid with Alternating Columns & Prominent Titles (RowHeight=25) -->
             <DataGrid x:Name="ResultsDataGrid"
                       Grid.Row="1" 
                       ItemsSource="{Binding Rows}" 
                       SelectedItem="{Binding SelectedRow}"
+                      IsVisible="{Binding HasRows}"
                       AutoGenerateColumns="False" 
                       IsReadOnly="True"
                       SelectionMode="Single"
@@ -450,6 +452,24 @@
                                         Width="170" />
                 </DataGrid.Columns>
             </DataGrid>
+
+            <!-- 2b. Clean Empty State Overlay (Visible when no query results) -->
+            <Border Grid.Row="1" 
+                    IsVisible="{Binding !HasRows}"
+                    Background="{DynamicResource AppWorkspaceBrush}">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                    <ui:FASymbolIcon Symbol="Page" FontSize="28" Foreground="{DynamicResource AppTextMutedBrush}" HorizontalAlignment="Center"/>
+                    <TextBlock Text="No Query Results" 
+                               FontSize="13" 
+                               FontWeight="Bold" 
+                               Foreground="{DynamicResource AppTextSecondaryBrush}" 
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Execute a query (F5) or select a table from Object Explorer to view data." 
+                               FontSize="11" 
+                               Foreground="{DynamicResource AppTextMutedBrush}" 
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
 
             <!-- 3. Table Pagination Component -->
             <components:TablePaginationComponent Grid.Row="2" DataContext="{Binding}" />

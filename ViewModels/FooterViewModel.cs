@@ -14,14 +14,9 @@ public partial class FooterViewModel : ViewModelBase
     private bool _isMaximized;
 
     [ObservableProperty]
-    private string _selectedTab = "Terminal";
+    private string _selectedTab = string.Empty;
 
-    public ObservableCollection<string> Tabs { get; } = new()
-    {
-        "Terminal",
-        "Output",
-        "Problems"
-    };
+    public ObservableCollection<string> Tabs { get; } = new();
 
     [RelayCommand]
     private void SelectTab(string tabName)

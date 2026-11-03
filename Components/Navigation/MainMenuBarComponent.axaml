@@ -85,15 +85,9 @@
                                   Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ShowFooterCommand}" />
                         <Separator />
                         <MenuItem Header="Restore Footer Tabs">
-                            <MenuItem Header="Terminal" 
+                            <MenuItem Header="Results" 
                                       Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).RestoreFooterTabCommand}" 
-                                      CommandParameter="Terminal" />
-                            <MenuItem Header="Output" 
-                                      Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).RestoreFooterTabCommand}" 
-                                      CommandParameter="Output" />
-                            <MenuItem Header="Problems" 
-                                      Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).RestoreFooterTabCommand}" 
-                                      CommandParameter="Problems" />
+                                      CommandParameter="Results" />
                         </MenuItem>
                         <MenuItem Header="Restore Sidebar Tabs">
                             <MenuItem Header="Explorer" 

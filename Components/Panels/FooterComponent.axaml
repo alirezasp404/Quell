@@ -25,7 +25,8 @@
                     Background="{DynamicResource AppSurfaceBrush}" 
                     BorderBrush="{DynamicResource AppBorderBrush}" 
                     BorderThickness="0,0,0,1" 
-                    Padding="4,2,4,0">
+                    Padding="4,2,4,0"
+                    IsVisible="{Binding Tabs.Count}">
                 <ItemsControl ItemsSource="{Binding Tabs}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
