@@ -18,9 +18,9 @@
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                 <!-- Project Brand Logo -->
                 <Border CornerRadius="4" ClipToBounds="True" Width="18" Height="18" Margin="0,0,6,0">
-                    <Image Source="avares://Fdb/Assets/logo.png" 
+                    <Image Source="avares://Fdb/Assets/fdb_icon.png" 
                            Width="18" Height="18" 
-                           Stretch="UniformToFill" 
+                           Stretch="Uniform" 
                            RenderOptions.BitmapInterpolationMode="HighQuality"/>
                 </Border>
                 <TextBlock Text="{Binding Title}" 

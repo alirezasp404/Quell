@@ -13,7 +13,7 @@
     <Description>Modern, Cross-Platform Database Client and SQL IDE</Description>
     <Company>CipherUnits</Company>
     <Authors>CipherUnits</Authors>
-    <ApplicationIcon>Assets\logo.ico</ApplicationIcon>
+    <ApplicationIcon>Assets\fdb_icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
