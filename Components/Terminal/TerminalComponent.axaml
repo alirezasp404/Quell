@@ -167,18 +167,12 @@
                                     Padding="0"
                                     BorderThickness="0"
                                     Background="Transparent"
-                                    ToolTip.Tip="Select Terminal Shell or Database CLI">
+                                    ToolTip.Tip="Select Terminal Shell">
                                 <Button.Flyout>
                                     <MenuFlyout Placement="BottomEdgeAlignedLeft">
                                         <MenuItem Header="Default Shell" Command="{Binding NewSessionCommand}" CommandParameter="{x:Null}">
                                             <MenuItem.Icon>
                                                 <ui:FASymbolIcon Symbol="Play" FontSize="11" Foreground="#38BDF8" />
-                                            </MenuItem.Icon>
-                                        </MenuItem>
-                                        <Separator />
-                                        <MenuItem Header="Launch Database CLI" Command="{Binding LaunchDatabaseCliCommand}" CommandParameter="{x:Null}">
-                                            <MenuItem.Icon>
-                                                <ui:FASymbolIcon Symbol="Sync" FontSize="11" Foreground="#10B981" />
                                             </MenuItem.Icon>
                                         </MenuItem>
                                     </MenuFlyout>
