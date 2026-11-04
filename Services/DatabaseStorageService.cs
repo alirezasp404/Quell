@@ -40,6 +40,20 @@ public class ConnectionRecord
     public bool IsActive { get; set; }
     public string StatusBadgeText => IsActive ? "ACTIVE" : "SAVED";
     public string StatusBadgeColor => IsActive ? "#10B981" : "#6B7280";
+
+    public ConnectionRecord Clone() => new()
+    {
+        Id = Id,
+        Server = Server,
+        Port = Port,
+        DatabaseName = DatabaseName,
+        AuthType = AuthType,
+        Username = Username,
+        Password = Password,
+        DatabaseType = DatabaseType,
+        LastConnectedAt = LastConnectedAt,
+        IsActive = IsActive
+    };
 }
 
 public class QueryHistoryRecord
@@ -115,6 +129,18 @@ public class DatabaseStorageService
     private readonly string _connectionString;
     private readonly System.Threading.SemaphoreSlim _initLock = new(1, 1);
     private bool _initialized;
+
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _settingsCache = new(StringComparer.OrdinalIgnoreCase);
+    private bool _settingsLoaded;
+
+    private List<ConnectionRecord>? _cachedRecentConnections;
+    private readonly object _connsLock = new();
+
+    private List<QueryHistoryRecord>? _cachedQueryHistory;
+    private readonly object _historyLock = new();
+
+    private List<ShortcutDbRecord>? _cachedShortcuts;
+    private readonly object _shortcutsLock = new();
 
     public string DatabasePath { get; }
     public bool IsFirstRun { get; private set; }
@@ -263,6 +289,12 @@ public class DatabaseStorageService
             }
             catch { }
 
+            try
+            {
+                await LoadAllSettingsAsync(connection);
+            }
+            catch { }
+
             _initialized = true;
 
             reportProgress?.Invoke(90, "Pre-caching active SQL dialect keywords...");
@@ -280,6 +312,80 @@ public class DatabaseStorageService
         {
             _initLock.Release();
         }
+    }
+
+    /// <summary>
+    /// Loads all key-value pairs from AppSettings in a single round-trip into the in-memory cache.
+    /// </summary>
+    public async Task LoadAllSettingsAsync(SqliteConnection? existingConnection = null)
+    {
+        try
+        {
+            if (existingConnection != null)
+            {
+                var rows = await existingConnection.QueryAsync<(string Key, string Value)>("SELECT Key, Value FROM AppSettings;");
+                foreach (var (k, v) in rows)
+                {
+                    if (k != null) _settingsCache[k] = v ?? string.Empty;
+                }
+            }
+            else
+            {
+                await InitializeAsync();
+                await using var connection = new SqliteConnection(_connectionString);
+                await connection.OpenAsync();
+                var rows = await connection.QueryAsync<(string Key, string Value)>("SELECT Key, Value FROM AppSettings;");
+                foreach (var (k, v) in rows)
+                {
+                    if (k != null) _settingsCache[k] = v ?? string.Empty;
+                }
+            }
+            _settingsLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] LoadAllSettingsAsync error: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Unified high-performance startup routine executed during the splash screen sequence.
+    /// Runs SQLite schema initialization/migrations, pre-caches all settings, applies theme,
+    /// pre-caches SQL dialect keywords, shortcuts, saved connections, and query history.
+    /// </summary>
+    public async Task PreloadStartupDataAsync(Action<double, string>? reportProgress = null)
+    {
+        reportProgress?.Invoke(10, "Opening SQLite Storage Engine...");
+        await InitializeWithProgressAsync((p, s) =>
+        {
+            // Map the schema init progress from 10 to 50
+            double mapped = 10 + (p * 0.4);
+            reportProgress?.Invoke(mapped, s);
+        }).ConfigureAwait(false);
+
+        reportProgress?.Invoke(55, "Pre-caching Application Settings & Preferences...");
+        await LoadAllSettingsAsync().ConfigureAwait(false);
+
+        reportProgress?.Invoke(68, "Applying Appearance, Themes & Customizations...");
+        string theme = await GetThemeAsync().ConfigureAwait(false);
+        ThemeService.Instance.ApplyTheme(theme);
+        string keywordColor = await GetKeywordColorAsync().ConfigureAwait(false);
+        ThemeService.Instance.SetKeywordColor(keywordColor);
+        var panelCustom = await GetPanelCustomizationAsync().ConfigureAwait(false);
+        ThemeService.Instance.ApplyPanelCustomization(panelCustom);
+        var tableCustom = await GetTableCustomizationAsync().ConfigureAwait(false);
+        ThemeService.Instance.ApplyTableCustomization(tableCustom);
+
+        reportProgress?.Invoke(80, "Pre-caching Keyboard Shortcuts...");
+        await ShortcutService.Instance.InitializeAsync().ConfigureAwait(false);
+
+        reportProgress?.Invoke(90, "Pre-caching Saved Connections & Database Nodes...");
+        await GetRecentConnectionsAsync(forceReload: true).ConfigureAwait(false);
+
+        reportProgress?.Invoke(96, "Pre-caching Execution History & Dialect Metadata...");
+        await GetQueryHistoryAsync(forceReload: true).ConfigureAwait(false);
+
+        reportProgress?.Invoke(100, "Studio Environment Ready — SQLite Engine Initialized.");
     }
 
     private static async Task ExecuteInitScriptStepsAsync(SqliteConnection connection, string fullSql, Action<double, string>? reportProgress)
@@ -570,6 +676,11 @@ public class DatabaseStorageService
                 rowCount,
                 status
             });
+
+            lock (_historyLock)
+            {
+                _cachedQueryHistory = null;
+            }
         }
         catch (Exception ex)
         {
@@ -577,8 +688,27 @@ public class DatabaseStorageService
         }
     }
 
-    public async Task<List<QueryHistoryRecord>> GetQueryHistoryAsync()
+    public async Task<List<QueryHistoryRecord>> GetQueryHistoryAsync(bool forceReload = false)
     {
+        if (!forceReload && _cachedQueryHistory != null)
+        {
+            lock (_historyLock)
+            {
+                if (_cachedQueryHistory != null)
+                {
+                    return _cachedQueryHistory.Select(h => new QueryHistoryRecord
+                    {
+                        Id = h.Id,
+                        QueryText = h.QueryText,
+                        ExecutedAt = h.ExecutedAt,
+                        ExecutionTime = h.ExecutionTime,
+                        RowCount = h.RowCount,
+                        Status = h.Status
+                    }).ToList();
+                }
+            }
+        }
+
         try
         {
             await InitializeAsync();
@@ -591,8 +721,20 @@ public class DatabaseStorageService
                 ORDER BY Id DESC 
                 LIMIT 50;";
 
-            var result = await connection.QueryAsync<QueryHistoryRecord>(sql);
-            return result.ToList();
+            var result = (await connection.QueryAsync<QueryHistoryRecord>(sql)).ToList();
+            lock (_historyLock)
+            {
+                _cachedQueryHistory = result.Select(h => new QueryHistoryRecord
+                {
+                    Id = h.Id,
+                    QueryText = h.QueryText,
+                    ExecutedAt = h.ExecutedAt,
+                    ExecutionTime = h.ExecutionTime,
+                    RowCount = h.RowCount,
+                    Status = h.Status
+                }).ToList();
+            }
+            return result;
         }
         catch (Exception ex)
         {
@@ -626,6 +768,10 @@ public class DatabaseStorageService
             if (existingId > 0)
             {
                 await UpdateConnectionAsync(existingId, server ?? string.Empty, port, databaseName ?? string.Empty, authType ?? string.Empty, username ?? string.Empty, databaseType ?? string.Empty, password ?? string.Empty);
+                lock (_connsLock)
+                {
+                    _cachedRecentConnections = null;
+                }
                 return existingId;
             }
 
@@ -634,7 +780,7 @@ public class DatabaseStorageService
                 VALUES (@server, @port, @databaseName, @authType, @username, @password, @databaseType, datetime('now'));
                 SELECT last_insert_rowid();";
 
-            return await connection.ExecuteScalarAsync<int>(sql, new
+            int newId = await connection.ExecuteScalarAsync<int>(sql, new
             {
                 server = server ?? "localhost",
                 port,
@@ -644,6 +790,12 @@ public class DatabaseStorageService
                 password = password ?? string.Empty,
                 databaseType = databaseType ?? "MSSQL"
             });
+
+            lock (_connsLock)
+            {
+                _cachedRecentConnections = null;
+            }
+            return newId;
         }
         catch (Exception ex)
         {
@@ -680,6 +832,11 @@ public class DatabaseStorageService
                 password = password ?? string.Empty,
                 databaseType = databaseType ?? "MSSQL"
             });
+
+            lock (_connsLock)
+            {
+                _cachedRecentConnections = null;
+            }
             return affected > 0;
         }
         catch (Exception ex)
@@ -699,6 +856,11 @@ public class DatabaseStorageService
 
             const string sql = "DELETE FROM Connections WHERE Id = @id;";
             int affected = await connection.ExecuteAsync(sql, new { id });
+
+            lock (_connsLock)
+            {
+                _cachedRecentConnections = null;
+            }
             return affected > 0;
         }
         catch (Exception ex)
@@ -718,6 +880,11 @@ public class DatabaseStorageService
 
             const string sql = "DELETE FROM Connections WHERE Server = @server AND DatabaseName = @databaseName;";
             int affected = await connection.ExecuteAsync(sql, new { server, databaseName });
+
+            lock (_connsLock)
+            {
+                _cachedRecentConnections = null;
+            }
             return affected > 0;
         }
         catch (Exception ex)
@@ -727,8 +894,19 @@ public class DatabaseStorageService
         }
     }
 
-    public async Task<List<ConnectionRecord>> GetRecentConnectionsAsync()
+    public async Task<List<ConnectionRecord>> GetRecentConnectionsAsync(bool forceReload = false)
     {
+        if (!forceReload && _cachedRecentConnections != null)
+        {
+            lock (_connsLock)
+            {
+                if (_cachedRecentConnections != null)
+                {
+                    return _cachedRecentConnections.Select(c => c.Clone()).ToList();
+                }
+            }
+        }
+
         try
         {
             await InitializeAsync();
@@ -744,8 +922,12 @@ public class DatabaseStorageService
                 ORDER BY Id DESC 
                 LIMIT 20;";
 
-            var result = await connection.QueryAsync<ConnectionRecord>(sql);
-            return result.ToList();
+            var result = (await connection.QueryAsync<ConnectionRecord>(sql)).ToList();
+            lock (_connsLock)
+            {
+                _cachedRecentConnections = result.Select(c => c.Clone()).ToList();
+            }
+            return result;
         }
         catch (Exception ex)
         {
@@ -780,15 +962,27 @@ public class DatabaseStorageService
 
     public async Task<string> GetSettingAsync(string key, string defaultValue = "")
     {
+        if (_settingsLoaded && _settingsCache.TryGetValue(key, out var cachedVal))
+        {
+            return cachedVal;
+        }
+
         try
         {
             await InitializeAsync();
+            if (_settingsLoaded && _settingsCache.TryGetValue(key, out var cachedVal2))
+            {
+                return cachedVal2;
+            }
+
             await using var connection = new SqliteConnection(_connectionString);
             await connection.OpenAsync();
 
             const string sql = "SELECT Value FROM AppSettings WHERE Key = @key LIMIT 1;";
             var result = await connection.ExecuteScalarAsync<string>(sql, new { key });
-            return result ?? defaultValue;
+            string val = result ?? defaultValue;
+            _settingsCache[key] = val;
+            return val;
         }
         catch (Exception ex)
         {
@@ -799,6 +993,7 @@ public class DatabaseStorageService
 
     public async Task SaveSettingAsync(string key, string value)
     {
+        _settingsCache[key] = value;
         try
         {
             await InitializeAsync();
@@ -818,14 +1013,64 @@ public class DatabaseStorageService
         }
     }
 
+    public async Task SaveSettingsBatchAsync(IDictionary<string, string> settings)
+    {
+        foreach (var kvp in settings)
+        {
+            _settingsCache[kvp.Key] = kvp.Value;
+        }
+
+        try
+        {
+            await InitializeAsync();
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+            await using var tx = await connection.BeginTransactionAsync();
+
+            const string sql = @"
+                INSERT INTO AppSettings (Key, Value, UpdatedAt) 
+                VALUES (@key, @value, datetime('now'))
+                ON CONFLICT(Key) DO UPDATE SET Value = @value, UpdatedAt = datetime('now');";
+
+            foreach (var kvp in settings)
+            {
+                await connection.ExecuteAsync(sql, new { key = kvp.Key, value = kvp.Value }, transaction: tx);
+            }
+            await tx.CommitAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] SaveSettingsBatchAsync error: {ex.Message}");
+        }
+    }
+
     public async Task<string> GetThemeAsync() => await GetSettingAsync("Theme", "Light");
     public async Task SaveThemeAsync(string theme) => await SaveSettingAsync("Theme", theme);
 
     public async Task<string> GetKeywordColorAsync() => await GetSettingAsync("KeywordColor", "Blue");
     public async Task SaveKeywordColorAsync(string color) => await SaveSettingAsync("KeywordColor", color);
 
-    public async Task<List<ShortcutDbRecord>> GetShortcutsFromDbAsync()
+    public async Task<List<ShortcutDbRecord>> GetShortcutsFromDbAsync(bool forceReload = false)
     {
+        if (!forceReload && _cachedShortcuts != null)
+        {
+            lock (_shortcutsLock)
+            {
+                if (_cachedShortcuts != null)
+                {
+                    return _cachedShortcuts.Select(s => new ShortcutDbRecord
+                    {
+                        Id = s.Id,
+                        Name = s.Name,
+                        Category = s.Category,
+                        KeyGesture = s.KeyGesture,
+                        DefaultGesture = s.DefaultGesture,
+                        Description = s.Description
+                    }).ToList();
+                }
+            }
+        }
+
         try
         {
             await InitializeAsync();
@@ -833,8 +1078,20 @@ public class DatabaseStorageService
             await connection.OpenAsync();
 
             const string sql = "SELECT Id, Name, Category, KeyGesture, DefaultGesture, Description FROM UserShortcuts ORDER BY Category, Name;";
-            var result = await connection.QueryAsync<ShortcutDbRecord>(sql);
-            return result.ToList();
+            var result = (await connection.QueryAsync<ShortcutDbRecord>(sql)).ToList();
+            lock (_shortcutsLock)
+            {
+                _cachedShortcuts = result.Select(s => new ShortcutDbRecord
+                {
+                    Id = s.Id,
+                    Name = s.Name,
+                    Category = s.Category,
+                    KeyGesture = s.KeyGesture,
+                    DefaultGesture = s.DefaultGesture,
+                    Description = s.Description
+                }).ToList();
+            }
+            return result;
         }
         catch (Exception ex)
         {
@@ -856,6 +1113,11 @@ public class DatabaseStorageService
                 SET KeyGesture = @keyGesture, UpdatedAt = datetime('now') 
                 WHERE Id = @id;";
             await connection.ExecuteAsync(sql, new { id, keyGesture });
+
+            lock (_shortcutsLock)
+            {
+                _cachedShortcuts = null;
+            }
         }
         catch (Exception ex)
         {
@@ -876,6 +1138,11 @@ public class DatabaseStorageService
                 VALUES (@Id, @Name, @Category, @KeyGesture, @DefaultGesture, @Description, datetime('now'))
                 ON CONFLICT(Id) DO UPDATE SET KeyGesture = @KeyGesture, UpdatedAt = datetime('now');";
             await connection.ExecuteAsync(sql, records);
+
+            lock (_shortcutsLock)
+            {
+                _cachedShortcuts = null;
+            }
         }
         catch (Exception ex)
         {
@@ -893,6 +1160,11 @@ public class DatabaseStorageService
 
             const string sql = "UPDATE UserShortcuts SET KeyGesture = DefaultGesture, UpdatedAt = datetime('now');";
             await connection.ExecuteAsync(sql);
+
+            lock (_shortcutsLock)
+            {
+                _cachedShortcuts = null;
+            }
         }
         catch (Exception ex)
         {
@@ -930,12 +1202,16 @@ public class DatabaseStorageService
     {
         try
         {
-            await SaveSettingAsync("EditorBackground", record.EditorBackground);
-            await SaveSettingAsync("EditorForeground", record.EditorForeground);
-            await SaveSettingAsync("SidebarBackground", record.SidebarBackground);
-            await SaveSettingAsync("TableBackground", record.TableBackground);
-            await SaveSettingAsync("EditorFontSize", record.EditorFontSize.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            await SaveSettingAsync("EditorShowLineNumbers", record.EditorShowLineNumbers ? "true" : "false");
+            var dict = new Dictionary<string, string>
+            {
+                ["EditorBackground"] = record.EditorBackground,
+                ["EditorForeground"] = record.EditorForeground,
+                ["SidebarBackground"] = record.SidebarBackground,
+                ["TableBackground"] = record.TableBackground,
+                ["EditorFontSize"] = record.EditorFontSize.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["EditorShowLineNumbers"] = record.EditorShowLineNumbers ? "true" : "false"
+            };
+            await SaveSettingsBatchAsync(dict);
         }
         catch (Exception ex)
         {
@@ -999,21 +1275,25 @@ public class DatabaseStorageService
     {
         try
         {
-            await SaveSettingAsync("TableRowHeight", record.RowHeight.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            await SaveSettingAsync("TableHeaderHeight", record.HeaderHeight.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            await SaveSettingAsync("TableGutterWidth", record.GutterWidth.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            await SaveSettingAsync("TableCellFontSize", record.FontSize.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            await SaveSettingAsync("TableBackground", record.TableBackground);
-            await SaveSettingAsync("TableAlternatingRowColor", record.AlternatingRowColor);
-            await SaveSettingAsync("TableCellTextColor", record.CellTextColor);
-            await SaveSettingAsync("TableHeaderBackground", record.HeaderBackground);
-            await SaveSettingAsync("TableHeaderTextColor", record.HeaderTextColor);
-            await SaveSettingAsync("TableGutterBackground", record.GutterBackground);
-            await SaveSettingAsync("TableGutterTextColor", record.GutterTextColor);
-            await SaveSettingAsync("TableGridLinesColor", record.GridLinesColor);
-            await SaveSettingAsync("TableSelectionColor", record.SelectionColor);
-            await SaveSettingAsync("TableShowGridLines", record.ShowGridLines ? "true" : "false");
-            await SaveSettingAsync("TableShowAlternatingRowColors", record.ShowAlternatingRowColors ? "true" : "false");
+            var dict = new Dictionary<string, string>
+            {
+                ["TableRowHeight"] = record.RowHeight.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["TableHeaderHeight"] = record.HeaderHeight.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["TableGutterWidth"] = record.GutterWidth.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["TableCellFontSize"] = record.FontSize.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["TableBackground"] = record.TableBackground,
+                ["TableAlternatingRowColor"] = record.AlternatingRowColor,
+                ["TableCellTextColor"] = record.CellTextColor,
+                ["TableHeaderBackground"] = record.HeaderBackground,
+                ["TableHeaderTextColor"] = record.HeaderTextColor,
+                ["TableGutterBackground"] = record.GutterBackground,
+                ["TableGutterTextColor"] = record.GutterTextColor,
+                ["TableGridLinesColor"] = record.GridLinesColor,
+                ["TableSelectionColor"] = record.SelectionColor,
+                ["TableShowGridLines"] = record.ShowGridLines ? "true" : "false",
+                ["TableShowAlternatingRowColors"] = record.ShowAlternatingRowColors ? "true" : "false"
+            };
+            await SaveSettingsBatchAsync(dict);
         }
         catch (Exception ex)
         {

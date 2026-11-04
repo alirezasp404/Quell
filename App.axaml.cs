@@ -24,15 +24,7 @@ public partial class App : Application
         {
             if (DisableSplash || desktop.Args?.Contains("--no-splash") == true)
             {
-                var theme = Services.DatabaseStorageService.Instance.GetThemeAsync().GetAwaiter().GetResult();
-                Services.ThemeService.Instance.ApplyTheme(theme);
-                var keywordColor = Services.DatabaseStorageService.Instance.GetKeywordColorAsync().GetAwaiter().GetResult();
-                Services.ThemeService.Instance.SetKeywordColor(keywordColor);
-                var panelCustom = Services.DatabaseStorageService.Instance.GetPanelCustomizationAsync().GetAwaiter().GetResult();
-                Services.ThemeService.Instance.ApplyPanelCustomization(panelCustom);
-                var tableCustom = Services.DatabaseStorageService.Instance.GetTableCustomizationAsync().GetAwaiter().GetResult();
-                Services.ThemeService.Instance.ApplyTableCustomization(tableCustom);
-                Services.ShortcutService.Instance.InitializeAsync().GetAwaiter().GetResult();
+                Services.DatabaseStorageService.Instance.PreloadStartupDataAsync().GetAwaiter().GetResult();
 
                 desktop.MainWindow = new MainWindow
                 {
@@ -66,10 +58,7 @@ public partial class App : Application
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
         {
-            var theme = Services.DatabaseStorageService.Instance.GetThemeAsync().GetAwaiter().GetResult();
-            Services.ThemeService.Instance.ApplyTheme(theme);
-            var keywordColor = Services.DatabaseStorageService.Instance.GetKeywordColorAsync().GetAwaiter().GetResult();
-            Services.ThemeService.Instance.SetKeywordColor(keywordColor);
+            Services.DatabaseStorageService.Instance.PreloadStartupDataAsync().GetAwaiter().GetResult();
 
             singleView.MainView = new MainView
             {

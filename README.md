@@ -10,7 +10,7 @@ Modern, high-performance, cross-platform database management tool and SQL IDE bu
 - **Modern UI & Theming**: Light, Dark, and System Default themes with fully decoupled semantic design tokens (`ThemeTokens.axaml`, `LightTheme.axaml`, `DarkTheme.axaml`).
 - **Dynamic Syntax Coloring**: User-configurable SQL keyword syntax colors (Blue, Purple, Emerald Green, Amber Gold, Rose Red, Cyan) with automatic WCAG contrast preservation.
 - **Embedded SQLite Local Engine**: Powered by **Dapper** and `Microsoft.Data.Sqlite` for local state persistence, query history, saved connections, and dynamic multi-dialect keywords.
-- **Real Startup Diagnostics**: Frameless Splash Screen executing real SQLite table provisioning and keyword pre-caching from `Assets/init_database.sql`.
+- **Unified Splash Screen Pre-loading**: Frameless Splash Screen executing real SQLite table provisioning, schema migrations, and batch pre-caching of themes, colors, panel/table customizations, shortcuts, saved connections, and dialect keywords for instant application launch.
 - **IntelliSense & Autocomplete**: Floating contextual overlay (`SqlIntelliSenseOverlayComponent`) for dialect-aware keyword matching and template code snippets.
 - **Excel-Grade Grid**: `QueryResultTableComponent` featuring native virtualization, sortable columns, row metrics, search filtering, and pagination.
 - **Zoom & Shortcuts**: Native `Ctrl + Plus`, `Ctrl + Minus`, and `Ctrl + 0` font scaling inside the text editor.

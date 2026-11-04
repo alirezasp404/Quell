@@ -68,23 +68,11 @@ public partial class SplashScreenWindow : Window
 
         UpdateProgress(5, "Connecting to SQLite Storage Engine...");
 
-        // Execute real SQLite queries from Assets/init_database.sql
-        await DatabaseStorageService.Instance.InitializeWithProgressAsync((progress, status) =>
+        // Preload all startup data, run SQLite schema migrations, cache settings, theme, keywords and connections
+        await DatabaseStorageService.Instance.PreloadStartupDataAsync((progress, status) =>
         {
             UpdateProgress(progress, status);
         }).ConfigureAwait(false);
-
-        // Load and apply saved user theme and keyword syntax color from SQLite during splash screen
-        UpdateProgress(95, "Applying User Appearance & Theme Preferences...");
-        string savedTheme = await DatabaseStorageService.Instance.GetThemeAsync().ConfigureAwait(false);
-        ThemeService.Instance.ApplyTheme(savedTheme);
-        string savedKeywordColor = await DatabaseStorageService.Instance.GetKeywordColorAsync().ConfigureAwait(false);
-        ThemeService.Instance.SetKeywordColor(savedKeywordColor);
-        var panelCustom = await DatabaseStorageService.Instance.GetPanelCustomizationAsync().ConfigureAwait(false);
-        ThemeService.Instance.ApplyPanelCustomization(panelCustom);
-        var tableCustom = await DatabaseStorageService.Instance.GetTableCustomizationAsync().ConfigureAwait(false);
-        ThemeService.Instance.ApplyTableCustomization(tableCustom);
-        await ShortcutService.Instance.InitializeAsync().ConfigureAwait(false);
 
         _isDatabaseReady = true;
 

@@ -498,6 +498,23 @@ await mainVm.SettingsModal.SaveAsync();
 
 ---
 
+### 3.15 `SplashScreenCardComponent` & Startup Pre-load Sequence
+* **File:** [SplashScreenCardComponent.axaml](file:///c:/Users/ehsan/Desktop/Fdb/Components/Splash/SplashScreenCardComponent.axaml) | [SplashScreenWindow.axaml.cs](file:///c:/Users/ehsan/Desktop/Fdb/Views/SplashScreenWindow.axaml.cs)
+* **DataContext:** `SplashScreenViewModel`
+* **Description:** Reusable frameless splash card with high-resolution artwork and live real-time SQLite initialization diagnostics. Pre-loads all core app configurations (theme, keyword syntax color, panel customizations, table dimensions, keyboard shortcuts, dialect keywords, saved connections, and query history) into in-memory caches before displaying `MainWindow`, ensuring instant rendering with zero startup query lag.
+
+#### Features:
+1. **Unified Startup Pre-cache (`PreloadStartupDataAsync`):** Executes all initialization queries inside the splash screen sequence in `DatabaseStorageService.cs`.
+2. **In-Memory Settings Caching:** `AppSettings` are read in a single batch query and served from an in-memory cache, eliminating multiple SQLite connection round-trips.
+3. **Instant Object Explorer & Connections:** Saved connections and query history are pre-cached, populating the database target dropdown and sidebar tree nodes instantly upon startup.
+
+#### XAML Usage Example:
+```xml
+<components:SplashScreenCardComponent DataContext="{Binding ViewModel}" />
+```
+
+---
+
 ## 4. MVVM Hierarchy & Data Flow
 
 ```
