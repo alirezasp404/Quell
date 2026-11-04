@@ -31,7 +31,7 @@
                            Margin="0,0,10,0"/>
 
                 <!-- Native Menu Dropdown System -->
-                <Menu Background="Transparent">
+                <Menu Background="Transparent" FocusAdorner="{x:Null}">
                     <!-- File Menu -->
                     <MenuItem Header="File">
                         <MenuItem Header="Connect to Database..." 

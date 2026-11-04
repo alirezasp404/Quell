@@ -6,13 +6,16 @@
               xmlns:ui="using:FluentAvalonia.UI.Controls"
               mc:Ignorable="d" d:DesignWidth="720" d:DesignHeight="400"
               x:Class="Fdb.Components.SplashScreenCardComponent"
-              x:DataType="vm:SplashScreenViewModel">
+              x:DataType="vm:SplashScreenViewModel"
+              Focusable="False">
 
     <!-- Reusable Frameless Splash Screen Card Component (Artwork + Real-time SQLite Loading Indicator) -->
-    <Border Margin="16"
-            CornerRadius="12"
+    <Border Margin="0"
+            CornerRadius="8"
+            BorderThickness="1"
+            BorderBrush="#1E293B"
             ClipToBounds="True"
-            BoxShadow="0 16 40 0 #66000000">
+            Focusable="False">
         <Grid>
             <!-- Background Splash Artwork -->
             <Image Source="avares://Fdb/Assets/Images/splash_screen.jpg"

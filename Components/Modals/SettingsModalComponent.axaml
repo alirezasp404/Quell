@@ -13,6 +13,7 @@
     <Grid IsVisible="{Binding IsOpen}">
         <!-- Semi-transparent Dimming Backdrop (Dismisses modal on click) -->
         <Border Classes="modal-backdrop" Cursor="Hand" Background="{DynamicResource AppModalOverlayBrush}" 
+                Focusable="False" FocusAdorner="{x:Null}"
                 PointerPressed="OnBackdropPointerPressed" />
 
         <!-- Centered Settings Dialog Card -->
@@ -27,6 +28,7 @@
                 BorderThickness="1" 
                 CornerRadius="8"
                 BoxShadow="0 12 36 #40000000"
+                Focusable="False" FocusAdorner="{x:Null}"
                 ClipToBounds="True">
             <Grid RowDefinitions="Auto, *, Auto">
                 

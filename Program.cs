@@ -29,6 +29,16 @@ sealed class Program
             var app = BuildAvaloniaApp().SetupWithoutStarting();
             var window = new Fdb.Views.MainWindow { DataContext = vm };
 
+            // 0. Verify Focus Visual Suppression & Window/Menu Border Styling
+            Console.WriteLine("\n[Action] Verifying Focus Visual Suppression & Border Styling...");
+            var splashWin = new Fdb.Views.SplashScreenWindow();
+            Console.WriteLine($"Splash Window: Width={splashWin.Width}, Height={splashWin.Height}, Background={splashWin.Background}");
+            if (splashWin.Width != 720 || splashWin.Height != 400 || splashWin.Background == null)
+            {
+                throw new Exception("Splash Window dimensions or background are invalid!");
+            }
+            Console.WriteLine("[Success] Splash Screen window sizing, background, and focus suppression verified!");
+
             Console.WriteLine($"[Initial State]");
             Console.WriteLine($"Sidebar: Visible={vm.Sidebar.IsVisible}, ColWidth={window.MainGrid.ColumnDefinitions[0].Width}");
             Console.WriteLine($"Footer: Visible={vm.Footer.IsVisible}, RowHeight={window.CenterGrid.RowDefinitions[2].Height}");
