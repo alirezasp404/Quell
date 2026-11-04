@@ -55,7 +55,7 @@ public partial class QueryResultRow : ObservableObject
                 "NAME" => Name,
                 "EMAIL" => Email,
                 "ROLE" => Role,
-                "COURSE" or "دوره" => Course,
+                "COURSE" => Course,
                 "STATUS" => Status,
                 "CREATED AT" or "CREATEDAT" => CreatedAt,
                 _ => string.Empty
@@ -78,7 +78,7 @@ public partial class QueryResultRow : ObservableObject
                 case "ROLE":
                     Role = value;
                     break;
-                case "COURSE" or "دوره":
+                case "COURSE":
                     Course = value;
                     break;
                 case "STATUS":
@@ -276,11 +276,10 @@ public partial class QueryResultTableViewModel : ViewModelBase
             }
         }
 
-        // Persian & English: Course (دوره) and User (کاربر / دانشجو) relations
-        if (lower == "دوره" || lower == "دوره_ها" || lower == "کد_دوره" || lower == "نام_دوره" ||
-            lower == "course" || lower == "course_name" || lower == "coursetitle" || lower == "course_title")
+        // Course and User relations
+        if (lower == "course" || lower == "course_name" || lower == "coursetitle" || lower == "course_title")
         {
-            if (!string.IsNullOrEmpty(tableName) && (tableName.Equals("Users", StringComparison.OrdinalIgnoreCase) || tableName.Equals("کاربران", StringComparison.OrdinalIgnoreCase)))
+            if (!string.IsNullOrEmpty(tableName) && tableName.Equals("Users", StringComparison.OrdinalIgnoreCase))
             {
                 return new ForeignKeyRelation { ColumnName = c, TargetTable = "Courses", TargetColumn = "Title" };
             }
@@ -288,25 +287,23 @@ public partial class QueryResultTableViewModel : ViewModelBase
         }
         if (lower == "course_id" || lower == "courseid")
         {
-            if (!string.IsNullOrEmpty(tableName) && (tableName.Equals("Users", StringComparison.OrdinalIgnoreCase) || tableName.Equals("کاربران", StringComparison.OrdinalIgnoreCase)))
+            if (!string.IsNullOrEmpty(tableName) && tableName.Equals("Users", StringComparison.OrdinalIgnoreCase))
             {
                 return new ForeignKeyRelation { ColumnName = c, TargetTable = "Courses", TargetColumn = "Id" };
             }
             return new ForeignKeyRelation { ColumnName = c, TargetTable = "Users", TargetColumn = "Id" };
         }
 
-        if (lower == "user" || lower == "user_name" || lower == "username" || lower == "student" || lower == "student_name" ||
-            lower == "کاربر" || lower == "کاربران" || lower == "نام_کاربر" || lower == "دانشجو" || lower == "دانشجویان" || lower == "نام_دانشجو" || lower == "نام_دانشجو")
+        if (lower == "user" || lower == "user_name" || lower == "username" || lower == "student" || lower == "student_name")
         {
             return new ForeignKeyRelation { ColumnName = c, TargetTable = "Users", TargetColumn = "Name" };
         }
-        if (lower == "user_id" || lower == "userid" || lower == "student_id" || lower == "studentid" ||
-            lower == "کد_کاربر" || lower == "کاربر_id" || lower == "کد_دانشجو")
+        if (lower == "user_id" || lower == "userid" || lower == "student_id" || lower == "studentid")
         {
             return new ForeignKeyRelation { ColumnName = c, TargetTable = "Users", TargetColumn = "Id" };
         }
 
-        if (lower == "role" || lower == "role_name" || lower == "نقش" || lower == "نام_نقش")
+        if (lower == "role" || lower == "role_name")
         {
             return new ForeignKeyRelation { ColumnName = c, TargetTable = "Roles", TargetColumn = "Title" };
         }
@@ -1061,7 +1058,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
             ForeignKeyRelations.Clear();
             ColumnsChanged?.Invoke(cols);
         }
-        else if (tableName.Equals("Users", StringComparison.OrdinalIgnoreCase) || tableName.Equals("کاربران", StringComparison.OrdinalIgnoreCase))
+        else if (tableName.Equals("Users", StringComparison.OrdinalIgnoreCase))
         {
             var userRows = new List<QueryResultRow>
             {
@@ -1079,7 +1076,6 @@ public partial class QueryResultTableViewModel : ViewModelBase
                 r.Values["EMAIL"] = r.Email;
                 r.Values["ROLE"] = r.Role;
                 r.Values["COURSE"] = r.Course;
-                r.Values["دوره"] = r.Course;
                 r.Values["STATUS"] = r.Status;
                 r.Values["CREATED AT"] = r.CreatedAt;
 
@@ -1095,7 +1091,6 @@ public partial class QueryResultTableViewModel : ViewModelBase
             ForeignKeyRelations.Clear();
             ForeignKeyRelations["Role"] = new ForeignKeyRelation { ColumnName = "ROLE", TargetTable = "Roles", TargetColumn = "Title" };
             ForeignKeyRelations["Course"] = new ForeignKeyRelation { ColumnName = "COURSE", TargetTable = "Courses", TargetColumn = "Title" };
-            ForeignKeyRelations["دوره"] = new ForeignKeyRelation { ColumnName = "دوره", TargetTable = "Courses", TargetColumn = "Title" };
             ColumnsChanged?.Invoke(cols);
 
             if (!string.IsNullOrWhiteSpace(filterValue))
@@ -1104,8 +1099,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
                     r.Id.ToString() == filterValue ||
                     r.Name.Equals(filterValue, StringComparison.OrdinalIgnoreCase) ||
                     r.Course.Equals(filterValue, StringComparison.OrdinalIgnoreCase) ||
-                    (r.Values.TryGetValue("COURSE", out var cVal) && cVal.Equals(filterValue, StringComparison.OrdinalIgnoreCase)) ||
-                    (r.Values.TryGetValue("دوره", out var dVal) && dVal.Equals(filterValue, StringComparison.OrdinalIgnoreCase))
+                    (r.Values.TryGetValue("COURSE", out var cVal) && cVal.Equals(filterValue, StringComparison.OrdinalIgnoreCase))
                 );
                 if (match != null)
                 {
@@ -1113,7 +1107,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
                 }
             }
         }
-        else if (tableName.Equals("Courses", StringComparison.OrdinalIgnoreCase) || tableName.Equals("دوره_ها", StringComparison.OrdinalIgnoreCase) || tableName.Equals("دوره", StringComparison.OrdinalIgnoreCase))
+        else if (tableName.Equals("Courses", StringComparison.OrdinalIgnoreCase))
         {
             var courseRows = new List<QueryResultRow>
             {
@@ -1128,11 +1122,8 @@ public partial class QueryResultTableViewModel : ViewModelBase
             {
                 r.Values["ID"] = r.Id.ToString();
                 r.Values["TITLE"] = r.Name;
-                r.Values["دوره"] = r.Name;
                 r.Values["USER_ID"] = r.Role;
-                r.Values["کد_کاربر"] = r.Role;
                 r.Values["STUDENT_NAME"] = r.Email;
-                r.Values["نام_دانشجو"] = r.Email;
                 r.Values["DURATION"] = r.CreatedAt;
                 r.Values["STATUS"] = r.Status;
 
@@ -1147,11 +1138,8 @@ public partial class QueryResultTableViewModel : ViewModelBase
             SetPrimaryKeys(new[] { "ID" });
             ForeignKeyRelations.Clear();
             ForeignKeyRelations["USER_ID"] = new ForeignKeyRelation { ColumnName = "USER_ID", TargetTable = "Users", TargetColumn = "Id" };
-            ForeignKeyRelations["کد_کاربر"] = new ForeignKeyRelation { ColumnName = "کد_کاربر", TargetTable = "Users", TargetColumn = "Id" };
             ForeignKeyRelations["STUDENT_NAME"] = new ForeignKeyRelation { ColumnName = "STUDENT_NAME", TargetTable = "Users", TargetColumn = "Name" };
-            ForeignKeyRelations["نام_دانشجو"] = new ForeignKeyRelation { ColumnName = "نام_دانشجو", TargetTable = "Users", TargetColumn = "Name" };
             ForeignKeyRelations["TITLE"] = new ForeignKeyRelation { ColumnName = "TITLE", TargetTable = "Users", TargetColumn = "Course" };
-            ForeignKeyRelations["دوره"] = new ForeignKeyRelation { ColumnName = "دوره", TargetTable = "Users", TargetColumn = "Course" };
             ColumnsChanged?.Invoke(cols);
 
             if (!string.IsNullOrWhiteSpace(filterValue))

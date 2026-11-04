@@ -475,9 +475,9 @@ public partial class MainViewModel : ViewModelBase
         {
             whereClause = string.Empty;
         }
-        else if (targetTable.Equals("Users", StringComparison.OrdinalIgnoreCase) || targetTable.Equals("کاربران", StringComparison.OrdinalIgnoreCase))
+        else if (targetTable.Equals("Users", StringComparison.OrdinalIgnoreCase))
         {
-            if (sourceColumn != null && (sourceColumn.Equals("دوره", StringComparison.OrdinalIgnoreCase) || sourceColumn.Equals("Course", StringComparison.OrdinalIgnoreCase) || sourceColumn.Equals("TITLE", StringComparison.OrdinalIgnoreCase) || sourceColumn.Equals("CourseTitle", StringComparison.OrdinalIgnoreCase)))
+            if (sourceColumn != null && (sourceColumn.Equals("Course", StringComparison.OrdinalIgnoreCase) || sourceColumn.Equals("TITLE", StringComparison.OrdinalIgnoreCase) || sourceColumn.Equals("CourseTitle", StringComparison.OrdinalIgnoreCase)))
             {
                 whereClause = isNumeric ? $"WHERE Id = {cellValue} OR Course = '{cleanVal}'" : $"WHERE Course = '{cleanVal}'";
             }

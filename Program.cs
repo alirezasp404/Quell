@@ -263,7 +263,7 @@ sealed class Program
             if (restoredKeywordColor != "Blue") throw new Exception("Failed to restore Blue Keyword Color to SQLite!");
 
             // 5b. Test Panel Customization, Color Maker, Button/Border/Sidebar & SQLite Persistence
-            Console.WriteLine("\n[Action] Verifying Color Maker ('رنگ‌ساز'), Buttons, Borders & Multi-Part Customization...");
+            Console.WriteLine("\n[Action] Verifying Color Maker, Buttons, Borders & Multi-Part Customization...");
             await vm.SettingsModal.OpenAsync();
             vm.SettingsModal.SelectCategory("Customization");
             Console.WriteLine($"Settings Category: Selected='{vm.SettingsModal.SelectedCategory}', IsCustomization={vm.SettingsModal.IsCustomizationCategory}");
@@ -1110,45 +1110,45 @@ sealed class Program
             }
             Console.WriteLine($"[Success] Cell graphically edited, query executed, and reflected in grid and editor: '{vm.SampleQueryResult.LastQueryMessage}'");
 
-            // Verify Persian / Unicode Text UPDATE & Literal Encoding
-            Console.WriteLine("\n[Action] Verifying Persian / Unicode Text UPDATE Query Generation & Execution...");
+            // Verify Unicode / Multilingual Text UPDATE & Literal Encoding
+            Console.WriteLine("\n[Action] Verifying Unicode / Multilingual Text UPDATE Query Generation & Execution...");
             // Verify FormatLiteral across dialects
-            string mssqlPersian = Fdb.ViewModels.EditCellModalViewModel.FormatLiteral("احسان رضایی", "MSSQL");
-            string sqlitePersian = Fdb.ViewModels.EditCellModalViewModel.FormatLiteral("احسان رضایی", "SQLITE");
-            string mysqlPersian = Fdb.ViewModels.EditCellModalViewModel.FormatLiteral("احسان رضایی", "MYSQL");
-            string pgPersian = Fdb.ViewModels.EditCellModalViewModel.FormatLiteral("احسان رضایی", "POSTGRESQL");
-            Console.WriteLine($"Persian Formatted Literals:\nMSSQL: {mssqlPersian}\nSQLite: {sqlitePersian}\nMySQL: {mysqlPersian}\nPostgres: {pgPersian}");
-            if (mssqlPersian != "N'احسان رضایی'") throw new Exception($"MSSQL must use N prefix for Persian text! Got '{mssqlPersian}'");
-            if (sqlitePersian != "'احسان رضایی'") throw new Exception($"SQLite must use standard quotes without N prefix! Got '{sqlitePersian}'");
-            if (mysqlPersian != "N'احسان رضایی'") throw new Exception($"MySQL must use N prefix for Unicode! Got '{mysqlPersian}'");
-            if (pgPersian != "N'احسان رضایی'") throw new Exception($"Postgres must use N prefix for Unicode! Got '{pgPersian}'");
+            string mssqlUnicode = Fdb.ViewModels.EditCellModalViewModel.FormatLiteral("José García", "MSSQL");
+            string sqliteUnicode = Fdb.ViewModels.EditCellModalViewModel.FormatLiteral("José García", "SQLITE");
+            string mysqlUnicode = Fdb.ViewModels.EditCellModalViewModel.FormatLiteral("José García", "MYSQL");
+            string pgUnicode = Fdb.ViewModels.EditCellModalViewModel.FormatLiteral("José García", "POSTGRESQL");
+            Console.WriteLine($"Unicode Formatted Literals:\nMSSQL: {mssqlUnicode}\nSQLite: {sqliteUnicode}\nMySQL: {mysqlUnicode}\nPostgres: {pgUnicode}");
+            if (mssqlUnicode != "N'José García'") throw new Exception($"MSSQL must use N prefix for Unicode text! Got '{mssqlUnicode}'");
+            if (sqliteUnicode != "'José García'") throw new Exception($"SQLite must use standard quotes without N prefix! Got '{sqliteUnicode}'");
+            if (mysqlUnicode != "N'José García'") throw new Exception($"MySQL must use N prefix for Unicode! Got '{mysqlUnicode}'");
+            if (pgUnicode != "N'José García'") throw new Exception($"Postgres must use N prefix for Unicode! Got '{pgUnicode}'");
 
-            // Verify MSSQL UPDATE query with N prefix for Persian text
-            string mssqlUpdate = Fdb.ViewModels.EditCellModalViewModel.BuildUpdateQuery("Users", "Name", "احسان رضایی", firstRow, "MSSQL");
-            Console.WriteLine($"Generated MSSQL Query for Persian Name:\n{mssqlUpdate}");
-            if (!mssqlUpdate.Contains("N'احسان رضایی'") || !mssqlUpdate.Contains("SET [Name] = N'احسان رضایی'"))
+            // Verify MSSQL UPDATE query with N prefix for Unicode text
+            string mssqlUpdate = Fdb.ViewModels.EditCellModalViewModel.BuildUpdateQuery("Users", "Name", "José García", firstRow, "MSSQL");
+            Console.WriteLine($"Generated MSSQL Query for Unicode Name:\n{mssqlUpdate}");
+            if (!mssqlUpdate.Contains("N'José García'") || !mssqlUpdate.Contains("SET [Name] = N'José García'"))
             {
-                throw new Exception($"MSSQL UPDATE query failed to contain 'SET [Name] = N\'احسان رضایی\'', got:\n{mssqlUpdate}");
+                throw new Exception($"MSSQL UPDATE query failed to contain 'SET [Name] = N\'José García\'', got:\n{mssqlUpdate}");
             }
 
             // Test executing in the current active session (SQLite)
             vm.SampleQueryResult.OpenEditCell(firstRow, "Name");
-            editModal.NewValue = "احسان رضایی";
+            editModal.NewValue = "José García";
             Console.WriteLine($"Generated Active DB Query ({editModal.DatabaseType}):\n{editModal.GeneratedQuery}");
-            if (!editModal.GeneratedQuery.Contains("'احسان رضایی'"))
+            if (!editModal.GeneratedQuery.Contains("'José García'"))
             {
-                throw new Exception($"Expected active query to contain Persian text, got:\n{editModal.GeneratedQuery}");
+                throw new Exception($"Expected active query to contain Unicode text, got:\n{editModal.GeneratedQuery}");
             }
             await editModal.ExecuteAndSaveAsync();
-            if (editModal.IsOpen || firstRow.Name != "احسان رضایی" || firstRow["Name"] != "احسان رضایی")
+            if (editModal.IsOpen || firstRow.Name != "José García" || firstRow["Name"] != "José García")
             {
-                throw new Exception($"Row was not updated to Persian 'احسان رضایی'! Got Name='{firstRow.Name}'");
+                throw new Exception($"Row was not updated to Unicode 'José García'! Got Name='{firstRow.Name}'");
             }
-            if (vm.Editor.SelectedTab == null || !vm.Editor.SelectedTab.Text.Contains("احسان رضایی"))
+            if (vm.Editor.SelectedTab == null || !vm.Editor.SelectedTab.Text.Contains("José García"))
             {
-                throw new Exception("SQL Editor did not receive the executed Persian UPDATE statement!");
+                throw new Exception("SQL Editor did not receive the executed Unicode UPDATE statement!");
             }
-            Console.WriteLine("[Success] Persian / Unicode text editing and UPDATE query generation verified!");
+            Console.WriteLine("[Success] Unicode / Multilingual text editing and UPDATE query generation verified!");
 
             // [Action] Verifying Primary Key Visual Distinctiveness (Badges & Headers)
             Console.WriteLine("\n[Action] Verifying Primary Key UI Highlighting & Detection...");
@@ -1427,20 +1427,20 @@ sealed class Program
                 throw new Exception($"Referenced row was not selected or title was unexpected: {vm.SampleQueryResult.SelectedRow?["TITLE"]}");
             }
             Console.WriteLine("[Success] Foreign Key visual indicators and arrow navigation to referenced table verified!");
-// E. Test Persian & English Course (دوره) -> Users (کاربران) Navigation
-            Console.WriteLine("\n[Action] Testing Course (دوره) Foreign Key -> User Navigation...");
-            var courseFk = Fdb.ViewModels.QueryResultTableViewModel.DetectProbableForeignKey("دوره");
-            Console.WriteLine($"DetectProbableForeignKey('دوره'): TargetTable={courseFk?.TargetTable}, TargetColumn={courseFk?.TargetColumn}");
+            // E. Test Course -> Users Foreign Key Navigation
+            Console.WriteLine("\n[Action] Testing Course Foreign Key -> User Navigation...");
+            var courseFk = Fdb.ViewModels.QueryResultTableViewModel.DetectProbableForeignKey("Course");
+            Console.WriteLine($"DetectProbableForeignKey('Course'): TargetTable={courseFk?.TargetTable}, TargetColumn={courseFk?.TargetColumn}");
             if (courseFk == null || courseFk.TargetTable != "Users")
             {
-                throw new Exception("Foreign Key detection failed for 'دوره' linking to Users!");
+                throw new Exception("Foreign Key detection failed for 'Course' linking to Users!");
             }
 
-            var studentFk = Fdb.ViewModels.QueryResultTableViewModel.DetectProbableForeignKey("نام_دانشجو");
-            Console.WriteLine($"DetectProbableForeignKey('نام_دانشجو'): TargetTable={studentFk?.TargetTable}, TargetColumn={studentFk?.TargetColumn}");
+            var studentFk = Fdb.ViewModels.QueryResultTableViewModel.DetectProbableForeignKey("student_name");
+            Console.WriteLine($"DetectProbableForeignKey('student_name'): TargetTable={studentFk?.TargetTable}, TargetColumn={studentFk?.TargetColumn}");
             if (studentFk == null || studentFk.TargetTable != "Users")
             {
-                throw new Exception("Foreign Key detection failed for 'نام_دانشجو' linking to Users!");
+                throw new Exception("Foreign Key detection failed for 'student_name' linking to Users!");
             }
 
             // Load Courses table
@@ -1453,7 +1453,7 @@ sealed class Program
 
             // Click navigation arrow on course 'C# & Avalonia UI'
             Console.WriteLine("[Action] Navigating from Course 'C# & Avalonia UI' to User via Foreign Key...");
-            await vm.SampleQueryResult.NavigateToForeignKeyAsync("دوره", "C# & Avalonia UI");
+            await vm.SampleQueryResult.NavigateToForeignKeyAsync("TITLE", "C# & Avalonia UI");
 
             Console.WriteLine($"After Course->User Navigation: CurrentTable='{vm.SampleQueryResult.CurrentTableName}', SelectedUser='{vm.SampleQueryResult.SelectedRow?.Name}'");
             Console.WriteLine($"Generated Query: '{vm.Editor.SelectedTab?.Text}'");
@@ -1471,7 +1471,7 @@ sealed class Program
             {
                 throw new Exception("Editor failed to receive User selection query for Course!");
             }
-            Console.WriteLine("[Success] Course (دوره) -> User navigation and item retrieval verified!");
+            Console.WriteLine("[Success] Course -> User navigation and item retrieval verified!");
 
             // [Action] Verifying Hardware Graphics Adapter Detection, GPU vs CPU Modes & SQLite Persistence
             Console.WriteLine("\n[Action] Verifying Hardware Graphics Adapter Detection, GPU/CPU Modes & SQLite Persistence...");

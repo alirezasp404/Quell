@@ -8,7 +8,7 @@ Modern, high-performance, cross-platform database management tool and SQL IDE bu
 
 - **Cross-Platform**: Runs natively on Windows (`win-x64`), Linux (`linux-x64`), and macOS (`osx-x64` & `osx-arm64`).
 - **Modern UI & Theming**: Light, Dark, and System Default themes with fully decoupled semantic design tokens (`ThemeTokens.axaml`, `LightTheme.axaml`, `DarkTheme.axaml`).
-- **Interactive Color Maker & Workspace Customization**: Built-in Color Maker ("رنگ‌ساز") with bidirectional RGB/HEX conversion, button accent/face/text/border customization, global borders and splitters, multi-part sidebar styling, and one-click designer bundles with real-time live preview.
+- **Interactive Color Maker & Workspace Customization**: Built-in Color Maker with bidirectional RGB/HEX conversion, button accent/face/text/border customization, global borders and splitters, multi-part sidebar styling, and one-click designer bundles with real-time live preview.
 - **Dynamic Syntax Coloring**: User-configurable SQL keyword syntax colors (Blue, Purple, Emerald Green, Amber Gold, Rose Red, Cyan) with automatic WCAG contrast preservation.
 - **Dynamic Keyboard Shortcuts**: Reconfigurable keyboard shortcut manager with conflict resolution, category filters, and SQLite persistence.
 - **Embedded SQLite Local Engine**: Powered by **Dapper** and `Microsoft.Data.Sqlite` for local state persistence, query history, saved connections, and dynamic multi-dialect keywords.

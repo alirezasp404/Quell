@@ -128,7 +128,7 @@ public partial class SettingsModalViewModel : ObservableObject
     [ObservableProperty]
     private bool _editorShowLineNumbers = true;
 
-    #region Color Maker ("رنگ‌ساز") Properties
+    #region Color Maker Properties
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ColorMakerPreviewBrush))]
@@ -757,7 +757,7 @@ public partial class SettingsModalViewModel : ObservableObject
         LivePreviewPanelCustomization();
     }
 
-    #region Color Maker ("رنگ‌ساز") Methods & Commands
+    #region Color Maker Methods & Commands
 
     partial void OnColorMakerRChanged(double value) => UpdateHexFromRgb();
     partial void OnColorMakerGChanged(double value) => UpdateHexFromRgb();
@@ -1448,14 +1448,14 @@ public partial class SettingsModalViewModel : ObservableObject
             if (string.Equals(SelectedRenderingMode, "Auto", StringComparison.OrdinalIgnoreCase))
             {
                 return IsGpuDetected
-                    ? $"تشخیص خودکار: کارت گرافیک شناسایی شد ← موتور فعال: شتاب‌دهنده سخت‌افزاری GPU ({GpuAdapterName})"
-                    : "تشخیص خودکار: کارت گرافیک مجزا یافت نشد ← موتور فعال: پردازنده مرکزی CPU (سبک)";
+                    ? $"Auto-detect: Dedicated/Integrated GPU detected -> Active Engine: GPU Hardware Acceleration ({GpuAdapterName})"
+                    : "Auto-detect: No discrete GPU detected -> Active Engine: CPU Software Rasterizer (Lightweight)";
             }
             if (string.Equals(SelectedRenderingMode, "GPU", StringComparison.OrdinalIgnoreCase))
             {
-                return $"حالت اجباری کارت گرافیک (GPU): رندرینگ سخت‌افزاری روان با DirectX 11 / ANGLE و بافر {VramCacheMb}MB VRAM";
+                return $"Forced GPU Mode: Hardware-accelerated DirectX 11 / ANGLE pipeline with {VramCacheMb}MB VRAM cache";
             }
-            return "حالت اجباری پردازنده مرکزی (CPU): مصرف حداقلی رم و منابع سیستم با رسترایزر نرم‌افزاری (Lightweight Software)";
+            return $"Forced CPU Mode: Minimal RAM footprint with CPU Software Rasterizer ({VramCacheMb}MB buffer)";
         }
     }
 
