@@ -262,17 +262,44 @@ sealed class Program
             Console.WriteLine($"Restored Keyword Color in SQLite: '{restoredKeywordColor}'");
             if (restoredKeywordColor != "Blue") throw new Exception("Failed to restore Blue Keyword Color to SQLite!");
 
-            // 5b. Test Panel Customization (Editor Background, Foreground, Sidebar & Font Size in SQLite)
-            Console.WriteLine("\n[Action] Verifying Panel Customization & SQLite Persistence...");
+            // 5b. Test Panel Customization, Color Maker, Button/Border/Sidebar & SQLite Persistence
+            Console.WriteLine("\n[Action] Verifying Color Maker ('رنگ‌ساز'), Buttons, Borders & Multi-Part Customization...");
             await vm.SettingsModal.OpenAsync();
             vm.SettingsModal.SelectCategory("Customization");
             Console.WriteLine($"Settings Category: Selected='{vm.SettingsModal.SelectedCategory}', IsCustomization={vm.SettingsModal.IsCustomizationCategory}");
             if (!vm.SettingsModal.IsCustomizationCategory) throw new Exception("Customization category selection failed!");
 
-            // Customize Editor, Sidebar, and Table
+            // Test Color Maker Hex and RGB conversions
+            vm.SettingsModal.SetColorMakerHex("#10B981");
+            Console.WriteLine($"Color Maker parsed '#10B981': Hex={vm.SettingsModal.ColorMakerHex}, R={vm.SettingsModal.ColorMakerR}, G={vm.SettingsModal.ColorMakerG}, B={vm.SettingsModal.ColorMakerB}");
+            if (vm.SettingsModal.ColorMakerR != 16 || vm.SettingsModal.ColorMakerG != 185 || vm.SettingsModal.ColorMakerB != 129)
+            {
+                throw new Exception("Color Maker hex to RGB parsing failed!");
+            }
+
+            // Test Color Maker Apply to Target
+            vm.SettingsModal.ColorMakerSelectedTarget = "Buttons: Accent / Action";
+            vm.SettingsModal.ApplyColorMakerToTarget();
+            Console.WriteLine($"Applied Color Maker to Button Accent: ButtonAccentColor={vm.SettingsModal.ButtonAccentColor}");
+            if (vm.SettingsModal.ButtonAccentColor != "#10B981") throw new Exception("Color Maker failed to apply to Button Accent!");
+
+            // Customize Buttons, Borders, Sidebar parts, Editor
+            vm.SettingsModal.SelectButtonAccentColor("#38BDF8");
+            vm.SettingsModal.SelectButtonBackgroundColor("#1E293B");
+            vm.SettingsModal.SelectButtonTextColor("#F8FAFC");
+            vm.SettingsModal.SelectButtonBorderColor("#334155");
+
+            vm.SettingsModal.SelectBorderColor("#334155");
+            vm.SettingsModal.SelectSplitterColor("#38BDF8");
+
+            vm.SettingsModal.SelectSidebarBackground("#141E2E");
+            vm.SettingsModal.SelectSidebarHeaderBackground("#1E293B");
+            vm.SettingsModal.SelectSidebarItemHoverBackground("#334155");
+            vm.SettingsModal.SelectSidebarTextColor("#F8FAFC");
+            vm.SettingsModal.SelectSidebarBorderColor("#334155");
+
             vm.SettingsModal.SelectEditorBackground("#1E293B");
             vm.SettingsModal.SelectEditorForeground("#34D399");
-            vm.SettingsModal.SelectSidebarBackground("#141E2E");
             vm.SettingsModal.SelectTableBackground("#1E293B");
             vm.SettingsModal.EditorFontSize = 15.0;
             vm.SettingsModal.EditorShowLineNumbers = true;
@@ -280,10 +307,10 @@ sealed class Program
             await vm.SettingsModal.SaveAsync();
 
             var savedCustom = await Fdb.Services.DatabaseStorageService.Instance.GetPanelCustomizationAsync();
-            Console.WriteLine($"SQLite Saved Panel Customization: EditorBg={savedCustom.EditorBackground}, EditorFg={savedCustom.EditorForeground}, SidebarBg={savedCustom.SidebarBackground}, FontSize={savedCustom.EditorFontSize}");
-            if (savedCustom.EditorBackground != "#1E293B" || savedCustom.EditorForeground != "#34D399" || savedCustom.SidebarBackground != "#141E2E" || savedCustom.EditorFontSize != 15.0)
+            Console.WriteLine($"SQLite Saved Panel Customization: ButtonAccent={savedCustom.ButtonAccentColor}, BorderColor={savedCustom.BorderColor}, SidebarHeader={savedCustom.SidebarHeaderBackground}, EditorBg={savedCustom.EditorBackground}, FontSize={savedCustom.EditorFontSize}");
+            if (savedCustom.ButtonAccentColor != "#38BDF8" || savedCustom.BorderColor != "#334155" || savedCustom.SidebarHeaderBackground != "#1E293B" || savedCustom.EditorBackground != "#1E293B" || savedCustom.EditorFontSize != 15.0)
             {
-                throw new Exception("Panel customization failed to persist to SQLite!");
+                throw new Exception("Expanded panel customization failed to persist to SQLite!");
             }
 
             // Test Reset Panel Customization
@@ -291,12 +318,12 @@ sealed class Program
             vm.SettingsModal.ResetPanelCustomization();
             await vm.SettingsModal.SaveAsync();
             var resetCustom = await Fdb.Services.DatabaseStorageService.Instance.GetPanelCustomizationAsync();
-            Console.WriteLine($"SQLite Restored Panel Customization: EditorBg={resetCustom.EditorBackground}, FontSize={resetCustom.EditorFontSize}");
-            if (resetCustom.EditorBackground != "Default" || resetCustom.EditorFontSize != 13.0)
+            Console.WriteLine($"SQLite Restored Panel Customization: ButtonAccent={resetCustom.ButtonAccentColor}, BorderColor={resetCustom.BorderColor}, EditorBg={resetCustom.EditorBackground}, FontSize={resetCustom.EditorFontSize}");
+            if (resetCustom.ButtonAccentColor != "Default" || resetCustom.BorderColor != "Default" || resetCustom.EditorBackground != "Default" || resetCustom.EditorFontSize != 13.0)
             {
                 throw new Exception("Reset panel customization failed!");
             }
-            Console.WriteLine("[Success] Panel customization, presets and SQLite persistence verified!");
+            Console.WriteLine("[Success] Color Maker, Button/Border/Sidebar customization, and SQLite persistence verified!");
 
             // 5c. Test Dynamic Shortcuts System (Read, Customize, and Reset from SQLite)
             Console.WriteLine("\n[Action] Verifying Dynamic Shortcuts System & SQLite Persistence...");

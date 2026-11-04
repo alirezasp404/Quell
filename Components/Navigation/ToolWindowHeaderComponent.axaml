@@ -5,8 +5,8 @@
              x:Class="Fdb.Components.ToolWindowHeaderComponent">
     
     <!-- Modern Reusable Tool Window Header -->
-    <Border Background="{DynamicResource AppSurfaceBrush}" 
-            BorderBrush="{DynamicResource AppBorderBrush}" 
+    <Border Background="{DynamicResource AppSidebarHeaderBackgroundBrush}" 
+            BorderBrush="{DynamicResource AppSidebarBorderBrush}" 
             BorderThickness="0,0,0,1" 
             Height="26" 
             Padding="8,0">

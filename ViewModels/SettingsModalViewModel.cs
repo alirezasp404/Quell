@@ -78,10 +78,127 @@ public partial class SettingsModalViewModel : ObservableObject
     private string _sidebarBackground = "Default";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewSidebarHeaderBrush))]
+    private string _sidebarHeaderBackground = "Default";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewSidebarHoverBrush))]
+    private string _sidebarItemHoverBackground = "Default";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewSidebarTextBrush))]
+    private string _sidebarTextColor = "Default";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewSidebarBorderBrush))]
+    private string _sidebarBorderColor = "Default";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewButtonAccentBrush))]
+    private string _buttonAccentColor = "Default";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewButtonBackgroundBrush))]
+    private string _buttonBackgroundColor = "Default";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewButtonTextBrush))]
+    private string _buttonTextColor = "Default";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewButtonBorderBrush))]
+    private string _buttonBorderColor = "Default";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewBorderBrush))]
+    [NotifyPropertyChangedFor(nameof(PreviewSidebarBorderBrush))]
+    [NotifyPropertyChangedFor(nameof(PreviewButtonBorderBrush))]
+    [NotifyPropertyChangedFor(nameof(PreviewSplitterBrush))]
+    private string _borderColor = "Default";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewSplitterBrush))]
+    private string _splitterColor = "Default";
+
+    [ObservableProperty]
     private double _editorFontSize = 13.0;
 
     [ObservableProperty]
     private bool _editorShowLineNumbers = true;
+
+    #region Color Maker ("رنگ‌ساز") Properties
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ColorMakerPreviewBrush))]
+    [NotifyPropertyChangedFor(nameof(ColorMakerRgbText))]
+    [NotifyPropertyChangedFor(nameof(ColorMakerIsDarkText))]
+    private string _colorMakerHex = "#3B82F6";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ColorMakerPreviewBrush))]
+    [NotifyPropertyChangedFor(nameof(ColorMakerRgbText))]
+    [NotifyPropertyChangedFor(nameof(ColorMakerIsDarkText))]
+    private double _colorMakerR = 59;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ColorMakerPreviewBrush))]
+    [NotifyPropertyChangedFor(nameof(ColorMakerRgbText))]
+    [NotifyPropertyChangedFor(nameof(ColorMakerIsDarkText))]
+    private double _colorMakerG = 130;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ColorMakerPreviewBrush))]
+    [NotifyPropertyChangedFor(nameof(ColorMakerRgbText))]
+    [NotifyPropertyChangedFor(nameof(ColorMakerIsDarkText))]
+    private double _colorMakerB = 246;
+
+    [ObservableProperty]
+    private string _colorMakerSelectedTarget = "Buttons: Accent / Action";
+
+    public ObservableCollection<string> ColorMakerTargets { get; } = new()
+    {
+        "Buttons: Accent / Action",
+        "Buttons: Background",
+        "Buttons: Text",
+        "Buttons: Border",
+        "Borders: Global Panels & Dividers",
+        "Borders: Splitters & Separators",
+        "Sidebar: Main Background",
+        "Sidebar: Header & Toolbar",
+        "Sidebar: Item Hover / Selection",
+        "Sidebar: Text",
+        "Sidebar: Border",
+        "Text Editor: Background",
+        "Text Editor: Text",
+        "Table: Background",
+        "Table: Alternating Row",
+        "Table: Header Background",
+        "Table: Grid Lines",
+        "Table: Cell Text"
+    };
+
+    public IBrush ColorMakerPreviewBrush
+    {
+        get
+        {
+            if (Color.TryParse(ColorMakerHex, out var col))
+                return new SolidColorBrush(col);
+            return new SolidColorBrush(Color.FromRgb((byte)Math.Clamp(ColorMakerR, 0, 255), (byte)Math.Clamp(ColorMakerG, 0, 255), (byte)Math.Clamp(ColorMakerB, 0, 255)));
+        }
+    }
+
+    public string ColorMakerRgbText => $"RGB({(int)ColorMakerR}, {(int)ColorMakerG}, {(int)ColorMakerB})";
+
+    public bool ColorMakerIsDarkText
+    {
+        get
+        {
+            double yiq = ((ColorMakerR * 299) + (ColorMakerG * 587) + (ColorMakerB * 114)) / 1000.0;
+            return yiq >= 128;
+        }
+    }
+
+    #endregion
 
     private PanelCustomizationRecord _initialPanelCustomization = new();
 
@@ -112,6 +229,106 @@ public partial class SettingsModalViewModel : ObservableObject
             if (!string.IsNullOrWhiteSpace(SidebarBackground) && !SidebarBackground.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(SidebarBackground, out var color))
                 return new SolidColorBrush(color);
             return IsDarkTheme ? new SolidColorBrush(Color.Parse("#1E293B")) : new SolidColorBrush(Color.Parse("#F8FAFC"));
+        }
+    }
+
+    public IBrush PreviewSidebarHeaderBrush
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(SidebarHeaderBackground) && !SidebarHeaderBackground.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(SidebarHeaderBackground, out var color))
+                return new SolidColorBrush(color);
+            return IsDarkTheme ? new SolidColorBrush(Color.Parse("#1E293B")) : new SolidColorBrush(Color.Parse("#F8FAFC"));
+        }
+    }
+
+    public IBrush PreviewSidebarHoverBrush
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(SidebarItemHoverBackground) && !SidebarItemHoverBackground.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(SidebarItemHoverBackground, out var color))
+                return new SolidColorBrush(color);
+            return IsDarkTheme ? new SolidColorBrush(Color.Parse("#334155")) : new SolidColorBrush(Color.Parse("#F1F5F9"));
+        }
+    }
+
+    public IBrush PreviewSidebarTextBrush
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(SidebarTextColor) && !SidebarTextColor.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(SidebarTextColor, out var color))
+                return new SolidColorBrush(color);
+            return IsDarkTheme ? new SolidColorBrush(Color.Parse("#F8FAFC")) : new SolidColorBrush(Color.Parse("#0F172A"));
+        }
+    }
+
+    public IBrush PreviewSidebarBorderBrush
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(SidebarBorderColor) && !SidebarBorderColor.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(SidebarBorderColor, out var color))
+                return new SolidColorBrush(color);
+            return PreviewBorderBrush;
+        }
+    }
+
+    public IBrush PreviewButtonAccentBrush
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(ButtonAccentColor) && !ButtonAccentColor.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(ButtonAccentColor, out var color))
+                return new SolidColorBrush(color);
+            return IsDarkTheme ? new SolidColorBrush(Color.Parse("#3B82F6")) : new SolidColorBrush(Color.Parse("#2563EB"));
+        }
+    }
+
+    public IBrush PreviewButtonBackgroundBrush
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(ButtonBackgroundColor) && !ButtonBackgroundColor.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(ButtonBackgroundColor, out var color))
+                return new SolidColorBrush(color);
+            return IsDarkTheme ? new SolidColorBrush(Color.Parse("#1E293B")) : new SolidColorBrush(Color.Parse("#F8FAFC"));
+        }
+    }
+
+    public IBrush PreviewButtonTextBrush
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(ButtonTextColor) && !ButtonTextColor.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(ButtonTextColor, out var color))
+                return new SolidColorBrush(color);
+            return IsDarkTheme ? new SolidColorBrush(Color.Parse("#F8FAFC")) : new SolidColorBrush(Color.Parse("#0F172A"));
+        }
+    }
+
+    public IBrush PreviewButtonBorderBrush
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(ButtonBorderColor) && !ButtonBorderColor.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(ButtonBorderColor, out var color))
+                return new SolidColorBrush(color);
+            return PreviewBorderBrush;
+        }
+    }
+
+    public IBrush PreviewBorderBrush
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(BorderColor) && !BorderColor.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(BorderColor, out var color))
+                return new SolidColorBrush(color);
+            return IsDarkTheme ? new SolidColorBrush(Color.Parse("#334155")) : new SolidColorBrush(Color.Parse("#E2E8F0"));
+        }
+    }
+
+    public IBrush PreviewSplitterBrush
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(SplitterColor) && !SplitterColor.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(SplitterColor, out var color))
+                return new SolidColorBrush(color);
+            return PreviewBorderBrush;
         }
     }
 
@@ -323,6 +540,16 @@ public partial class SettingsModalViewModel : ObservableObject
             EditorBackground = _initialPanelCustomization.EditorBackground;
             EditorForeground = _initialPanelCustomization.EditorForeground;
             SidebarBackground = _initialPanelCustomization.SidebarBackground;
+            SidebarHeaderBackground = _initialPanelCustomization.SidebarHeaderBackground;
+            SidebarItemHoverBackground = _initialPanelCustomization.SidebarItemHoverBackground;
+            SidebarTextColor = _initialPanelCustomization.SidebarTextColor;
+            SidebarBorderColor = _initialPanelCustomization.SidebarBorderColor;
+            ButtonAccentColor = _initialPanelCustomization.ButtonAccentColor;
+            ButtonBackgroundColor = _initialPanelCustomization.ButtonBackgroundColor;
+            ButtonTextColor = _initialPanelCustomization.ButtonTextColor;
+            ButtonBorderColor = _initialPanelCustomization.ButtonBorderColor;
+            BorderColor = _initialPanelCustomization.BorderColor;
+            SplitterColor = _initialPanelCustomization.SplitterColor;
             EditorFontSize = _initialPanelCustomization.EditorFontSize;
             EditorShowLineNumbers = _initialPanelCustomization.EditorShowLineNumbers;
 
@@ -447,6 +674,210 @@ public partial class SettingsModalViewModel : ObservableObject
     }
 
     [RelayCommand]
+    public void SelectSidebarHeaderBackground(string hex)
+    {
+        SidebarHeaderBackground = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewPanelCustomization();
+    }
+
+    [RelayCommand]
+    public void SelectSidebarItemHoverBackground(string hex)
+    {
+        SidebarItemHoverBackground = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewPanelCustomization();
+    }
+
+    [RelayCommand]
+    public void SelectSidebarTextColor(string hex)
+    {
+        SidebarTextColor = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewPanelCustomization();
+    }
+
+    [RelayCommand]
+    public void SelectSidebarBorderColor(string hex)
+    {
+        SidebarBorderColor = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewPanelCustomization();
+    }
+
+    [RelayCommand]
+    public void SelectButtonAccentColor(string hex)
+    {
+        ButtonAccentColor = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewPanelCustomization();
+    }
+
+    [RelayCommand]
+    public void SelectButtonBackgroundColor(string hex)
+    {
+        ButtonBackgroundColor = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewPanelCustomization();
+    }
+
+    [RelayCommand]
+    public void SelectButtonTextColor(string hex)
+    {
+        ButtonTextColor = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewPanelCustomization();
+    }
+
+    [RelayCommand]
+    public void SelectButtonBorderColor(string hex)
+    {
+        ButtonBorderColor = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewPanelCustomization();
+    }
+
+    [RelayCommand]
+    public void SelectBorderColor(string hex)
+    {
+        BorderColor = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewPanelCustomization();
+    }
+
+    [RelayCommand]
+    public void SelectSplitterColor(string hex)
+    {
+        SplitterColor = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewPanelCustomization();
+    }
+
+    #region Color Maker ("رنگ‌ساز") Methods & Commands
+
+    partial void OnColorMakerRChanged(double value) => UpdateHexFromRgb();
+    partial void OnColorMakerGChanged(double value) => UpdateHexFromRgb();
+    partial void OnColorMakerBChanged(double value) => UpdateHexFromRgb();
+
+    private bool _isSyncingColorMaker;
+
+    private void UpdateHexFromRgb()
+    {
+        if (_isSyncingColorMaker) return;
+        _isSyncingColorMaker = true;
+        try
+        {
+            byte r = (byte)Math.Clamp(ColorMakerR, 0, 255);
+            byte g = (byte)Math.Clamp(ColorMakerG, 0, 255);
+            byte b = (byte)Math.Clamp(ColorMakerB, 0, 255);
+            ColorMakerHex = $"#{r:X2}{g:X2}{b:X2}";
+        }
+        finally
+        {
+            _isSyncingColorMaker = false;
+        }
+    }
+
+    [RelayCommand]
+    public void SetColorMakerHex(string? hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return;
+        string clean = hex.Trim();
+        if (!clean.StartsWith("#")) clean = "#" + clean;
+
+        if (Color.TryParse(clean, out var color))
+        {
+            _isSyncingColorMaker = true;
+            try
+            {
+                ColorMakerHex = clean.ToUpperInvariant();
+                ColorMakerR = color.R;
+                ColorMakerG = color.G;
+                ColorMakerB = color.B;
+            }
+            finally
+            {
+                _isSyncingColorMaker = false;
+            }
+        }
+    }
+
+    [RelayCommand]
+    public void LoadIntoColorMaker(string? hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex) || hex.Equals("Default", StringComparison.OrdinalIgnoreCase))
+            hex = "#3B82F6";
+        SetColorMakerHex(hex);
+    }
+
+    [RelayCommand]
+    public void ApplyColorMakerToTarget()
+    {
+        string hex = ColorMakerHex?.Trim().ToUpperInvariant() ?? "#3B82F6";
+        if (!hex.StartsWith("#")) hex = "#" + hex;
+        if (!Color.TryParse(hex, out _)) return;
+
+        string target = ColorMakerSelectedTarget ?? "Buttons: Accent / Action";
+
+        switch (target)
+        {
+            case "Buttons: Accent / Action":
+                ButtonAccentColor = hex;
+                break;
+            case "Buttons: Background":
+                ButtonBackgroundColor = hex;
+                break;
+            case "Buttons: Text":
+                ButtonTextColor = hex;
+                break;
+            case "Buttons: Border":
+                ButtonBorderColor = hex;
+                break;
+            case "Borders: Global Panels & Dividers":
+                BorderColor = hex;
+                break;
+            case "Borders: Splitters & Separators":
+                SplitterColor = hex;
+                break;
+            case "Sidebar: Main Background":
+                SidebarBackground = hex;
+                break;
+            case "Sidebar: Header & Toolbar":
+                SidebarHeaderBackground = hex;
+                break;
+            case "Sidebar: Item Hover / Selection":
+                SidebarItemHoverBackground = hex;
+                break;
+            case "Sidebar: Text":
+                SidebarTextColor = hex;
+                break;
+            case "Sidebar: Border":
+                SidebarBorderColor = hex;
+                break;
+            case "Text Editor: Background":
+                EditorBackground = hex;
+                break;
+            case "Text Editor: Text":
+                EditorForeground = hex;
+                break;
+            case "Table: Background":
+                TableBackground = hex;
+                LivePreviewTableCustomization();
+                break;
+            case "Table: Alternating Row":
+                TableAlternatingRowColor = hex;
+                LivePreviewTableCustomization();
+                break;
+            case "Table: Header Background":
+                TableHeaderBackground = hex;
+                LivePreviewTableCustomization();
+                break;
+            case "Table: Grid Lines":
+                TableGridLinesColor = hex;
+                LivePreviewTableCustomization();
+                break;
+            case "Table: Cell Text":
+                TableCellTextColor = hex;
+                LivePreviewTableCustomization();
+                break;
+        }
+
+        LivePreviewPanelCustomization();
+    }
+
+    #endregion
+
+    [RelayCommand]
     public void IncreaseFontSize()
     {
         EditorFontSize = Math.Min(24.0, EditorFontSize + 1.0);
@@ -476,32 +907,110 @@ public partial class SettingsModalViewModel : ObservableObject
                 EditorBackground = "#1E293B";
                 EditorForeground = "#F8FAFC";
                 SidebarBackground = "#141E2E";
+                SidebarHeaderBackground = "#1E293B";
+                SidebarItemHoverBackground = "#334155";
+                SidebarTextColor = "#F8FAFC";
+                SidebarBorderColor = "#334155";
+                ButtonAccentColor = "#38BDF8";
+                ButtonBackgroundColor = "#1E293B";
+                ButtonTextColor = "#F8FAFC";
+                ButtonBorderColor = "#334155";
+                BorderColor = "#334155";
+                SplitterColor = "#38BDF8";
                 break;
             case "midnight":
                 EditorBackground = "#0F1117";
                 EditorForeground = "#E2E8F0";
                 SidebarBackground = "#090D16";
+                SidebarHeaderBackground = "#0F1117";
+                SidebarItemHoverBackground = "#1E293B";
+                SidebarTextColor = "#E2E8F0";
+                SidebarBorderColor = "#1F2937";
+                ButtonAccentColor = "#818CF8";
+                ButtonBackgroundColor = "#1E293B";
+                ButtonTextColor = "#F8FAFC";
+                ButtonBorderColor = "#374151";
+                BorderColor = "#1F2937";
+                SplitterColor = "#818CF8";
                 break;
             case "monokai":
                 EditorBackground = "#272822";
                 EditorForeground = "#F8F8F2";
                 SidebarBackground = "#1E1F1C";
+                SidebarHeaderBackground = "#272822";
+                SidebarItemHoverBackground = "#3E3D32";
+                SidebarTextColor = "#F8F8F2";
+                SidebarBorderColor = "#3E3D32";
+                ButtonAccentColor = "#A6E22E";
+                ButtonBackgroundColor = "#272822";
+                ButtonTextColor = "#F8F8F2";
+                ButtonBorderColor = "#49483E";
+                BorderColor = "#3E3D32";
+                SplitterColor = "#A6E22E";
                 break;
             case "solarized":
                 EditorBackground = "#002B36";
                 EditorForeground = "#839496";
                 SidebarBackground = "#073642";
+                SidebarHeaderBackground = "#002B36";
+                SidebarItemHoverBackground = "#073642";
+                SidebarTextColor = "#839496";
+                SidebarBorderColor = "#073642";
+                ButtonAccentColor = "#268BD2";
+                ButtonBackgroundColor = "#073642";
+                ButtonTextColor = "#EEE8D5";
+                ButtonBorderColor = "#586E75";
+                BorderColor = "#073642";
+                SplitterColor = "#268BD2";
+                break;
+            case "emerald":
+                EditorBackground = "#064E3B";
+                EditorForeground = "#ECFDF5";
+                SidebarBackground = "#022C22";
+                SidebarHeaderBackground = "#064E3B";
+                SidebarItemHoverBackground = "#065F46";
+                SidebarTextColor = "#D1FAE5";
+                SidebarBorderColor = "#065F46";
+                ButtonAccentColor = "#10B981";
+                ButtonBackgroundColor = "#064E3B";
+                ButtonTextColor = "#ECFDF5";
+                ButtonBorderColor = "#047857";
+                BorderColor = "#065F46";
+                SplitterColor = "#10B981";
+                break;
+            case "violet":
+                EditorBackground = "#1A102F";
+                EditorForeground = "#FAF5FF";
+                SidebarBackground = "#0F0C29";
+                SidebarHeaderBackground = "#1E1B4B";
+                SidebarItemHoverBackground = "#312E81";
+                SidebarTextColor = "#F3E8FF";
+                SidebarBorderColor = "#312E81";
+                ButtonAccentColor = "#A855F7";
+                ButtonBackgroundColor = "#2E1065";
+                ButtonTextColor = "#FAF5FF";
+                ButtonBorderColor = "#4C1D95";
+                BorderColor = "#312E81";
+                SplitterColor = "#A855F7";
                 break;
             case "paper":
                 EditorBackground = "#FFFFFF";
                 EditorForeground = "#0F172A";
-                SidebarBackground = "#F1F5F9";
+                SidebarBackground = "#F8FAFC";
+                SidebarHeaderBackground = "#F1F5F9";
+                SidebarItemHoverBackground = "#E2E8F0";
+                SidebarTextColor = "#0F172A";
+                SidebarBorderColor = "#E2E8F0";
+                ButtonAccentColor = "#2563EB";
+                ButtonBackgroundColor = "#F8FAFC";
+                ButtonTextColor = "#0F172A";
+                ButtonBorderColor = "#CBD5E1";
+                BorderColor = "#E2E8F0";
+                SplitterColor = "#2563EB";
                 break;
             default:
-                EditorBackground = "Default";
-                EditorForeground = "Default";
-                SidebarBackground = "Default";
-                break;
+                ResetPanelCustomization();
+                return;
         }
         LivePreviewPanelCustomization();
     }
@@ -512,6 +1021,16 @@ public partial class SettingsModalViewModel : ObservableObject
         EditorBackground = "Default";
         EditorForeground = "Default";
         SidebarBackground = "Default";
+        SidebarHeaderBackground = "Default";
+        SidebarItemHoverBackground = "Default";
+        SidebarTextColor = "Default";
+        SidebarBorderColor = "Default";
+        ButtonAccentColor = "Default";
+        ButtonBackgroundColor = "Default";
+        ButtonTextColor = "Default";
+        ButtonBorderColor = "Default";
+        BorderColor = "Default";
+        SplitterColor = "Default";
         EditorFontSize = 13.0;
         EditorShowLineNumbers = true;
         LivePreviewPanelCustomization();
@@ -524,6 +1043,16 @@ public partial class SettingsModalViewModel : ObservableObject
             EditorBackground = EditorBackground,
             EditorForeground = EditorForeground,
             SidebarBackground = SidebarBackground,
+            SidebarHeaderBackground = SidebarHeaderBackground,
+            SidebarItemHoverBackground = SidebarItemHoverBackground,
+            SidebarTextColor = SidebarTextColor,
+            SidebarBorderColor = SidebarBorderColor,
+            ButtonAccentColor = ButtonAccentColor,
+            ButtonBackgroundColor = ButtonBackgroundColor,
+            ButtonTextColor = ButtonTextColor,
+            ButtonBorderColor = ButtonBorderColor,
+            BorderColor = BorderColor,
+            SplitterColor = SplitterColor,
             TableBackground = TableBackground,
             EditorFontSize = EditorFontSize,
             EditorShowLineNumbers = EditorShowLineNumbers
@@ -533,6 +1062,16 @@ public partial class SettingsModalViewModel : ObservableObject
         OnPropertyChanged(nameof(PreviewEditorBackgroundBrush));
         OnPropertyChanged(nameof(PreviewEditorForegroundBrush));
         OnPropertyChanged(nameof(PreviewSidebarBackgroundBrush));
+        OnPropertyChanged(nameof(PreviewSidebarHeaderBrush));
+        OnPropertyChanged(nameof(PreviewSidebarHoverBrush));
+        OnPropertyChanged(nameof(PreviewSidebarTextBrush));
+        OnPropertyChanged(nameof(PreviewSidebarBorderBrush));
+        OnPropertyChanged(nameof(PreviewButtonAccentBrush));
+        OnPropertyChanged(nameof(PreviewButtonBackgroundBrush));
+        OnPropertyChanged(nameof(PreviewButtonTextBrush));
+        OnPropertyChanged(nameof(PreviewButtonBorderBrush));
+        OnPropertyChanged(nameof(PreviewBorderBrush));
+        OnPropertyChanged(nameof(PreviewSplitterBrush));
         OnPropertyChanged(nameof(PreviewTableBackgroundBrush));
         OnPropertyChanged(nameof(PreviewTableMainRowBrush));
     }
@@ -910,6 +1449,16 @@ public partial class SettingsModalViewModel : ObservableObject
                 EditorBackground = EditorBackground,
                 EditorForeground = EditorForeground,
                 SidebarBackground = SidebarBackground,
+                SidebarHeaderBackground = SidebarHeaderBackground,
+                SidebarItemHoverBackground = SidebarItemHoverBackground,
+                SidebarTextColor = SidebarTextColor,
+                SidebarBorderColor = SidebarBorderColor,
+                ButtonAccentColor = ButtonAccentColor,
+                ButtonBackgroundColor = ButtonBackgroundColor,
+                ButtonTextColor = ButtonTextColor,
+                ButtonBorderColor = ButtonBorderColor,
+                BorderColor = BorderColor,
+                SplitterColor = SplitterColor,
                 TableBackground = TableBackground,
                 EditorFontSize = EditorFontSize,
                 EditorShowLineNumbers = EditorShowLineNumbers

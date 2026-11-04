@@ -51,6 +51,13 @@
     <SolidColorBrush x:Key="AppEditorBackgroundBrush" Color="#FFFFFF" />
     <SolidColorBrush x:Key="AppEditorForegroundBrush" Color="#0F172A" />
     <SolidColorBrush x:Key="AppSidebarBackgroundBrush" Color="#F8FAFC" />
+    <SolidColorBrush x:Key="AppSidebarHeaderBackgroundBrush" Color="#F8FAFC" />
+    <SolidColorBrush x:Key="AppSidebarHoverBrush" Color="#F1F5F9" />
+    <SolidColorBrush x:Key="AppSidebarTextBrush" Color="#0F172A" />
+    <SolidColorBrush x:Key="AppSidebarBorderBrush" Color="#E2E8F0" />
+    <SolidColorBrush x:Key="AppButtonBackgroundBrush" Color="#F8FAFC" />
+    <SolidColorBrush x:Key="AppButtonForegroundBrush" Color="#0F172A" />
+    <SolidColorBrush x:Key="AppButtonBorderBrush" Color="#CBD5E1" />
     <SolidColorBrush x:Key="AppToolHoverBrush" Color="#F1F5F9" />
     <SolidColorBrush x:Key="AppToolHoverBorderBrush" Color="#CBD5E1" />
     <SolidColorBrush x:Key="AppModalOverlayBrush" Color="#66000000" />

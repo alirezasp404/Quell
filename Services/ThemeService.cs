@@ -184,14 +184,64 @@ public class ThemeService
 
         var custom = CurrentPanelCustomization;
 
-        // 1. Editor Background
+        // 1. Text Editor Background & Foreground
         SetOrRemoveBrushOverride("AppEditorBackgroundBrush", custom.EditorBackground);
-
-        // 2. Editor Foreground
         SetOrRemoveBrushOverride("AppEditorForegroundBrush", custom.EditorForeground);
 
-        // 3. Sidebar Background
+        // 2. Sidebar Multi-part Customization
         SetOrRemoveBrushOverride("AppSidebarBackgroundBrush", custom.SidebarBackground);
+        SetOrRemoveBrushOverride("AppSidebarHeaderBackgroundBrush", custom.SidebarHeaderBackground);
+        SetOrRemoveBrushOverride("AppSidebarHoverBrush", custom.SidebarItemHoverBackground);
+        SetOrRemoveBrushOverride("AppSidebarTextBrush", custom.SidebarTextColor);
+        SetOrRemoveBrushOverride("AppSidebarBorderBrush", custom.SidebarBorderColor);
+
+        // 3. Buttons & Action Customization
+        SetOrRemoveBrushOverride("AppAccentBrush", custom.ButtonAccentColor);
+        if (!string.IsNullOrWhiteSpace(custom.ButtonAccentColor) && !custom.ButtonAccentColor.Equals("Default", StringComparison.OrdinalIgnoreCase))
+        {
+            if (Color.TryParse(custom.ButtonAccentColor, out var accentCol))
+            {
+                byte r = (byte)Math.Clamp(accentCol.R + 25, 0, 255);
+                byte g = (byte)Math.Clamp(accentCol.G + 25, 0, 255);
+                byte b = (byte)Math.Clamp(accentCol.B + 25, 0, 255);
+                Application.Current.Resources["AppAccentHoverBrush"] = new SolidColorBrush(Color.FromArgb(accentCol.A, r, g, b));
+                Application.Current.Resources["AppTabActiveBorderBrush"] = new SolidColorBrush(accentCol);
+                Application.Current.Resources["AppTableActiveBorderBrush"] = new SolidColorBrush(accentCol);
+            }
+        }
+        else
+        {
+            Application.Current.Resources.Remove("AppAccentHoverBrush");
+            Application.Current.Resources.Remove("AppTabActiveBorderBrush");
+            Application.Current.Resources.Remove("AppTableActiveBorderBrush");
+        }
+
+        SetOrRemoveBrushOverride("AppControlFaceBrush", custom.ButtonBackgroundColor);
+        SetOrRemoveBrushOverride("AppButtonBackgroundBrush", custom.ButtonBackgroundColor);
+        SetOrRemoveBrushOverride("AppButtonForegroundBrush", custom.ButtonTextColor);
+        SetOrRemoveBrushOverride("AppButtonBorderBrush", custom.ButtonBorderColor);
+
+        // 4. Global Borders & Dividers
+        SetOrRemoveBrushOverride("AppBorderBrush", custom.BorderColor);
+        SetOrRemoveBrushOverride("AppBorderLightBrush", custom.BorderColor);
+        SetOrRemoveBrushOverride("AppBorderDarkBrush", custom.BorderColor);
+
+        // 5. Splitters
+        SetOrRemoveBrushOverride("AppSplitterBrush", custom.SplitterColor);
+        if (!string.IsNullOrWhiteSpace(custom.SplitterColor) && !custom.SplitterColor.Equals("Default", StringComparison.OrdinalIgnoreCase))
+        {
+            if (Color.TryParse(custom.SplitterColor, out var splitCol))
+            {
+                byte r = (byte)Math.Clamp(splitCol.R + 35, 0, 255);
+                byte g = (byte)Math.Clamp(splitCol.G + 35, 0, 255);
+                byte b = (byte)Math.Clamp(splitCol.B + 35, 0, 255);
+                Application.Current.Resources["AppSplitterHoverBrush"] = new SolidColorBrush(Color.FromArgb(splitCol.A, r, g, b));
+            }
+        }
+        else
+        {
+            Application.Current.Resources.Remove("AppSplitterHoverBrush");
+        }
 
         // 4. Table Alternating Background
         SetOrRemoveBrushOverride("AppTableAltColBackgroundBrush", custom.TableBackground);

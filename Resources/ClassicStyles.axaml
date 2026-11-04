@@ -294,14 +294,14 @@
 
     <!-- Modern Toolbar Action Button -->
     <Style Selector="Button.classic-tool-btn">
-        <Setter Property="Background" Value="{DynamicResource AppControlFaceBrush}"/>
-        <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource AppButtonBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource AppButtonForegroundBrush}"/>
         <Setter Property="FontSize" Value="11"/>
         <Setter Property="FontWeight" Value="Medium"/>
         <Setter Property="Padding" Value="10,4"/>
         <Setter Property="CornerRadius" Value="4"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AppButtonBorderBrush}"/>
         <Setter Property="MinHeight" Value="26"/>
         <Setter Property="Cursor" Value="Hand"/>
     </Style>

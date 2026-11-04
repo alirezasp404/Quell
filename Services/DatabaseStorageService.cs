@@ -94,12 +94,31 @@ public class ShortcutDbRecord
 
 public class PanelCustomizationRecord
 {
+    // Text Editor
     public string EditorBackground { get; set; } = "Default";
     public string EditorForeground { get; set; } = "Default";
-    public string SidebarBackground { get; set; } = "Default";
-    public string TableBackground { get; set; } = "Default";
     public double EditorFontSize { get; set; } = 13.0;
     public bool EditorShowLineNumbers { get; set; } = true;
+
+    // Sidebar Multi-part
+    public string SidebarBackground { get; set; } = "Default";
+    public string SidebarHeaderBackground { get; set; } = "Default";
+    public string SidebarItemHoverBackground { get; set; } = "Default";
+    public string SidebarTextColor { get; set; } = "Default";
+    public string SidebarBorderColor { get; set; } = "Default";
+
+    // Buttons
+    public string ButtonAccentColor { get; set; } = "Default";
+    public string ButtonBackgroundColor { get; set; } = "Default";
+    public string ButtonTextColor { get; set; } = "Default";
+    public string ButtonBorderColor { get; set; } = "Default";
+
+    // Borders & Splitters
+    public string BorderColor { get; set; } = "Default";
+    public string SplitterColor { get; set; } = "Default";
+
+    // Legacy / Shared Table
+    public string TableBackground { get; set; } = "Default";
 }
 
 public class TableCustomizationRecord
@@ -1180,6 +1199,18 @@ public class DatabaseStorageService
             record.EditorBackground = await GetSettingAsync("EditorBackground", "Default");
             record.EditorForeground = await GetSettingAsync("EditorForeground", "Default");
             record.SidebarBackground = await GetSettingAsync("SidebarBackground", "Default");
+            record.SidebarHeaderBackground = await GetSettingAsync("SidebarHeaderBackground", "Default");
+            record.SidebarItemHoverBackground = await GetSettingAsync("SidebarItemHoverBackground", "Default");
+            record.SidebarTextColor = await GetSettingAsync("SidebarTextColor", "Default");
+            record.SidebarBorderColor = await GetSettingAsync("SidebarBorderColor", "Default");
+
+            record.ButtonAccentColor = await GetSettingAsync("ButtonAccentColor", "Default");
+            record.ButtonBackgroundColor = await GetSettingAsync("ButtonBackgroundColor", "Default");
+            record.ButtonTextColor = await GetSettingAsync("ButtonTextColor", "Default");
+            record.ButtonBorderColor = await GetSettingAsync("ButtonBorderColor", "Default");
+
+            record.BorderColor = await GetSettingAsync("BorderColor", "Default");
+            record.SplitterColor = await GetSettingAsync("SplitterColor", "Default");
             record.TableBackground = await GetSettingAsync("TableBackground", "Default");
 
             string fontSizeStr = await GetSettingAsync("EditorFontSize", "13");
@@ -1207,6 +1238,16 @@ public class DatabaseStorageService
                 ["EditorBackground"] = record.EditorBackground,
                 ["EditorForeground"] = record.EditorForeground,
                 ["SidebarBackground"] = record.SidebarBackground,
+                ["SidebarHeaderBackground"] = record.SidebarHeaderBackground,
+                ["SidebarItemHoverBackground"] = record.SidebarItemHoverBackground,
+                ["SidebarTextColor"] = record.SidebarTextColor,
+                ["SidebarBorderColor"] = record.SidebarBorderColor,
+                ["ButtonAccentColor"] = record.ButtonAccentColor,
+                ["ButtonBackgroundColor"] = record.ButtonBackgroundColor,
+                ["ButtonTextColor"] = record.ButtonTextColor,
+                ["ButtonBorderColor"] = record.ButtonBorderColor,
+                ["BorderColor"] = record.BorderColor,
+                ["SplitterColor"] = record.SplitterColor,
                 ["TableBackground"] = record.TableBackground,
                 ["EditorFontSize"] = record.EditorFontSize.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["EditorShowLineNumbers"] = record.EditorShowLineNumbers ? "true" : "false"

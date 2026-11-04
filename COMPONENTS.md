@@ -43,7 +43,7 @@ Components/
 │   ├── SyntaxColorSelectorComponent.axaml      # Reusable 6-preset SQL syntax keyword color palette
 │   ├── LiveSyntaxPreviewComponent.axaml        # Reusable live code snippet preview with dynamic syntax highlighting
 │   ├── TableCustomizationComponent.axaml       # Dedicated Query Results Table row height, font size, gutter, colors, and live preview
-│   ├── PanelCustomizationComponent.axaml       # Workspace, Editor, Sidebar, and Table panel color customization & presets
+│   ├── PanelCustomizationComponent.axaml       # Custom Color Maker (RGB/Hex), Buttons, Global Borders, Sidebar multi-part, Editor, and Quick Bundles with live layout preview
 │   └── ShortcutsSettingsComponent.axaml        # Dynamic keyboard shortcuts manager with SQLite persistence and key capture
 │
 ├── Themes & Design System Components:

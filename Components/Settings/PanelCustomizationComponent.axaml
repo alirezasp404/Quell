@@ -1,18 +1,18 @@
 <UserControl xmlns="https://github.com/avaloniaui"
-              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-              xmlns:vm="using:Fdb.ViewModels"
-              xmlns:ui="using:FluentAvalonia.UI.Controls"
-              mc:Ignorable="d" d:DesignWidth="550" d:DesignHeight="700"
-              x:Class="Fdb.Components.PanelCustomizationComponent"
-              x:DataType="vm:SettingsModalViewModel">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Fdb.ViewModels"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             mc:Ignorable="d" d:DesignWidth="620" d:DesignHeight="1200"
+             x:Class="Fdb.Components.PanelCustomizationComponent"
+             x:DataType="vm:SettingsModalViewModel">
 
     <UserControl.Styles>
         <Style Selector="Button.color-swatch-btn">
-            <Setter Property="Width" Value="28" />
-            <Setter Property="Height" Value="28" />
-            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Width" Value="24" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="BorderThickness" Value="2" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
@@ -34,35 +34,452 @@
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
             <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}" />
         </Style>
+
+        <Style Selector="TextBox.hex-input">
+            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamilyMonospace}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="MinHeight" Value="28" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
     </UserControl.Styles>
 
     <StackPanel Spacing="16">
         <!-- Section Header -->
         <Grid ColumnDefinitions="*, Auto">
             <StackPanel Grid.Column="0" Spacing="2">
-                <TextBlock Text="Panel &amp; Workspace Customization" 
+                <TextBlock Text="Panel, Button &amp; Workspace Customization" 
                            FontSize="15" 
                            FontWeight="Bold" 
                            Foreground="{DynamicResource AppTextPrimaryBrush}"/>
-                <TextBlock Text="Personalize colors, fonts, and styling for the Text Editor, Sidebar, and Tables." 
+                <TextBlock Text="Personalize colors for buttons, borders, sidebar parts, text editor, and build custom colors." 
                            FontSize="11" 
                            Foreground="{DynamicResource AppTextMutedBrush}"/>
             </StackPanel>
 
             <Button Grid.Column="1" 
-                    Content="Reset Defaults" 
+                    Content="Reset All Defaults" 
                     Command="{Binding ResetPanelCustomizationCommand}"
                     Classes="classic-tool-btn" 
                     FontSize="11"
-                    Padding="10,4"
+                    Padding="12,5"
                     VerticalAlignment="Center"/>
         </Grid>
 
         <Separator Background="{DynamicResource AppBorderBrush}" Margin="0,2"/>
 
-        <!-- 1. Quick Workspace Bundles -->
+        <!-- ===================================================================== -->
+        <!-- 1. COLOR MAKER / BUILDER STUDIO ("رنگ‌ساز دلخواه")                     -->
+        <!-- ===================================================================== -->
+        <Border Background="{DynamicResource AppSurfaceMutedBrush}" 
+                BorderBrush="{DynamicResource AppAccentBrush}" 
+                BorderThickness="1.5" 
+                CornerRadius="8" 
+                Padding="16,14">
+            <StackPanel Spacing="12">
+                <!-- Header -->
+                <Grid ColumnDefinitions="*, Auto">
+                    <StackPanel Grid.Column="0" Spacing="2">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ui:FASymbolIcon Symbol="Edit" FontSize="13" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="Custom Color Maker (رنگ‌ساز پیشرفته)" 
+                                       FontSize="13" 
+                                       FontWeight="Bold" 
+                                       Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                            <Border Background="{DynamicResource AppAccentBrush}" CornerRadius="3" Padding="4,1" VerticalAlignment="Center">
+                                <TextBlock Text="CUSTOM" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Text="Build any custom color with RGB sliders or HEX code, and apply it to any element." 
+                                   FontSize="11" 
+                                   Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Color Maker Controls Grid -->
+                <Grid ColumnDefinitions="140, *" Margin="0,4,0,0">
+                    <!-- Left: Large Live Color Swatch & Value Display -->
+                    <Border Grid.Column="0" 
+                            Background="{Binding ColorMakerPreviewBrush}" 
+                            BorderBrush="{DynamicResource AppBorderBrush}" 
+                            BorderThickness="1" 
+                            CornerRadius="6" 
+                            MinHeight="105"
+                            Margin="0,0,16,0"
+                            Padding="8"
+                            ClipToBounds="True">
+                        <Grid RowDefinitions="*, Auto">
+                            <!-- High Contrast Hex & RGB readout inside swatch -->
+                            <Border Grid.Row="1" Background="#80000000" CornerRadius="4" Padding="6,4">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="{Binding ColorMakerHex}" 
+                                               FontFamily="{DynamicResource AppFontFamilyMonospace}" 
+                                               FontSize="12" 
+                                               FontWeight="Bold" 
+                                               Foreground="White" 
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding ColorMakerRgbText}" 
+                                               FontFamily="{DynamicResource AppFontFamilyMonospace}" 
+                                               FontSize="9" 
+                                               Foreground="#CBD5E1" 
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- Right: Hex Input & RGB Sliders -->
+                    <StackPanel Grid.Column="1" Spacing="8">
+                        <!-- Direct Hex Input -->
+                        <Grid ColumnDefinitions="Auto, *, Auto">
+                            <TextBlock Grid.Column="0" Text="HEX Code:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBox Grid.Column="1" Text="{Binding ColorMakerHex}" Classes="hex-input" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <Button Grid.Column="2" Content="Set Hex" Command="{Binding SetColorMakerHexCommand}" CommandParameter="{Binding ColorMakerHex}" Classes="classic-tool-btn" Padding="10,4" FontSize="11"/>
+                        </Grid>
+
+                        <!-- Red Slider -->
+                        <Grid ColumnDefinitions="20, *, 36">
+                            <TextBlock Grid.Column="0" Text="R" FontSize="11" FontWeight="Bold" Foreground="#EF4444" VerticalAlignment="Center"/>
+                            <Slider Grid.Column="1" Minimum="0" Maximum="255" Value="{Binding ColorMakerR}" Margin="6,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="2" Text="{Binding ColorMakerR, StringFormat={}{0:0}}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                        </Grid>
+
+                        <!-- Green Slider -->
+                        <Grid ColumnDefinitions="20, *, 36">
+                            <TextBlock Grid.Column="0" Text="G" FontSize="11" FontWeight="Bold" Foreground="#10B981" VerticalAlignment="Center"/>
+                            <Slider Grid.Column="1" Minimum="0" Maximum="255" Value="{Binding ColorMakerG}" Margin="6,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="2" Text="{Binding ColorMakerG, StringFormat={}{0:0}}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                        </Grid>
+
+                        <!-- Blue Slider -->
+                        <Grid ColumnDefinitions="20, *, 36">
+                            <TextBlock Grid.Column="0" Text="B" FontSize="11" FontWeight="Bold" Foreground="#3B82F6" VerticalAlignment="Center"/>
+                            <Slider Grid.Column="1" Minimum="0" Maximum="255" Value="{Binding ColorMakerB}" Margin="6,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="2" Text="{Binding ColorMakerB, StringFormat={}{0:0}}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                        </Grid>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Quick Pick Inspirations Palette -->
+                <StackPanel Spacing="4" Margin="0,4,0,0">
+                    <TextBlock Text="Quick Color Inspirations (click to load and tweak):" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    <WrapPanel Orientation="Horizontal">
+                        <Button Classes="color-swatch-btn" Command="{Binding LoadIntoColorMakerCommand}" CommandParameter="#2563EB" Background="#2563EB" ToolTip.Tip="Royal Blue (#2563EB)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding LoadIntoColorMakerCommand}" CommandParameter="#3B82F6" Background="#3B82F6" ToolTip.Tip="Electric Blue (#3B82F6)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding LoadIntoColorMakerCommand}" CommandParameter="#0EA5E9" Background="#0EA5E9" ToolTip.Tip="Sky Blue (#0EA5E9)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding LoadIntoColorMakerCommand}" CommandParameter="#06B6D4" Background="#06B6D4" ToolTip.Tip="Teal Cyan (#06B6D4)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding LoadIntoColorMakerCommand}" CommandParameter="#14B8A6" Background="#14B8A6" ToolTip.Tip="Sea Green (#14B8A6)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding LoadIntoColorMakerCommand}" CommandParameter="#10B981" Background="#10B981" ToolTip.Tip="Emerald (#10B981)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding LoadIntoColorMakerCommand}" CommandParameter="#22C55E" Background="#22C55E" ToolTip.Tip="Vibrant Green (#22C55E)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding LoadIntoColorMakerCommand}" CommandParameter="#84CC16" Background="#84CC16" ToolTip.Tip="Lime (#84CC16)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding LoadIntoColorMakerCommand}" CommandParameter="#F59E0B" Background="#F59E0B" ToolTip.Tip="Amber Gold (#F59E0B)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding LoadIntoColorMakerCommand}" CommandParameter="#F97316" Background="#F97316" ToolTip.Tip="Bright Orange (#F97316)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding LoadIntoColorMakerCommand}" CommandParameter="#EF4444" Background="#EF4444" ToolTip.Tip="Crimson Red (#EF4444)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding LoadIntoColorMakerCommand}" CommandParameter="#F43F5E" Background="#F43F5E" ToolTip.Tip="Rose Pink (#F43F5E)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding LoadIntoColorMakerCommand}" CommandParameter="#EC4899" Background="#EC4899" ToolTip.Tip="Hot Magenta (#EC4899)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding LoadIntoColorMakerCommand}" CommandParameter="#A855F7" Background="#A855F7" ToolTip.Tip="Deep Purple (#A855F7)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding LoadIntoColorMakerCommand}" CommandParameter="#8B5CF6" Background="#8B5CF6" ToolTip.Tip="Violet (#8B5CF6)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding LoadIntoColorMakerCommand}" CommandParameter="#475569" Background="#475569" ToolTip.Tip="Slate Gray (#475569)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding LoadIntoColorMakerCommand}" CommandParameter="#0F172A" Background="#0F172A" ToolTip.Tip="Dark Onyx (#0F172A)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding LoadIntoColorMakerCommand}" CommandParameter="#FFFFFF" Background="#FFFFFF" ToolTip.Tip="Pure White (#FFFFFF)" Margin="0,0,6,4"/>
+                    </WrapPanel>
+                </StackPanel>
+
+                <!-- Target Assignment Bar -->
+                <Border Background="{DynamicResource AppBackgroundBrush}" 
+                        BorderBrush="{DynamicResource AppBorderBrush}" 
+                        BorderThickness="1" 
+                        CornerRadius="6" 
+                        Padding="10,8">
+                    <Grid ColumnDefinitions="Auto, *, Auto">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,10,0">
+                            <ui:FASymbolIcon Symbol="Target" FontSize="12" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="Apply To:" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <ComboBox Grid.Column="1" 
+                                  ItemsSource="{Binding ColorMakerTargets}" 
+                                  SelectedItem="{Binding ColorMakerSelectedTarget}" 
+                                  HorizontalAlignment="Stretch" 
+                                  Margin="0,0,10,0" 
+                                  FontSize="11"/>
+
+                        <Button Grid.Column="2" 
+                                Content="Apply Color to Target" 
+                                Command="{Binding ApplyColorMakerToTargetCommand}" 
+                                Background="{DynamicResource AppAccentBrush}" 
+                                Foreground="White" 
+                                FontWeight="Bold" 
+                                Padding="14,6" 
+                                CornerRadius="4" 
+                                BorderThickness="0" 
+                                Cursor="Hand"/>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <!-- ===================================================================== -->
+        <!-- 2. BUTTONS & ACTIONS CUSTOMIZATION ("دکمه‌ها و المان‌های اکشن")         -->
+        <!-- ===================================================================== -->
+        <Border Background="{DynamicResource AppSurfaceMutedBrush}" 
+                BorderBrush="{DynamicResource AppBorderBrush}" 
+                BorderThickness="1" 
+                CornerRadius="8" 
+                Padding="16,12">
+            <StackPanel Spacing="10">
+                <Grid ColumnDefinitions="*, Auto">
+                    <StackPanel Grid.Column="0" Spacing="2">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ui:FASymbolIcon Symbol="Play" FontSize="12" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="Buttons &amp; Action Controls (شخصی‌سازی دکمه‌ها)" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        </StackPanel>
+                        <TextBlock Text="Change primary accent color for action buttons (Save, Run, Connect) and button faces." FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Button Accent / Primary Color -->
+                <Grid ColumnDefinitions="160, *" Margin="0,4,0,0">
+                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="Button Primary Accent:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <TextBlock Text="Action buttons, active tabs &amp; badges" FontSize="9" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    </StackPanel>
+                    <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectButtonAccentColorCommand}" CommandParameter="Default" Background="{DynamicResource AppAccentBrush}" ToolTip.Tip="Default Theme" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectButtonAccentColorCommand}" CommandParameter="#2563EB" Background="#2563EB" ToolTip.Tip="Royal Blue (#2563EB)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectButtonAccentColorCommand}" CommandParameter="#059669" Background="#059669" ToolTip.Tip="Emerald Green (#059669)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectButtonAccentColorCommand}" CommandParameter="#7C3AED" Background="#7C3AED" ToolTip.Tip="Violet Purple (#7C3AED)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectButtonAccentColorCommand}" CommandParameter="#D97706" Background="#D97706" ToolTip.Tip="Amber Gold (#D97706)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectButtonAccentColorCommand}" CommandParameter="#E11D48" Background="#E11D48" ToolTip.Tip="Crimson Rose (#E11D48)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectButtonAccentColorCommand}" CommandParameter="#0891B2" Background="#0891B2" ToolTip.Tip="Teal Cyan (#0891B2)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectButtonAccentColorCommand}" CommandParameter="#3B82F6" Background="#3B82F6" ToolTip.Tip="Electric Blue (#3B82F6)" Margin="0,0,6,4"/>
+                    </WrapPanel>
+                </Grid>
+
+                <!-- Button Background Face -->
+                <Grid ColumnDefinitions="160, *" Margin="0,4,0,0">
+                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="Button Face Background:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <TextBlock Text="Toolbar buttons &amp; tool items" FontSize="9" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    </StackPanel>
+                    <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectButtonBackgroundColorCommand}" CommandParameter="Default" Background="{DynamicResource AppControlFaceBrush}" ToolTip.Tip="Default Theme" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectButtonBackgroundColorCommand}" CommandParameter="#F8FAFC" Background="#F8FAFC" ToolTip.Tip="Light Slate (#F8FAFC)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectButtonBackgroundColorCommand}" CommandParameter="#1E293B" Background="#1E293B" ToolTip.Tip="Dark Slate (#1E293B)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectButtonBackgroundColorCommand}" CommandParameter="#0F172A" Background="#0F172A" ToolTip.Tip="Onyx Black (#0F172A)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectButtonBackgroundColorCommand}" CommandParameter="#141E2E" Background="#141E2E" ToolTip.Tip="Deep Navy (#141E2E)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectButtonBackgroundColorCommand}" CommandParameter="#272822" Background="#272822" ToolTip.Tip="Monokai (#272822)" Margin="0,0,6,4"/>
+                    </WrapPanel>
+                </Grid>
+
+                <!-- Button Text Color -->
+                <Grid ColumnDefinitions="160, *" Margin="0,4,0,0">
+                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="Button Text Foreground:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <TextBlock Text="Label text for standard buttons" FontSize="9" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    </StackPanel>
+                    <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectButtonTextColorCommand}" CommandParameter="Default" Background="{DynamicResource AppTextPrimaryBrush}" ToolTip.Tip="Default Theme" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectButtonTextColorCommand}" CommandParameter="#0F172A" Background="#0F172A" ToolTip.Tip="Dark Charcoal (#0F172A)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectButtonTextColorCommand}" CommandParameter="#F8FAFC" Background="#F8FAFC" ToolTip.Tip="Crisp White (#F8FAFC)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectButtonTextColorCommand}" CommandParameter="#CBD5E1" Background="#CBD5E1" ToolTip.Tip="Soft Silver (#CBD5E1)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectButtonTextColorCommand}" CommandParameter="#38BDF8" Background="#38BDF8" ToolTip.Tip="Sky Blue (#38BDF8)" Margin="0,0,6,4"/>
+                    </WrapPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- ===================================================================== -->
+        <!-- 3. GLOBAL BORDERS & SPLITTERS CUSTOMIZATION ("کادربندی و جداکننده‌ها")   -->
+        <!-- ===================================================================== -->
+        <Border Background="{DynamicResource AppSurfaceMutedBrush}" 
+                BorderBrush="{DynamicResource AppBorderBrush}" 
+                BorderThickness="1" 
+                CornerRadius="8" 
+                Padding="16,12">
+            <StackPanel Spacing="10">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <ui:FASymbolIcon Symbol="ViewAll" FontSize="12" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="Borders &amp; Dividers (کادربندی و بردرهای پنجره)" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                </StackPanel>
+                <TextBlock Text="Control border outlines and splitter handles across panels, tables, and dialogs." FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
+
+                <!-- Global Border Color -->
+                <Grid ColumnDefinitions="160, *" Margin="0,4,0,0">
+                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="Global Border Color:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <TextBlock Text="All panel frames &amp; table lines" FontSize="9" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    </StackPanel>
+                    <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectBorderColorCommand}" CommandParameter="Default" Background="{DynamicResource AppBorderBrush}" ToolTip.Tip="Default Theme" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectBorderColorCommand}" CommandParameter="#E2E8F0" Background="#E2E8F0" ToolTip.Tip="Clean Slate (#E2E8F0)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectBorderColorCommand}" CommandParameter="#CBD5E1" Background="#CBD5E1" ToolTip.Tip="Subtle Gray (#CBD5E1)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectBorderColorCommand}" CommandParameter="#334155" Background="#334155" ToolTip.Tip="Dark Slate (#334155)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectBorderColorCommand}" CommandParameter="#475569" Background="#475569" ToolTip.Tip="Crisp Charcoal (#475569)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectBorderColorCommand}" CommandParameter="#3B82F6" Background="#3B82F6" ToolTip.Tip="Accent Blue (#3B82F6)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectBorderColorCommand}" CommandParameter="#10B981" Background="#10B981" ToolTip.Tip="Emerald Line (#10B981)" Margin="0,0,6,4"/>
+                    </WrapPanel>
+                </Grid>
+
+                <!-- Splitter Color -->
+                <Grid ColumnDefinitions="160, *" Margin="0,4,0,0">
+                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="Splitter / Resizer Color:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <TextBlock Text="Panel dragging handles" FontSize="9" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    </StackPanel>
+                    <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSplitterColorCommand}" CommandParameter="Default" Background="{DynamicResource AppSplitterBrush}" ToolTip.Tip="Default Theme" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSplitterColorCommand}" CommandParameter="#3B82F6" Background="#3B82F6" ToolTip.Tip="Accent Blue (#3B82F6)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSplitterColorCommand}" CommandParameter="#60A5FA" Background="#60A5FA" ToolTip.Tip="Soft Blue (#60A5FA)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSplitterColorCommand}" CommandParameter="#10B981" Background="#10B981" ToolTip.Tip="Emerald (#10B981)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSplitterColorCommand}" CommandParameter="#A855F7" Background="#A855F7" ToolTip.Tip="Purple (#A855F7)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSplitterColorCommand}" CommandParameter="#334155" Background="#334155" ToolTip.Tip="Slate (#334155)" Margin="0,0,6,4"/>
+                    </WrapPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- ===================================================================== -->
+        <!-- 4. OBJECT EXPLORER (SIDEBAR) MULTI-PART CUSTOMIZATION                 -->
+        <!-- ===================================================================== -->
+        <Border Background="{DynamicResource AppSurfaceMutedBrush}" 
+                BorderBrush="{DynamicResource AppBorderBrush}" 
+                BorderThickness="1" 
+                CornerRadius="8" 
+                Padding="16,12">
+            <StackPanel Spacing="10">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <ui:FASymbolIcon Symbol="Folder" FontSize="12" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="Object Explorer (Sidebar) Parts (بخش‌های مختلف سایدبار)" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                </StackPanel>
+                <TextBlock Text="Customize sidebar background, header bar, tree item hover, text, and border independently." FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
+
+                <!-- 1. Main Background -->
+                <Grid ColumnDefinitions="160, *" Margin="0,4,0,0">
+                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="Sidebar Main Canvas:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <TextBlock Text="Tree view body background" FontSize="9" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    </StackPanel>
+                    <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="Default" Background="{DynamicResource AppSurfaceBrush}" ToolTip.Tip="Default Theme" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#1E293B" Background="#1E293B" ToolTip.Tip="Dark Slate (#1E293B)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#111827" Background="#111827" ToolTip.Tip="Deep Midnight (#111827)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#141E2E" Background="#141E2E" ToolTip.Tip="Ocean Slate (#141E2E)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#F1F5F9" Background="#F1F5F9" ToolTip.Tip="Platinum Silver (#F1F5F9)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#FFFFFF" Background="#FFFFFF" ToolTip.Tip="Clean White (#FFFFFF)" Margin="0,0,6,4"/>
+                    </WrapPanel>
+                </Grid>
+
+                <!-- 2. Header & Tab Strip Background -->
+                <Grid ColumnDefinitions="160, *" Margin="0,4,0,0">
+                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="Header &amp; Tabs Strip:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <TextBlock Text="Top bar &amp; category tab area" FontSize="9" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    </StackPanel>
+                    <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarHeaderBackgroundCommand}" CommandParameter="Default" Background="{DynamicResource AppSurfaceBrush}" ToolTip.Tip="Default Theme" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarHeaderBackgroundCommand}" CommandParameter="#1E293B" Background="#1E293B" ToolTip.Tip="Dark Slate (#1E293B)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarHeaderBackgroundCommand}" CommandParameter="#0F172A" Background="#0F172A" ToolTip.Tip="Onyx Black (#0F172A)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarHeaderBackgroundCommand}" CommandParameter="#F8FAFC" Background="#F8FAFC" ToolTip.Tip="Pure Light (#F8FAFC)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarHeaderBackgroundCommand}" CommandParameter="#E2E8F0" Background="#E2E8F0" ToolTip.Tip="Soft Silver (#E2E8F0)" Margin="0,0,6,4"/>
+                    </WrapPanel>
+                </Grid>
+
+                <!-- 3. Item Hover & Selection -->
+                <Grid ColumnDefinitions="160, *" Margin="0,4,0,0">
+                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="Tree Item Hover State:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <TextBlock Text="Table and database mouse-over" FontSize="9" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    </StackPanel>
+                    <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarItemHoverBackgroundCommand}" CommandParameter="Default" Background="{DynamicResource AppToolHoverBrush}" ToolTip.Tip="Default Theme" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarItemHoverBackgroundCommand}" CommandParameter="#334155" Background="#334155" ToolTip.Tip="Dark Slate (#334155)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarItemHoverBackgroundCommand}" CommandParameter="#1E3A5F" Background="#1E3A5F" ToolTip.Tip="Ocean Navy (#1E3A5F)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarItemHoverBackgroundCommand}" CommandParameter="#E2E8F0" Background="#E2E8F0" ToolTip.Tip="Light Slate (#E2E8F0)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarItemHoverBackgroundCommand}" CommandParameter="#DBEAFE" Background="#DBEAFE" ToolTip.Tip="Ice Blue (#DBEAFE)" Margin="0,0,6,4"/>
+                    </WrapPanel>
+                </Grid>
+
+                <!-- 4. Sidebar Text Color -->
+                <Grid ColumnDefinitions="160, *" Margin="0,4,0,0">
+                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="Tree Item Text Color:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <TextBlock Text="Database and table name labels" FontSize="9" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    </StackPanel>
+                    <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarTextColorCommand}" CommandParameter="Default" Background="{DynamicResource AppTextPrimaryBrush}" ToolTip.Tip="Default Theme" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarTextColorCommand}" CommandParameter="#F8FAFC" Background="#F8FAFC" ToolTip.Tip="White (#F8FAFC)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarTextColorCommand}" CommandParameter="#CBD5E1" Background="#CBD5E1" ToolTip.Tip="Silver (#CBD5E1)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarTextColorCommand}" CommandParameter="#0F172A" Background="#0F172A" ToolTip.Tip="Dark Slate (#0F172A)" Margin="0,0,6,4"/>
+                    </WrapPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- ===================================================================== -->
+        <!-- 5. SQL QUERY TEXT EDITOR PANEL                                        -->
+        <!-- ===================================================================== -->
+        <Border Background="{DynamicResource AppSurfaceMutedBrush}" 
+                BorderBrush="{DynamicResource AppBorderBrush}" 
+                BorderThickness="1" 
+                CornerRadius="8" 
+                Padding="16,12">
+            <StackPanel Spacing="10">
+                <Grid ColumnDefinitions="*, Auto">
+                    <StackPanel Grid.Column="0" Spacing="2">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ui:FASymbolIcon Symbol="Document" FontSize="12" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="SQL Query Editor Canvas (ویرایشگر متن)" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        </StackPanel>
+                        <TextBlock Text="Change background, text font size, and code canvas styling." FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    </StackPanel>
+
+                    <!-- Font size controls -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <TextBlock Text="Font:" FontSize="11" VerticalAlignment="Center" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                        <Button Content="-" Command="{Binding DecreaseFontSizeCommand}" Classes="classic-tool-btn" Padding="6,2" FontSize="11"/>
+                        <TextBlock Text="{Binding EditorFontSize, StringFormat={}{0:0}px}" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <Button Content="+" Command="{Binding IncreaseFontSizeCommand}" Classes="classic-tool-btn" Padding="6,2" FontSize="11"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Background Color Swatches -->
+                <Grid ColumnDefinitions="160, *" Margin="0,4,0,0">
+                    <TextBlock Grid.Column="0" Text="Editor Canvas Background:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center"/>
+                    <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="Default" Background="{DynamicResource AppWorkspaceBrush}" ToolTip.Tip="Default Theme" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#0F1117" Background="#0F1117" ToolTip.Tip="Pitch Black (#0F1117)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#1E293B" Background="#1E293B" ToolTip.Tip="Dark Slate (#1E293B)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#0A192F" Background="#0A192F" ToolTip.Tip="Deep Navy (#0A192F)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#272822" Background="#272822" ToolTip.Tip="Monokai (#272822)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#002B36" Background="#002B36" ToolTip.Tip="Solarized (#002B36)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#FFFFFF" Background="#FFFFFF" ToolTip.Tip="Pure White (#FFFFFF)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#FAF8F5" Background="#FAF8F5" ToolTip.Tip="Warm Sepia (#FAF8F5)" Margin="0,0,6,4"/>
+                    </WrapPanel>
+                </Grid>
+
+                <!-- Text Foreground Color Swatches -->
+                <Grid ColumnDefinitions="160, *" Margin="0,4,0,0">
+                    <TextBlock Grid.Column="0" Text="Editor Text Color:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center"/>
+                    <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="Default" Background="{DynamicResource AppTextPrimaryBrush}" ToolTip.Tip="Default Theme" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#F8FAFC" Background="#F8FAFC" ToolTip.Tip="Crisp White (#F8FAFC)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#CBD5E1" Background="#CBD5E1" ToolTip.Tip="Soft Silver (#CBD5E1)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#34D399" Background="#34D399" ToolTip.Tip="Mint Green (#34D399)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#38BDF8" Background="#38BDF8" ToolTip.Tip="Cyber Cyan (#38BDF8)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#FBBF24" Background="#FBBF24" ToolTip.Tip="Amber Gold (#FBBF24)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#0F172A" Background="#0F172A" ToolTip.Tip="Dark Charcoal (#0F172A)" Margin="0,0,6,4"/>
+                    </WrapPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- ===================================================================== -->
+        <!-- 6. QUICK THEME BUNDLES ("قالب‌های آماده یک‌کلیکی")                     -->
+        <!-- ===================================================================== -->
         <StackPanel Spacing="8">
-            <TextBlock Text="QUICK COLOR PRESETS" 
+            <TextBlock Text="ONE-CLICK THEME BUNDLES (قالب‌های ست شده کامل)" 
                        FontSize="11" 
                        FontWeight="Bold" 
                        Foreground="{DynamicResource AppTextSecondaryBrush}"/>
@@ -89,6 +506,20 @@
                     </StackPanel>
                 </Button>
 
+                <Button Classes="preset-bundle-btn" Command="{Binding ApplyPanelBundleCommand}" CommandParameter="emerald" Margin="0,0,6,6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Border Width="12" Height="12" CornerRadius="6" Background="#10B981"/>
+                        <TextBlock Text="Emerald Forest" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Classes="preset-bundle-btn" Command="{Binding ApplyPanelBundleCommand}" CommandParameter="violet" Margin="0,0,6,6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Border Width="12" Height="12" CornerRadius="6" Background="#A855F7"/>
+                        <TextBlock Text="Cyberpunk Violet" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Button>
+
                 <Button Classes="preset-bundle-btn" Command="{Binding ApplyPanelBundleCommand}" CommandParameter="monokai" Margin="0,0,6,6">
                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                         <Border Width="12" Height="12" CornerRadius="6" Background="#272822"/>
@@ -112,139 +543,80 @@
             </WrapPanel>
         </StackPanel>
 
-        <!-- 2. Text Editor Panel Colors -->
-        <Border Background="{DynamicResource AppSurfaceMutedBrush}" 
-                BorderBrush="{DynamicResource AppBorderBrush}" 
-                BorderThickness="1" 
-                CornerRadius="6" 
-                Padding="14,12">
-            <StackPanel Spacing="12">
+        <!-- ===================================================================== -->
+        <!-- 7. INTERACTIVE LIVE LAYOUT PREVIEW                                    -->
+        <!-- ===================================================================== -->
+        <Border Background="{DynamicResource AppBackgroundBrush}" 
+                BorderBrush="{Binding PreviewBorderBrush}" 
+                BorderThickness="1.5" 
+                CornerRadius="8" 
+                Padding="14">
+            <StackPanel Spacing="10">
                 <Grid ColumnDefinitions="*, Auto">
-                    <StackPanel Grid.Column="0" Spacing="2">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <ui:FASymbolIcon Symbol="Document" FontSize="12" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text="Text Editor Panel" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
-                        </StackPanel>
-                        <TextBlock Text="Change background, text font size, and code canvas styling" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
-                    </StackPanel>
-
-                    <!-- Font size & Line numbers controls -->
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                        <TextBlock Text="Font:" FontSize="11" VerticalAlignment="Center" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                        <Button Content="-" Command="{Binding DecreaseFontSizeCommand}" Classes="classic-tool-btn" Padding="6,2" FontSize="11"/>
-                        <TextBlock Text="{Binding EditorFontSize, StringFormat={}{0:0}px}" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
-                        <Button Content="+" Command="{Binding IncreaseFontSizeCommand}" Classes="classic-tool-btn" Padding="6,2" FontSize="11"/>
+                    <TextBlock Grid.Column="0" Text="LIVE INTERACTIVE LAYOUT PREVIEW (پیش‌نمایش زنده)" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                        <Border Width="8" Height="8" CornerRadius="4" Background="{Binding PreviewButtonAccentBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="Live Synced" FontSize="9" Foreground="{DynamicResource AppTextMutedBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Grid>
-
-                <!-- Background Color Swatches -->
-                <StackPanel Spacing="6">
-                    <TextBlock Text="Editor Background:" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                    <WrapPanel Orientation="Horizontal">
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="Default" Background="{DynamicResource AppWorkspaceBrush}" ToolTip.Tip="Default Theme" Margin="0,0,8,4"/>
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#0F1117" Background="#0F1117" ToolTip.Tip="Pitch Black (#0F1117)" Margin="0,0,8,4"/>
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#1E293B" Background="#1E293B" ToolTip.Tip="Dark Slate (#1E293B)" Margin="0,0,8,4"/>
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#0A192F" Background="#0A192F" ToolTip.Tip="Deep Navy (#0A192F)" Margin="0,0,8,4"/>
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#272822" Background="#272822" ToolTip.Tip="Monokai (#272822)" Margin="0,0,8,4"/>
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#002B36" Background="#002B36" ToolTip.Tip="Solarized (#002B36)" Margin="0,0,8,4"/>
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#FFFFFF" Background="#FFFFFF" ToolTip.Tip="Pure White (#FFFFFF)" Margin="0,0,8,4"/>
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#FAF8F5" Background="#FAF8F5" ToolTip.Tip="Warm Sepia (#FAF8F5)" Margin="0,0,8,4"/>
-                    </WrapPanel>
-                </StackPanel>
-
-                <!-- Text Foreground Color Swatches -->
-                <StackPanel Spacing="6">
-                    <TextBlock Text="Editor Text Color:" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                    <WrapPanel Orientation="Horizontal">
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="Default" Background="{DynamicResource AppTextPrimaryBrush}" ToolTip.Tip="Default Theme" Margin="0,0,8,4"/>
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#F8FAFC" Background="#F8FAFC" ToolTip.Tip="Crisp White (#F8FAFC)" Margin="0,0,8,4"/>
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#CBD5E1" Background="#CBD5E1" ToolTip.Tip="Soft Silver (#CBD5E1)" Margin="0,0,8,4"/>
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#34D399" Background="#34D399" ToolTip.Tip="Mint Green (#34D399)" Margin="0,0,8,4"/>
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#38BDF8" Background="#38BDF8" ToolTip.Tip="Cyber Cyan (#38BDF8)" Margin="0,0,8,4"/>
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#FBBF24" Background="#FBBF24" ToolTip.Tip="Amber Gold (#FBBF24)" Margin="0,0,8,4"/>
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#0F172A" Background="#0F172A" ToolTip.Tip="Dark Charcoal (#0F172A)" Margin="0,0,8,4"/>
-                    </WrapPanel>
-                </StackPanel>
-            </StackPanel>
-        </Border>
-
-        <!-- 3. Sidebar Panel Colors -->
-        <Border Background="{DynamicResource AppSurfaceMutedBrush}" 
-                BorderBrush="{DynamicResource AppBorderBrush}" 
-                BorderThickness="1" 
-                CornerRadius="6" 
-                Padding="14,12">
-            <StackPanel Spacing="8">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <ui:FASymbolIcon Symbol="Folder" FontSize="12" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
-                    <TextBlock Text="Object Explorer (Sidebar) Panel" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
-                </StackPanel>
-                <TextBlock Text="Background color for database tree view and connection list" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
-
-                <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
-                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="Default" Background="{DynamicResource AppSurfaceBrush}" ToolTip.Tip="Default Theme" Margin="0,0,8,4"/>
-                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#1E293B" Background="#1E293B" ToolTip.Tip="Dark Slate (#1E293B)" Margin="0,0,8,4"/>
-                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#111827" Background="#111827" ToolTip.Tip="Deep Midnight (#111827)" Margin="0,0,8,4"/>
-                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#141E2E" Background="#141E2E" ToolTip.Tip="Ocean Slate (#141E2E)" Margin="0,0,8,4"/>
-                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#F1F5F9" Background="#F1F5F9" ToolTip.Tip="Platinum Silver (#F1F5F9)" Margin="0,0,8,4"/>
-                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#FFFFFF" Background="#FFFFFF" ToolTip.Tip="Clean White (#FFFFFF)" Margin="0,0,8,4"/>
-                </WrapPanel>
-            </StackPanel>
-        </Border>
-
-        <!-- 4. Query Results Table Panel -->
-        <Border Background="{DynamicResource AppSurfaceMutedBrush}" 
-                BorderBrush="{DynamicResource AppBorderBrush}" 
-                BorderThickness="1" 
-                CornerRadius="6" 
-                Padding="14,12">
-            <StackPanel Spacing="8">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <ui:FASymbolIcon Symbol="Page" FontSize="12" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
-                    <TextBlock Text="Query Results &amp; Data Grid Panel" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
-                </StackPanel>
-                <TextBlock Text="Background tint for data grid rows and table components" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
-
-                <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
-                    <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="Default" Background="{DynamicResource AppWorkspaceBrush}" ToolTip.Tip="Default Theme" Margin="0,0,8,4"/>
-                    <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="#1E293B" Background="#1E293B" ToolTip.Tip="Dark Slate (#1E293B)" Margin="0,0,8,4"/>
-                    <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="#141E2E" Background="#141E2E" ToolTip.Tip="Ocean Navy (#141E2E)" Margin="0,0,8,4"/>
-                    <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="#FFFFFF" Background="#FFFFFF" ToolTip.Tip="Pure White (#FFFFFF)" Margin="0,0,8,4"/>
-                </WrapPanel>
-            </StackPanel>
-        </Border>
-
-        <!-- 5. Interactive Live Mini Preview -->
-        <Border Background="{DynamicResource AppBackgroundBrush}" 
-                BorderBrush="{DynamicResource AppBorderBrush}" 
-                BorderThickness="1" 
-                CornerRadius="6" 
-                Padding="12">
-            <StackPanel Spacing="8">
-                <TextBlock Text="LIVE PANEL LAYOUT PREVIEW" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AppTextMutedBrush}"/>
                 
-                <Grid ColumnDefinitions="120, *" Height="90" ClipToBounds="True">
+                <Grid ColumnDefinitions="140, 2, *" Height="120" ClipToBounds="True">
                     <!-- Sidebar Mock -->
                     <Border Grid.Column="0" 
                             Background="{Binding PreviewSidebarBackgroundBrush}" 
-                            BorderBrush="{DynamicResource AppBorderBrush}" 
-                            BorderThickness="0,0,1,0" 
-                            Padding="8,6">
-                        <StackPanel Spacing="4">
-                            <TextBlock Text="EXPLORER" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AppTextMutedBrush}"/>
-                            <TextBlock Text="▼ fdb_studio.db" FontSize="9" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
-                            <TextBlock Text="  • Users (5)" FontSize="9" Foreground="{DynamicResource AppAccentBrush}"/>
-                            <TextBlock Text="  • Courses (5)" FontSize="9" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                        </StackPanel>
+                            BorderBrush="{Binding PreviewSidebarBorderBrush}" 
+                            BorderThickness="0,0,1,0">
+                        <Grid RowDefinitions="22, *">
+                            <!-- Sidebar Header Mock -->
+                            <Border Grid.Row="0" 
+                                    Background="{Binding PreviewSidebarHeaderBrush}" 
+                                    BorderBrush="{Binding PreviewSidebarBorderBrush}" 
+                                    BorderThickness="0,0,0,1" 
+                                    Padding="6,2">
+                                <TextBlock Text="OBJECT EXPLORER" FontSize="8" FontWeight="Bold" Foreground="{Binding PreviewSidebarTextBrush}" VerticalAlignment="Center"/>
+                            </Border>
+
+                            <!-- Sidebar Items Mock -->
+                            <StackPanel Grid.Row="1" Spacing="2" Margin="6,4">
+                                <TextBlock Text="▼ fdb_studio.db" FontSize="9" FontWeight="SemiBold" Foreground="{Binding PreviewSidebarTextBrush}"/>
+                                <Border Background="{Binding PreviewSidebarHoverBrush}" CornerRadius="3" Padding="4,2">
+                                    <TextBlock Text="  • Users (5)" FontSize="9" FontWeight="SemiBold" Foreground="{Binding PreviewButtonAccentBrush}"/>
+                                </Border>
+                                <TextBlock Text="  • Products (12)" FontSize="9" Foreground="{Binding PreviewSidebarTextBrush}"/>
+                                <TextBlock Text="  • Orders (34)" FontSize="9" Foreground="{Binding PreviewSidebarTextBrush}"/>
+                            </StackPanel>
+                        </Grid>
                     </Border>
 
-                    <!-- Editor & Table Mock -->
-                    <Grid Grid.Column="1" RowDefinitions="*, 36">
-                        <!-- Editor Mock -->
+                    <!-- Splitter Mock -->
+                    <Border Grid.Column="1" Background="{Binding PreviewSplitterBrush}"/>
+
+                    <!-- Editor, Toolbar & Table Mock -->
+                    <Grid Grid.Column="2" RowDefinitions="26, *, 34">
+                        <!-- Toolbar Buttons Mock -->
                         <Border Grid.Row="0" 
+                                Background="{DynamicResource AppBackgroundBrush}" 
+                                BorderBrush="{Binding PreviewBorderBrush}" 
+                                BorderThickness="0,0,0,1" 
+                                Padding="6,2">
+                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <!-- Primary Accent Button Mock -->
+                                <Border Background="{Binding PreviewButtonAccentBrush}" CornerRadius="3" Padding="8,2">
+                                    <TextBlock Text="▶ Run (F5)" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                </Border>
+
+                                <!-- Secondary Button Mock -->
+                                <Border Background="{Binding PreviewButtonBackgroundBrush}" BorderBrush="{Binding PreviewButtonBorderBrush}" BorderThickness="1" CornerRadius="3" Padding="8,2">
+                                    <TextBlock Text="Export CSV" FontSize="9" FontWeight="SemiBold" Foreground="{Binding PreviewButtonTextBrush}"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Editor Mock -->
+                        <Border Grid.Row="1" 
                                 Background="{Binding PreviewEditorBackgroundBrush}" 
-                                Padding="8,4">
-                            <TextBlock Text="SELECT * FROM Users WHERE Role = 'Admin';" 
+                                Padding="8,6">
+                            <TextBlock Text="SELECT [Id], [Name], [Role] FROM [Users] WHERE [Status] = 1;" 
                                        FontFamily="{DynamicResource AppFontFamilyMonospace}" 
                                        FontSize="10" 
                                        Foreground="{Binding PreviewEditorForegroundBrush}" 
@@ -252,15 +624,18 @@
                         </Border>
 
                         <!-- Table Mock -->
-                        <Border Grid.Row="1" 
+                        <Border Grid.Row="2" 
                                 Background="{Binding PreviewTableBackgroundBrush}" 
-                                BorderBrush="{DynamicResource AppBorderBrush}" 
+                                BorderBrush="{Binding PreviewBorderBrush}" 
                                 BorderThickness="0,1,0,0" 
                                 Padding="8,4">
-                            <Grid ColumnDefinitions="30, 80, *">
+                            <Grid ColumnDefinitions="30, 80, 80, *">
                                 <TextBlock Grid.Column="0" Text="1" FontSize="9" Foreground="{DynamicResource AppTextMutedBrush}" VerticalAlignment="Center"/>
                                 <TextBlock Grid.Column="1" Text="Alice Johnson" FontSize="9" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center"/>
                                 <TextBlock Grid.Column="2" Text="Developer" FontSize="9" Foreground="{DynamicResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <Border Grid.Column="3" Background="{Binding PreviewButtonAccentBrush}" CornerRadius="2" Padding="4,1" HorizontalAlignment="Left">
+                                    <TextBlock Text="Active" FontSize="8" FontWeight="Bold" Foreground="White"/>
+                                </Border>
                             </Grid>
                         </Border>
                     </Grid>

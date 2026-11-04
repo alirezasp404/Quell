@@ -36,7 +36,7 @@
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
         <Style Selector="Border.table-node-item:not(.active):pointerover">
-            <Setter Property="Background" Value="{DynamicResource AppTableHoverBackgroundBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AppSidebarHoverBrush}"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
         <Style Selector="Border.table-node-item.active">
@@ -61,7 +61,7 @@
 
     <!-- Reusable Sidebar Panel Component (Hierarchical Tree View: Databases -> Tables) -->
     <Border Background="{DynamicResource AppSidebarBackgroundBrush}" 
-            BorderBrush="{DynamicResource AppBorderBrush}" 
+            BorderBrush="{DynamicResource AppSidebarBorderBrush}" 
             BorderThickness="0,0,1,0">
         <Grid RowDefinitions="Auto, Auto, *">
             
@@ -72,8 +72,8 @@
 
             <!-- 2. Auto-Expanding Tab Strip with Right-Click ContextMenu -->
             <Border Grid.Row="1" 
-                    Background="{DynamicResource AppSidebarBackgroundBrush}" 
-                    BorderBrush="{DynamicResource AppBorderBrush}" 
+                    Background="{DynamicResource AppSidebarHeaderBackgroundBrush}" 
+                    BorderBrush="{DynamicResource AppSidebarBorderBrush}" 
                     BorderThickness="0,0,0,1" 
                     Padding="4,2,4,0">
                 <ItemsControl ItemsSource="{Binding Tabs}">
