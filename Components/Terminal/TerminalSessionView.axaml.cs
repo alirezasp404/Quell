@@ -16,6 +16,7 @@ public partial class TerminalSessionView : UserControl
     private TerminalSessionViewModel? _session;
     private bool _processLaunched;
     private bool _disposed;
+    private readonly Queue<string> _pendingInput = new();
 
     public TerminalSessionView()
     {
@@ -210,6 +211,12 @@ public partial class TerminalSessionView : UserControl
 
             await TermControl.LaunchProcess();
 
+            while (_pendingInput.Count > 0)
+            {
+                var pending = _pendingInput.Dequeue();
+                _ = TermControl.SendInputAsync(pending, default);
+            }
+
             FocusTerminal();
         }
         catch (Exception ex)
@@ -232,6 +239,10 @@ public partial class TerminalSessionView : UserControl
             {
                 _ = TermControl.SendInputAsync(text, default);
                 FocusTerminal();
+            }
+            else
+            {
+                _pendingInput.Enqueue(text);
             }
         }
         catch (Exception ex)

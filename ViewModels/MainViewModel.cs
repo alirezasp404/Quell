@@ -358,7 +358,7 @@ public partial class MainViewModel : ViewModelBase
                 },
                 "0 ms");
             SampleQueryResult.TargetDatabaseName = "(No Connection)";
-            ShowFooter();
+            ShowQueryResultFooter();
             return;
         }
 
@@ -395,7 +395,7 @@ public partial class MainViewModel : ViewModelBase
                     },
                     "0 ms");
                 SampleQueryResult.TargetDatabaseName = targetDbName;
-                ShowFooter();
+                ShowQueryResultFooter();
                 return;
             }
         }
@@ -474,7 +474,7 @@ public partial class MainViewModel : ViewModelBase
             query, execTime, rowCount, status);
 
         _ = Sidebar.RefreshAsync();
-        ShowFooter();
+        ShowQueryResultFooter();
     }
 
     public async Task NavigateToForeignKeyTableAsync(string targetTable, string targetColumn, string? cellValue, string? sourceColumn)
@@ -553,7 +553,7 @@ public partial class MainViewModel : ViewModelBase
                     catch { }
                 });
 
-                ShowFooter();
+                ShowQueryResultFooter();
                 return;
             }
         }
@@ -563,7 +563,7 @@ public partial class MainViewModel : ViewModelBase
         string matchedInfo = SampleQueryResult.SelectedRow != null ? $" (User: {SampleQueryResult.SelectedRow.Name})" : "";
         SampleQueryResult.LastQueryMessage = $"Navigated to {targetTable} via FK [{sourceColumn} -> {targetTable}]{matchedInfo} ({SampleQueryResult.TotalRows} rows)";
         SampleQueryResult.HasLastQueryMessage = true;
-        ShowFooter();
+        ShowQueryResultFooter();
     }
 
     public async Task RefreshQueryResultAsync()
@@ -711,6 +711,7 @@ public partial class MainViewModel : ViewModelBase
         if (!Footer.IsVisible)
         {
             Footer.IsVisible = true;
+
             if (!Footer.Tabs.Contains("Terminal"))
             {
                 Footer.Tabs.Add("Terminal");
@@ -750,6 +751,7 @@ public partial class MainViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(textToSend)) return;
 
         Footer.IsVisible = true;
+
         if (!Footer.Tabs.Contains("Terminal"))
         {
             Footer.Tabs.Add("Terminal");
@@ -763,6 +765,7 @@ public partial class MainViewModel : ViewModelBase
     public void LaunchCliInTerminal(Fdb.Services.DatabaseProviders.DatabaseConnectionConfig? config = null)
     {
         Footer.IsVisible = true;
+
         if (!Footer.Tabs.Contains("Terminal"))
         {
             Footer.Tabs.Add("Terminal");
@@ -777,10 +780,21 @@ public partial class MainViewModel : ViewModelBase
         Footer.IsVisible = true;
     }
 
+    public void ShowQueryResultFooter()
+    {
+        Footer.IsVisible = true;
+        if (!Footer.Tabs.Contains("Results"))
+        {
+            Footer.Tabs.Insert(0, "Results");
+        }
+        Footer.SelectedTab = "Results";
+    }
+
     [RelayCommand]
     public void RestoreFooterTab(string tabName)
     {
         Footer.IsVisible = true;
+
         if (!Footer.Tabs.Contains(tabName))
         {
             Footer.Tabs.Add(tabName);
@@ -812,6 +826,7 @@ public partial class MainViewModel : ViewModelBase
 
         // Restore Footer
         Footer.IsVisible = true;
+
         ResetFooterTabs();
 
         // Restore Editor
@@ -852,3 +867,4 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 }
+
