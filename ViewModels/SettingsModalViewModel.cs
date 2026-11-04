@@ -20,12 +20,14 @@ public partial class SettingsModalViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsTableCategory))]
     [NotifyPropertyChangedFor(nameof(IsCustomizationCategory))]
     [NotifyPropertyChangedFor(nameof(IsShortcutsCategory))]
+    [NotifyPropertyChangedFor(nameof(IsPerformanceCategory))]
     private string _selectedCategory = "Appearance";
 
     public bool IsAppearanceCategory => string.Equals(SelectedCategory, "Appearance", StringComparison.OrdinalIgnoreCase);
     public bool IsTableCategory => string.Equals(SelectedCategory, "Table", StringComparison.OrdinalIgnoreCase);
     public bool IsCustomizationCategory => string.Equals(SelectedCategory, "Customization", StringComparison.OrdinalIgnoreCase);
     public bool IsShortcutsCategory => string.Equals(SelectedCategory, "Shortcuts", StringComparison.OrdinalIgnoreCase);
+    public bool IsPerformanceCategory => string.Equals(SelectedCategory, "Performance", StringComparison.OrdinalIgnoreCase);
 
     #region Appearance & Theme Properties
 
@@ -574,6 +576,16 @@ public partial class SettingsModalViewModel : ObservableObject
             // 4. Load Dynamic Shortcuts from SQLite
             await ShortcutService.Instance.InitializeAsync().ConfigureAwait(false);
             LoadShortcutsList();
+
+            // 5. Load Performance & Graphics Configuration from SQLite
+            _initialRenderingMode = await DatabaseStorageService.Instance.GetGraphicsRenderingModeAsync().ConfigureAwait(false);
+            SelectedRenderingMode = _initialRenderingMode;
+            GpuAdapterName = HardwareGraphicsService.Instance.GpuAdapterName;
+            IsGpuDetected = HardwareGraphicsService.Instance.IsGpuDetected;
+            ActiveRendererSummary = HardwareGraphicsService.Instance.ActiveRendererSummary;
+            VramCacheMb = HardwareGraphicsService.Instance.VramCacheMb;
+            OnPropertyChanged(nameof(EffectiveModeDescription));
+            OnPropertyChanged(nameof(RequiresGraphicsRestart));
         }
         catch (Exception ex)
         {
@@ -582,6 +594,8 @@ public partial class SettingsModalViewModel : ObservableObject
             _initialTheme = SelectedTheme;
             SelectedKeywordColor = ThemeService.Instance.CurrentKeywordColor;
             _initialKeywordColor = SelectedKeywordColor;
+            SelectedRenderingMode = HardwareGraphicsService.Instance.RenderingMode;
+            _initialRenderingMode = SelectedRenderingMode;
         }
 
         IsOpen = true;
@@ -1396,6 +1410,66 @@ public partial class SettingsModalViewModel : ObservableObject
 
     #endregion
 
+    #region Performance & Graphics Properties & Commands
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsAutoRenderingMode))]
+    [NotifyPropertyChangedFor(nameof(IsGpuRenderingMode))]
+    [NotifyPropertyChangedFor(nameof(IsCpuRenderingMode))]
+    [NotifyPropertyChangedFor(nameof(EffectiveModeDescription))]
+    [NotifyPropertyChangedFor(nameof(RequiresGraphicsRestart))]
+    private string _selectedRenderingMode = "Auto"; // "Auto", "GPU", "CPU"
+
+    public bool IsAutoRenderingMode => string.Equals(SelectedRenderingMode, "Auto", StringComparison.OrdinalIgnoreCase);
+    public bool IsGpuRenderingMode => string.Equals(SelectedRenderingMode, "GPU", StringComparison.OrdinalIgnoreCase);
+    public bool IsCpuRenderingMode => string.Equals(SelectedRenderingMode, "CPU", StringComparison.OrdinalIgnoreCase);
+
+    [ObservableProperty]
+    private string _gpuAdapterName = "Detecting Graphics Adapter...";
+
+    [ObservableProperty]
+    private bool _isGpuDetected;
+
+    [ObservableProperty]
+    private string _activeRendererSummary = "Skia Hardware (DirectX 11 / ANGLE)";
+
+    [ObservableProperty]
+    private int _vramCacheMb = 128;
+
+    private string _initialRenderingMode = "Auto";
+
+    public bool RequiresGraphicsRestart => !string.Equals(SelectedRenderingMode, _initialRenderingMode, StringComparison.OrdinalIgnoreCase);
+
+    public string EffectiveModeDescription
+    {
+        get
+        {
+            string eff = HardwareGraphicsService.Instance.ResolveEffectiveMode(SelectedRenderingMode);
+            if (string.Equals(SelectedRenderingMode, "Auto", StringComparison.OrdinalIgnoreCase))
+            {
+                return IsGpuDetected
+                    ? $"تشخیص خودکار: کارت گرافیک شناسایی شد ← موتور فعال: شتاب‌دهنده سخت‌افزاری GPU ({GpuAdapterName})"
+                    : "تشخیص خودکار: کارت گرافیک مجزا یافت نشد ← موتور فعال: پردازنده مرکزی CPU (سبک)";
+            }
+            if (string.Equals(SelectedRenderingMode, "GPU", StringComparison.OrdinalIgnoreCase))
+            {
+                return $"حالت اجباری کارت گرافیک (GPU): رندرینگ سخت‌افزاری روان با DirectX 11 / ANGLE و بافر {VramCacheMb}MB VRAM";
+            }
+            return "حالت اجباری پردازنده مرکزی (CPU): مصرف حداقلی رم و منابع سیستم با رسترایزر نرم‌افزاری (Lightweight Software)";
+        }
+    }
+
+    [RelayCommand]
+    public void SelectRenderingMode(string mode)
+    {
+        if (string.IsNullOrWhiteSpace(mode)) return;
+        SelectedRenderingMode = mode;
+        OnPropertyChanged(nameof(EffectiveModeDescription));
+        OnPropertyChanged(nameof(RequiresGraphicsRestart));
+    }
+
+    #endregion
+
     #region Appearance Commands
 
     [RelayCommand]
@@ -1501,6 +1575,12 @@ public partial class SettingsModalViewModel : ObservableObject
 
             // 4. Save Shortcuts to SQLite
             await ShortcutService.Instance.SaveAllAsync(Shortcuts).ConfigureAwait(false);
+
+            // 5. Save Graphics Rendering Mode to SQLite
+            await DatabaseStorageService.Instance.SaveGraphicsRenderingModeAsync(SelectedRenderingMode).ConfigureAwait(false);
+            HardwareGraphicsService.Instance.RenderingMode = SelectedRenderingMode;
+            _initialRenderingMode = SelectedRenderingMode;
+            OnPropertyChanged(nameof(RequiresGraphicsRestart));
         }
         catch (Exception ex)
         {
@@ -1532,6 +1612,12 @@ public partial class SettingsModalViewModel : ObservableObject
 
         // Revert Table Customization
         ThemeService.Instance.ApplyTableCustomization(_initialTableCustomization);
+
+        // Revert Rendering Mode
+        if (!string.Equals(SelectedRenderingMode, _initialRenderingMode, StringComparison.OrdinalIgnoreCase))
+        {
+            SelectedRenderingMode = _initialRenderingMode;
+        }
 
         IsOpen = false;
     }

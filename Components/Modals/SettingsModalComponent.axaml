@@ -100,6 +100,10 @@
                             <!-- Category 4: Keyboard Shortcuts -->
                             <components:ShortcutsSettingsComponent DataContext="{Binding}" 
                                                                    IsVisible="{Binding IsShortcutsCategory}" />
+
+                            <!-- Category 5: Performance & GPU -->
+                            <components:PerformanceSettingsComponent DataContext="{Binding}" 
+                                                                     IsVisible="{Binding IsPerformanceCategory}" />
                         </Panel>
                     </ScrollViewer>
                 </Grid>

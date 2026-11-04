@@ -1473,7 +1473,83 @@ sealed class Program
             }
             Console.WriteLine("[Success] Course (دوره) -> User navigation and item retrieval verified!");
 
-            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER, SIMULTANEOUS BATCH CELL EDITING & FOREIGN KEY NAVIGATION) PASSED! <<<");
+            // [Action] Verifying Hardware Graphics Adapter Detection, GPU vs CPU Modes & SQLite Persistence
+            Console.WriteLine("\n[Action] Verifying Hardware Graphics Adapter Detection, GPU/CPU Modes & SQLite Persistence...");
+            var graphicsService = Fdb.Services.HardwareGraphicsService.Instance;
+            graphicsService.DetectHardwareGpu();
+            Console.WriteLine($"Detected GPU Adapter: '{graphicsService.GpuAdapterName}', IsGpuDetected={graphicsService.IsGpuDetected}");
+            if (string.IsNullOrWhiteSpace(graphicsService.GpuAdapterName))
+            {
+                throw new Exception("Hardware graphics adapter detection returned empty adapter name!");
+            }
+
+            // Verify effective mode resolution
+            string resolvedGpu = graphicsService.ResolveEffectiveMode("GPU");
+            string resolvedCpu = graphicsService.ResolveEffectiveMode("CPU");
+            string resolvedAuto = graphicsService.ResolveEffectiveMode("Auto");
+            Console.WriteLine($"Resolved Modes: GPU='{resolvedGpu}', CPU='{resolvedCpu}', Auto='{resolvedAuto}'");
+            if (resolvedGpu != "GPU" || resolvedCpu != "CPU")
+            {
+                throw new Exception("Effective mode resolution for GPU/CPU failed!");
+            }
+            if (resolvedAuto != (graphicsService.IsGpuDetected ? "GPU" : "CPU"))
+            {
+                throw new Exception("Auto mode resolution did not match hardware detection state!");
+            }
+
+            // Verify splash screen initialization routine
+            await graphicsService.InitializeAsync();
+            Console.WriteLine($"Initialized Summary: '{graphicsService.ActiveRendererSummary}', VRAM Cache={graphicsService.VramCacheMb}MB");
+            if (graphicsService.VramCacheMb != 128 && graphicsService.VramCacheMb != 16)
+            {
+                throw new Exception($"Invalid VRAM cache limit: {graphicsService.VramCacheMb}MB");
+            }
+
+            // Verify Settings Modal Performance category & live selection
+            await vm.SettingsModal.OpenAsync();
+            vm.SettingsModal.SelectCategory("Performance");
+            if (!vm.SettingsModal.IsPerformanceCategory)
+            {
+                throw new Exception("Failed to navigate to Performance & GPU settings category!");
+            }
+
+            // Test selecting CPU mode & persisting to SQLite
+            vm.SettingsModal.SelectRenderingMode("CPU");
+            if (!vm.SettingsModal.IsCpuRenderingMode || vm.SettingsModal.SelectedRenderingMode != "CPU")
+            {
+                throw new Exception("Failed to switch selected rendering mode to CPU!");
+            }
+            await vm.SettingsModal.SaveAsync();
+
+            string dbModeAfterCpu = await Fdb.Services.DatabaseStorageService.Instance.GetGraphicsRenderingModeAsync();
+            Console.WriteLine($"SQLite Saved GraphicsRenderingMode: '{dbModeAfterCpu}'");
+            if (dbModeAfterCpu != "CPU")
+            {
+                throw new Exception($"Expected SQLite to persist 'CPU', got '{dbModeAfterCpu}'!");
+            }
+
+            // Test revert on Close()
+            await vm.SettingsModal.OpenAsync();
+            vm.SettingsModal.SelectRenderingMode("GPU");
+            vm.SettingsModal.Close();
+            if (vm.SettingsModal.SelectedRenderingMode != "CPU")
+            {
+                throw new Exception("Close() failed to revert uncommitted rendering mode change!");
+            }
+
+            // Reset back to Auto mode and verify SQLite
+            await vm.SettingsModal.OpenAsync();
+            vm.SettingsModal.SelectRenderingMode("Auto");
+            await vm.SettingsModal.SaveAsync();
+            string dbModeAfterAuto = await Fdb.Services.DatabaseStorageService.Instance.GetGraphicsRenderingModeAsync();
+            Console.WriteLine($"SQLite Reset GraphicsRenderingMode: '{dbModeAfterAuto}'");
+            if (dbModeAfterAuto != "Auto")
+            {
+                throw new Exception($"Expected SQLite to persist 'Auto', got '{dbModeAfterAuto}'!");
+            }
+            Console.WriteLine("[Success] Hardware graphics detection, GPU vs CPU mode switching, and SQLite persistence verified!");
+
+            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER, SIMULTANEOUS BATCH CELL EDITING, FOREIGN KEY NAVIGATION & HARDWARE GPU/CPU RENDERING PIPELINE) PASSED! <<<");
             return;
         }
 
@@ -1482,11 +1558,18 @@ sealed class Program
     }
 
     public static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<App>()
+    {
+        var builder = AppBuilder.Configure<App>()
             .UsePlatformDetect()
 #if DEBUG
             .WithDeveloperTools()
 #endif
             .WithInterFont()
             .LogToTrace();
+
+        // Hardware Graphics & Rendering Configuration (DirectX/ANGLE GPU vs CPU Software)
+        Fdb.Services.HardwareGraphicsService.Instance.ConfigureAppBuilder(builder);
+
+        return builder;
+    }
 }
