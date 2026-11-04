@@ -6,6 +6,8 @@ using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia;
+using Fdb.Services;
 using Fdb.Services.Terminal;
 using Fdb.ViewModels;
 
@@ -30,6 +32,9 @@ public partial class TerminalSessionView : UserControl
         CopyPathButton.Click += OnCopyPathClicked;
 
         TerminalSettingsService.Instance.SettingsChanged += OnSettingsChanged;
+        ThemeService.Instance.ThemeChanged += OnThemeChanged;
+        ThemeService.Instance.PanelCustomizationChanged += OnPanelCustomizationChanged;
+        ApplyThemeColors();
     }
 
     private async void OnCopyPathClicked(object? sender, RoutedEventArgs e)
@@ -70,6 +75,8 @@ public partial class TerminalSessionView : UserControl
 
         DetachSessionEvents();
         TerminalSettingsService.Instance.SettingsChanged -= OnSettingsChanged;
+        ThemeService.Instance.ThemeChanged -= OnThemeChanged;
+        ThemeService.Instance.PanelCustomizationChanged -= OnPanelCustomizationChanged;
 
         try
         {
@@ -311,6 +318,56 @@ public partial class TerminalSessionView : UserControl
 
             TermControl.CursorBlink = settings.CursorBlink;
         }
+    }
+
+    private void OnThemeChanged(object? sender, string theme)
+    {
+        Dispatcher.UIThread.Post(ApplyThemeColors);
+    }
+
+    private void OnPanelCustomizationChanged(object? sender, PanelCustomizationRecord custom)
+    {
+        Dispatcher.UIThread.Post(ApplyThemeColors);
+    }
+
+    private void ApplyThemeColors()
+    {
+        if (TermControl == null) return;
+
+        bool isDark = ThemeService.Instance.IsDarkTheme();
+
+        // Background
+        IBrush? bgBrush = null;
+        if (Application.Current != null && Application.Current.Resources.TryGetValue("AppTerminalBackgroundBrush", out var resBg) && resBg is IBrush b)
+        {
+            bgBrush = b;
+        }
+        else
+        {
+            bgBrush = isDark ? new SolidColorBrush(Color.Parse("#0F172A")) : new SolidColorBrush(Color.Parse("#FFFFFF"));
+        }
+        TermControl.Background = bgBrush;
+
+        // Foreground
+        IBrush? fgBrush = null;
+        if (Application.Current != null && Application.Current.Resources.TryGetValue("AppTerminalForegroundBrush", out var resFg) && resFg is IBrush f)
+        {
+            fgBrush = f;
+        }
+        else
+        {
+            fgBrush = isDark ? new SolidColorBrush(Color.Parse("#F8FAFC")) : new SolidColorBrush(Color.Parse("#0F172A"));
+        }
+        TermControl.Foreground = fgBrush;
+
+        // Accent & Cursor Color
+        Color accentCol = isDark ? Color.Parse("#3B82F6") : Color.Parse("#2563EB");
+        if (Application.Current != null && Application.Current.Resources.TryGetValue("AppAccentBrush", out var resAcc) && resAcc is ISolidColorBrush scb)
+        {
+            accentCol = scb.Color;
+        }
+        TermControl.CursorColor = accentCol;
+        TermControl.SelectionBrush = new SolidColorBrush(Color.FromArgb(64, accentCol.R, accentCol.G, accentCol.B));
     }
 
     private void OnSettingsChanged(object? sender, Models.TerminalSettingsModel settings)

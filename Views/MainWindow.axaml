@@ -8,6 +8,9 @@
         Title="Fdb Studio"
         MinWidth="800" MinHeight="500"
         Width="1200" Height="750"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="36"
+        WindowDecorations="Full"
         Background="{DynamicResource AppBackgroundBrush}">
 
     <!-- Modern Desktop Layout: Navbar (Top), Dynamic Center Workspace, Status Bar (Bottom) -->

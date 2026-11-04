@@ -476,7 +476,58 @@
         </Border>
 
         <!-- ===================================================================== -->
-        <!-- 6. QUICK THEME BUNDLES                                                -->
+        <!-- 6. INTEGRATED TERMINAL & CONSOLE COLORS                              -->
+        <!-- ===================================================================== -->
+        <Border Background="{DynamicResource AppCardBackgroundBrush}" 
+                BorderBrush="{DynamicResource AppBorderBrush}" 
+                BorderThickness="1" 
+                CornerRadius="8" 
+                Padding="16,14">
+            <StackPanel Spacing="10">
+                <Grid ColumnDefinitions="*, Auto">
+                    <StackPanel Grid.Column="0" Spacing="2">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <ui:FASymbolIcon Symbol="Play" FontSize="11" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="INTEGRATED TERMINAL &amp; CONSOLE" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AppAccentBrush}"/>
+                        </StackPanel>
+                        <TextBlock Text="Terminal canvas background and command line output foreground text." FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                        <Border Width="14" Height="14" CornerRadius="7" Background="{Binding PreviewTerminalBackgroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" ToolTip.Tip="Terminal Background"/>
+                        <Border Width="14" Height="14" CornerRadius="7" Background="{Binding PreviewTerminalForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" ToolTip.Tip="Terminal Foreground"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Terminal Background Swatches -->
+                <Grid ColumnDefinitions="160, *" Margin="0,4,0,0">
+                    <TextBlock Grid.Column="0" Text="Terminal Background:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center"/>
+                    <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalBackgroundCommand}" CommandParameter="Default" Background="{DynamicResource AppTerminalBackgroundBrush}" ToolTip.Tip="Default Theme" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalBackgroundCommand}" CommandParameter="#0F172A" Background="#0F172A" ToolTip.Tip="Slate Dark (#0F172A)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalBackgroundCommand}" CommandParameter="#000000" Background="#000000" ToolTip.Tip="Pure Black (#000000)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalBackgroundCommand}" CommandParameter="#0C0E14" Background="#0C0E14" ToolTip.Tip="Midnight (#0C0E14)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalBackgroundCommand}" CommandParameter="#002B36" Background="#002B36" ToolTip.Tip="Solarized (#002B36)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalBackgroundCommand}" CommandParameter="#FFFFFF" Background="#FFFFFF" ToolTip.Tip="Pure White (#FFFFFF)" Margin="0,0,6,4"/>
+                    </WrapPanel>
+                </Grid>
+
+                <!-- Terminal Foreground Swatches -->
+                <Grid ColumnDefinitions="160, *" Margin="0,4,0,0">
+                    <TextBlock Grid.Column="0" Text="Terminal Text Color:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center"/>
+                    <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalForegroundCommand}" CommandParameter="Default" Background="{DynamicResource AppTerminalForegroundBrush}" ToolTip.Tip="Default Theme" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalForegroundCommand}" CommandParameter="#F8FAFC" Background="#F8FAFC" ToolTip.Tip="White (#F8FAFC)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalForegroundCommand}" CommandParameter="#38BDF8" Background="#38BDF8" ToolTip.Tip="Cyan (#38BDF8)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalForegroundCommand}" CommandParameter="#34D399" Background="#34D399" ToolTip.Tip="Emerald (#34D399)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalForegroundCommand}" CommandParameter="#FBBF24" Background="#FBBF24" ToolTip.Tip="Amber (#FBBF24)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalForegroundCommand}" CommandParameter="#0F172A" Background="#0F172A" ToolTip.Tip="Charcoal (#0F172A)" Margin="0,0,6,4"/>
+                    </WrapPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- ===================================================================== -->
+        <!-- 7. QUICK THEME BUNDLES                                                -->
         <!-- ===================================================================== -->
         <StackPanel Spacing="8">
             <TextBlock Text="ONE-CLICK THEME BUNDLES (Pre-Configured Styles)" 

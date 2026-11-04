@@ -9,6 +9,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using Avalonia.Media;
 using Avalonia.VisualTree;
 using Fdb.Services;
 using Fdb.ViewModels;
@@ -154,8 +155,8 @@ public partial class QueryResultTableComponent : UserControl
 
                     var fkBadge = new Border
                     {
-                        Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#F1F5F9")),
-                        BorderBrush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#CBD5E1")),
+                        Background = ResolveThemeBrush("AppTableFkBadgeBackgroundBrush", "#F1F5F9"),
+                        BorderBrush = ResolveThemeBrush("AppTableFkBadgeBorderBrush", "#CBD5E1"),
                         BorderThickness = new Avalonia.Thickness(1),
                         CornerRadius = new Avalonia.CornerRadius(3),
                         Padding = new Avalonia.Thickness(3, 1),
@@ -173,7 +174,7 @@ public partial class QueryResultTableComponent : UserControl
                         Data = Avalonia.Media.Geometry.Parse("M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"),
                         Width = 9,
                         Height = 9,
-                        Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#475569")),
+                        Foreground = ResolveThemeBrush("AppTableFkBadgeForegroundBrush", "#475569"),
                         VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
                     };
 
@@ -182,7 +183,7 @@ public partial class QueryResultTableComponent : UserControl
                         Text = "FK",
                         FontSize = 9,
                         FontWeight = Avalonia.Media.FontWeight.Bold,
-                        Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#475569")),
+                        Foreground = ResolveThemeBrush("AppTableFkBadgeForegroundBrush", "#475569"),
                         VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
                     };
 
@@ -194,7 +195,7 @@ public partial class QueryResultTableComponent : UserControl
                     {
                         Text = colName.ToUpperInvariant(),
                         FontWeight = Avalonia.Media.FontWeight.Bold,
-                        Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#0F172A")),
+                        Foreground = ResolveThemeBrush("AppTableHeaderForegroundBrush", "#0F172A"),
                         VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
                     };
 
@@ -286,8 +287,8 @@ public partial class QueryResultTableComponent : UserControl
 
                     var pkBadge = new Border
                     {
-                        Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#F1F5F9")),
-                        BorderBrush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#CBD5E1")),
+                        Background = ResolveThemeBrush("AppTablePkBadgeBackgroundBrush", "#F1F5F9"),
+                        BorderBrush = ResolveThemeBrush("AppTablePkBadgeBorderBrush", "#CBD5E1"),
                         BorderThickness = new Avalonia.Thickness(1),
                         CornerRadius = new Avalonia.CornerRadius(3),
                         Padding = new Avalonia.Thickness(3, 1),
@@ -305,7 +306,7 @@ public partial class QueryResultTableComponent : UserControl
                         Data = Avalonia.Media.Geometry.Parse("M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"),
                         Width = 9,
                         Height = 9,
-                        Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#64748B")),
+                        Foreground = ResolveThemeBrush("AppTablePkBadgeForegroundBrush", "#64748B"),
                         VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
                     };
 
@@ -314,7 +315,7 @@ public partial class QueryResultTableComponent : UserControl
                         Text = "PK",
                         FontSize = 9,
                         FontWeight = Avalonia.Media.FontWeight.Bold,
-                        Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#64748B")),
+                        Foreground = ResolveThemeBrush("AppTablePkBadgeForegroundBrush", "#64748B"),
                         VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
                     };
 
@@ -326,7 +327,7 @@ public partial class QueryResultTableComponent : UserControl
                     {
                         Text = colName.ToUpperInvariant(),
                         FontWeight = Avalonia.Media.FontWeight.Bold,
-                        Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#0F172A")),
+                        Foreground = ResolveThemeBrush("AppTableHeaderForegroundBrush", "#0F172A"),
                         VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
                     };
 
@@ -352,6 +353,19 @@ public partial class QueryResultTableComponent : UserControl
         {
             Dispatcher.UIThread.Post(UpdateColumns);
         }
+    }
+
+    private IBrush ResolveThemeBrush(string key, string fallbackHex)
+    {
+        if (Application.Current != null && Application.Current.Resources.TryGetValue(key, out var res) && res is IBrush b)
+        {
+            return b;
+        }
+        if (this.TryFindResource(key, out var localRes) && localRes is IBrush lb)
+        {
+            return lb;
+        }
+        return new SolidColorBrush(Color.Parse(fallbackHex));
     }
 
     private void OnCellPointerPressed(object? sender, DataGridCellPointerPressedEventArgs e)
