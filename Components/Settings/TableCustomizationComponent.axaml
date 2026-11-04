@@ -141,24 +141,24 @@
                 <!-- Row Height Control -->
                 <Grid ColumnDefinitions="140, *, Auto" RowDefinitions="Auto">
                     <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                        <TextBlock Text="Row Height (ارتفاع سطر)" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <TextBlock Text="Row Height" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
                         <TextBlock Text="Height of data rows" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                        <Button Classes="size-chip-btn" Content="Compact (22px)" Command="{Binding SetTableRowHeightCommand}">
+                    <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Classes="size-chip-btn" Content="Compact (22px)" Command="{Binding SetTableRowHeightCommand}" Margin="0,0,6,4">
                             <Button.CommandParameter><x:Double>22.0</x:Double></Button.CommandParameter>
                         </Button>
-                        <Button Classes="size-chip-btn" Content="Standard (25px)" Command="{Binding SetTableRowHeightCommand}">
+                        <Button Classes="size-chip-btn" Content="Standard (25px)" Command="{Binding SetTableRowHeightCommand}" Margin="0,0,6,4">
                             <Button.CommandParameter><x:Double>25.0</x:Double></Button.CommandParameter>
                         </Button>
-                        <Button Classes="size-chip-btn" Content="Cozy (30px)" Command="{Binding SetTableRowHeightCommand}">
+                        <Button Classes="size-chip-btn" Content="Cozy (30px)" Command="{Binding SetTableRowHeightCommand}" Margin="0,0,6,4">
                             <Button.CommandParameter><x:Double>30.0</x:Double></Button.CommandParameter>
                         </Button>
-                        <Button Classes="size-chip-btn" Content="Large (36px)" Command="{Binding SetTableRowHeightCommand}">
+                        <Button Classes="size-chip-btn" Content="Large (36px)" Command="{Binding SetTableRowHeightCommand}" Margin="0,0,6,4">
                             <Button.CommandParameter><x:Double>36.0</x:Double></Button.CommandParameter>
                         </Button>
-                    </StackPanel>
+                    </WrapPanel>
 
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                         <Button Content="-" Command="{Binding DecreaseTableRowHeightCommand}" Classes="classic-tool-btn" Padding="8,3" FontSize="11"/>
@@ -182,20 +182,20 @@
                         <TextBlock Text="Data cell text size" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                        <Button Classes="size-chip-btn" Content="Small (10px)" Command="{Binding SetTableCellFontSizeCommand}">
+                    <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Classes="size-chip-btn" Content="Small (10px)" Command="{Binding SetTableCellFontSizeCommand}" Margin="0,0,6,4">
                             <Button.CommandParameter><x:Double>10.0</x:Double></Button.CommandParameter>
                         </Button>
-                        <Button Classes="size-chip-btn" Content="Standard (11px)" Command="{Binding SetTableCellFontSizeCommand}">
+                        <Button Classes="size-chip-btn" Content="Standard (11px)" Command="{Binding SetTableCellFontSizeCommand}" Margin="0,0,6,4">
                             <Button.CommandParameter><x:Double>11.0</x:Double></Button.CommandParameter>
                         </Button>
-                        <Button Classes="size-chip-btn" Content="Medium (12px)" Command="{Binding SetTableCellFontSizeCommand}">
+                        <Button Classes="size-chip-btn" Content="Medium (12px)" Command="{Binding SetTableCellFontSizeCommand}" Margin="0,0,6,4">
                             <Button.CommandParameter><x:Double>12.0</x:Double></Button.CommandParameter>
                         </Button>
-                        <Button Classes="size-chip-btn" Content="Large (14px)" Command="{Binding SetTableCellFontSizeCommand}">
+                        <Button Classes="size-chip-btn" Content="Large (14px)" Command="{Binding SetTableCellFontSizeCommand}" Margin="0,0,6,4">
                             <Button.CommandParameter><x:Double>14.0</x:Double></Button.CommandParameter>
                         </Button>
-                    </StackPanel>
+                    </WrapPanel>
 
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                         <Button Content="-" Command="{Binding DecreaseTableCellFontSizeCommand}" Classes="classic-tool-btn" Padding="8,3" FontSize="11"/>
@@ -217,36 +217,36 @@
                     <!-- Header Height -->
                     <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,8,0">
                         <TextBlock Text="Column Header Height" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <Button Classes="size-chip-btn" Content="24px" Command="{Binding SetTableHeaderHeightCommand}">
+                        <WrapPanel Orientation="Horizontal" Margin="0,2,0,0">
+                            <Button Classes="size-chip-btn" Content="24px" Command="{Binding SetTableHeaderHeightCommand}" Margin="0,0,6,4">
                                 <Button.CommandParameter><x:Double>24.0</x:Double></Button.CommandParameter>
                             </Button>
-                            <Button Classes="size-chip-btn" Content="26px (Std)" Command="{Binding SetTableHeaderHeightCommand}">
+                            <Button Classes="size-chip-btn" Content="26px (Std)" Command="{Binding SetTableHeaderHeightCommand}" Margin="0,0,6,4">
                                 <Button.CommandParameter><x:Double>26.0</x:Double></Button.CommandParameter>
                             </Button>
-                            <Button Classes="size-chip-btn" Content="30px" Command="{Binding SetTableHeaderHeightCommand}">
+                            <Button Classes="size-chip-btn" Content="30px" Command="{Binding SetTableHeaderHeightCommand}" Margin="0,0,6,4">
                                 <Button.CommandParameter><x:Double>30.0</x:Double></Button.CommandParameter>
                             </Button>
-                            <Button Classes="size-chip-btn" Content="36px" Command="{Binding SetTableHeaderHeightCommand}">
+                            <Button Classes="size-chip-btn" Content="36px" Command="{Binding SetTableHeaderHeightCommand}" Margin="0,0,6,4">
                                 <Button.CommandParameter><x:Double>36.0</x:Double></Button.CommandParameter>
                             </Button>
-                        </StackPanel>
+                        </WrapPanel>
                     </StackPanel>
 
                     <!-- Gutter Width -->
                     <StackPanel Grid.Column="1" Spacing="4" Margin="8,0,0,0">
                         <TextBlock Text="Row Number Gutter Width" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <Button Classes="size-chip-btn" Content="Narrow (44px)" Command="{Binding SetTableGutterWidthCommand}">
+                        <WrapPanel Orientation="Horizontal" Margin="0,2,0,0">
+                            <Button Classes="size-chip-btn" Content="Narrow (44px)" Command="{Binding SetTableGutterWidthCommand}" Margin="0,0,6,4">
                                 <Button.CommandParameter><x:Double>44.0</x:Double></Button.CommandParameter>
                             </Button>
-                            <Button Classes="size-chip-btn" Content="Std (56px)" Command="{Binding SetTableGutterWidthCommand}">
+                            <Button Classes="size-chip-btn" Content="Std (56px)" Command="{Binding SetTableGutterWidthCommand}" Margin="0,0,6,4">
                                 <Button.CommandParameter><x:Double>56.0</x:Double></Button.CommandParameter>
                             </Button>
-                            <Button Classes="size-chip-btn" Content="Wide (72px)" Command="{Binding SetTableGutterWidthCommand}">
+                            <Button Classes="size-chip-btn" Content="Wide (72px)" Command="{Binding SetTableGutterWidthCommand}" Margin="0,0,6,4">
                                 <Button.CommandParameter><x:Double>72.0</x:Double></Button.CommandParameter>
                             </Button>
-                        </StackPanel>
+                        </WrapPanel>
                     </StackPanel>
                 </Grid>
             </StackPanel>
@@ -377,7 +377,7 @@
                                 Background="{Binding PreviewTableHeaderBgBrush}"
                                 BorderBrush="{Binding PreviewTableGridLinesBrush}" 
                                 BorderThickness="0,0,0,1">
-                            <Grid ColumnDefinitions="48, 60, 110, 100, *">
+                            <Grid ColumnDefinitions="56, 60, 110, 100, *">
                                 <Border Grid.Column="0" Background="{Binding PreviewTableGutterBgBrush}" BorderBrush="{Binding PreviewTableGridLinesBrush}" BorderThickness="0,0,1,0">
                                     <TextBlock Text="#" FontSize="10" FontWeight="Bold" Foreground="{Binding PreviewTableGutterTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
@@ -394,7 +394,7 @@
                                 Background="{Binding PreviewTableSelectionBrush}"
                                 BorderBrush="{Binding PreviewTableGridLinesBrush}" 
                                 BorderThickness="0,0,0,1">
-                            <Grid ColumnDefinitions="48, 60, 110, 100, *">
+                            <Grid ColumnDefinitions="56, 60, 110, 100, *">
                                 <Border Grid.Column="0" Background="{Binding PreviewTableGutterBgBrush}" BorderBrush="{Binding PreviewTableGridLinesBrush}" BorderThickness="0,0,1,0">
                                     <TextBlock Text="1" FontSize="{Binding TableCellFontSize}" Foreground="{Binding PreviewTableGutterTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
@@ -411,7 +411,7 @@
                                 Background="{Binding PreviewTableAltRowBrush}"
                                 BorderBrush="{Binding PreviewTableGridLinesBrush}" 
                                 BorderThickness="0,0,0,1">
-                            <Grid ColumnDefinitions="48, 60, 110, 100, *">
+                            <Grid ColumnDefinitions="56, 60, 110, 100, *">
                                 <Border Grid.Column="0" Background="{Binding PreviewTableGutterBgBrush}" BorderBrush="{Binding PreviewTableGridLinesBrush}" BorderThickness="0,0,1,0">
                                     <TextBlock Text="2" FontSize="{Binding TableCellFontSize}" Foreground="{Binding PreviewTableGutterTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
@@ -426,7 +426,7 @@
                         <Border Grid.Row="3" 
                                 Height="{Binding TableRowHeight}" 
                                 Background="{Binding PreviewTableMainRowBrush}">
-                            <Grid ColumnDefinitions="48, 60, 110, 100, *">
+                            <Grid ColumnDefinitions="56, 60, 110, 100, *">
                                 <Border Grid.Column="0" Background="{Binding PreviewTableGutterBgBrush}" BorderBrush="{Binding PreviewTableGridLinesBrush}" BorderThickness="0,0,1,0">
                                     <TextBlock Text="3" FontSize="{Binding TableCellFontSize}" Foreground="{Binding PreviewTableGutterTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>

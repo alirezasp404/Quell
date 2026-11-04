@@ -12,7 +12,7 @@
     <!-- Reusable Data Export Modal Dialog -->
     <Grid>
         <!-- Backdrop (Click to dismiss) -->
-        <Border Background="#660F172A" PointerPressed="OnBackdropPointerPressed" />
+        <Border Background="{DynamicResource AppModalOverlayBrush}" PointerPressed="OnBackdropPointerPressed" />
 
         <!-- Centered Dialog Window Card -->
         <Border Background="{DynamicResource AppWorkspaceBrush}" 

@@ -66,6 +66,12 @@
 
         <!-- Column Header Styling with Prominent Titles (Compact Height) -->
         <Style Selector="DataGridColumnHeader">
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="DataGridColumnHeader:pointerover">
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="DataGridColumnHeader">
             <Setter Property="Background" Value="{DynamicResource AppTableHeaderBackgroundBrush}"/>
             <Setter Property="Foreground" Value="{DynamicResource AppTableHeaderForegroundBrush}"/>
             <Setter Property="FontWeight" Value="Bold"/>

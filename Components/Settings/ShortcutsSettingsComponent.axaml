@@ -33,6 +33,18 @@
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
             <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}" />
         </Style>
+        <Style Selector="Button.cat-filter-btn.active">
+            <Setter Property="Background" Value="{DynamicResource AppAccentBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+        </Style>
+        <Style Selector="Button.cat-filter-btn.active /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppAccentBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+        </Style>
+        <Style Selector="Button.cat-filter-btn.active TextBlock">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
     </UserControl.Styles>
 
     <StackPanel Spacing="14">
@@ -75,10 +87,10 @@
 
             <!-- Category Filter Buttons -->
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
-                <Button Classes="cat-filter-btn" Content="All" Command="{Binding FilterShortcutsByCategoryCommand}" CommandParameter="All"/>
-                <Button Classes="cat-filter-btn" Content="Query" Command="{Binding FilterShortcutsByCategoryCommand}" CommandParameter="Query &amp; Execution"/>
-                <Button Classes="cat-filter-btn" Content="Editor" Command="{Binding FilterShortcutsByCategoryCommand}" CommandParameter="File &amp; Editor"/>
-                <Button Classes="cat-filter-btn" Content="Panels" Command="{Binding FilterShortcutsByCategoryCommand}" CommandParameter="Panels &amp; View"/>
+                <Button Classes="cat-filter-btn" Classes.active="{Binding IsAllShortcutsCategory}" Content="All" Command="{Binding FilterShortcutsByCategoryCommand}" CommandParameter="All"/>
+                <Button Classes="cat-filter-btn" Classes.active="{Binding IsQueryShortcutsCategory}" Content="Query" Command="{Binding FilterShortcutsByCategoryCommand}" CommandParameter="Query &amp; Execution"/>
+                <Button Classes="cat-filter-btn" Classes.active="{Binding IsEditorShortcutsCategory}" Content="Editor" Command="{Binding FilterShortcutsByCategoryCommand}" CommandParameter="File &amp; Editor"/>
+                <Button Classes="cat-filter-btn" Classes.active="{Binding IsPanelsShortcutsCategory}" Content="Panels" Command="{Binding FilterShortcutsByCategoryCommand}" CommandParameter="Panels &amp; View"/>
             </StackPanel>
         </Grid>
 
@@ -88,7 +100,7 @@
                 BorderThickness="1" 
                 CornerRadius="6" 
                 ClipToBounds="True">
-            <ScrollViewer MaxHeight="340" VerticalScrollBarVisibility="Auto">
+            <ScrollViewer MaxHeight="380" VerticalScrollBarVisibility="Auto">
                 <ItemsControl ItemsSource="{Binding FilteredShortcuts}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="services:ShortcutItem">

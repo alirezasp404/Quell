@@ -280,7 +280,16 @@ public partial class SettingsModalViewModel : ObservableObject
     private string _shortcutSearchFilter = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsAllShortcutsCategory))]
+    [NotifyPropertyChangedFor(nameof(IsQueryShortcutsCategory))]
+    [NotifyPropertyChangedFor(nameof(IsEditorShortcutsCategory))]
+    [NotifyPropertyChangedFor(nameof(IsPanelsShortcutsCategory))]
     private string _selectedShortcutCategory = "All";
+
+    public bool IsAllShortcutsCategory => string.Equals(SelectedShortcutCategory, "All", StringComparison.OrdinalIgnoreCase);
+    public bool IsQueryShortcutsCategory => string.Equals(SelectedShortcutCategory, "Query & Execution", StringComparison.OrdinalIgnoreCase);
+    public bool IsEditorShortcutsCategory => string.Equals(SelectedShortcutCategory, "File & Editor", StringComparison.OrdinalIgnoreCase);
+    public bool IsPanelsShortcutsCategory => string.Equals(SelectedShortcutCategory, "Panels & View", StringComparison.OrdinalIgnoreCase);
 
     #endregion
 

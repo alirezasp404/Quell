@@ -11,15 +11,25 @@
     <UserControl.Styles>
         <Style Selector="Button.nav-cat-btn">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Padding" Value="10,9" />
-            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="CornerRadius" Value="6" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="Cursor" Value="Hand" />
         </Style>
         <Style Selector="Button.nav-cat-btn:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+        </Style>
+        <Style Selector="Button.nav-cat-btn.active">
+            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+        </Style>
+        <Style Selector="Button.nav-cat-btn.active /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
         </Style>
     </UserControl.Styles>
 
@@ -37,13 +47,18 @@
 
             <!-- 1. Appearance Category Item -->
             <Button Classes="nav-cat-btn"
+                    Classes.active="{Binding IsAppearanceCategory}"
                     Command="{Binding SelectCategoryCommand}" 
                     CommandParameter="Appearance">
-                <Grid ColumnDefinitions="Auto, *">
-                    <ui:FASymbolIcon Grid.Column="0" Symbol="Settings" FontSize="13" 
+                <Grid ColumnDefinitions="Auto, Auto, *">
+                    <Border Grid.Column="0" Width="3" Height="14" CornerRadius="1.5" 
+                            Background="{DynamicResource AppAccentBrush}" 
+                            Margin="0,0,8,0"
+                            IsVisible="{Binding IsAppearanceCategory}" />
+                    <ui:FASymbolIcon Grid.Column="1" Symbol="Settings" FontSize="13" 
                                      Foreground="{DynamicResource AppAccentBrush}"
                                      VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="1" Text="Appearance" 
+                    <TextBlock Grid.Column="2" Text="Appearance" 
                                FontSize="12" 
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource AppTextPrimaryBrush}"
@@ -54,13 +69,18 @@
 
             <!-- 2. Results Table Customization Category Item -->
             <Button Classes="nav-cat-btn"
+                    Classes.active="{Binding IsTableCategory}"
                     Command="{Binding SelectCategoryCommand}" 
                     CommandParameter="Table">
-                <Grid ColumnDefinitions="Auto, *">
-                    <ui:FASymbolIcon Grid.Column="0" Symbol="ViewAll" FontSize="13" 
+                <Grid ColumnDefinitions="Auto, Auto, *">
+                    <Border Grid.Column="0" Width="3" Height="14" CornerRadius="1.5" 
+                            Background="{DynamicResource AppAccentBrush}" 
+                            Margin="0,0,8,0"
+                            IsVisible="{Binding IsTableCategory}" />
+                    <ui:FASymbolIcon Grid.Column="1" Symbol="ViewAll" FontSize="13" 
                                      Foreground="{DynamicResource AppAccentBrush}"
                                      VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="1" Text="Results Table" 
+                    <TextBlock Grid.Column="2" Text="Results Table" 
                                FontSize="12" 
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource AppTextPrimaryBrush}"
@@ -71,13 +91,18 @@
 
             <!-- 3. Customization (Panels & Editor) Category Item -->
             <Button Classes="nav-cat-btn"
+                    Classes.active="{Binding IsCustomizationCategory}"
                     Command="{Binding SelectCategoryCommand}" 
                     CommandParameter="Customization">
-                <Grid ColumnDefinitions="Auto, *">
-                    <ui:FASymbolIcon Grid.Column="0" Symbol="Edit" FontSize="13" 
+                <Grid ColumnDefinitions="Auto, Auto, *">
+                    <Border Grid.Column="0" Width="3" Height="14" CornerRadius="1.5" 
+                            Background="{DynamicResource AppAccentBrush}" 
+                            Margin="0,0,8,0"
+                            IsVisible="{Binding IsCustomizationCategory}" />
+                    <ui:FASymbolIcon Grid.Column="1" Symbol="Edit" FontSize="13" 
                                      Foreground="{DynamicResource AppAccentBrush}"
                                      VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="1" Text="Customization" 
+                    <TextBlock Grid.Column="2" Text="Customization" 
                                FontSize="12" 
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource AppTextPrimaryBrush}"
@@ -88,13 +113,18 @@
 
             <!-- 4. Shortcuts Category Item -->
             <Button Classes="nav-cat-btn"
+                    Classes.active="{Binding IsShortcutsCategory}"
                     Command="{Binding SelectCategoryCommand}" 
                     CommandParameter="Shortcuts">
-                <Grid ColumnDefinitions="Auto, *">
-                    <ui:FASymbolIcon Grid.Column="0" Symbol="Keyboard" FontSize="13" 
+                <Grid ColumnDefinitions="Auto, Auto, *">
+                    <Border Grid.Column="0" Width="3" Height="14" CornerRadius="1.5" 
+                            Background="{DynamicResource AppAccentBrush}" 
+                            Margin="0,0,8,0"
+                            IsVisible="{Binding IsShortcutsCategory}" />
+                    <ui:FASymbolIcon Grid.Column="1" Symbol="Keyboard" FontSize="13" 
                                      Foreground="{DynamicResource AppAccentBrush}"
                                      VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="1" Text="Shortcuts" 
+                    <TextBlock Grid.Column="2" Text="Shortcuts" 
                                FontSize="12" 
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource AppTextPrimaryBrush}"

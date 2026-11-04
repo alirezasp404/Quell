@@ -160,6 +160,24 @@ public class ThemeService
         }
     }
 
+    private static void SetOrRemoveBrushOverride(string key, string? customHex)
+    {
+        if (Application.Current == null) return;
+
+        if (!string.IsNullOrWhiteSpace(customHex) && !customHex.Equals("Default", StringComparison.OrdinalIgnoreCase))
+        {
+            if (Color.TryParse(customHex, out var color))
+            {
+                Application.Current.Resources[key] = new SolidColorBrush(color);
+                return;
+            }
+        }
+
+        // When "Default", removing the key ensures Avalonia's ThemeDictionaries (LightTheme/DarkTheme)
+        // dynamically resolve the resource on theme changes without static override pollution.
+        Application.Current.Resources.Remove(key);
+    }
+
     private void ApplyPanelCustomizationInternal()
     {
         if (Application.Current == null) return;
@@ -167,62 +185,16 @@ public class ThemeService
         var custom = CurrentPanelCustomization;
 
         // 1. Editor Background
-        if (!string.IsNullOrWhiteSpace(custom.EditorBackground) && !custom.EditorBackground.Equals("Default", StringComparison.OrdinalIgnoreCase))
-        {
-            if (Color.TryParse(custom.EditorBackground, out var edBg))
-            {
-                Application.Current.Resources["AppEditorBackgroundBrush"] = new SolidColorBrush(edBg);
-            }
-        }
-        else
-        {
-            // Restore default theme editor background
-            string defaultHex = IsDarkTheme() ? "#0F172A" : "#FFFFFF";
-            Application.Current.Resources["AppEditorBackgroundBrush"] = new SolidColorBrush(Color.Parse(defaultHex));
-        }
+        SetOrRemoveBrushOverride("AppEditorBackgroundBrush", custom.EditorBackground);
 
         // 2. Editor Foreground
-        if (!string.IsNullOrWhiteSpace(custom.EditorForeground) && !custom.EditorForeground.Equals("Default", StringComparison.OrdinalIgnoreCase))
-        {
-            if (Color.TryParse(custom.EditorForeground, out var edFg))
-            {
-                Application.Current.Resources["AppEditorForegroundBrush"] = new SolidColorBrush(edFg);
-            }
-        }
-        else
-        {
-            string defaultHex = IsDarkTheme() ? "#F8FAFC" : "#0F172A";
-            Application.Current.Resources["AppEditorForegroundBrush"] = new SolidColorBrush(Color.Parse(defaultHex));
-        }
+        SetOrRemoveBrushOverride("AppEditorForegroundBrush", custom.EditorForeground);
 
         // 3. Sidebar Background
-        if (!string.IsNullOrWhiteSpace(custom.SidebarBackground) && !custom.SidebarBackground.Equals("Default", StringComparison.OrdinalIgnoreCase))
-        {
-            if (Color.TryParse(custom.SidebarBackground, out var sbBg))
-            {
-                var brush = new SolidColorBrush(sbBg);
-                Application.Current.Resources["AppSidebarBackgroundBrush"] = brush;
-            }
-        }
-        else
-        {
-            string defaultHex = IsDarkTheme() ? "#1E293B" : "#F8FAFC";
-            Application.Current.Resources["AppSidebarBackgroundBrush"] = new SolidColorBrush(Color.Parse(defaultHex));
-        }
+        SetOrRemoveBrushOverride("AppSidebarBackgroundBrush", custom.SidebarBackground);
 
         // 4. Table Alternating Background
-        if (!string.IsNullOrWhiteSpace(custom.TableBackground) && !custom.TableBackground.Equals("Default", StringComparison.OrdinalIgnoreCase))
-        {
-            if (Color.TryParse(custom.TableBackground, out var tbBg))
-            {
-                Application.Current.Resources["AppTableAltColBackgroundBrush"] = new SolidColorBrush(tbBg);
-            }
-        }
-        else
-        {
-            string defaultHex = IsDarkTheme() ? "#141E2E" : "#F8FAFC";
-            Application.Current.Resources["AppTableAltColBackgroundBrush"] = new SolidColorBrush(Color.Parse(defaultHex));
-        }
+        SetOrRemoveBrushOverride("AppTableAltColBackgroundBrush", custom.TableBackground);
     }
 
     public void ApplyTableCustomization(TableCustomizationRecord custom)
@@ -255,7 +227,6 @@ public class ThemeService
         if (Application.Current == null) return;
 
         var custom = CurrentTableCustomization;
-        bool isDark = IsDarkTheme();
 
         // 1. Dimensions
         if (custom.RowHeight >= 18.0)
@@ -278,135 +249,44 @@ public class ThemeService
             Application.Current.Resources["AppTableCellFontSize"] = custom.FontSize;
         }
 
-        // 2. Main Row Background
-        if (!string.IsNullOrWhiteSpace(custom.TableBackground) && !custom.TableBackground.Equals("Default", StringComparison.OrdinalIgnoreCase))
-        {
-            if (Color.TryParse(custom.TableBackground, out var bg))
-            {
-                Application.Current.Resources["AppTableWhiteColBackgroundBrush"] = new SolidColorBrush(bg);
-                Application.Current.Resources["AppWorkspaceBrush"] = new SolidColorBrush(bg);
-            }
-        }
-        else
-        {
-            string defBg = isDark ? "#0F172A" : "#FFFFFF";
-            Application.Current.Resources["AppTableWhiteColBackgroundBrush"] = new SolidColorBrush(Color.Parse(defBg));
-            Application.Current.Resources["AppWorkspaceBrush"] = new SolidColorBrush(Color.Parse(defBg));
-        }
+        // 2. Main Row Background & Workspace
+        SetOrRemoveBrushOverride("AppTableWhiteColBackgroundBrush", custom.TableBackground);
+        SetOrRemoveBrushOverride("AppWorkspaceBrush", custom.TableBackground);
 
         // 3. Alternating Row Color
         if (custom.ShowAlternatingRowColors)
         {
-            if (!string.IsNullOrWhiteSpace(custom.AlternatingRowColor) && !custom.AlternatingRowColor.Equals("Default", StringComparison.OrdinalIgnoreCase))
-            {
-                if (Color.TryParse(custom.AlternatingRowColor, out var altBg))
-                {
-                    Application.Current.Resources["AppTableAltColBackgroundBrush"] = new SolidColorBrush(altBg);
-                }
-            }
-            else
-            {
-                string defAlt = isDark ? "#141E2E" : "#F8FAFC";
-                Application.Current.Resources["AppTableAltColBackgroundBrush"] = new SolidColorBrush(Color.Parse(defAlt));
-            }
+            SetOrRemoveBrushOverride("AppTableAltColBackgroundBrush", custom.AlternatingRowColor);
         }
         else
         {
-            var mainBrush = Application.Current.Resources["AppTableWhiteColBackgroundBrush"] as IBrush;
-            if (mainBrush != null)
+            if (Application.Current.Resources.TryGetValue("AppTableWhiteColBackgroundBrush", out var mainBrush) && mainBrush is IBrush mb)
             {
-                Application.Current.Resources["AppTableAltColBackgroundBrush"] = mainBrush;
+                Application.Current.Resources["AppTableAltColBackgroundBrush"] = mb;
+            }
+            else
+            {
+                Application.Current.Resources.Remove("AppTableAltColBackgroundBrush");
             }
         }
 
         // 4. Cell Text Color
-        if (!string.IsNullOrWhiteSpace(custom.CellTextColor) && !custom.CellTextColor.Equals("Default", StringComparison.OrdinalIgnoreCase))
-        {
-            if (Color.TryParse(custom.CellTextColor, out var txtColor))
-            {
-                Application.Current.Resources["AppTableCellForegroundBrush"] = new SolidColorBrush(txtColor);
-            }
-        }
-        else
-        {
-            string defTxt = isDark ? "#F8FAFC" : "#0F172A";
-            Application.Current.Resources["AppTableCellForegroundBrush"] = new SolidColorBrush(Color.Parse(defTxt));
-        }
+        SetOrRemoveBrushOverride("AppTableCellForegroundBrush", custom.CellTextColor);
 
         // 5. Header Background & Text
-        if (!string.IsNullOrWhiteSpace(custom.HeaderBackground) && !custom.HeaderBackground.Equals("Default", StringComparison.OrdinalIgnoreCase))
-        {
-            if (Color.TryParse(custom.HeaderBackground, out var hBg))
-            {
-                Application.Current.Resources["AppTableHeaderBackgroundBrush"] = new SolidColorBrush(hBg);
-            }
-        }
-        else
-        {
-            string defHBg = isDark ? "#1E293B" : "#F1F5F9";
-            Application.Current.Resources["AppTableHeaderBackgroundBrush"] = new SolidColorBrush(Color.Parse(defHBg));
-        }
-
-        if (!string.IsNullOrWhiteSpace(custom.HeaderTextColor) && !custom.HeaderTextColor.Equals("Default", StringComparison.OrdinalIgnoreCase))
-        {
-            if (Color.TryParse(custom.HeaderTextColor, out var hFg))
-            {
-                Application.Current.Resources["AppTableHeaderForegroundBrush"] = new SolidColorBrush(hFg);
-            }
-        }
-        else
-        {
-            string defHFg = isDark ? "#F8FAFC" : "#0F172A";
-            Application.Current.Resources["AppTableHeaderForegroundBrush"] = new SolidColorBrush(Color.Parse(defHFg));
-        }
+        SetOrRemoveBrushOverride("AppTableHeaderBackgroundBrush", custom.HeaderBackground);
+        SetOrRemoveBrushOverride("AppTableHeaderForegroundBrush", custom.HeaderTextColor);
 
         // 6. Gutter (Row number column) Background & Text
-        if (!string.IsNullOrWhiteSpace(custom.GutterBackground) && !custom.GutterBackground.Equals("Default", StringComparison.OrdinalIgnoreCase))
-        {
-            if (Color.TryParse(custom.GutterBackground, out var gBg))
-            {
-                Application.Current.Resources["AppTableGutterBackgroundBrush"] = new SolidColorBrush(gBg);
-            }
-        }
-        else
-        {
-            string defGBg = isDark ? "#1E293B" : "#F1F5F9";
-            Application.Current.Resources["AppTableGutterBackgroundBrush"] = new SolidColorBrush(Color.Parse(defGBg));
-        }
-
-        if (!string.IsNullOrWhiteSpace(custom.GutterTextColor) && !custom.GutterTextColor.Equals("Default", StringComparison.OrdinalIgnoreCase))
-        {
-            if (Color.TryParse(custom.GutterTextColor, out var gFg))
-            {
-                Application.Current.Resources["AppTableGutterForegroundBrush"] = new SolidColorBrush(gFg);
-            }
-        }
-        else
-        {
-            string defGFg = isDark ? "#F8FAFC" : "#0F172A";
-            Application.Current.Resources["AppTableGutterForegroundBrush"] = new SolidColorBrush(Color.Parse(defGFg));
-        }
+        SetOrRemoveBrushOverride("AppTableGutterBackgroundBrush", custom.GutterBackground);
+        SetOrRemoveBrushOverride("AppTableGutterForegroundBrush", custom.GutterTextColor);
 
         // 7. Grid Lines
         if (custom.ShowGridLines)
         {
-            if (!string.IsNullOrWhiteSpace(custom.GridLinesColor) && !custom.GridLinesColor.Equals("Default", StringComparison.OrdinalIgnoreCase))
-            {
-                if (Color.TryParse(custom.GridLinesColor, out var glColor))
-                {
-                    Application.Current.Resources["AppTableGridLinesHorizontalBrush"] = new SolidColorBrush(glColor);
-                    Application.Current.Resources["AppTableGridLinesVerticalBrush"] = new SolidColorBrush(glColor);
-                    Application.Current.Resources["AppTableCellBorderBrush"] = new SolidColorBrush(glColor);
-                }
-            }
-            else
-            {
-                string defH = isDark ? "#334155" : "#CBD5E1";
-                string defV = isDark ? "#1E293B" : "#E2E8F0";
-                Application.Current.Resources["AppTableGridLinesHorizontalBrush"] = new SolidColorBrush(Color.Parse(defH));
-                Application.Current.Resources["AppTableGridLinesVerticalBrush"] = new SolidColorBrush(Color.Parse(defV));
-                Application.Current.Resources["AppTableCellBorderBrush"] = new SolidColorBrush(Color.Parse(defV));
-            }
+            SetOrRemoveBrushOverride("AppTableGridLinesHorizontalBrush", custom.GridLinesColor);
+            SetOrRemoveBrushOverride("AppTableGridLinesVerticalBrush", custom.GridLinesColor);
+            SetOrRemoveBrushOverride("AppTableCellBorderBrush", custom.GridLinesColor);
         }
         else
         {
@@ -416,20 +296,7 @@ public class ThemeService
         }
 
         // 8. Selection / Active Cell Highlight
-        if (!string.IsNullOrWhiteSpace(custom.SelectionColor) && !custom.SelectionColor.Equals("Default", StringComparison.OrdinalIgnoreCase))
-        {
-            if (Color.TryParse(custom.SelectionColor, out var selColor))
-            {
-                Application.Current.Resources["AppTableSelectedBackgroundBrush"] = new SolidColorBrush(selColor);
-                Application.Current.Resources["AppTableActiveBackgroundBrush"] = new SolidColorBrush(selColor);
-            }
-        }
-        else
-        {
-            string defSel = isDark ? "#1E3A5F" : "#DBEAFE";
-            string defAct = isDark ? "#172554" : "#EFF6FF";
-            Application.Current.Resources["AppTableSelectedBackgroundBrush"] = new SolidColorBrush(Color.Parse(defSel));
-            Application.Current.Resources["AppTableActiveBackgroundBrush"] = new SolidColorBrush(Color.Parse(defAct));
-        }
+        SetOrRemoveBrushOverride("AppTableSelectedBackgroundBrush", custom.SelectionColor);
+        SetOrRemoveBrushOverride("AppTableActiveBackgroundBrush", custom.SelectionColor);
     }
 }

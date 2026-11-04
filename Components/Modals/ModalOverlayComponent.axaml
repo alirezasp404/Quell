@@ -11,7 +11,7 @@
     <!-- Modern Reusable Modal Backdrop & Dialog Container -->
     <Grid>
         <!-- 1. Semi-Transparent Backdrop (Click to Dismiss) -->
-        <Border Background="#660F172A" 
+        <Border Background="{DynamicResource AppModalOverlayBrush}" 
                 PointerPressed="OnBackdropPointerPressed"/>
 
         <!-- 2. Centered Modal Dialog Card -->

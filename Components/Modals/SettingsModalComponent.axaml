@@ -16,8 +16,10 @@
                 PointerPressed="OnBackdropPointerPressed" />
 
         <!-- Centered Settings Dialog Card -->
-        <Border Width="760" 
-                Height="580" 
+        <Border Width="820" 
+                Height="620" 
+                MaxWidth="960"
+                MaxHeight="720"
                 HorizontalAlignment="Center" 
                 VerticalAlignment="Center"
                 Background="{DynamicResource AppSurfaceBrush}" 

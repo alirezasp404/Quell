@@ -242,9 +242,9 @@ public partial class QueryResultTableComponent : UserControl
                             Data = Avalonia.Media.Geometry.Parse("M14 5l7 7m0 0l-7 7m7-7H3"),
                             Width = 10,
                             Height = 10,
-                            Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#64748B")),
                             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
                         };
+                        arrowIcon[!Avalonia.Controls.PathIcon.ForegroundProperty] = new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("AppTextSecondaryBrush");
                         arrowBtn.Content = arrowIcon;
 
                         arrowBtn.Click += async (s, e) =>

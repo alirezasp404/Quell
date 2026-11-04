@@ -140,30 +140,30 @@
                 <!-- Background Color Swatches -->
                 <StackPanel Spacing="6">
                     <TextBlock Text="Editor Background:" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="Default" Background="{DynamicResource AppWorkspaceBrush}" ToolTip.Tip="Default Theme" />
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#0F1117" Background="#0F1117" ToolTip.Tip="Pitch Black (#0F1117)" />
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#1E293B" Background="#1E293B" ToolTip.Tip="Dark Slate (#1E293B)" />
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#0A192F" Background="#0A192F" ToolTip.Tip="Deep Navy (#0A192F)" />
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#272822" Background="#272822" ToolTip.Tip="Monokai (#272822)" />
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#002B36" Background="#002B36" ToolTip.Tip="Solarized (#002B36)" />
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#FFFFFF" Background="#FFFFFF" ToolTip.Tip="Pure White (#FFFFFF)" />
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#FAF8F5" Background="#FAF8F5" ToolTip.Tip="Warm Sepia (#FAF8F5)" />
-                    </StackPanel>
+                    <WrapPanel Orientation="Horizontal">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="Default" Background="{DynamicResource AppWorkspaceBrush}" ToolTip.Tip="Default Theme" Margin="0,0,8,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#0F1117" Background="#0F1117" ToolTip.Tip="Pitch Black (#0F1117)" Margin="0,0,8,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#1E293B" Background="#1E293B" ToolTip.Tip="Dark Slate (#1E293B)" Margin="0,0,8,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#0A192F" Background="#0A192F" ToolTip.Tip="Deep Navy (#0A192F)" Margin="0,0,8,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#272822" Background="#272822" ToolTip.Tip="Monokai (#272822)" Margin="0,0,8,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#002B36" Background="#002B36" ToolTip.Tip="Solarized (#002B36)" Margin="0,0,8,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#FFFFFF" Background="#FFFFFF" ToolTip.Tip="Pure White (#FFFFFF)" Margin="0,0,8,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorBackgroundCommand}" CommandParameter="#FAF8F5" Background="#FAF8F5" ToolTip.Tip="Warm Sepia (#FAF8F5)" Margin="0,0,8,4"/>
+                    </WrapPanel>
                 </StackPanel>
 
                 <!-- Text Foreground Color Swatches -->
                 <StackPanel Spacing="6">
                     <TextBlock Text="Editor Text Color:" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="Default" Background="{DynamicResource AppTextPrimaryBrush}" ToolTip.Tip="Default Theme" />
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#F8FAFC" Background="#F8FAFC" ToolTip.Tip="Crisp White (#F8FAFC)" />
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#CBD5E1" Background="#CBD5E1" ToolTip.Tip="Soft Silver (#CBD5E1)" />
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#34D399" Background="#34D399" ToolTip.Tip="Mint Green (#34D399)" />
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#38BDF8" Background="#38BDF8" ToolTip.Tip="Cyber Cyan (#38BDF8)" />
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#FBBF24" Background="#FBBF24" ToolTip.Tip="Amber Gold (#FBBF24)" />
-                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#0F172A" Background="#0F172A" ToolTip.Tip="Dark Charcoal (#0F172A)" />
-                    </StackPanel>
+                    <WrapPanel Orientation="Horizontal">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="Default" Background="{DynamicResource AppTextPrimaryBrush}" ToolTip.Tip="Default Theme" Margin="0,0,8,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#F8FAFC" Background="#F8FAFC" ToolTip.Tip="Crisp White (#F8FAFC)" Margin="0,0,8,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#CBD5E1" Background="#CBD5E1" ToolTip.Tip="Soft Silver (#CBD5E1)" Margin="0,0,8,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#34D399" Background="#34D399" ToolTip.Tip="Mint Green (#34D399)" Margin="0,0,8,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#38BDF8" Background="#38BDF8" ToolTip.Tip="Cyber Cyan (#38BDF8)" Margin="0,0,8,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#FBBF24" Background="#FBBF24" ToolTip.Tip="Amber Gold (#FBBF24)" Margin="0,0,8,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectEditorForegroundCommand}" CommandParameter="#0F172A" Background="#0F172A" ToolTip.Tip="Dark Charcoal (#0F172A)" Margin="0,0,8,4"/>
+                    </WrapPanel>
                 </StackPanel>
             </StackPanel>
         </Border>
@@ -181,14 +181,14 @@
                 </StackPanel>
                 <TextBlock Text="Background color for database tree view and connection list" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
 
-                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
-                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="Default" Background="{DynamicResource AppSurfaceBrush}" ToolTip.Tip="Default Theme" />
-                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#1E293B" Background="#1E293B" ToolTip.Tip="Dark Slate (#1E293B)" />
-                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#111827" Background="#111827" ToolTip.Tip="Deep Midnight (#111827)" />
-                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#141E2E" Background="#141E2E" ToolTip.Tip="Ocean Slate (#141E2E)" />
-                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#F1F5F9" Background="#F1F5F9" ToolTip.Tip="Platinum Silver (#F1F5F9)" />
-                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#FFFFFF" Background="#FFFFFF" ToolTip.Tip="Clean White (#FFFFFF)" />
-                </StackPanel>
+                <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="Default" Background="{DynamicResource AppSurfaceBrush}" ToolTip.Tip="Default Theme" Margin="0,0,8,4"/>
+                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#1E293B" Background="#1E293B" ToolTip.Tip="Dark Slate (#1E293B)" Margin="0,0,8,4"/>
+                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#111827" Background="#111827" ToolTip.Tip="Deep Midnight (#111827)" Margin="0,0,8,4"/>
+                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#141E2E" Background="#141E2E" ToolTip.Tip="Ocean Slate (#141E2E)" Margin="0,0,8,4"/>
+                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#F1F5F9" Background="#F1F5F9" ToolTip.Tip="Platinum Silver (#F1F5F9)" Margin="0,0,8,4"/>
+                    <Button Classes="color-swatch-btn" Command="{Binding SelectSidebarBackgroundCommand}" CommandParameter="#FFFFFF" Background="#FFFFFF" ToolTip.Tip="Clean White (#FFFFFF)" Margin="0,0,8,4"/>
+                </WrapPanel>
             </StackPanel>
         </Border>
 
@@ -205,12 +205,12 @@
                 </StackPanel>
                 <TextBlock Text="Background tint for data grid rows and table components" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
 
-                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
-                    <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="Default" Background="{DynamicResource AppWorkspaceBrush}" ToolTip.Tip="Default Theme" />
-                    <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="#1E293B" Background="#1E293B" ToolTip.Tip="Dark Slate (#1E293B)" />
-                    <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="#141E2E" Background="#141E2E" ToolTip.Tip="Ocean Navy (#141E2E)" />
-                    <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="#FFFFFF" Background="#FFFFFF" ToolTip.Tip="Pure White (#FFFFFF)" />
-                </StackPanel>
+                <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="Default" Background="{DynamicResource AppWorkspaceBrush}" ToolTip.Tip="Default Theme" Margin="0,0,8,4"/>
+                    <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="#1E293B" Background="#1E293B" ToolTip.Tip="Dark Slate (#1E293B)" Margin="0,0,8,4"/>
+                    <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="#141E2E" Background="#141E2E" ToolTip.Tip="Ocean Navy (#141E2E)" Margin="0,0,8,4"/>
+                    <Button Classes="color-swatch-btn" Command="{Binding SelectTableBackgroundCommand}" CommandParameter="#FFFFFF" Background="#FFFFFF" ToolTip.Tip="Pure White (#FFFFFF)" Margin="0,0,8,4"/>
+                </WrapPanel>
             </StackPanel>
         </Border>
 

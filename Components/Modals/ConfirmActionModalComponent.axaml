@@ -12,7 +12,7 @@
     <!-- Reusable Action Confirmation & Destruction Alert Modal -->
     <Grid>
         <!-- Backdrop (Click to dismiss) -->
-        <Border Background="#660F172A" PointerPressed="OnBackdropPointerPressed" />
+        <Border Background="{DynamicResource AppModalOverlayBrush}" PointerPressed="OnBackdropPointerPressed" />
 
         <!-- Centered Dialog Window Card -->
         <Border Background="{DynamicResource AppWorkspaceBrush}" 
@@ -35,7 +35,7 @@
                         Padding="16,12">
                     <Grid ColumnDefinitions="Auto, *, Auto">
                         <Border Grid.Column="0" 
-                                Background="#FEE2E2" 
+                                Background="{DynamicResource AppDangerMutedBrush}" 
                                 CornerRadius="6" 
                                 Width="28" 
                                 Height="28" 

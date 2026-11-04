@@ -12,7 +12,7 @@
     <!-- Graphical Cell Editor & UPDATE Query Generator Modal -->
     <Grid>
         <!-- Backdrop (Click to dismiss) -->
-        <Border Background="#660F172A" PointerPressed="OnBackdropPointerPressed" />
+        <Border Background="{DynamicResource AppModalOverlayBrush}" PointerPressed="OnBackdropPointerPressed" />
 
         <!-- Centered Dialog Card -->
         <Border Background="{DynamicResource AppWorkspaceBrush}" 

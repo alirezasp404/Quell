@@ -7,6 +7,198 @@
         <Setter Property="FontSize" Value="12"/>
     </Style>
 
+    <!-- ========================================================================= -->
+    <!-- Global Interactive Hover Cursors (Hand Pointer for Clickable Controls)    -->
+    <!-- ========================================================================= -->
+
+    <!-- Buttons (Standard, Tool, Menu, Tab, Action, Icon) -->
+    <Style Selector="Button">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Button:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Button:disabled">
+        <Setter Property="Cursor" Value="Arrow"/>
+    </Style>
+
+    <!-- Toggle & Repeat Buttons -->
+    <Style Selector="ToggleButton">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="ToggleButton:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="ToggleButton:disabled">
+        <Setter Property="Cursor" Value="Arrow"/>
+    </Style>
+
+    <Style Selector="RepeatButton">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="RepeatButton:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="RepeatButton:disabled">
+        <Setter Property="Cursor" Value="Arrow"/>
+    </Style>
+
+    <!-- Menu & Context Menu Items -->
+    <Style Selector="MenuItem">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="MenuItem:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="MenuItem:disabled">
+        <Setter Property="Cursor" Value="Arrow"/>
+    </Style>
+
+    <!-- CheckBoxes & RadioButtons -->
+    <Style Selector="CheckBox">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="CheckBox:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="CheckBox:disabled">
+        <Setter Property="Cursor" Value="Arrow"/>
+    </Style>
+
+    <Style Selector="RadioButton">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="RadioButton:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="RadioButton:disabled">
+        <Setter Property="Cursor" Value="Arrow"/>
+    </Style>
+
+    <!-- Dropdown / ComboBox Controls and Items -->
+    <Style Selector="ComboBox">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="ComboBox:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="ComboBox:disabled">
+        <Setter Property="Cursor" Value="Arrow"/>
+    </Style>
+
+    <Style Selector="ComboBoxItem">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="ComboBoxItem:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="ComboBoxItem:disabled">
+        <Setter Property="Cursor" Value="Arrow"/>
+    </Style>
+
+    <!-- Tab Items -->
+    <Style Selector="TabItem">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="TabItem:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="TabItem:disabled">
+        <Setter Property="Cursor" Value="Arrow"/>
+    </Style>
+
+    <!-- ListBox & Completion Items -->
+    <Style Selector="ListBoxItem">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="ListBoxItem:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="ListBoxItem:disabled">
+        <Setter Property="Cursor" Value="Arrow"/>
+    </Style>
+
+    <!-- TreeView Nodes & Expanders -->
+    <Style Selector="TreeViewItem">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="TreeViewItem:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="TreeViewItem:disabled">
+        <Setter Property="Cursor" Value="Arrow"/>
+    </Style>
+
+    <!-- DataGrid Interactive Headers -->
+    <Style Selector="DataGridColumnHeader">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="DataGridColumnHeader:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="DataGridRowHeader">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="DataGridRowHeader:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+
+    <!-- Sliders -->
+    <Style Selector="Slider">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Slider:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Slider:disabled">
+        <Setter Property="Cursor" Value="Arrow"/>
+    </Style>
+
+    <!-- Links / HyperlinkButtons -->
+    <Style Selector="HyperlinkButton">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="HyperlinkButton:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="HyperlinkButton:disabled">
+        <Setter Property="Cursor" Value="Arrow"/>
+    </Style>
+
+    <!-- Interactive Custom Card / Item Classes -->
+    <Style Selector="Border.table-node-item">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Border.table-node-item:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Border.editor-tab">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Border.editor-tab:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector=":is(Control).cursor-pointer">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector=":is(Control).cursor-pointer:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector=":is(Control).pointer-hand">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector=":is(Control).pointer-hand:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+
+    <!-- Explicit Text Editors & Inputs (Preserve IBeam Cursor for Text Selection) -->
+    <Style Selector="TextBox">
+        <Setter Property="Cursor" Value="IBeam"/>
+    </Style>
+    <Style Selector="TextBox:disabled">
+        <Setter Property="Cursor" Value="Arrow"/>
+    </Style>
+
     <!-- Modern Menu & Toolbar Buttons -->
     <Style Selector="Button.classic-menu-btn">
         <Setter Property="Background" Value="Transparent"/>

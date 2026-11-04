@@ -32,8 +32,12 @@
         </Style>
 
         <!-- Table Node Item Styling: Hover & Active/Clicked States -->
+        <Style Selector="Border.table-node-item">
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
         <Style Selector="Border.table-node-item:not(.active):pointerover">
             <Setter Property="Background" Value="{DynamicResource AppTableHoverBackgroundBrush}"/>
+            <Setter Property="Cursor" Value="Hand"/>
         </Style>
         <Style Selector="Border.table-node-item.active">
             <Setter Property="Background" Value="{DynamicResource AppTableActiveBackgroundBrush}"/>
@@ -216,6 +220,7 @@
                                         <Setter Property="Padding" Value="0"/>
                                         <Setter Property="MinHeight" Value="24"/>
                                         <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                                        <Setter Property="Cursor" Value="Hand"/>
                                     </Style>
                                     <Style Selector="TreeViewItem /template/ ToggleButton#PART_ExpandCollapseChevron">
                                         <Setter Property="IsVisible" Value="False"/>
