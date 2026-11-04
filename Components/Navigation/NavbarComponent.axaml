@@ -56,7 +56,9 @@
                     <Border Width="1" Height="16" Background="{DynamicResource AppBorderBrush}" Margin="4,0"/>
 
                     <!-- Target Database Selector ComboBox -->
-                    <Border Background="{DynamicResource AppWorkspaceBrush}" 
+                    <Border Classes="target-db-pill"
+                            Cursor="Hand"
+                            Background="{DynamicResource AppWorkspaceBrush}" 
                             BorderBrush="{DynamicResource AppBorderBrush}" 
                             BorderThickness="1" 
                             CornerRadius="4" 

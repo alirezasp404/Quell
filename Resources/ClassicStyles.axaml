@@ -12,6 +12,16 @@
     <!-- ========================================================================= -->
 
     <!-- Buttons (Standard, Tool, Menu, Tab, Action, Icon) -->
+    <Style Selector=":is(Button)">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector=":is(Button):pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector=":is(Button):disabled">
+        <Setter Property="Cursor" Value="Arrow"/>
+    </Style>
+
     <Style Selector="Button">
         <Setter Property="Cursor" Value="Hand"/>
     </Style>
@@ -129,7 +139,7 @@
         <Setter Property="Cursor" Value="Arrow"/>
     </Style>
 
-    <!-- DataGrid Interactive Headers -->
+    <!-- DataGrid Interactive Headers, Rows and Cells -->
     <Style Selector="DataGridColumnHeader">
         <Setter Property="Cursor" Value="Hand"/>
     </Style>
@@ -140,6 +150,24 @@
         <Setter Property="Cursor" Value="Hand"/>
     </Style>
     <Style Selector="DataGridRowHeader:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="DataGridRow">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="DataGridRow:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="DataGridCell">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="DataGridCell:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="DataGridCell TextBlock">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="DataGridCell TextBlock:pointerover">
         <Setter Property="Cursor" Value="Hand"/>
     </Style>
 
@@ -172,10 +200,58 @@
     <Style Selector="Border.table-node-item:pointerover">
         <Setter Property="Cursor" Value="Hand"/>
     </Style>
+    <Style Selector="Border.database-node-item">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Border.database-node-item:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Border.folder-node-item">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Border.folder-node-item:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Border.saved-connection-item">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Border.saved-connection-item:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Border.history-item">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Border.history-item:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Border.theme-card">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Border.theme-card:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Border.color-card">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Border.color-card:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
     <Style Selector="Border.editor-tab">
         <Setter Property="Cursor" Value="Hand"/>
     </Style>
     <Style Selector="Border.editor-tab:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Border.modal-backdrop">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Border.modal-backdrop:pointerover">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Border.target-db-pill">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Border.target-db-pill:pointerover">
         <Setter Property="Cursor" Value="Hand"/>
     </Style>
     <Style Selector=":is(Control).cursor-pointer">
@@ -208,10 +284,12 @@
         <Setter Property="CornerRadius" Value="4"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="MinHeight" Value="24"/>
+        <Setter Property="Cursor" Value="Hand"/>
     </Style>
     <Style Selector="Button.classic-menu-btn:pointerover">
         <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+        <Setter Property="Cursor" Value="Hand"/>
     </Style>
 
     <!-- Modern Toolbar Action Button -->
@@ -225,10 +303,12 @@
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
         <Setter Property="MinHeight" Value="26"/>
+        <Setter Property="Cursor" Value="Hand"/>
     </Style>
     <Style Selector="Button.classic-tool-btn:pointerover">
         <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource AppToolHoverBorderBrush}"/>
+        <Setter Property="Cursor" Value="Hand"/>
     </Style>
 
     <!-- Modern Tab Button -->
@@ -242,16 +322,19 @@
         <Setter Property="BorderThickness" Value="0,0,0,2"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
         <Setter Property="Margin" Value="0,0,2,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
     </Style>
     <Style Selector="Button.classic-tab-btn:pointerover">
         <Setter Property="Background" Value="{DynamicResource AppTabHoverBackgroundBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+        <Setter Property="Cursor" Value="Hand"/>
     </Style>
     <Style Selector="Button.classic-tab-btn.active">
         <Setter Property="Background" Value="{DynamicResource AppTabActiveBackgroundBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
         <Setter Property="BorderThickness" Value="0,0,0,2"/>
+        <Setter Property="Cursor" Value="Hand"/>
     </Style>
 
     <!-- Modern GridSplitter -->

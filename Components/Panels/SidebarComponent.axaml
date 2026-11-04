@@ -241,7 +241,9 @@
                                 <TreeView.DataTemplates>
                                     <!-- LEVEL 1: DATABASE CONNECTION NODE -->
                                     <TreeDataTemplate DataType="vm:DatabaseConnectionTreeNode" ItemsSource="{Binding Children}">
-                                        <Border CornerRadius="4" 
+                                        <Border Classes="database-node-item"
+                                                Cursor="Hand"
+                                                CornerRadius="4" 
                                                 Padding="4,3" 
                                                 Margin="0,1" 
                                                 Background="Transparent"
@@ -380,7 +382,7 @@
 
                                     <!-- LEVEL 2: FOLDER NODE (e.g. Tables) -->
                                     <TreeDataTemplate DataType="vm:FolderTreeNode" ItemsSource="{Binding Children}">
-                                        <Border CornerRadius="3" Padding="3,2" Margin="0,1" Background="Transparent" HorizontalAlignment="Stretch">
+                                        <Border Classes="folder-node-item" Cursor="Hand" CornerRadius="3" Padding="3,2" Margin="0,1" Background="Transparent" HorizontalAlignment="Stretch">
                                             <Grid ColumnDefinitions="Auto, Auto, *">
                                                 <Button Grid.Column="0"
                                                         Classes="classic-menu-btn"
@@ -443,6 +445,7 @@
                                                 BorderThickness="1"
                                                 BorderBrush="Transparent"
                                                 HorizontalAlignment="Stretch"
+                                                Cursor="Hand"
                                                 PointerPressed="OnTableNodePointerPressed">
                                             <!-- Right-Click ContextMenu for Table Node -->
                                             <Border.ContextMenu>
@@ -640,7 +643,9 @@
                             <ItemsControl ItemsSource="{Binding SavedConnections}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="{DynamicResource AppWorkspaceBrush}" 
+                                        <Border Classes="saved-connection-item"
+                                                Cursor="Hand"
+                                                Background="{DynamicResource AppWorkspaceBrush}" 
                                                 BorderBrush="{DynamicResource AppBorderBrush}" 
                                                 BorderThickness="1" 
                                                 CornerRadius="5" 
@@ -749,7 +754,7 @@
                         <ItemsControl ItemsSource="{Binding HistoryItems}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border CornerRadius="4" Padding="6,4" Margin="0,1" Background="Transparent">
+                                    <Border Classes="history-item" Cursor="Hand" CornerRadius="4" Padding="6,4" Margin="0,1" Background="Transparent">
                                         <Border.Styles>
                                             <Style Selector="Border:pointerover">
                                                 <Setter Property="Background" Value="{DynamicResource AppTableHoverBackgroundBrush}"/>
