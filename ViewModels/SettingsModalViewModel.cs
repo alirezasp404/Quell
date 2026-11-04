@@ -1408,8 +1408,17 @@ public partial class SettingsModalViewModel : ObservableObject
         OnPropertyChanged(nameof(PreviewEditorBackgroundBrush));
         OnPropertyChanged(nameof(PreviewEditorForegroundBrush));
         OnPropertyChanged(nameof(PreviewSidebarBackgroundBrush));
+        OnPropertyChanged(nameof(PreviewSidebarHeaderBrush));
+        OnPropertyChanged(nameof(PreviewSidebarHoverBrush));
+        OnPropertyChanged(nameof(PreviewSidebarTextBrush));
+        OnPropertyChanged(nameof(PreviewSidebarBorderBrush));
+        OnPropertyChanged(nameof(PreviewButtonAccentBrush));
+        OnPropertyChanged(nameof(PreviewButtonBackgroundBrush));
+        OnPropertyChanged(nameof(PreviewButtonTextBrush));
+        OnPropertyChanged(nameof(PreviewButtonBorderBrush));
+        OnPropertyChanged(nameof(PreviewBorderBrush));
+        OnPropertyChanged(nameof(PreviewSplitterBrush));
         OnPropertyChanged(nameof(PreviewTableBackgroundBrush));
-        OnPropertyChanged(nameof(PreviewTableMainRowBrush));
         OnPropertyChanged(nameof(PreviewTableMainRowBrush));
         OnPropertyChanged(nameof(PreviewTableAltRowBrush));
         OnPropertyChanged(nameof(PreviewTableCellTextBrush));
