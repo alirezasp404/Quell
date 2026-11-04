@@ -119,6 +119,10 @@ public class PanelCustomizationRecord
 
     // Legacy / Shared Table
     public string TableBackground { get; set; } = "Default";
+
+    // Terminal Multi-part
+    public string TerminalBackground { get; set; } = "Default";
+    public string TerminalForeground { get; set; } = "Default";
 }
 
 public class TableCustomizationRecord
@@ -1226,6 +1230,9 @@ public class DatabaseStorageService
             record.SplitterColor = await GetSettingAsync("SplitterColor", "Default");
             record.TableBackground = await GetSettingAsync("TableBackground", "Default");
 
+            record.TerminalBackground = await GetSettingAsync("TerminalBackground", "Default");
+            record.TerminalForeground = await GetSettingAsync("TerminalForeground", "Default");
+
             string fontSizeStr = await GetSettingAsync("EditorFontSize", "13");
             if (double.TryParse(fontSizeStr, System.Globalization.CultureInfo.InvariantCulture, out double fs))
             {
@@ -1262,6 +1269,8 @@ public class DatabaseStorageService
                 ["BorderColor"] = record.BorderColor,
                 ["SplitterColor"] = record.SplitterColor,
                 ["TableBackground"] = record.TableBackground,
+                ["TerminalBackground"] = record.TerminalBackground,
+                ["TerminalForeground"] = record.TerminalForeground,
                 ["EditorFontSize"] = record.EditorFontSize.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["EditorShowLineNumbers"] = record.EditorShowLineNumbers ? "true" : "false"
             };

@@ -6,6 +6,17 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Fdb.ViewModels;
 
+public partial class FooterTabItem : ObservableObject
+{
+    public string Name { get; set; } = string.Empty;
+    public string Icon { get; set; } = "Document";
+    public bool IsResults => string.Equals(Name, "Results", StringComparison.OrdinalIgnoreCase);
+    public bool IsTerminal => string.Equals(Name, "Terminal", StringComparison.OrdinalIgnoreCase);
+
+    [ObservableProperty]
+    private bool _isActive;
+}
+
 public partial class FooterViewModel : ViewModelBase
 {
     [ObservableProperty]
@@ -23,6 +34,50 @@ public partial class FooterViewModel : ViewModelBase
     public bool IsTerminalTabSelected => string.Equals(SelectedTab, "Terminal", StringComparison.OrdinalIgnoreCase);
 
     public ObservableCollection<string> Tabs { get; } = new();
+    public ObservableCollection<FooterTabItem> TabItems { get; } = new();
+
+    public FooterViewModel()
+    {
+        Tabs.CollectionChanged += (s, e) => SyncTabItems();
+        SyncTabItems();
+    }
+
+    partial void OnSelectedTabChanged(string value)
+    {
+        UpdateActiveStates();
+    }
+
+    private void SyncTabItems()
+    {
+        TabItems.Clear();
+        foreach (var tab in Tabs)
+        {
+            TabItems.Add(new FooterTabItem
+            {
+                Name = tab,
+                Icon = GetTabIcon(tab),
+                IsActive = string.Equals(tab, SelectedTab, StringComparison.OrdinalIgnoreCase)
+            });
+        }
+    }
+
+    private void UpdateActiveStates()
+    {
+        foreach (var item in TabItems)
+        {
+            item.IsActive = string.Equals(item.Name, SelectedTab, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    private static string GetTabIcon(string tabName)
+    {
+        return tabName.ToLowerInvariant() switch
+        {
+            "terminal" => "Play",
+            "results" => "Document",
+            _ => "Document"
+        };
+    }
 
     public event Action? TerminalTabActivated;
 

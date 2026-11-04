@@ -8,22 +8,22 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="300"
              x:Class="Fdb.Components.TerminalSessionView"
              x:DataType="vm:TerminalSessionViewModel"
-             Background="#12141A">
+             Background="{DynamicResource AppWorkspaceBrush}">
 
     <UserControl.Styles>
-        <!-- Modern Slim Dark Scrollbar for Terminal Control -->
+        <!-- Modern Slim Scrollbar for Terminal Control (Theme Synchronized) -->
         <Style Selector="ScrollBar:vertical">
             <Setter Property="Width" Value="8" />
             <Setter Property="MinWidth" Value="8" />
             <Setter Property="Background" Value="Transparent" />
         </Style>
         <Style Selector="ScrollBar:vertical /template/ Thumb">
-            <Setter Property="Background" Value="#334155" />
+            <Setter Property="Background" Value="{DynamicResource AppBorderDarkBrush}" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Opacity" Value="0.6" />
         </Style>
         <Style Selector="ScrollBar:vertical /template/ Thumb:pointerover">
-            <Setter Property="Background" Value="#64748B" />
+            <Setter Property="Background" Value="{DynamicResource AppTextMutedBrush}" />
             <Setter Property="Opacity" Value="0.9" />
         </Style>
         <Style Selector="ScrollBar:vertical /template/ RepeatButton">
@@ -35,7 +35,7 @@
             <Setter Property="Background" Value="Transparent" />
         </Style>
         <Style Selector="ScrollBar:horizontal /template/ Thumb">
-            <Setter Property="Background" Value="#334155" />
+            <Setter Property="Background" Value="{DynamicResource AppBorderDarkBrush}" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Opacity" Value="0.6" />
         </Style>
@@ -43,7 +43,7 @@
             <Setter Property="IsVisible" Value="False" />
         </Style>
 
-        <!-- Flat Terminal Icon Button (Dark, no white background) -->
+        <!-- Flat Terminal Icon Button (Theme Synchronized) -->
         <Style Selector="Button.terminal-icon-btn">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
@@ -57,26 +57,26 @@
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FocusAdorner" Value="{x:Null}"/>
         </Style>
         <Style Selector="Button.terminal-icon-btn:pointerover">
-            <Setter Property="Background" Value="#1C212B"/>
-            <Setter Property="BorderBrush" Value="#384252"/>
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
         </Style>
     </UserControl.Styles>
 
     <Grid RowDefinitions="*, Auto">
-        <!-- 1. Sleek Dark Terminal Canvas Container with Comfortable Padding -->
+        <!-- 1. Sleek Terminal Canvas Container with Comfortable Padding -->
         <Border Grid.Row="0"
-                Background="#12141A"
+                Background="{DynamicResource AppTerminalBackgroundBrush}"
                 Padding="10,8,8,6"
                 ClipToBounds="True">
             <Grid>
-                <!-- Live Terminal Control -->
+                <!-- Live Terminal Control (Theme Synchronized) -->
                 <terminal:TerminalControl x:Name="TermControl"
-                                          Background="#12141A"
-                                          Foreground="#E6EDF3"
-                                          SelectionBrush="#4038BDF8"
-                                          CursorColor="#38BDF8"
+                                          Background="{DynamicResource AppTerminalBackgroundBrush}"
+                                          Foreground="{DynamicResource AppTerminalForegroundBrush}"
+                                          SelectionBrush="{DynamicResource AppTerminalSelectionBrush}"
                                           FontFamily="Cascadia Code, Consolas, Courier New, monospace"
                                           FontSize="13"
                                           IsVisible="{Binding !HasCliError}"
@@ -85,8 +85,8 @@
 
                 <!-- Missing CLI Guidance Banner (when CLI tool is not in PATH) -->
                 <Border IsVisible="{Binding HasCliError}"
-                        Background="#181B22"
-                        BorderBrush="#30363D"
+                        Background="{DynamicResource AppCardBackgroundBrush}"
+                        BorderBrush="{DynamicResource AppBorderBrush}"
                         BorderThickness="1"
                         CornerRadius="8"
                         Margin="16"
@@ -100,14 +100,14 @@
                             <TextBlock Text="{Binding CliErrorTitle}"
                                        FontSize="16"
                                        FontWeight="SemiBold"
-                                       Foreground="#F0F6FC"
+                                       Foreground="{DynamicResource AppTextPrimaryBrush}"
                                        VerticalAlignment="Center" />
                         </StackPanel>
 
                         <TextBlock Text="{Binding CliErrorMessage}"
                                    TextWrapping="Wrap"
                                    FontSize="12"
-                                   Foreground="#94A3B8"
+                                   Foreground="{DynamicResource AppTextSecondaryBrush}"
                                    LineHeight="18" />
 
                         <!-- Action Buttons -->
@@ -152,8 +152,8 @@
 
         <!-- 2. Modern Slim Metadata & Status Breadcrumb Bar -->
         <Border Grid.Row="1"
-                Background="#0C0E13"
-                BorderBrush="#1C212B"
+                Background="{DynamicResource AppTerminalStatusBackgroundBrush}"
+                BorderBrush="{DynamicResource AppTerminalStatusBorderBrush}"
                 BorderThickness="0,1,0,0"
                 Padding="12,5"
                 MinHeight="28">
@@ -163,20 +163,20 @@
                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                         <Ellipse Width="6" Height="6" Fill="#10B981" VerticalAlignment="Center" IsVisible="{Binding IsRunning}" Margin="0,0,2,0" />
                         <Ellipse Width="6" Height="6" Fill="#EF4444" VerticalAlignment="Center" IsVisible="{Binding !IsRunning}" Margin="0,0,2,0" />
-                        <TextBlock Text="{Binding StatusText}" FontSize="10" FontWeight="Medium" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="{Binding StatusText}" FontSize="10" FontWeight="Medium" Foreground="{DynamicResource AppTextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,6,0" />
                     </StackPanel>
 
-                    <Border Background="#1C212B" BorderBrush="#2D3748" BorderThickness="1" CornerRadius="4" Padding="6,2">
-                        <TextBlock Text="{Binding ShellBadge}" FontSize="9" FontWeight="SemiBold" Foreground="#38BDF8" VerticalAlignment="Center" />
+                    <Border Background="{DynamicResource AppSurfaceMutedBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="6,2">
+                        <TextBlock Text="{Binding ShellBadge}" FontSize="9" FontWeight="SemiBold" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center" />
                     </Border>
                 </StackPanel>
 
                 <!-- Center: Working Directory with Copy button -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <ui:FASymbolIcon Symbol="Folder" FontSize="11" Foreground="#38BDF8" VerticalAlignment="Center" />
+                    <ui:FASymbolIcon Symbol="Folder" FontSize="11" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding WorkingDirectory}"
                                FontSize="10"
-                               Foreground="#CBD5E1"
+                               Foreground="{DynamicResource AppTextPrimaryBrush}"
                                VerticalAlignment="Center"
                                MaxWidth="450"
                                TextTrimming="CharacterEllipsis"
@@ -186,7 +186,7 @@
                             Command="{Binding CopyWorkingDirectoryCommand}"
                             ToolTip.Tip="Copy working directory to clipboard">
                         <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <ui:FASymbolIcon Symbol="Copy" FontSize="11" Foreground="#94A3B8" IsVisible="{Binding !IsCopied}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <ui:FASymbolIcon Symbol="Copy" FontSize="11" Foreground="{DynamicResource AppTextSecondaryBrush}" IsVisible="{Binding !IsCopied}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             <ui:FASymbolIcon Symbol="Checkmark" FontSize="11" Foreground="#10B981" IsVisible="{Binding IsCopied}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Panel>
                     </Button>
@@ -194,11 +194,11 @@
 
                 <!-- Right: Shortcut Tips -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <Border Background="#161820" BorderBrush="#252A36" BorderThickness="1" CornerRadius="3" Padding="6,2">
-                        <TextBlock Text="Ctrl+L: Clear" FontSize="9" Foreground="#64748B" />
+                    <Border Background="{DynamicResource AppSurfaceMutedBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="3" Padding="6,2">
+                        <TextBlock Text="Ctrl+L: Clear" FontSize="9" Foreground="{DynamicResource AppTextMutedBrush}" />
                     </Border>
-                    <Border Background="#161820" BorderBrush="#252A36" BorderThickness="1" CornerRadius="3" Padding="6,2">
-                        <TextBlock Text="Ctrl+Shift+Enter: Run Selection" FontSize="9" Foreground="#64748B" />
+                    <Border Background="{DynamicResource AppSurfaceMutedBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="3" Padding="6,2">
+                        <TextBlock Text="Ctrl+Shift+Enter: Run Selection" FontSize="9" Foreground="{DynamicResource AppTextMutedBrush}" />
                     </Border>
                 </StackPanel>
             </Grid>

@@ -125,6 +125,14 @@ public partial class SettingsModalViewModel : ObservableObject
     private string _splitterColor = "Default";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewTerminalBackgroundBrush))]
+    private string _terminalBackground = "Default";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewTerminalForegroundBrush))]
+    private string _terminalForeground = "Default";
+
+    [ObservableProperty]
     private double _editorFontSize = 13.0;
 
     [ObservableProperty]
@@ -178,7 +186,9 @@ public partial class SettingsModalViewModel : ObservableObject
         "Table: Alternating Row",
         "Table: Header Background",
         "Table: Grid Lines",
-        "Table: Cell Text"
+        "Table: Cell Text",
+        "Terminal: Background",
+        "Terminal: Text"
     };
 
     public IBrush ColorMakerPreviewBrush
@@ -213,6 +223,26 @@ public partial class SettingsModalViewModel : ObservableObject
             if (!string.IsNullOrWhiteSpace(EditorBackground) && !EditorBackground.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(EditorBackground, out var color))
                 return new SolidColorBrush(color);
             return IsDarkTheme ? new SolidColorBrush(Color.Parse("#0F172A")) : new SolidColorBrush(Color.Parse("#FFFFFF"));
+        }
+    }
+
+    public IBrush PreviewTerminalBackgroundBrush
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(TerminalBackground) && !TerminalBackground.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(TerminalBackground, out var color))
+                return new SolidColorBrush(color);
+            return IsDarkTheme ? new SolidColorBrush(Color.Parse("#0F172A")) : new SolidColorBrush(Color.Parse("#FFFFFF"));
+        }
+    }
+
+    public IBrush PreviewTerminalForegroundBrush
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(TerminalForeground) && !TerminalForeground.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(TerminalForeground, out var color))
+                return new SolidColorBrush(color);
+            return IsDarkTheme ? new SolidColorBrush(Color.Parse("#F8FAFC")) : new SolidColorBrush(Color.Parse("#0F172A"));
         }
     }
 
@@ -592,6 +622,8 @@ public partial class SettingsModalViewModel : ObservableObject
             SplitterColor = _initialPanelCustomization.SplitterColor;
             EditorFontSize = _initialPanelCustomization.EditorFontSize;
             EditorShowLineNumbers = _initialPanelCustomization.EditorShowLineNumbers;
+            TerminalBackground = _initialPanelCustomization.TerminalBackground;
+            TerminalForeground = _initialPanelCustomization.TerminalForeground;
 
             // 3. Load Table Customizations from SQLite
             _initialTableCustomization = await DatabaseStorageService.Instance.GetTableCustomizationAsync().ConfigureAwait(false);
@@ -726,6 +758,20 @@ public partial class SettingsModalViewModel : ObservableObject
     public void SelectEditorBackground(string hex)
     {
         EditorBackground = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewPanelCustomization();
+    }
+
+    [RelayCommand]
+    public void SelectTerminalBackground(string hex)
+    {
+        TerminalBackground = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewPanelCustomization();
+    }
+
+    [RelayCommand]
+    public void SelectTerminalForeground(string hex)
+    {
+        TerminalForeground = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
         LivePreviewPanelCustomization();
     }
 
@@ -936,6 +982,12 @@ public partial class SettingsModalViewModel : ObservableObject
                 TableGridLinesColor = hex;
                 LivePreviewTableCustomization();
                 break;
+            case "Terminal: Background":
+                TerminalBackground = hex;
+                break;
+            case "Terminal: Text":
+                TerminalForeground = hex;
+                break;
             case "Table: Cell Text":
                 TableCellTextColor = hex;
                 LivePreviewTableCustomization();
@@ -1101,6 +1153,8 @@ public partial class SettingsModalViewModel : ObservableObject
         ButtonBorderColor = "Default";
         BorderColor = "Default";
         SplitterColor = "Default";
+        TerminalBackground = "Default";
+        TerminalForeground = "Default";
         EditorFontSize = 13.0;
         EditorShowLineNumbers = true;
         LivePreviewPanelCustomization();
@@ -1124,6 +1178,8 @@ public partial class SettingsModalViewModel : ObservableObject
             BorderColor = BorderColor,
             SplitterColor = SplitterColor,
             TableBackground = TableBackground,
+            TerminalBackground = TerminalBackground,
+            TerminalForeground = TerminalForeground,
             EditorFontSize = EditorFontSize,
             EditorShowLineNumbers = EditorShowLineNumbers
         };
@@ -1131,6 +1187,8 @@ public partial class SettingsModalViewModel : ObservableObject
 
         OnPropertyChanged(nameof(PreviewEditorBackgroundBrush));
         OnPropertyChanged(nameof(PreviewEditorForegroundBrush));
+        OnPropertyChanged(nameof(PreviewTerminalBackgroundBrush));
+        OnPropertyChanged(nameof(PreviewTerminalForegroundBrush));
         OnPropertyChanged(nameof(PreviewSidebarBackgroundBrush));
         OnPropertyChanged(nameof(PreviewSidebarHeaderBrush));
         OnPropertyChanged(nameof(PreviewSidebarHoverBrush));
@@ -1537,6 +1595,8 @@ public partial class SettingsModalViewModel : ObservableObject
         OnPropertyChanged(nameof(CurrentKeywordBrush));
         OnPropertyChanged(nameof(PreviewEditorBackgroundBrush));
         OnPropertyChanged(nameof(PreviewEditorForegroundBrush));
+        OnPropertyChanged(nameof(PreviewTerminalBackgroundBrush));
+        OnPropertyChanged(nameof(PreviewTerminalForegroundBrush));
         OnPropertyChanged(nameof(PreviewSidebarBackgroundBrush));
         OnPropertyChanged(nameof(PreviewSidebarHeaderBrush));
         OnPropertyChanged(nameof(PreviewSidebarHoverBrush));
@@ -1599,6 +1659,8 @@ public partial class SettingsModalViewModel : ObservableObject
                 BorderColor = BorderColor,
                 SplitterColor = SplitterColor,
                 TableBackground = TableBackground,
+                TerminalBackground = TerminalBackground,
+                TerminalForeground = TerminalForeground,
                 EditorFontSize = EditorFontSize,
                 EditorShowLineNumbers = EditorShowLineNumbers
             };

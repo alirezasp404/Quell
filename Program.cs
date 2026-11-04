@@ -310,6 +310,8 @@ sealed class Program
 
             vm.SettingsModal.SelectEditorBackground("#1E293B");
             vm.SettingsModal.SelectEditorForeground("#34D399");
+            vm.SettingsModal.SelectTerminalBackground("#0C0E14");
+            vm.SettingsModal.SelectTerminalForeground("#38BDF8");
             vm.SettingsModal.SelectTableBackground("#1E293B");
             vm.SettingsModal.EditorFontSize = 15.0;
             vm.SettingsModal.EditorShowLineNumbers = true;
@@ -318,7 +320,7 @@ sealed class Program
 
             var savedCustom = await Fdb.Services.DatabaseStorageService.Instance.GetPanelCustomizationAsync();
             Console.WriteLine($"SQLite Saved Panel Customization: ButtonAccent={savedCustom.ButtonAccentColor}, BorderColor={savedCustom.BorderColor}, SidebarHeader={savedCustom.SidebarHeaderBackground}, EditorBg={savedCustom.EditorBackground}, FontSize={savedCustom.EditorFontSize}");
-            if (savedCustom.ButtonAccentColor != "#38BDF8" || savedCustom.BorderColor != "#334155" || savedCustom.SidebarHeaderBackground != "#1E293B" || savedCustom.EditorBackground != "#1E293B" || savedCustom.EditorFontSize != 15.0)
+            if (savedCustom.ButtonAccentColor != "#38BDF8" || savedCustom.BorderColor != "#334155" || savedCustom.SidebarHeaderBackground != "#1E293B" || savedCustom.EditorBackground != "#1E293B" || savedCustom.TerminalBackground != "#0C0E14" || savedCustom.TerminalForeground != "#38BDF8" || savedCustom.EditorFontSize != 15.0)
             {
                 throw new Exception("Expanded panel customization failed to persist to SQLite!");
             }
@@ -329,7 +331,7 @@ sealed class Program
             await vm.SettingsModal.SaveAsync();
             var resetCustom = await Fdb.Services.DatabaseStorageService.Instance.GetPanelCustomizationAsync();
             Console.WriteLine($"SQLite Restored Panel Customization: ButtonAccent={resetCustom.ButtonAccentColor}, BorderColor={resetCustom.BorderColor}, EditorBg={resetCustom.EditorBackground}, FontSize={resetCustom.EditorFontSize}");
-            if (resetCustom.ButtonAccentColor != "Default" || resetCustom.BorderColor != "Default" || resetCustom.EditorBackground != "Default" || resetCustom.EditorFontSize != 13.0)
+            if (resetCustom.ButtonAccentColor != "Default" || resetCustom.BorderColor != "Default" || resetCustom.EditorBackground != "Default" || resetCustom.TerminalBackground != "Default" || resetCustom.TerminalForeground != "Default" || resetCustom.EditorFontSize != 13.0)
             {
                 throw new Exception("Reset panel customization failed!");
             }
@@ -403,6 +405,8 @@ sealed class Program
             vm.SettingsModal.SetTableHeaderHeight(30.0);
             vm.SettingsModal.SetTableGutterWidth(64.0);
             vm.SettingsModal.SetTableCellFontSize(12.0);
+            vm.SettingsModal.SelectTerminalBackground("#0C0E14");
+            vm.SettingsModal.SelectTerminalForeground("#38BDF8");
             vm.SettingsModal.SelectTableBackground("#1E293B");
             vm.SettingsModal.SelectTableAlternatingRowColor("#141E2E");
             vm.SettingsModal.SelectTableCellTextColor("#F8FAFC");
@@ -1573,6 +1577,24 @@ sealed class Program
                 throw new Exception($"Footer tabs missing Results or Terminal! Found: {string.Join(", ", vm.Footer.Tabs)}");
             }
             Console.WriteLine("[Success] Terminal ViewModel and Footer Tabs verified!");
+
+            // Verify Footer TabItems and active states synchronization
+            if (vm.Footer.TabItems.Count != vm.Footer.Tabs.Count)
+                throw new Exception($"Footer TabItems count mismatch: expected {vm.Footer.Tabs.Count}, got {vm.Footer.TabItems.Count}");
+
+            vm.Footer.SelectTabCommand.Execute("Results");
+            var resultsTab = vm.Footer.TabItems.FirstOrDefault(t => t.Name == "Results");
+            var terminalTab = vm.Footer.TabItems.FirstOrDefault(t => t.Name == "Terminal");
+            if (resultsTab == null || !resultsTab.IsActive || !resultsTab.IsResults)
+                throw new Exception("Results TabItem active state verification failed!");
+            if (terminalTab == null || terminalTab.IsActive || !terminalTab.IsTerminal)
+                throw new Exception("Terminal TabItem inactive state verification failed!");
+
+            vm.Footer.SelectTabCommand.Execute("Terminal");
+            if (!terminalTab.IsActive || resultsTab.IsActive)
+                throw new Exception("Switching active footer tab to Terminal failed!");
+
+            Console.WriteLine("[Success] Footer TabItems and Theme-Synchronized Tab Switching verified!");
 
             // 2. Shell Profiles Detection
             var shells = Fdb.Services.Terminal.ShellDetectorService.Instance.GetAvailableShells();

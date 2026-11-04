@@ -245,6 +245,10 @@ public class ThemeService
 
         // 4. Table Alternating Background
         SetOrRemoveBrushOverride("AppTableAltColBackgroundBrush", custom.TableBackground);
+
+        // 5. Terminal Multi-part Customization
+        SetOrRemoveBrushOverride("AppTerminalBackgroundBrush", custom.TerminalBackground);
+        SetOrRemoveBrushOverride("AppTerminalForegroundBrush", custom.TerminalForeground);
     }
 
     public void ApplyTableCustomization(TableCustomizationRecord custom)

@@ -190,6 +190,11 @@ Add an assertion in `VerifyLayoutAndPanelsAsync()` verifying that the property p
 | `AppTableGridLinesHorizontalBrush`| `#CBD5E1`| `#334155` | `GridLinesColor` | Horizontal data grid lines |
 | `AppTableGridLinesVerticalBrush` | `#E2E8F0` | `#334155` | `GridLinesColor` | Vertical data grid lines |
 | `AppTableSelectedBackgroundBrush`| `#DBEAFE` | `#1E3A5F` | `SelectionColor` | Selected row / cell highlight |
+| `AppTerminalBackgroundBrush` | `#FFFFFF` | `#0F172A` | `TerminalBackground` | Integrated Terminal emulator background |
+| `AppTerminalForegroundBrush` | `#0F172A` | `#F8FAFC` | `TerminalForeground` | Integrated Terminal output text |
+| `AppTerminalToolbarBackgroundBrush`| `#F8FAFC` | `#1E293B` | Derived from Theme / `AppSurfaceBrush` | Terminal session bar background |
+| `AppTerminalToolbarBorderBrush`| `#E2E8F0` | `#334155` | Derived from Theme / `AppBorderBrush` | Terminal session bar border |
+| `AppTerminalStatusBackgroundBrush`| `#F8FAFC` | `#0B0F17` | Derived from Theme / `AppSurfaceBrush` | Terminal bottom status breadcrumb bar |
 
 ---
 

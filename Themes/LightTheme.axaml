@@ -63,6 +63,20 @@
     <SolidColorBrush x:Key="AppModalOverlayBrush" Color="#66000000" />
     <SolidColorBrush x:Key="AppCardBackgroundBrush" Color="#FFFFFF" />
 
+    <!-- Terminal Component Semantic Brushes -->
+    <SolidColorBrush x:Key="AppTerminalBackgroundBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="AppTerminalForegroundBrush" Color="#0F172A" />
+    <SolidColorBrush x:Key="AppTerminalToolbarBackgroundBrush" Color="#F8FAFC" />
+    <SolidColorBrush x:Key="AppTerminalToolbarBorderBrush" Color="#E2E8F0" />
+    <SolidColorBrush x:Key="AppTerminalTabBackgroundBrush" Color="#F1F5F9" />
+    <SolidColorBrush x:Key="AppTerminalTabActiveBackgroundBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="AppTerminalTabBorderBrush" Color="#CBD5E1" />
+    <SolidColorBrush x:Key="AppTerminalTabActiveBorderBrush" Color="#2563EB" />
+    <SolidColorBrush x:Key="AppTerminalSelectionBrush" Color="#302563EB" />
+    <SolidColorBrush x:Key="AppTerminalCursorBrush" Color="#2563EB" />
+    <SolidColorBrush x:Key="AppTerminalStatusBackgroundBrush" Color="#F8FAFC" />
+    <SolidColorBrush x:Key="AppTerminalStatusBorderBrush" Color="#E2E8F0" />
+
     <!-- Table Component Semantic Brushes (QueryResultTable & SchemaPropertiesTable) -->
     <SolidColorBrush x:Key="AppTableGutterBackgroundBrush" Color="#F1F5F9" />
     <SolidColorBrush x:Key="AppTableGutterForegroundBrush" Color="#0F172A" />

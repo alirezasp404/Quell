@@ -4,10 +4,74 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Fdb.ViewModels"
              xmlns:components="using:Fdb.Components"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="180"
              x:Class="Fdb.Components.FooterComponent"
              x:DataType="vm:FooterViewModel"
              IsVisible="{Binding IsVisible}">
+
+    <UserControl.Styles>
+        <!-- Modern Theme-Synchronized Footer Tab Button Styling -->
+        <Style Selector="Button.footer-tab-btn">
+            <Setter Property="Background" Value="{DynamicResource AppTabInactiveBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1,1,1,0"/>
+            <Setter Property="CornerRadius" Value="4,4,0,0"/>
+            <Setter Property="Padding" Value="12,4"/>
+            <Setter Property="Margin" Value="0,0,3,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusAdorner" Value="{x:Null}"/>
+        </Style>
+        <Style Selector="Button.footer-tab-btn:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppTabHoverBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderDarkBrush}"/>
+        </Style>
+        <Style Selector="Button.footer-tab-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppTabHoverBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderDarkBrush}"/>
+        </Style>
+        <Style Selector="Button.footer-tab-btn.active">
+            <Setter Property="Background" Value="{DynamicResource AppTabActiveBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+        </Style>
+        <Style Selector="Button.footer-tab-btn.active /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppTabActiveBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+        </Style>
+
+        <!-- Dynamic Typography & Icons for Active vs Inactive Tab -->
+        <Style Selector="Button.footer-tab-btn.active TextBlock.tab-title">
+            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Button.footer-tab-btn:not(.active) TextBlock.tab-title">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+        </Style>
+        <Style Selector="Button.footer-tab-btn:not(.active):pointerover TextBlock.tab-title">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+        </Style>
+
+        <Style Selector="Button.footer-tab-btn.active ui|FASymbolIcon.tab-icon">
+            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
+        </Style>
+        <Style Selector="Button.footer-tab-btn:not(.active) ui|FASymbolIcon.tab-icon">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextMutedBrush}"/>
+        </Style>
+        <Style Selector="Button.footer-tab-btn:not(.active):pointerover ui|FASymbolIcon.tab-icon">
+            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
+        </Style>
+
+        <Style Selector="Button.footer-tab-btn.active PathIcon.tab-icon">
+            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
+        </Style>
+        <Style Selector="Button.footer-tab-btn:not(.active) PathIcon.tab-icon">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextMutedBrush}"/>
+        </Style>
+        <Style Selector="Button.footer-tab-btn:not(.active):pointerover PathIcon.tab-icon">
+            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
+        </Style>
+    </UserControl.Styles>
 
     <!-- Reusable Output & Results Panel Component with Auto-Expanding Tabs -->
     <Border Background="{DynamicResource AppSurfaceBrush}" 
@@ -20,42 +84,86 @@
                                                   Title="OUTPUT &amp; RESULTS" 
                                                   CloseCommand="{Binding ClosePanelCommand}" />
 
-            <!-- 2. Left-Aligned Tabs Bar with Right-Click ContextMenu -->
+            <!-- 2. Left-Aligned Theme-Synchronized Tabs Bar with Right-Click ContextMenu -->
             <Border Grid.Row="1" 
                     Background="{DynamicResource AppSurfaceBrush}" 
                     BorderBrush="{DynamicResource AppBorderBrush}" 
                     BorderThickness="0,0,0,1" 
                     Padding="6,3,6,0"
                     IsVisible="{Binding Tabs.Count}">
-                <ItemsControl ItemsSource="{Binding Tabs}">
+                <ItemsControl ItemsSource="{Binding TabItems}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <StackPanel Orientation="Horizontal" Spacing="4" />
+                            <StackPanel Orientation="Horizontal" Spacing="2" />
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Button Classes="classic-tab-btn" 
-                                    Content="{Binding}" 
-                                    Padding="16,4"
-                                    MinWidth="80"
+                        <DataTemplate DataType="vm:FooterTabItem">
+                            <Button Classes="footer-tab-btn" 
+                                    Classes.active="{Binding IsActive}"
                                     Command="{Binding $parent[UserControl].((vm:FooterViewModel)DataContext).SelectTabCommand}"
-                                    CommandParameter="{Binding}"
+                                    CommandParameter="{Binding Name}"
                                     HorizontalContentAlignment="Center">
                                 <!-- Right-Click ContextMenu -->
                                 <Button.ContextMenu>
                                     <ContextMenu>
                                         <MenuItem Header="Close Tab" 
                                                   Command="{Binding $parent[UserControl].((vm:FooterViewModel)DataContext).CloseTabCommand}" 
-                                                  CommandParameter="{Binding}" />
+                                                  CommandParameter="{Binding Name}" />
                                         <MenuItem Header="Close Other Tabs" 
                                                   Command="{Binding $parent[UserControl].((vm:FooterViewModel)DataContext).CloseOtherTabsCommand}" 
-                                                  CommandParameter="{Binding}" />
+                                                  CommandParameter="{Binding Name}" />
                                         <Separator />
                                         <MenuItem Header="Close Footer Panel" 
                                                   Command="{Binding $parent[UserControl].((vm:FooterViewModel)DataContext).ClosePanelCommand}" />
                                     </ContextMenu>
                                 </Button.ContextMenu>
+
+                                <Grid RowDefinitions="Auto, *">
+                                    <!-- Dynamic Accent Indicator Strip at Top of Active Tab -->
+                                    <Border Grid.Row="0" 
+                                            Height="2" 
+                                            Background="{DynamicResource AppAccentBrush}" 
+                                            IsVisible="{Binding IsActive}" 
+                                            HorizontalAlignment="Stretch"
+                                            Margin="0,-4,0,3"/>
+
+                                    <!-- Tab Content Body (Icon + Title + Close) -->
+                                    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                        <!-- Icon: Results Table Grid -->
+                                        <PathIcon Classes="tab-icon"
+                                                  Data="M3 3h18v18H3V3zm2 2v4h6V5H5zm8 0v4h6V5h-6zM5 11v4h6v-4H5zm8 0v4h6v-4h-6zM5 17v2h6v-2H5zm8 0v2h6v-2h-6z"
+                                                  Width="11" Height="11"
+                                                  VerticalAlignment="Center"
+                                                  IsVisible="{Binding IsResults}"/>
+
+                                        <!-- Icon: Terminal Console -->
+                                        <ui:FASymbolIcon Classes="tab-icon"
+                                                         Symbol="Play"
+                                                         FontSize="10"
+                                                         VerticalAlignment="Center"
+                                                         IsVisible="{Binding IsTerminal}"/>
+
+                                        <!-- Tab Title -->
+                                        <TextBlock Classes="tab-title"
+                                                   Text="{Binding Name}" 
+                                                   FontSize="11" 
+                                                   VerticalAlignment="Center"
+                                                   HorizontalAlignment="Left"/>
+
+                                        <!-- Close Button on Tab -->
+                                        <Button Command="{Binding $parent[UserControl].((vm:FooterViewModel)DataContext).CloseTabCommand}"
+                                                CommandParameter="{Binding Name}"
+                                                Classes="classic-menu-btn" 
+                                                Padding="3,1" 
+                                                MinHeight="14"
+                                                MinWidth="14"
+                                                Margin="4,0,0,0"
+                                                ToolTip.Tip="Close tab">
+                                            <ui:FASymbolIcon Symbol="Dismiss" FontSize="7"/>
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
                             </Button>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
