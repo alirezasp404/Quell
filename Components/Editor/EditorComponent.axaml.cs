@@ -145,8 +145,28 @@ public partial class EditorComponent : UserControl
         }
     }
 
+    public void OnRunInTerminalClicked(object? sender, RoutedEventArgs e)
+    {
+        var textToSend = !string.IsNullOrWhiteSpace(CodeEditor.SelectedText)
+            ? CodeEditor.SelectedText
+            : CodeEditor.Text;
+
+        if (string.IsNullOrWhiteSpace(textToSend)) return;
+
+        var mainVm = (VisualRoot as Window)?.DataContext as MainViewModel;
+        mainVm?.RunSelectionInTerminalCommand.Execute(textToSend);
+    }
+
     private void OnTunnelKeyDown(object? sender, KeyEventArgs e)
     {
+        // 0. Run in Terminal shortcut (Ctrl+Shift+Enter)
+        if (e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.Enter)
+        {
+            e.Handled = true;
+            OnRunInTerminalClicked(this, new RoutedEventArgs());
+            return;
+        }
+
         // 1. First priority: Handle Zoom shortcuts (Ctrl++, Ctrl+-, Ctrl+0)
         if (HandleZoomKeys(e)) return;
 

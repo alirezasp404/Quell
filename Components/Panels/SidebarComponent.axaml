@@ -279,6 +279,12 @@
                                                             <ui:FASymbolIcon Symbol="Refresh" FontSize="11" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
                                                         </MenuItem.Icon>
                                                     </MenuItem>
+                                                    <MenuItem Header="Open in Terminal (CLI)" 
+                                                              Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).LaunchCliInTerminalCommand}">
+                                                        <MenuItem.Icon>
+                                                            <ui:FASymbolIcon Symbol="Play" FontSize="11" Foreground="{DynamicResource AppAccentBrush}"/>
+                                                        </MenuItem.Icon>
+                                                    </MenuItem>
                                                     <Separator />
                                                     <MenuItem Header="Delete Connection" 
                                                               Command="{Binding DeleteCommand}">
@@ -678,6 +684,13 @@
                                                               CommandParameter="{Binding}">
                                                         <MenuItem.Icon>
                                                             <ui:FASymbolIcon Symbol="Settings" FontSize="11" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                                                        </MenuItem.Icon>
+                                                    </MenuItem>
+                                                    <Separator />
+                                                    <MenuItem Header="Open in Terminal (CLI)" 
+                                                              Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).LaunchCliInTerminalCommand}">
+                                                        <MenuItem.Icon>
+                                                            <ui:FASymbolIcon Symbol="Play" FontSize="11" Foreground="{DynamicResource AppAccentBrush}"/>
                                                         </MenuItem.Icon>
                                                     </MenuItem>
                                                     <Separator />

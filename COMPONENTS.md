@@ -38,13 +38,18 @@ Components/
 │   └── SettingsModalComponent.axaml            # Composed preferences dialog (Theme + Syntax Colors)
 │
 ├── Settings Sub-Components:
-│   ├── SettingsCategoriesNavComponent.axaml    # Reusable categories navigation sidebar for settings (Appearance, Results Table, Customization, Shortcuts)
+│   ├── SettingsCategoriesNavComponent.axaml    # Reusable categories navigation sidebar for settings (Appearance, Results Table, Customization, Shortcuts, Terminal)
 │   ├── ThemeSelectionCardsComponent.axaml      # Reusable Light, Dark, and System theme selection cards
 │   ├── SyntaxColorSelectorComponent.axaml      # Reusable 6-preset SQL syntax keyword color palette
 │   ├── LiveSyntaxPreviewComponent.axaml        # Reusable live code snippet preview with dynamic syntax highlighting
 │   ├── TableCustomizationComponent.axaml       # Dedicated Query Results Table row height, font size, gutter, colors, and live preview
 │   ├── PanelCustomizationComponent.axaml       # Custom Color Maker (RGB/Hex), Buttons, Global Borders, Sidebar multi-part, Editor, and Quick Bundles with live layout preview
-│   └── ShortcutsSettingsComponent.axaml        # Dynamic keyboard shortcuts manager with SQLite persistence and key capture
+│   ├── ShortcutsSettingsComponent.axaml        # Dynamic keyboard shortcuts manager with SQLite persistence and key capture
+│   └── TerminalSettingsComponent.axaml         # Terminal emulator shell, typography, and database CLI binary overrides
+│
+├── Terminal & Command Line:
+│   ├── TerminalComponent.axaml                 # Multi-session tabbed PTY terminal with shell dropdown & CLI launcher
+│   └── TerminalSessionView.axaml               # Interactive terminal control host with missing CLI detection banner
 │
 ├── Themes & Design System Components:
 │   ├── Themes/ThemeTokens.axaml                # Componentized shared design metrics & typography

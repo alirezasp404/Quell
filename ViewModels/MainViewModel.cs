@@ -25,6 +25,9 @@ public partial class MainViewModel : ViewModelBase
     private FooterViewModel _footer;
 
     [ObservableProperty]
+    private TerminalViewModel _terminal;
+
+    [ObservableProperty]
     private ConnectDatabaseModalViewModel _connectModal;
 
     [ObservableProperty]
@@ -53,12 +56,21 @@ public partial class MainViewModel : ViewModelBase
         _sidebar = new SidebarViewModel();
         _editor = new EditorViewModel();
         _footer = new FooterViewModel();
+        _terminal = new TerminalViewModel();
         _connectModal = new ConnectDatabaseModalViewModel();
         _confirmModal = new ConfirmActionModalViewModel();
         _exportModal = new ExportDataModalViewModel();
         _settingsModal = new SettingsModalViewModel();
         _sampleQueryResult = new QueryResultTableViewModel();
         _sampleSchema = new SchemaPropertiesTableViewModel();
+
+        _footer.TerminalTabActivated += () =>
+        {
+            if (_terminal.Sessions.Count == 0)
+            {
+                _terminal.NewSession();
+            }
+        };
 
         _sampleQueryResult.EditCellModal.ExecuteQueryDetailedCallback = async sql =>
         {
@@ -168,6 +180,7 @@ public partial class MainViewModel : ViewModelBase
         DatabaseSessionService.Instance.ConnectionChanged += () =>
         {
             Navbar.UpdateConnectionStatus();
+            Terminal.UpdateConnectionContext(DatabaseSessionService.Instance.ActiveConfig);
             _ = RefreshAvailableDatabasesAsync();
         };
 
@@ -345,7 +358,7 @@ public partial class MainViewModel : ViewModelBase
                 },
                 "0 ms");
             SampleQueryResult.TargetDatabaseName = "(No Connection)";
-            ShowFooter();
+            ShowQueryResultFooter();
             return;
         }
 
@@ -382,7 +395,7 @@ public partial class MainViewModel : ViewModelBase
                     },
                     "0 ms");
                 SampleQueryResult.TargetDatabaseName = targetDbName;
-                ShowFooter();
+                ShowQueryResultFooter();
                 return;
             }
         }
@@ -461,7 +474,7 @@ public partial class MainViewModel : ViewModelBase
             query, execTime, rowCount, status);
 
         _ = Sidebar.RefreshAsync();
-        ShowFooter();
+        ShowQueryResultFooter();
     }
 
     public async Task NavigateToForeignKeyTableAsync(string targetTable, string targetColumn, string? cellValue, string? sourceColumn)
@@ -540,7 +553,7 @@ public partial class MainViewModel : ViewModelBase
                     catch { }
                 });
 
-                ShowFooter();
+                ShowQueryResultFooter();
                 return;
             }
         }
@@ -550,7 +563,7 @@ public partial class MainViewModel : ViewModelBase
         string matchedInfo = SampleQueryResult.SelectedRow != null ? $" (User: {SampleQueryResult.SelectedRow.Name})" : "";
         SampleQueryResult.LastQueryMessage = $"Navigated to {targetTable} via FK [{sourceColumn} -> {targetTable}]{matchedInfo} ({SampleQueryResult.TotalRows} rows)";
         SampleQueryResult.HasLastQueryMessage = true;
-        ShowFooter();
+        ShowQueryResultFooter();
     }
 
     public async Task RefreshQueryResultAsync()
@@ -693,15 +706,95 @@ public partial class MainViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    public void ToggleTerminal()
+    {
+        if (!Footer.IsVisible)
+        {
+            Footer.IsVisible = true;
+
+            if (!Footer.Tabs.Contains("Terminal"))
+            {
+                Footer.Tabs.Add("Terminal");
+            }
+            Footer.SelectedTab = "Terminal";
+            if (Terminal.Sessions.Count == 0)
+            {
+                Terminal.NewSession();
+            }
+        }
+        else if (Footer.SelectedTab == "Terminal")
+        {
+            Footer.IsVisible = false;
+        }
+        else
+        {
+            if (!Footer.Tabs.Contains("Terminal"))
+            {
+                Footer.Tabs.Add("Terminal");
+            }
+            Footer.SelectedTab = "Terminal";
+            if (Terminal.Sessions.Count == 0)
+            {
+                Terminal.NewSession();
+            }
+        }
+    }
+
+    [RelayCommand]
+    public void RunSelectionInTerminal(string? queryText = null)
+    {
+        var textToSend = queryText;
+        if (string.IsNullOrWhiteSpace(textToSend))
+        {
+            textToSend = Editor.SelectedTab?.Text;
+        }
+        if (string.IsNullOrWhiteSpace(textToSend)) return;
+
+        Footer.IsVisible = true;
+
+        if (!Footer.Tabs.Contains("Terminal"))
+        {
+            Footer.Tabs.Add("Terminal");
+        }
+        Footer.SelectedTab = "Terminal";
+
+        Terminal.SendTextToActiveTerminal(textToSend);
+    }
+
+    [RelayCommand]
+    public void LaunchCliInTerminal(Fdb.Services.DatabaseProviders.DatabaseConnectionConfig? config = null)
+    {
+        Footer.IsVisible = true;
+
+        if (!Footer.Tabs.Contains("Terminal"))
+        {
+            Footer.Tabs.Add("Terminal");
+        }
+        Footer.SelectedTab = "Terminal";
+        Terminal.LaunchDatabaseCli(config ?? Fdb.Services.DatabaseProviders.DatabaseSessionService.Instance.ActiveConfig);
+    }
+
+    [RelayCommand]
     public void ShowFooter()
     {
         Footer.IsVisible = true;
+    }
+
+    public void ShowQueryResultFooter()
+    {
+        Footer.IsVisible = true;
+        if (!Footer.Tabs.Contains("Results"))
+        {
+            Footer.Tabs.Insert(0, "Results");
+        }
+        Footer.SelectedTab = "Results";
     }
 
     [RelayCommand]
     public void RestoreFooterTab(string tabName)
     {
         Footer.IsVisible = true;
+
         if (!Footer.Tabs.Contains(tabName))
         {
             Footer.Tabs.Add(tabName);
@@ -733,6 +826,7 @@ public partial class MainViewModel : ViewModelBase
 
         // Restore Footer
         Footer.IsVisible = true;
+
         ResetFooterTabs();
 
         // Restore Editor
@@ -746,6 +840,7 @@ public partial class MainViewModel : ViewModelBase
     {
         Footer.Tabs.Clear();
         Footer.Tabs.Add("Results");
+        Footer.Tabs.Add("Terminal");
         Footer.SelectedTab = "Results";
     }
 
@@ -772,3 +867,4 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 }
+

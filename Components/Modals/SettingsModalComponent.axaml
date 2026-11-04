@@ -104,8 +104,12 @@
                                                                    IsVisible="{Binding IsShortcutsCategory}" />
 
                             <!-- Category 5: Performance & GPU -->
-                            <components:PerformanceSettingsComponent DataContext="{Binding}" 
+                            <components:PerformanceSettingsComponent DataContext="{Binding}"
                                                                      IsVisible="{Binding IsPerformanceCategory}" />
+
+                            <!-- Category 6: Integrated Terminal -->
+                            <components:TerminalSettingsComponent DataContext="{Binding}"
+                                                                  IsVisible="{Binding IsTerminalCategory}" />
                         </Panel>
                     </ScrollViewer>
                 </Grid>

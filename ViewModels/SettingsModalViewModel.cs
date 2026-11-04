@@ -21,6 +21,7 @@ public partial class SettingsModalViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsCustomizationCategory))]
     [NotifyPropertyChangedFor(nameof(IsShortcutsCategory))]
     [NotifyPropertyChangedFor(nameof(IsPerformanceCategory))]
+    [NotifyPropertyChangedFor(nameof(IsTerminalCategory))]
     private string _selectedCategory = "Appearance";
 
     public bool IsAppearanceCategory => string.Equals(SelectedCategory, "Appearance", StringComparison.OrdinalIgnoreCase);
@@ -28,6 +29,7 @@ public partial class SettingsModalViewModel : ObservableObject
     public bool IsCustomizationCategory => string.Equals(SelectedCategory, "Customization", StringComparison.OrdinalIgnoreCase);
     public bool IsShortcutsCategory => string.Equals(SelectedCategory, "Shortcuts", StringComparison.OrdinalIgnoreCase);
     public bool IsPerformanceCategory => string.Equals(SelectedCategory, "Performance", StringComparison.OrdinalIgnoreCase);
+    public bool IsTerminalCategory => string.Equals(SelectedCategory, "Terminal", StringComparison.OrdinalIgnoreCase);
 
     #region Appearance & Theme Properties
 
@@ -512,6 +514,42 @@ public partial class SettingsModalViewModel : ObservableObject
 
     #endregion
 
+    #region Terminal Settings Properties
+
+    [ObservableProperty]
+    private string _terminalDefaultShell = "default";
+
+    [ObservableProperty]
+    private string _terminalFontFamily = "Cascadia Code, Consolas, Courier New, monospace";
+
+    [ObservableProperty]
+    private double _terminalFontSize = 13.0;
+
+    [ObservableProperty]
+    private string _terminalCursorStyle = "Block";
+
+    [ObservableProperty]
+    private bool _terminalCursorBlink = true;
+
+    [ObservableProperty]
+    private int _terminalMaxScrollback = 5000;
+
+    [ObservableProperty]
+    private string _terminalPsqlPath = string.Empty;
+
+    [ObservableProperty]
+    private string _terminalMySqlPath = string.Empty;
+
+    [ObservableProperty]
+    private string _terminalSqlitePath = string.Empty;
+
+    [ObservableProperty]
+    private string _terminalSqlCmdPath = string.Empty;
+
+    public System.Collections.ObjectModel.ObservableCollection<Fdb.Models.ShellProfile> AvailableTerminalShells { get; } = new();
+
+    #endregion
+
     public SettingsModalViewModel()
     {
         _selectedTheme = ThemeService.Instance.CurrentTheme;
@@ -586,6 +624,24 @@ public partial class SettingsModalViewModel : ObservableObject
             VramCacheMb = HardwareGraphicsService.Instance.VramCacheMb;
             OnPropertyChanged(nameof(EffectiveModeDescription));
             OnPropertyChanged(nameof(RequiresGraphicsRestart));
+            // 5. Load Terminal Settings from SQLite
+            var termSettings = await Fdb.Services.Terminal.TerminalSettingsService.Instance.LoadSettingsAsync().ConfigureAwait(false);
+            TerminalDefaultShell = termSettings.DefaultShellId;
+            TerminalFontFamily = termSettings.FontFamily;
+            TerminalFontSize = termSettings.FontSize;
+            TerminalCursorStyle = termSettings.CursorStyle;
+            TerminalCursorBlink = termSettings.CursorBlink;
+            TerminalMaxScrollback = termSettings.MaxScrollback;
+            TerminalPsqlPath = termSettings.PsqlPath;
+            TerminalMySqlPath = termSettings.MySqlPath;
+            TerminalSqlitePath = termSettings.SqlitePath;
+            TerminalSqlCmdPath = termSettings.SqlCmdPath;
+
+            AvailableTerminalShells.Clear();
+            foreach (var sh in Fdb.Services.Terminal.ShellDetectorService.Instance.GetAvailableShells())
+            {
+                AvailableTerminalShells.Add(sh);
+            }
         }
         catch (Exception ex)
         {
@@ -1581,6 +1637,21 @@ public partial class SettingsModalViewModel : ObservableObject
             HardwareGraphicsService.Instance.RenderingMode = SelectedRenderingMode;
             _initialRenderingMode = SelectedRenderingMode;
             OnPropertyChanged(nameof(RequiresGraphicsRestart));
+            // 5. Save Terminal Settings to SQLite
+            var termSettingsToSave = new Fdb.Models.TerminalSettingsModel
+            {
+                DefaultShellId = TerminalDefaultShell,
+                FontFamily = TerminalFontFamily,
+                FontSize = TerminalFontSize,
+                CursorStyle = TerminalCursorStyle,
+                CursorBlink = TerminalCursorBlink,
+                MaxScrollback = TerminalMaxScrollback,
+                PsqlPath = TerminalPsqlPath,
+                MySqlPath = TerminalMySqlPath,
+                SqlitePath = TerminalSqlitePath,
+                SqlCmdPath = TerminalSqlCmdPath
+            };
+            await Fdb.Services.Terminal.TerminalSettingsService.Instance.SaveSettingsAsync(termSettingsToSave).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

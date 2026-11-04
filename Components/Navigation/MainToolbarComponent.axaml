@@ -63,6 +63,18 @@
                     <TextBlock Text="Disconnect" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
+
+            <!-- Separator -->
+            <Border Width="1" Height="16" Background="{DynamicResource AppBorderBrush}" Margin="4,0"/>
+
+            <Button Classes="classic-tool-btn"
+                    Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ToggleTerminalCommand}"
+                    ToolTip.Tip="Toggle Integrated Terminal (Ctrl+`)">
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                    <ui:FASymbolIcon Symbol="Play" FontSize="11" VerticalAlignment="Center"/>
+                    <TextBlock Text="Terminal" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
         </StackPanel>
     </Border>
 </UserControl>
