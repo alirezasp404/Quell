@@ -20,26 +20,27 @@
                                                   Title="OUTPUT &amp; RESULTS" 
                                                   CloseCommand="{Binding ClosePanelCommand}" />
 
-            <!-- 2. Auto-Expanding Tabs Bar with Right-Click ContextMenu -->
+            <!-- 2. Left-Aligned Tabs Bar with Right-Click ContextMenu -->
             <Border Grid.Row="1" 
                     Background="{DynamicResource AppSurfaceBrush}" 
                     BorderBrush="{DynamicResource AppBorderBrush}" 
                     BorderThickness="0,0,0,1" 
-                    Padding="4,2,4,0"
+                    Padding="6,3,6,0"
                     IsVisible="{Binding Tabs.Count}">
                 <ItemsControl ItemsSource="{Binding Tabs}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <UniformGrid Rows="1" />
+                            <StackPanel Orientation="Horizontal" Spacing="4" />
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Button Classes="classic-tab-btn" 
                                     Content="{Binding}" 
+                                    Padding="16,4"
+                                    MinWidth="80"
                                     Command="{Binding $parent[UserControl].((vm:FooterViewModel)DataContext).SelectTabCommand}"
                                     CommandParameter="{Binding}"
-                                    HorizontalAlignment="Stretch"
                                     HorizontalContentAlignment="Center">
                                 <!-- Right-Click ContextMenu -->
                                 <Button.ContextMenu>
@@ -61,7 +62,7 @@
                 </ItemsControl>
             </Border>
 
-            <!-- 3. Inset Content Container (Results Grid / Query Execution Logs) -->
+            <!-- 3. Inset Content Container (Results Grid / Terminal Workspace) -->
             <Border Grid.Row="2" 
                     Background="{DynamicResource AppWorkspaceBrush}" 
                     BorderBrush="{DynamicResource AppBorderBrush}" 
@@ -69,7 +70,17 @@
                     CornerRadius="4"
                     Margin="6"
                     ClipToBounds="True">
-                <components:QueryResultTableComponent DataContext="{Binding $parent[Window].((vm:MainViewModel)DataContext).SampleQueryResult}" />
+                <Grid>
+                    <!-- 3a. Results Table View -->
+                    <Border IsVisible="{Binding IsResultsTabSelected}">
+                        <components:QueryResultTableComponent DataContext="{Binding $parent[Window].((vm:MainViewModel)DataContext).SampleQueryResult}" />
+                    </Border>
+
+                    <!-- 3b. Integrated Terminal View -->
+                    <Border IsVisible="{Binding IsTerminalTabSelected}">
+                        <components:TerminalComponent DataContext="{Binding $parent[Window].((vm:MainViewModel)DataContext).Terminal}" />
+                    </Border>
+                </Grid>
             </Border>
         </Grid>
     </Border>

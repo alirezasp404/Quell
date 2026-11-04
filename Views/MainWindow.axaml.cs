@@ -296,6 +296,24 @@ public partial class MainWindow : Window
             return;
         }
 
+        // Toggle Terminal (Ctrl+` or Ctrl+Tilde)
+        if (ShortcutService.Instance.IsMatch(ShortcutActions.ToggleTerminal, e) || 
+            (e.KeyModifiers == KeyModifiers.Control && (e.Key == Key.Oem3 || e.Key == Key.OemTilde)))
+        {
+            _viewModel.ToggleTerminalCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
+
+        // Run in Terminal (Ctrl+Shift+Enter)
+        if (ShortcutService.Instance.IsMatch(ShortcutActions.RunInTerminal, e) || 
+            (e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.Enter))
+        {
+            _viewModel.RunSelectionInTerminalCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
+
         // Export Data
         if (ShortcutService.Instance.IsMatch(ShortcutActions.ExportData, e) || (e.Key == Key.E && e.KeyModifiers == KeyModifiers.Control))
         {

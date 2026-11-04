@@ -156,6 +156,23 @@
                                VerticalAlignment="Center"/>
                 </Grid>
             </Button>
+
+            <!-- 5. Integrated Terminal Category Item -->
+            <Button Classes="nav-cat-btn"
+                    Command="{Binding SelectCategoryCommand}" 
+                    CommandParameter="Terminal">
+                <Grid ColumnDefinitions="Auto, *">
+                    <ui:FASymbolIcon Grid.Column="0" Symbol="Play" FontSize="13" 
+                                     Foreground="{DynamicResource AppAccentBrush}"
+                                     VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" Text="Terminal" 
+                               FontSize="12" 
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource AppTextPrimaryBrush}"
+                               Margin="8,0,0,0"
+                               VerticalAlignment="Center"/>
+                </Grid>
+            </Button>
         </StackPanel>
     </Border>
 </UserControl>

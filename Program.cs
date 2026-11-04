@@ -1559,7 +1559,153 @@ sealed class Program
             }
             Console.WriteLine("[Success] Hardware graphics detection, GPU vs CPU mode switching, and SQLite persistence verified!");
 
-            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER, SIMULTANEOUS BATCH CELL EDITING, FOREIGN KEY NAVIGATION & HARDWARE GPU/CPU RENDERING PIPELINE) PASSED! <<<");
+            // =========================================================================
+            // F. Test Integrated Cross-Platform Terminal & Database CLI Suite
+            // =========================================================================
+            Console.WriteLine("\n[Action] Testing Integrated Terminal & Database CLI Suite...");
+
+            // 1. Terminal Component Initialization & Footer Integration
+            if (vm.Terminal == null) throw new Exception("Terminal ViewModel was not initialized!");
+            vm.RestoreFooterTab("Results");
+            vm.RestoreFooterTab("Terminal");
+            if (!vm.Footer.Tabs.Contains("Results") || !vm.Footer.Tabs.Contains("Terminal"))
+            {
+                throw new Exception($"Footer tabs missing Results or Terminal! Found: {string.Join(", ", vm.Footer.Tabs)}");
+            }
+            Console.WriteLine("[Success] Terminal ViewModel and Footer Tabs verified!");
+
+            // 2. Shell Profiles Detection
+            var shells = Fdb.Services.Terminal.ShellDetectorService.Instance.GetAvailableShells();
+            Console.WriteLine($"Detected available shells: {shells.Count} ({string.Join(", ", shells.Select(s => s.DisplayName))})");
+            if (shells.Count == 0) throw new Exception("No available system shells were detected!");
+            var defaultShell = Fdb.Services.Terminal.ShellDetectorService.Instance.GetDefaultShell();
+            if (defaultShell == null || string.IsNullOrEmpty(defaultShell.ExecutablePath))
+            {
+                throw new Exception("Default shell resolution failed!");
+            }
+            Console.WriteLine($"[Success] Default shell resolved: {defaultShell.DisplayName} ({defaultShell.ExecutablePath})");
+
+            // 3. Database CLI Resolution Tests (PostgreSQL, MySQL, SQLite, SQL Server)
+            var pgConfig = new Fdb.Services.DatabaseProviders.DatabaseConnectionConfig
+            {
+                DatabaseType = "PostgreSQL",
+                Server = "localhost",
+                Port = 5432,
+                Database = "testdb",
+                Username = "postgres",
+                Password = "secretpassword"
+            };
+            var pgCli = Fdb.Services.Terminal.DatabaseCliService.Instance.ResolveCli(pgConfig);
+            if (!pgCli.EnvironmentVariables.ContainsKey("PGPASSWORD") || pgCli.EnvironmentVariables["PGPASSWORD"] != "secretpassword")
+            {
+                throw new Exception("PostgreSQL CLI failed to set PGPASSWORD environment variable!");
+            }
+            if (pgCli.EnvironmentVariables["DATABASE_URL"] != "postgresql://postgres:secretpassword@localhost:5432/testdb")
+            {
+                throw new Exception($"PostgreSQL DATABASE_URL incorrect: {pgCli.EnvironmentVariables["DATABASE_URL"]}");
+            }
+            Console.WriteLine("[Success] PostgreSQL CLI resolution and secure environment variables verified!");
+
+            var myConfig = new Fdb.Services.DatabaseProviders.DatabaseConnectionConfig
+            {
+                DatabaseType = "MySQL",
+                Server = "127.0.0.1",
+                Port = 3306,
+                Database = "shopdb",
+                Username = "root",
+                Password = "mysqlsecret"
+            };
+            var myCli = Fdb.Services.Terminal.DatabaseCliService.Instance.ResolveCli(myConfig);
+            if (!myCli.EnvironmentVariables.ContainsKey("MYSQL_PWD") || myCli.EnvironmentVariables["MYSQL_PWD"] != "mysqlsecret")
+            {
+                throw new Exception("MySQL CLI failed to set MYSQL_PWD environment variable!");
+            }
+            Console.WriteLine("[Success] MySQL CLI resolution and password environment variable verified!");
+
+            // 4. Terminal Session Lifecycle & Multi-Session Strip
+            vm.Terminal.Sessions.Clear();
+            vm.Terminal.NewSession(defaultShell);
+            if (vm.Terminal.Sessions.Count != 1) throw new Exception("Failed to add new terminal session!");
+            var session1 = vm.Terminal.Sessions[0];
+            if (vm.Terminal.ActiveSession != session1 || !session1.IsActive)
+            {
+                throw new Exception("Active terminal session was not set as active!");
+            }
+            Console.WriteLine($"[Success] Created Terminal session 1: '{session1.Title}'");
+
+            // Add a second session
+            vm.Terminal.NewSession(defaultShell);
+            if (vm.Terminal.Sessions.Count != 2) throw new Exception("Failed to create second terminal session!");
+            var session2 = vm.Terminal.Sessions[1];
+            Console.WriteLine($"[Success] Created Terminal session 2: '{session2.Title}'");
+
+            // Switch session
+            vm.Terminal.SelectSession(session1);
+            if (vm.Terminal.ActiveSession != session1 || !session1.IsActive || session2.IsActive)
+            {
+                throw new Exception("Session selection failed!");
+            }
+
+            // Close session
+            vm.Terminal.CloseSession(session2);
+            if (vm.Terminal.Sessions.Count != 1 || vm.Terminal.ActiveSession != session1)
+            {
+                throw new Exception("Session closure failed!");
+            }
+            Console.WriteLine("[Success] Multi-session management (Add, Switch, Close) verified!");
+
+            // 5. Terminal Keyboard Shortcut & Navigation (Toggle Open, Toggle Close, Toggle Open)
+            vm.Footer.IsVisible = false;
+            vm.ToggleTerminalCommand.Execute(null);
+            if (!vm.Footer.IsVisible || vm.Footer.SelectedTab != "Terminal" || !vm.Footer.IsTerminalTabSelected)
+            {
+                throw new Exception("ToggleTerminalCommand failed to activate Terminal tab in Footer when closed!");
+            }
+
+            vm.ToggleTerminalCommand.Execute(null);
+            if (vm.Footer.IsVisible)
+            {
+                throw new Exception("ToggleTerminalCommand failed to close Footer when already on Terminal tab!");
+            }
+
+            vm.ToggleTerminalCommand.Execute(null);
+            if (!vm.Footer.IsVisible || vm.Footer.SelectedTab != "Terminal")
+            {
+                throw new Exception("ToggleTerminalCommand failed to reopen Terminal tab!");
+            }
+            Console.WriteLine("[Success] ToggleTerminalCommand toggle lifecycle verified!");
+
+            // Run in Terminal execution
+            vm.RunSelectionInTerminal("SELECT 'Hello from Fdb Terminal';");
+            if (vm.Footer.SelectedTab != "Terminal")
+            {
+                throw new Exception("RunSelectionInTerminal failed to switch to Terminal tab!");
+            }
+            Console.WriteLine("[Success] RunSelectionInTerminal workflow verified!");
+
+            // 6. Terminal Preferences Persistence
+            var testSettings = new Fdb.Models.TerminalSettingsModel
+            {
+                DefaultShellId = defaultShell.Id,
+                FontFamily = "JetBrains Mono",
+                FontSize = 14.5,
+                CursorStyle = "Underline",
+                CursorBlink = false,
+                MaxScrollback = 8000,
+                PsqlPath = @"C:\Custom\psql.exe"
+            };
+            await Fdb.Services.Terminal.TerminalSettingsService.Instance.SaveSettingsAsync(testSettings);
+            var loadedSettings = await Fdb.Services.Terminal.TerminalSettingsService.Instance.LoadSettingsAsync();
+            if (loadedSettings.FontFamily != "JetBrains Mono" || loadedSettings.FontSize != 14.5 || loadedSettings.PsqlPath != @"C:\Custom\psql.exe")
+            {
+                throw new Exception("TerminalSettingsService persistence test failed!");
+            }
+            Console.WriteLine("[Success] Terminal settings persistence in SQLite verified!");
+
+            // Restore defaults
+            await Fdb.Services.Terminal.TerminalSettingsService.Instance.SaveSettingsAsync(new Fdb.Models.TerminalSettingsModel());
+
+            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER, SIMULTANEOUS BATCH CELL EDITING, FOREIGN KEY NAVIGATION, HARDWARE GPU/CPU RENDERING PIPELINE & INTEGRATED TERMINAL) PASSED! <<<");
             return;
         }
 

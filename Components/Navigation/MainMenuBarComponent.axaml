@@ -75,6 +75,10 @@
                                   InputGesture="Ctrl+J"
                                   HotKey="Ctrl+J"
                                   Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ToggleFooterCommand}" />
+                        <Separator />
+                        <MenuItem Header="Integrated Terminal" 
+                                  InputGesture="Ctrl+Oem3"
+                                  Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ToggleTerminalCommand}" />
                     </MenuItem>
 
                     <!-- Window / Workspace Menu (Restore Tabs & Panels) -->
@@ -88,6 +92,9 @@
                             <MenuItem Header="Results" 
                                       Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).RestoreFooterTabCommand}" 
                                       CommandParameter="Results" />
+                            <MenuItem Header="Terminal" 
+                                      Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).RestoreFooterTabCommand}" 
+                                      CommandParameter="Terminal" />
                         </MenuItem>
                         <MenuItem Header="Restore Sidebar Tabs">
                             <MenuItem Header="Explorer" 

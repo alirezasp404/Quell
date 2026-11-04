@@ -37,7 +37,22 @@
                                    HorizontalScrollBarVisibility="Auto"
                                    VerticalScrollBarVisibility="Auto"
                                    WordWrap="False"
-                                   Margin="4"/>
+                                   Margin="4">
+                        <ae:TextEditor.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Run Active Query" InputGesture="F5"
+                                          Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ExecuteQueryCommand}" />
+                                <MenuItem Header="Run Selection in Terminal" InputGesture="Ctrl+Shift+Enter"
+                                          Click="OnRunInTerminalClicked" />
+                                <Separator />
+                                <MenuItem Header="Cut" InputGesture="Ctrl+X" Command="{Binding $parent[ae:TextEditor].Cut}" />
+                                <MenuItem Header="Copy" InputGesture="Ctrl+C" Command="{Binding $parent[ae:TextEditor].Copy}" />
+                                <MenuItem Header="Paste" InputGesture="Ctrl+V" Command="{Binding $parent[ae:TextEditor].Paste}" />
+                                <Separator />
+                                <MenuItem Header="Select All" InputGesture="Ctrl+A" Command="{Binding $parent[ae:TextEditor].SelectAll}" />
+                            </ContextMenu>
+                        </ae:TextEditor.ContextMenu>
+                    </ae:TextEditor>
 
                     <!-- In-Place Autocomplete Floating Card Overlay (Modular Reusable Component) -->
                     <Canvas Name="CompletionOverlayCanvas" ClipToBounds="True">
