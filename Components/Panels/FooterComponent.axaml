@@ -170,13 +170,13 @@
                 </ItemsControl>
             </Border>
 
-            <!-- 3. Inset Content Container (Results Grid / Terminal Workspace) -->
+            <!-- 3. Inset Content Container (Results Grid / Terminal Workspace - Docked flush) -->
             <Border Grid.Row="2" 
                     Background="{DynamicResource AppWorkspaceBrush}" 
                     BorderBrush="{DynamicResource AppBorderBrush}" 
-                    BorderThickness="1" 
-                    CornerRadius="4"
-                    Margin="6"
+                    BorderThickness="0,1,0,0" 
+                    CornerRadius="0"
+                    Margin="0"
                     ClipToBounds="True">
                 <Grid>
                     <!-- 3a. Results Table View -->

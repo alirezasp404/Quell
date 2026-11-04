@@ -1,119 +1,361 @@
 <UserControl xmlns="https://github.com/avaloniaui"
-              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-              xmlns:vm="using:Fdb.ViewModels"
-              xmlns:components="using:Fdb.Components"
-              xmlns:ui="using:FluentAvalonia.UI.Controls"
-              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="54"
-              x:Class="Fdb.Components.NavbarComponent"
-              x:DataType="vm:NavbarViewModel">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Fdb.ViewModels"
+             xmlns:components="using:Fdb.Components"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="36"
+             x:Class="Fdb.Components.NavbarComponent"
+             x:DataType="vm:NavbarViewModel">
 
-    <!-- Composed Navbar Component: MainMenuBarComponent + Action Toolbar Row -->
+    <UserControl.Styles>
+        <!-- Window Chrome Button Styling -->
+        <Style Selector="Button.win-control-btn">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Width" Value="44"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FocusAdorner" Value="{x:Null}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.win-control-btn:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+        </Style>
+        <Style Selector="Button.win-control-btn:pressed">
+            <Setter Property="Background" Value="{DynamicResource AppTabHoverBackgroundBrush}"/>
+        </Style>
+
+        <!-- Close Button (Windows Standard Red Hover) -->
+        <Style Selector="Button.win-close-btn">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FocusAdorner" Value="{x:Null}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.win-close-btn:pointerover">
+            <Setter Property="Background" Value="#E81123"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.win-close-btn:pressed">
+            <Setter Property="Background" Value="#C42B1C"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <!-- Compact Action Button in Title Bar -->
+        <Style Selector="Button.titlebar-action-btn">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="7,2"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusAdorner" Value="{x:Null}"/>
+        </Style>
+        <Style Selector="Button.titlebar-action-btn:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+        </Style>
+    </UserControl.Styles>
+
+    <!-- Unified Modern Desktop IDE Custom Title Bar & Navigation Bar (Height: 36px) -->
     <Border Background="{DynamicResource AppBackgroundBrush}" 
             BorderBrush="{DynamicResource AppBorderBrush}" 
-            BorderThickness="0,0,0,1">
-        <StackPanel Orientation="Vertical">
-            <!-- 1. Native Desktop MenuBar Component -->
-            <components:MainMenuBarComponent DataContext="{Binding}" />
+            BorderThickness="0,0,0,1" 
+            Height="36"
+            PointerPressed="OnTitleBarPointerPressed">
+        <Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto">
+            
+            <!-- 1. Left: Brand Logo, App Title & Native Menu Dropdown Strip -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Margin="8,0,4,0">
+                <!-- App Logo -->
+                <Border CornerRadius="4" ClipToBounds="True" Width="18" Height="18" Margin="0,0,4,0">
+                    <Image Source="avares://Fdb/Assets/fdb_icon.png" 
+                           Width="18" Height="18" 
+                           Stretch="Uniform" 
+                           RenderOptions.BitmapInterpolationMode="HighQuality"/>
+                </Border>
+                
+                <!-- App Title -->
+                <TextBlock Text="Fdb Studio" 
+                           Foreground="{DynamicResource AppTextPrimaryBrush}" 
+                           FontWeight="Bold" 
+                           FontSize="11" 
+                           VerticalAlignment="Center" 
+                           Margin="0,0,6,0"/>
 
-            <!-- 2. Standard Action Toolbar Row -->
-            <Border Background="{DynamicResource AppSurfaceBrush}" Height="28" Padding="6,2">
-                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                    <Button Background="{DynamicResource AppAccentBrush}" 
-                            Foreground="White" 
-                            FontWeight="SemiBold" 
-                            FontSize="11" 
-                            CornerRadius="4" 
-                            Padding="10,4"
-                            Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ExecuteQueryCommand}"
-                            ToolTip.Tip="Execute active SQL query (F5)">
-                        <StackPanel Orientation="Horizontal" Spacing="5">
-                            <ui:FASymbolIcon Symbol="Play" FontSize="11" VerticalAlignment="Center"/>
-                            <TextBlock Text="Run (F5)" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
+                <Border Width="1" Height="14" Background="{DynamicResource AppBorderBrush}" Margin="2,0,4,0" VerticalAlignment="Center"/>
 
-                    <Button Classes="classic-tool-btn"
-                            Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).Editor.AddTabCommand}"
-                            ToolTip.Tip="Open New Query Tab (Ctrl+N)">
-                        <StackPanel Orientation="Horizontal" Spacing="5">
-                            <ui:FASymbolIcon Symbol="Add" FontSize="11" VerticalAlignment="Center"/>
-                            <TextBlock Text="New Query" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
+                <!-- Main Menu Strip (File, Edit, View, Window, Help) -->
+                <Menu Background="Transparent" FocusAdorner="{x:Null}" VerticalAlignment="Center">
+                    <!-- File Menu -->
+                    <MenuItem Header="File" FontSize="11">
+                        <MenuItem Header="Connect to Database..." 
+                                  InputGesture="Ctrl+Shift+C"
+                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ConnectModal.OpenCommand}" />
+                        <MenuItem Header="Export Results to File..." 
+                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ExportModal.OpenCommand}" />
+                        <Separator />
+                        <MenuItem Header="New Query" 
+                                  InputGesture="Ctrl+N" 
+                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).Editor.AddTabCommand}" />
+                        <MenuItem Header="Save" 
+                                  InputGesture="Ctrl+S" 
+                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).SaveQueryCommand}" />
+                        <Separator />
+                        <MenuItem Header="Settings..." 
+                                  InputGesture="Ctrl+," 
+                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).SettingsModal.OpenCommand}" />
+                        <Separator />
+                        <MenuItem Header="Exit" 
+                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ExitCommand}" />
+                    </MenuItem>
 
-                    <Button Classes="classic-tool-btn"
-                            Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).SaveQueryCommand}"
-                            ToolTip.Tip="Save Query to SQLite Storage (Ctrl+S)">
-                        <StackPanel Orientation="Horizontal" Spacing="5">
-                            <ui:FASymbolIcon Symbol="Save" FontSize="11" VerticalAlignment="Center"/>
-                            <TextBlock Text="Save" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
+                    <!-- Edit Menu -->
+                    <MenuItem Header="Edit" FontSize="11">
+                        <MenuItem Header="Undo" InputGesture="Ctrl+Z" />
+                        <MenuItem Header="Redo" InputGesture="Ctrl+Y" />
+                        <Separator />
+                        <MenuItem Header="Cut" InputGesture="Ctrl+X" />
+                        <MenuItem Header="Copy" InputGesture="Ctrl+C" />
+                        <MenuItem Header="Paste" InputGesture="Ctrl+V" />
+                    </MenuItem>
 
-                    <!-- Separator -->
-                    <Border Width="1" Height="16" Background="{DynamicResource AppBorderBrush}" Margin="4,0"/>
+                    <!-- View Menu -->
+                    <MenuItem Header="View" FontSize="11">
+                        <MenuItem Header="Object Explorer (Sidebar)" 
+                                  InputGesture="Ctrl+B"
+                                  HotKey="Ctrl+B"
+                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ToggleSidebarCommand}" />
+                        <MenuItem Header="Output &amp; Results (Footer)" 
+                                  InputGesture="Ctrl+J"
+                                  HotKey="Ctrl+J"
+                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ToggleFooterCommand}" />
+                        <Separator />
+                        <MenuItem Header="Integrated Terminal" 
+                                  InputGesture="Ctrl+Oem3"
+                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ToggleTerminalCommand}" />
+                    </MenuItem>
 
-                    <!-- Target Database Selector ComboBox -->
-                    <Border Classes="target-db-pill"
-                            Cursor="Hand"
-                            Background="{DynamicResource AppWorkspaceBrush}" 
-                            BorderBrush="{DynamicResource AppBorderBrush}" 
-                            BorderThickness="1" 
-                            CornerRadius="4" 
-                            Height="24" 
-                            Padding="4,0" 
-                            VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                            <ui:FASymbolIcon Symbol="Folder" FontSize="11" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text="DB:" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
-                            <ComboBox ItemsSource="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).AvailableTargetDatabases}"
-                                      SelectedItem="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).SelectedTargetDatabase}"
-                                      PlaceholderText="No Active Database"
-                                      FontSize="11"
-                                      Height="22"
-                                      Padding="4,1"
-                                      BorderThickness="0"
-                                      Background="Transparent"
-                                      MinWidth="190"
-                                      VerticalAlignment="Center">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Spacing="6">
-                                            <Border Background="{Binding BadgeColor}" CornerRadius="3" Padding="4,1">
-                                                <TextBlock Text="{Binding DatabaseType}" FontSize="9" FontWeight="Bold" Foreground="White"/>
-                                            </Border>
-                                            <TextBlock Text="{Binding FullDisplayName}" FontSize="11" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-                        </StackPanel>
-                    </Border>
+                    <!-- Window / Workspace Menu -->
+                    <MenuItem Header="Window" FontSize="11">
+                        <MenuItem Header="Show Object Explorer" 
+                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ShowSidebarCommand}" />
+                        <MenuItem Header="Show Output &amp; Results" 
+                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ShowFooterCommand}" />
+                        <Separator />
+                        <MenuItem Header="Restore Footer Tabs">
+                            <MenuItem Header="Results" 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreFooterTabCommand}" 
+                                      CommandParameter="Results" />
+                            <MenuItem Header="Terminal" 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreFooterTabCommand}" 
+                                      CommandParameter="Terminal" />
+                        </MenuItem>
+                        <MenuItem Header="Restore Sidebar Tabs">
+                            <MenuItem Header="Explorer" 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreSidebarTabCommand}" 
+                                      CommandParameter="Explorer" />
+                            <MenuItem Header="Databases" 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreSidebarTabCommand}" 
+                                      CommandParameter="Databases" />
+                            <MenuItem Header="History" 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreSidebarTabCommand}" 
+                                      CommandParameter="History" />
+                        </MenuItem>
+                        <Separator />
+                        <MenuItem Header="Reset Window Layout" 
+                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ResetLayoutCommand}" />
+                    </MenuItem>
 
-                    <!-- Separator -->
-                    <Border Width="1" Height="16" Background="{DynamicResource AppBorderBrush}" Margin="4,0"/>
+                    <!-- Help Menu -->
+                    <MenuItem Header="Help" FontSize="11">
+                        <MenuItem Header="Documentation" />
+                        <MenuItem Header="About Fdb Studio" />
+                    </MenuItem>
+                </Menu>
+            </StackPanel>
 
-                    <Button x:Name="ConnectButton"
-                            Classes="classic-tool-btn" 
-                            Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ConnectModal.OpenCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="5">
-                            <ui:FASymbolIcon Symbol="Link" FontSize="11" VerticalAlignment="Center"/>
-                            <TextBlock Text="Connect..." VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
+            <!-- 2. Center-Left: Core Action Tools Strip -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Margin="6,0">
+                <Border Width="1" Height="16" Background="{DynamicResource AppBorderBrush}" Margin="2,0,6,0" VerticalAlignment="Center"/>
 
-                    <Button Classes="classic-tool-btn"
-                            Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).DisconnectCommand}"
-                            ToolTip.Tip="Disconnect from active database session">
-                        <StackPanel Orientation="Horizontal" Spacing="5">
-                            <ui:FASymbolIcon Symbol="Dismiss" FontSize="10" VerticalAlignment="Center"/>
-                            <TextBlock Text="Disconnect" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
-                </StackPanel>
-            </Border>
-        </StackPanel>
+                <!-- Run Query Button (Accent Primary) -->
+                <Button Background="{DynamicResource AppAccentBrush}" 
+                        Foreground="White" 
+                        FontWeight="SemiBold" 
+                        FontSize="11" 
+                        CornerRadius="4" 
+                        Height="24"
+                        Padding="8,2"
+                        FocusAdorner="{x:Null}"
+                        Cursor="Hand"
+                        Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ExecuteQueryCommand}"
+                        ToolTip.Tip="Execute active SQL query (F5)">
+                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                        <ui:FASymbolIcon Symbol="Play" FontSize="10" VerticalAlignment="Center"/>
+                        <TextBlock Text="Run (F5)" FontSize="10" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- New Query Tab Button -->
+                <Button Classes="titlebar-action-btn"
+                        Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).Editor.AddTabCommand}"
+                        ToolTip.Tip="Open New Query Tab (Ctrl+N)">
+                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                        <ui:FASymbolIcon Symbol="Add" FontSize="10" VerticalAlignment="Center"/>
+                        <TextBlock Text="New" FontSize="10" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Save Query Button -->
+                <Button Classes="titlebar-action-btn"
+                        Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).SaveQueryCommand}"
+                        ToolTip.Tip="Save Query to SQLite Storage (Ctrl+S)">
+                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                        <ui:FASymbolIcon Symbol="Save" FontSize="10" VerticalAlignment="Center"/>
+                        <TextBlock Text="Save" FontSize="10" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Border Width="1" Height="14" Background="{DynamicResource AppBorderBrush}" Margin="4,0" VerticalAlignment="Center"/>
+
+                <!-- Target Database Selector ComboBox -->
+                <Border Classes="target-db-pill"
+                        Background="{DynamicResource AppSurfaceBrush}" 
+                        BorderBrush="{DynamicResource AppBorderBrush}" 
+                        BorderThickness="1" 
+                        CornerRadius="4" 
+                        Height="24" 
+                        Padding="4,0" 
+                        VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                        <ui:FASymbolIcon Symbol="Folder" FontSize="10" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="DB:" FontSize="9" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
+                        <ComboBox ItemsSource="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).AvailableTargetDatabases}"
+                                  SelectedItem="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).SelectedTargetDatabase}"
+                                  PlaceholderText="No Active Database"
+                                  FontSize="11"
+                                  Height="22"
+                                  Padding="4,0"
+                                  BorderThickness="0"
+                                  Background="Transparent"
+                                  MinWidth="170"
+                                  VerticalAlignment="Center">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <Border Background="{Binding BadgeColor}" CornerRadius="3" Padding="4,1">
+                                            <TextBlock Text="{Binding DatabaseType}" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                        </Border>
+                                        <TextBlock Text="{Binding FullDisplayName}" FontSize="11" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+                </Border>
+
+                <Border Width="1" Height="14" Background="{DynamicResource AppBorderBrush}" Margin="4,0" VerticalAlignment="Center"/>
+
+                <!-- Connect Button (x:Name="ConnectButton" preserved for verification suite) -->
+                <Button x:Name="ConnectButton"
+                        Classes="titlebar-action-btn" 
+                        Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ConnectModal.OpenCommand}"
+                        ToolTip.Tip="Connect to Database (Ctrl+Shift+C)">
+                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                        <ui:FASymbolIcon Symbol="Link" FontSize="10" VerticalAlignment="Center"/>
+                        <TextBlock Text="Connect..." FontSize="10" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Disconnect Button -->
+                <Button Classes="titlebar-action-btn"
+                        Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).DisconnectCommand}"
+                        ToolTip.Tip="Disconnect from active database session">
+                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                        <ui:FASymbolIcon Symbol="Dismiss" FontSize="9" VerticalAlignment="Center"/>
+                        <TextBlock Text="Disconnect" FontSize="10" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+
+            <!-- 3. Center Spacer / Draggable Area (Takes remaining width: *) -->
+            <Panel Grid.Column="2" Background="Transparent" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" />
+
+            <!-- 4. Right: Connection Status Badge -->
+            <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,8,0">
+                <Border Background="{DynamicResource AppSurfaceBrush}" 
+                        BorderBrush="{DynamicResource AppBorderBrush}" 
+                        BorderThickness="1" 
+                        CornerRadius="4" 
+                        Padding="6,2">
+                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                        <Ellipse Width="6" Height="6" Fill="{Binding ConnectionDotColor}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding ConnectionStatusText}" 
+                                   Foreground="{DynamicResource AppTextSecondaryBrush}" 
+                                   FontSize="10" 
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 5. Far Right: Native-Style Window Control Buttons (Minimize, Maximize/Restore, Close) -->
+            <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Stretch">
+                <!-- Minimize Button -->
+                <Button x:Name="MinimizeButton"
+                        Classes="win-control-btn"
+                        Click="OnMinimizeClicked"
+                        ToolTip.Tip="Minimize">
+                    <PathIcon Data="M2 11h10v1H2z" Width="10" Height="10" Foreground="{DynamicResource AppTextSecondaryBrush}" />
+                </Button>
+
+                <!-- Maximize / Restore Button -->
+                <Button x:Name="MaximizeButton"
+                        Classes="win-control-btn"
+                        Click="OnMaximizeClicked"
+                        ToolTip.Tip="Maximize / Restore">
+                    <Panel>
+                        <!-- Maximize Icon (Normal State) -->
+                        <PathIcon x:Name="MaximizeIcon"
+                                  Data="M2 2h10v10H2V2zm1 1v8h8V3H3z"
+                                  Width="10" Height="10"
+                                  Foreground="{DynamicResource AppTextSecondaryBrush}"
+                                  IsVisible="True"/>
+                        <!-- Restore Icon (Maximized State) -->
+                        <PathIcon x:Name="RestoreIcon"
+                                  Data="M4 2h8v8h-2v2H2V4h2V2zm1 1v1h5v5h1V3H5zM3 5v6h6V5H3z"
+                                  Width="10" Height="10"
+                                  Foreground="{DynamicResource AppTextSecondaryBrush}"
+                                  IsVisible="False"/>
+                    </Panel>
+                </Button>
+
+                <!-- Close Button -->
+                <Button x:Name="CloseButton"
+                        Classes="win-close-btn"
+                        Click="OnCloseClicked"
+                        ToolTip.Tip="Close (Alt+F4)">
+                    <ui:FASymbolIcon Symbol="Dismiss" FontSize="10" />
+                </Button>
+            </StackPanel>
+        </Grid>
     </Border>
 </UserControl>

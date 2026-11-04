@@ -19,13 +19,12 @@
                                                 DataContext="{Binding}" 
                                                 TabSelected="OnTabStripTabSelected" />
 
-            <!-- 2. Text Editor Canvas with SQL Syntax Highlighting & IntelliSense Overlay -->
+            <!-- 2. Text Editor Canvas with SQL Syntax Highlighting & IntelliSense Overlay (Docked flush) -->
             <Border Grid.Row="1" 
                     Background="{DynamicResource AppWorkspaceBrush}" 
-                    BorderBrush="{DynamicResource AppBorderBrush}" 
-                    BorderThickness="1" 
-                    CornerRadius="4" 
-                    Margin="6" 
+                    BorderThickness="0" 
+                    CornerRadius="0" 
+                    Margin="0" 
                     ClipToBounds="True">
                 <Grid>
                     <ae:TextEditor Name="CodeEditor"

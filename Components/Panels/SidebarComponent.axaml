@@ -113,9 +113,9 @@
                 <!-- ======================================================== -->
                 <!-- TAB 1: OBJECT EXPLORER (Hierarchical Database Tree)      -->
                 <!-- ======================================================== -->
-                <Grid RowDefinitions="Auto, Auto, *" Margin="6,8" IsVisible="{Binding IsExplorerTab}">
+                <Grid RowDefinitions="Auto, Auto, *" Margin="0" IsVisible="{Binding IsExplorerTab}">
                     <!-- A. Header Actions: Add New Connection & Refresh -->
-                    <Border Grid.Row="0" Margin="0,0,0,6">
+                    <Border Grid.Row="0" Padding="8,6,6,4">
                         <Grid ColumnDefinitions="*, Auto">
                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                 <TextBlock Text="DATABASES" 
@@ -148,7 +148,7 @@
                     </Border>
 
                     <!-- B. Real-time Search / Filter Box & Active DB Indicator -->
-                    <StackPanel Grid.Row="1" Margin="0,0,0,6" Spacing="4">
+                    <StackPanel Grid.Row="1" Margin="6,0,6,6" Spacing="4">
                         <!-- Active Database Banner Pill with 'Active Only' Filter Toggle -->
                         <Grid ColumnDefinitions="*, Auto" IsVisible="{Binding IsConnected}">
                             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
@@ -626,9 +626,9 @@
                 <!-- ======================================================== -->
                 <!-- TAB 2: DATABASES (Connections Manager List)               -->
                 <!-- ======================================================== -->
-                <Grid RowDefinitions="Auto, *" Margin="6,8" IsVisible="{Binding IsDatabasesTab}">
+                <Grid RowDefinitions="Auto, *" Margin="0" IsVisible="{Binding IsDatabasesTab}">
                     <!-- Header with New Connection button -->
-                    <Border Grid.Row="0" Margin="0,0,0,8">
+                    <Border Grid.Row="0" Padding="8,6,6,6" BorderBrush="{DynamicResource AppSidebarBorderBrush}" BorderThickness="0,0,0,1">
                         <Grid ColumnDefinitions="*, Auto">
                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                 <TextBlock Text="SAVED CONNECTIONS" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
@@ -644,7 +644,7 @@
                     </Border>
 
                     <!-- Scrollable Connections List -->
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="6,6">
                         <StackPanel Spacing="4">
                             <ItemsControl ItemsSource="{Binding SavedConnections}">
                                 <ItemsControl.ItemTemplate>
@@ -759,11 +759,11 @@
                 <!-- ======================================================== -->
                 <!-- TAB 3: HISTORY (Query History List)                      -->
                 <!-- ======================================================== -->
-                <Grid RowDefinitions="Auto, *" Margin="6,8" IsVisible="{Binding IsHistoryTab}">
-                    <Border Grid.Row="0" Margin="0,0,0,6">
+                <Grid RowDefinitions="Auto, *" Margin="0" IsVisible="{Binding IsHistoryTab}">
+                    <Border Grid.Row="0" Padding="8,6,6,6" BorderBrush="{DynamicResource AppSidebarBorderBrush}" BorderThickness="0,0,0,1">
                         <TextBlock Text="RECENT QUERY HISTORY" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
                     </Border>
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="6,6">
                         <ItemsControl ItemsSource="{Binding HistoryItems}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
