@@ -107,4 +107,16 @@
     <!-- SQL Syntax Keyword Color Token (Default: Dark Mode Sky Blue) -->
     <SolidColorBrush x:Key="AppKeywordBrush" Color="#60A5FA" />
 
+    <!-- Focus Visual Suppression Tokens (Eliminate harsh black focus outlines) -->
+    <SolidColorBrush x:Key="SystemControlFocusVisualPrimaryBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="SystemControlFocusVisualSecondaryBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="FocusStrokeColorOuterBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="FocusStrokeColorInnerBrush" Color="Transparent" />
+    <Thickness x:Key="SystemControlFocusVisualPrimaryThickness">0</Thickness>
+    <Thickness x:Key="SystemControlFocusVisualSecondaryThickness">0</Thickness>
+
+    <!-- Menu & Flyout Default Tokens -->
+    <SolidColorBrush x:Key="MenuFlyoutPresenterBorderBrush" Color="{StaticResource AppBorderColor}" />
+    <Thickness x:Key="MenuFlyoutPresenterBorderThemeThickness">1</Thickness>
+
 </ResourceDictionary>

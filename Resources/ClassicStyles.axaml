@@ -8,12 +8,20 @@
     </Style>
 
     <!-- ========================================================================= -->
+    <!-- Global Focus Visual Suppression (Eliminates Harsh Black Focus Borders)   -->
+    <!-- ========================================================================= -->
+    <Style Selector=":is(TemplatedControl)">
+        <Setter Property="FocusAdorner" Value="{x:Null}"/>
+    </Style>
+
+    <!-- ========================================================================= -->
     <!-- Global Interactive Hover Cursors (Hand Pointer for Clickable Controls)    -->
     <!-- ========================================================================= -->
 
     <!-- Buttons (Standard, Tool, Menu, Tab, Action, Icon) -->
     <Style Selector=":is(Button)">
         <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusAdorner" Value="{x:Null}"/>
     </Style>
     <Style Selector=":is(Button):pointerover">
         <Setter Property="Cursor" Value="Hand"/>
@@ -24,6 +32,7 @@
 
     <Style Selector="Button">
         <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusAdorner" Value="{x:Null}"/>
     </Style>
     <Style Selector="Button:pointerover">
         <Setter Property="Cursor" Value="Hand"/>
@@ -53,15 +62,88 @@
         <Setter Property="Cursor" Value="Arrow"/>
     </Style>
 
-    <!-- Menu & Context Menu Items -->
+    <!-- Menu & Context Menu Items (Zero Black Border on Click, Focus, or Selection) -->
     <Style Selector="MenuItem">
         <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusAdorner" Value="{x:Null}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
     </Style>
     <Style Selector="MenuItem:pointerover">
         <Setter Property="Cursor" Value="Hand"/>
     </Style>
     <Style Selector="MenuItem:disabled">
         <Setter Property="Cursor" Value="Arrow"/>
+    </Style>
+    <Style Selector="MenuItem /template/ Border#PART_LayoutRoot">
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+    </Style>
+    <Style Selector="MenuItem:focus /template/ Border#PART_LayoutRoot">
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+    </Style>
+    <Style Selector="MenuItem:focus-visible /template/ Border#PART_LayoutRoot">
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+    </Style>
+    <Style Selector="MenuItem:selected /template/ Border#PART_LayoutRoot">
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+    </Style>
+
+    <!-- Top-Level Menu Items in Menu Bar (File, Edit, View, Window, Help) -->
+    <Style Selector="Menu > MenuItem">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="8,4"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="FocusAdorner" Value="{x:Null}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Menu > MenuItem:pointerover /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+    <Style Selector="Menu > MenuItem:selected /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+    <Style Selector="Menu > MenuItem:focus /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+    <Style Selector="Menu > MenuItem:focus-visible /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+    <Style Selector="Menu > MenuItem:open /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+
+    <!-- Dropdown Popup & Flyout Presenters (Theme-Colored Borders, No Black Outline) -->
+    <Style Selector="MenuFlyoutPresenter">
+        <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="Padding" Value="4"/>
+        <Setter Property="FocusAdorner" Value="{x:Null}"/>
+    </Style>
+    <Style Selector="ContextMenu">
+        <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="Padding" Value="4"/>
+        <Setter Property="FocusAdorner" Value="{x:Null}"/>
     </Style>
 
     <!-- CheckBoxes & RadioButtons -->
@@ -291,6 +373,14 @@
         <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
         <Setter Property="Cursor" Value="Hand"/>
     </Style>
+    <Style Selector="Button.classic-menu-btn:focus /template/ ContentPresenter">
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+    </Style>
+    <Style Selector="Button.classic-menu-btn:focus-visible /template/ ContentPresenter">
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+    </Style>
 
     <!-- Modern Toolbar Action Button -->
     <Style Selector="Button.classic-tool-btn">
@@ -309,6 +399,12 @@
         <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource AppToolHoverBorderBrush}"/>
         <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Button.classic-tool-btn:focus /template/ ContentPresenter">
+        <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+    </Style>
+    <Style Selector="Button.classic-tool-btn:focus-visible /template/ ContentPresenter">
+        <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
     </Style>
 
     <!-- Modern Tab Button -->

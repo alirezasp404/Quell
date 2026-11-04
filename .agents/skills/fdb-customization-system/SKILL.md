@@ -2,13 +2,13 @@
 name: fdb-customization-system
 description: >-
   Architectural patterns, procedural runbook, and token catalog for Fdb Studio's customization and color system.
-  Use when adding, modifying, or extending UI customization, Color Maker (رنگ‌ساز), theme tokens, button/border/sidebar styling,
+  Use when adding, modifying, or extending UI customization, Color Maker, theme tokens, button/border/sidebar styling,
   or SQLite persistence of user preferences in Fdb.
 ---
 
 # Fdb Studio Customization & Color System Skill
 
-This skill defines the architectural blueprint, token taxonomy, and step-by-step procedures for extending Fdb Studio's UI customization, Color Maker ("رنگ‌ساز"), theme brushes, and SQLite configuration engine.
+This skill defines the architectural blueprint, token taxonomy, and step-by-step procedures for extending Fdb Studio's UI customization, Color Maker, theme brushes, and SQLite configuration engine.
 
 Follow this standard whenever you add new customizable elements, modify existing colors, or implement theme tokens.
 
@@ -133,7 +133,7 @@ public void SelectMyElementColor(string hex)
 }
 ```
 
-### Step 6: Register in the Color Maker ("رنگ‌ساز")
+### Step 6: Register in the Color Maker
 In `ViewModels/SettingsModalViewModel.cs`:
 - Add `"My Element Category: Target Name"` to `ColorMakerTargets`.
 - In `ApplyColorMakerToTarget()`, add the switch case:

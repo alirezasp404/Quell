@@ -389,7 +389,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <!-- Col 5: COURSE / دوره (Foreign Key with distinct FK badge and navigation arrow button) -->
+                    <!-- Col 5: COURSE (Foreign Key with distinct FK badge and navigation arrow button) -->
                     <DataGridTemplateColumn Header="COURSE" 
                                             CellStyleClasses="white-col fk-col"
                                             Width="190">

@@ -1,4 +1,4 @@
-# Color Maker ("رنگ‌ساز") Architecture
+# Color Maker Architecture
 
 The Color Maker allows users to build custom colors via RGB sliders or direct HEX text input and apply them to any UI target in Fdb Studio.
 

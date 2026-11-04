@@ -385,6 +385,9 @@ public class DatabaseStorageService
         reportProgress?.Invoke(55, "Pre-caching Application Settings & Preferences...");
         await LoadAllSettingsAsync().ConfigureAwait(false);
 
+        reportProgress?.Invoke(62, "Detecting GPU Hardware & Configuring Rendering Pipeline...");
+        await HardwareGraphicsService.Instance.InitializeAsync().ConfigureAwait(false);
+
         reportProgress?.Invoke(68, "Applying Appearance, Themes & Customizations...");
         string theme = await GetThemeAsync().ConfigureAwait(false);
         ThemeService.Instance.ApplyTheme(theme);
@@ -1189,6 +1192,16 @@ public class DatabaseStorageService
         {
             Console.WriteLine($"[DatabaseStorageService] ResetAllShortcutsInDbAsync error: {ex.Message}");
         }
+    }
+
+    public async Task<string> GetGraphicsRenderingModeAsync()
+    {
+        return await GetSettingAsync("GraphicsRenderingMode", "Auto").ConfigureAwait(false);
+    }
+
+    public async Task SaveGraphicsRenderingModeAsync(string mode)
+    {
+        await SaveSettingAsync("GraphicsRenderingMode", mode ?? "Auto").ConfigureAwait(false);
     }
 
     public async Task<PanelCustomizationRecord> GetPanelCustomizationAsync()

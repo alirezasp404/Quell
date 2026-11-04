@@ -6,14 +6,14 @@
         x:Class="Fdb.Views.SplashScreenWindow"
         x:DataType="vm:SplashScreenViewModel"
         Title="Fdb Studio - Starting"
-        Width="752" Height="434"
+        Width="720" Height="400"
         CanResize="False"
         WindowStartupLocation="CenterScreen"
         WindowDecorations="None"
         Topmost="True"
         ShowInTaskbar="True"
-        Background="Transparent"
-        TransparencyLevelHint="Transparent">
+        Background="#0B0F14"
+        Focusable="False">
 
     <!-- Composed Splash Window Hosting SplashScreenCardComponent -->
     <components:SplashScreenCardComponent />
