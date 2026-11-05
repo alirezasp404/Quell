@@ -1,6 +1,6 @@
-# SQLite Customization Storage Schema
+﻿# SQLite Customization Storage Schema
 
-Fdb Studio persists all user appearance preferences, colors, shortcuts, and panel dimensions in SQLite using a lightweight, key-value `settings` table.
+Quell persists all user appearance preferences, colors, shortcuts, and panel dimensions in SQLite using a lightweight, key-value `settings` table.
 
 ## 1. Table Schema
 

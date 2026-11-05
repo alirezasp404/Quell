@@ -1,7 +1,7 @@
-using System;
+﻿using System;
 using System.IO;
 
-namespace Fdb.Services.DatabaseProviders;
+namespace Quell.Services.DatabaseProviders;
 
 public record DatabaseConnectionConfig
 {

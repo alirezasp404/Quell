@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using System.Data;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using MySqlConnector;
 
-namespace Fdb.Services.DatabaseProviders;
+namespace Quell.Services.DatabaseProviders;
 
 public class MySqlDatabaseProvider : IDatabaseProvider
 {

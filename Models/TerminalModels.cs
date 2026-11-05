@@ -1,7 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
-namespace Fdb.Models;
+namespace Quell.Models;
 
 public class ShellProfile
 {

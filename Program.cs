@@ -1,10 +1,10 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Fdb;
+namespace Quell;
 
 sealed class Program
 {
@@ -24,14 +24,14 @@ sealed class Program
         if (args.Length > 0 && args[0] == "--verify")
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
-            Console.WriteLine("=== Fdb Dynamic Layout Verification ===");
-            var vm = new Fdb.ViewModels.MainViewModel();
+            Console.WriteLine("=== Quell Dynamic Layout Verification ===");
+            var vm = new Quell.ViewModels.MainViewModel();
             var app = BuildAvaloniaApp().SetupWithoutStarting();
-            var window = new Fdb.Views.MainWindow { DataContext = vm };
+            var window = new Quell.Views.MainWindow { DataContext = vm };
 
             // 0. Verify Focus Visual Suppression & Window/Menu Border Styling
             Console.WriteLine("\n[Action] Verifying Focus Visual Suppression & Border Styling...");
-            var splashWin = new Fdb.Views.SplashScreenWindow();
+            var splashWin = new Quell.Views.SplashScreenWindow();
             Console.WriteLine($"Splash Window: Width={splashWin.Width}, Height={splashWin.Height}, Background={splashWin.Background}");
             if (splashWin.Width != 720 || splashWin.Height != 400 || splashWin.Background == null)
             {
@@ -136,7 +136,7 @@ sealed class Program
                 throw new Exception($"Expected clean initial footer tabs (0 tabs), but got {vm.Footer.Tabs.Count}");
             }
             Console.WriteLine($"SchemaPropertiesTable Columns: {vm.SampleSchema.Columns.Count} columns loaded.");
-            var tableComp = new Fdb.Components.QueryResultTableComponent { DataContext = vm.SampleQueryResult };
+            var tableComp = new Quell.Components.QueryResultTableComponent { DataContext = vm.SampleQueryResult };
             var dataGrid = tableComp.FindControl<Avalonia.Controls.DataGrid>("ResultsDataGrid");
             Console.WriteLine($"DataGrid Columns Count: {dataGrid?.Columns.Count ?? 0}");
             Console.WriteLine($"DataGrid RowHeight: {dataGrid?.RowHeight}px (Compact height)");
@@ -144,7 +144,7 @@ sealed class Program
             {
                 throw new Exception($"Expected compact DataGrid RowHeight=25, but got {dataGrid?.RowHeight}");
             }
-            var testRow = new Fdb.ViewModels.QueryResultRow { RowIndex = 1, Id = 101, Name = "Alice Johnson" };
+            var testRow = new Quell.ViewModels.QueryResultRow { RowIndex = 1, Id = 101, Name = "Alice Johnson" };
             var col0 = dataGrid?.Columns[0] as Avalonia.Controls.DataGridTemplateColumn;
             var cellContent = col0?.CellTemplate?.Build(testRow) as Avalonia.Controls.Grid;
             if (cellContent != null) cellContent.DataContext = testRow;
@@ -159,7 +159,7 @@ sealed class Program
             // 5. Test Modal Dialogs Lifecycle & Triggers
             Console.WriteLine("\n[Action] Verifying Modal Dialogs Lifecycle...");
             Console.WriteLine($"ConnectModal initially open: {vm.ConnectModal.IsOpen}");
-            var navbarComp = window.FindControl<Fdb.Components.NavbarComponent>("MainNavbar");
+            var navbarComp = window.FindControl<Quell.Components.NavbarComponent>("MainNavbar");
             var connectBtn = navbarComp?.FindControl<Avalonia.Controls.Button>("ConnectButton");
             Console.WriteLine($"ConnectButton found: {connectBtn != null}, Command: {connectBtn?.Command}");
             connectBtn?.Command?.Execute(null);
@@ -199,26 +199,26 @@ sealed class Program
             // Test switching to Dark theme
             Console.WriteLine("[Action] Switching to Dark theme...");
             vm.SettingsModal.SelectTheme("Dark");
-            Console.WriteLine($"Theme applied: CurrentTheme={Fdb.Services.ThemeService.Instance.CurrentTheme}, IsDark={vm.SettingsModal.IsDarkTheme}");
-            if (!vm.SettingsModal.IsDarkTheme || Fdb.Services.ThemeService.Instance.CurrentTheme != "Dark")
+            Console.WriteLine($"Theme applied: CurrentTheme={Quell.Services.ThemeService.Instance.CurrentTheme}, IsDark={vm.SettingsModal.IsDarkTheme}");
+            if (!vm.SettingsModal.IsDarkTheme || Quell.Services.ThemeService.Instance.CurrentTheme != "Dark")
             {
                 throw new Exception("Dark theme selection failed!");
             }
             await vm.SettingsModal.SaveAsync();
             Console.WriteLine($"After SaveAsync: SettingsModal.IsOpen = {vm.SettingsModal.IsOpen}");
-            string persistedTheme = await Fdb.Services.DatabaseStorageService.Instance.GetThemeAsync();
+            string persistedTheme = await Quell.Services.DatabaseStorageService.Instance.GetThemeAsync();
             Console.WriteLine($"SQLite Persisted Theme: '{persistedTheme}'");
             if (persistedTheme != "Dark") throw new Exception("Failed to persist Dark theme to SQLite!");
 
             // Test switching to System theme
             await vm.SettingsModal.OpenAsync();
             vm.SettingsModal.SelectTheme("System");
-            if (!vm.SettingsModal.IsSystemTheme || Fdb.Services.ThemeService.Instance.CurrentTheme != "System")
+            if (!vm.SettingsModal.IsSystemTheme || Quell.Services.ThemeService.Instance.CurrentTheme != "System")
             {
                 throw new Exception("System theme selection failed!");
             }
             await vm.SettingsModal.SaveAsync();
-            string persistedSystemTheme = await Fdb.Services.DatabaseStorageService.Instance.GetThemeAsync();
+            string persistedSystemTheme = await Quell.Services.DatabaseStorageService.Instance.GetThemeAsync();
             Console.WriteLine($"SQLite Persisted System Theme: '{persistedSystemTheme}'");
             if (persistedSystemTheme != "System") throw new Exception("Failed to persist System theme to SQLite!");
 
@@ -226,7 +226,7 @@ sealed class Program
             await vm.SettingsModal.OpenAsync();
             vm.SettingsModal.SelectTheme("Light");
             await vm.SettingsModal.SaveAsync();
-            string restoredTheme = await Fdb.Services.DatabaseStorageService.Instance.GetThemeAsync();
+            string restoredTheme = await Quell.Services.DatabaseStorageService.Instance.GetThemeAsync();
             Console.WriteLine($"Restored Theme in SQLite: '{restoredTheme}'");
             if (restoredTheme != "Light") throw new Exception("Failed to restore Light theme in SQLite!");
 
@@ -241,7 +241,7 @@ sealed class Program
             if (!vm.SettingsModal.IsGreenKeyword) throw new Exception("Green keyword selection failed in ViewModel!");
 
             // In Light theme, Green should be emerald (#059669)
-            var lightBrush = Fdb.Services.ThemeService.Instance.CurrentKeywordBrush as Avalonia.Media.ISolidColorBrush;
+            var lightBrush = Quell.Services.ThemeService.Instance.CurrentKeywordBrush as Avalonia.Media.ISolidColorBrush;
             Console.WriteLine($"Light Theme Green Keyword Brush: {lightBrush?.Color}");
             if (lightBrush?.Color != Avalonia.Media.Color.Parse("#059669"))
             {
@@ -250,7 +250,7 @@ sealed class Program
 
             // Switch to Dark Theme: Green keyword should automatically adapt to bright mint (#34D399) for high contrast!
             vm.SettingsModal.SelectTheme("Dark");
-            var darkBrush = Fdb.Services.ThemeService.Instance.CurrentKeywordBrush as Avalonia.Media.ISolidColorBrush;
+            var darkBrush = Quell.Services.ThemeService.Instance.CurrentKeywordBrush as Avalonia.Media.ISolidColorBrush;
             Console.WriteLine($"Dark Theme Green Keyword Brush (Auto Contrast): {darkBrush?.Color}");
             if (darkBrush?.Color != Avalonia.Media.Color.Parse("#34D399"))
             {
@@ -259,7 +259,7 @@ sealed class Program
 
             // Save Green Keyword Color & Dark Theme to SQLite
             await vm.SettingsModal.SaveAsync();
-            string persistedKeywordColor = await Fdb.Services.DatabaseStorageService.Instance.GetKeywordColorAsync();
+            string persistedKeywordColor = await Quell.Services.DatabaseStorageService.Instance.GetKeywordColorAsync();
             Console.WriteLine($"SQLite Persisted Keyword Color: '{persistedKeywordColor}'");
             if (persistedKeywordColor != "Green") throw new Exception("Failed to persist Green Keyword Color to SQLite!");
 
@@ -268,7 +268,7 @@ sealed class Program
             vm.SettingsModal.SelectKeywordColor("Blue");
             vm.SettingsModal.SelectTheme("Light");
             await vm.SettingsModal.SaveAsync();
-            string restoredKeywordColor = await Fdb.Services.DatabaseStorageService.Instance.GetKeywordColorAsync();
+            string restoredKeywordColor = await Quell.Services.DatabaseStorageService.Instance.GetKeywordColorAsync();
             Console.WriteLine($"Restored Keyword Color in SQLite: '{restoredKeywordColor}'");
             if (restoredKeywordColor != "Blue") throw new Exception("Failed to restore Blue Keyword Color to SQLite!");
 
@@ -318,7 +318,7 @@ sealed class Program
 
             await vm.SettingsModal.SaveAsync();
 
-            var savedCustom = await Fdb.Services.DatabaseStorageService.Instance.GetPanelCustomizationAsync();
+            var savedCustom = await Quell.Services.DatabaseStorageService.Instance.GetPanelCustomizationAsync();
             Console.WriteLine($"SQLite Saved Panel Customization: ButtonAccent={savedCustom.ButtonAccentColor}, BorderColor={savedCustom.BorderColor}, SidebarHeader={savedCustom.SidebarHeaderBackground}, EditorBg={savedCustom.EditorBackground}, FontSize={savedCustom.EditorFontSize}");
             if (savedCustom.ButtonAccentColor != "#38BDF8" || savedCustom.BorderColor != "#334155" || savedCustom.SidebarHeaderBackground != "#1E293B" || savedCustom.EditorBackground != "#1E293B" || savedCustom.TerminalBackground != "#0C0E14" || savedCustom.TerminalForeground != "#38BDF8" || savedCustom.EditorFontSize != 15.0)
             {
@@ -329,7 +329,7 @@ sealed class Program
             await vm.SettingsModal.OpenAsync();
             vm.SettingsModal.ResetPanelCustomization();
             await vm.SettingsModal.SaveAsync();
-            var resetCustom = await Fdb.Services.DatabaseStorageService.Instance.GetPanelCustomizationAsync();
+            var resetCustom = await Quell.Services.DatabaseStorageService.Instance.GetPanelCustomizationAsync();
             Console.WriteLine($"SQLite Restored Panel Customization: ButtonAccent={resetCustom.ButtonAccentColor}, BorderColor={resetCustom.BorderColor}, EditorBg={resetCustom.EditorBackground}, FontSize={resetCustom.EditorFontSize}");
             if (resetCustom.ButtonAccentColor != "Default" || resetCustom.BorderColor != "Default" || resetCustom.EditorBackground != "Default" || resetCustom.TerminalBackground != "Default" || resetCustom.TerminalForeground != "Default" || resetCustom.EditorFontSize != 13.0)
             {
@@ -347,7 +347,7 @@ sealed class Program
             Console.WriteLine($"Loaded Shortcuts Count: {vm.SettingsModal.Shortcuts.Count}");
             if (vm.SettingsModal.Shortcuts.Count == 0) throw new Exception("No shortcuts loaded from SQLite!");
 
-            var runQueryShortcut = vm.SettingsModal.Shortcuts.FirstOrDefault(s => s.Id == Fdb.Services.ShortcutActions.RunQuery);
+            var runQueryShortcut = vm.SettingsModal.Shortcuts.FirstOrDefault(s => s.Id == Quell.Services.ShortcutActions.RunQuery);
             if (runQueryShortcut == null) throw new Exception("RunQuery shortcut definition missing!");
             Console.WriteLine($"Initial RunQuery Shortcut: '{runQueryShortcut.CurrentGesture}' (Default: '{runQueryShortcut.DefaultGesture}')");
 
@@ -364,8 +364,8 @@ sealed class Program
             await vm.SettingsModal.SaveAsync();
 
             // Verify in SQLite
-            var dbShortcuts = await Fdb.Services.DatabaseStorageService.Instance.GetShortcutsFromDbAsync();
-            var dbRunQuery = dbShortcuts.FirstOrDefault(s => s.Id == Fdb.Services.ShortcutActions.RunQuery);
+            var dbShortcuts = await Quell.Services.DatabaseStorageService.Instance.GetShortcutsFromDbAsync();
+            var dbRunQuery = dbShortcuts.FirstOrDefault(s => s.Id == Quell.Services.ShortcutActions.RunQuery);
             Console.WriteLine($"SQLite Persisted RunQuery Shortcut: '{dbRunQuery?.KeyGesture}'");
             if (dbRunQuery?.KeyGesture != "F9")
             {
@@ -373,19 +373,19 @@ sealed class Program
             }
 
             // Verify ShortcutService key matching engine
-            bool isF9Match = Fdb.Services.ShortcutService.Instance.IsMatch(Fdb.Services.ShortcutActions.RunQuery,
+            bool isF9Match = Quell.Services.ShortcutService.Instance.IsMatch(Quell.Services.ShortcutActions.RunQuery,
                 new Avalonia.Input.KeyEventArgs { Key = Avalonia.Input.Key.F9, KeyModifiers = Avalonia.Input.KeyModifiers.None });
             Console.WriteLine($"ShortcutService matches 'F9' for RunQuery: {isF9Match}");
             if (!isF9Match) throw new Exception("ShortcutService key matching engine failed for customized 'F9'!");
 
             // Test Reset Shortcut to Default
             await vm.SettingsModal.OpenAsync();
-            var runQueryToReset = vm.SettingsModal.Shortcuts.FirstOrDefault(s => s.Id == Fdb.Services.ShortcutActions.RunQuery);
+            var runQueryToReset = vm.SettingsModal.Shortcuts.FirstOrDefault(s => s.Id == Quell.Services.ShortcutActions.RunQuery);
             vm.SettingsModal.ResetShortcut(runQueryToReset!);
             await vm.SettingsModal.SaveAsync();
 
-            var dbResetShortcuts = await Fdb.Services.DatabaseStorageService.Instance.GetShortcutsFromDbAsync();
-            var dbResetRunQuery = dbResetShortcuts.FirstOrDefault(s => s.Id == Fdb.Services.ShortcutActions.RunQuery);
+            var dbResetShortcuts = await Quell.Services.DatabaseStorageService.Instance.GetShortcutsFromDbAsync();
+            var dbResetRunQuery = dbResetShortcuts.FirstOrDefault(s => s.Id == Quell.Services.ShortcutActions.RunQuery);
             Console.WriteLine($"SQLite Restored RunQuery Shortcut: '{dbResetRunQuery?.KeyGesture}'");
             if (dbResetRunQuery?.KeyGesture != "F5")
             {
@@ -415,7 +415,7 @@ sealed class Program
 
             await vm.SettingsModal.SaveAsync();
 
-            var savedTableCustom = await Fdb.Services.DatabaseStorageService.Instance.GetTableCustomizationAsync();
+            var savedTableCustom = await Quell.Services.DatabaseStorageService.Instance.GetTableCustomizationAsync();
             Console.WriteLine($"SQLite Saved Table Customization: RowHeight={savedTableCustom.RowHeight}, HeaderHeight={savedTableCustom.HeaderHeight}, GutterWidth={savedTableCustom.GutterWidth}, FontSize={savedTableCustom.FontSize}, TableBg={savedTableCustom.TableBackground}, AltRowBg={savedTableCustom.AlternatingRowColor}");
             if (savedTableCustom.RowHeight != 28.0 || savedTableCustom.HeaderHeight != 30.0 || savedTableCustom.GutterWidth != 64.0 || savedTableCustom.FontSize != 12.0 || savedTableCustom.TableBackground != "#1E293B" || savedTableCustom.AlternatingRowColor != "#141E2E")
             {
@@ -423,8 +423,8 @@ sealed class Program
             }
 
             // Verify live dynamic update in ThemeService
-            Console.WriteLine($"ThemeService CurrentTableCustomization: RowHeight={Fdb.Services.ThemeService.Instance.CurrentTableCustomization.RowHeight}, FontSize={Fdb.Services.ThemeService.Instance.CurrentTableCustomization.FontSize}");
-            if (Fdb.Services.ThemeService.Instance.CurrentTableCustomization.RowHeight != 28.0 || Fdb.Services.ThemeService.Instance.CurrentTableCustomization.FontSize != 12.0)
+            Console.WriteLine($"ThemeService CurrentTableCustomization: RowHeight={Quell.Services.ThemeService.Instance.CurrentTableCustomization.RowHeight}, FontSize={Quell.Services.ThemeService.Instance.CurrentTableCustomization.FontSize}");
+            if (Quell.Services.ThemeService.Instance.CurrentTableCustomization.RowHeight != 28.0 || Quell.Services.ThemeService.Instance.CurrentTableCustomization.FontSize != 12.0)
             {
                 throw new Exception("ThemeService failed to dynamically update CurrentTableCustomization!");
             }
@@ -434,7 +434,7 @@ sealed class Program
             vm.SettingsModal.ResetTableCustomization();
             await vm.SettingsModal.SaveAsync();
 
-            var resetTableCustom = await Fdb.Services.DatabaseStorageService.Instance.GetTableCustomizationAsync();
+            var resetTableCustom = await Quell.Services.DatabaseStorageService.Instance.GetTableCustomizationAsync();
             Console.WriteLine($"SQLite Restored Table Customization: RowHeight={resetTableCustom.RowHeight}, FontSize={resetTableCustom.FontSize}, TableBg={resetTableCustom.TableBackground}");
             if (resetTableCustom.RowHeight != 25.0 || resetTableCustom.FontSize != 11.0 || resetTableCustom.TableBackground != "Default")
             {
@@ -452,7 +452,7 @@ sealed class Program
                 throw new Exception("Editor tab activation failed!");
             }
 
-            var editorComp = new Fdb.Components.EditorComponent { DataContext = vm.Editor };
+            var editorComp = new Quell.Components.EditorComponent { DataContext = vm.Editor };
             var textEditor = editorComp.FindControl<AvaloniaEdit.TextEditor>("CodeEditor");
             Console.WriteLine($"TextEditor Document Text Length: {textEditor?.Document?.TextLength}");
             
@@ -494,7 +494,7 @@ sealed class Program
 
             // 7. Test SQL Keywords Service & Regex
             Console.WriteLine("\n[Action] Verifying SQL Keywords Service...");
-            var keywordsService = Fdb.Services.SqlKeywordsService.Instance;
+            var keywordsService = Quell.Services.SqlKeywordsService.Instance;
             Console.WriteLine($"Loaded SQL Keywords: {keywordsService.Keywords.Count} keywords, {keywordsService.Snippets.Count} snippets.");
             var regex = keywordsService.KeywordRegex;
             bool selectMatches = regex != null && regex.IsMatch("SELECT * FROM dbo.Users");
@@ -508,7 +508,7 @@ sealed class Program
             Console.WriteLine("\n[Action] Testing typing 'se' in TextEditor...");
             // Test typing in editor & Zoom shortcuts
             Console.WriteLine("\n[Action] Testing typing 'se' in TextEditor & Zoom Shortcuts...");
-            var editorForTest = new Fdb.Components.EditorComponent { DataContext = vm.Editor };
+            var editorForTest = new Quell.Components.EditorComponent { DataContext = vm.Editor };
             var te = editorForTest.FindControl<AvaloniaEdit.TextEditor>("CodeEditor")!;
             te.Document.Text = "";
             te.CaretOffset = 0;
@@ -543,8 +543,8 @@ sealed class Program
 
             // Test CompletionData creation and replacement
             Console.WriteLine("\n[Action] Testing CompletionData instantiation and insertion...");
-            var kwData = new Fdb.Services.SqlCompletionData("SELECT", "SQL Keyword: SELECT", 10.0, false);
-            var snipData = new Fdb.Services.SqlCompletionData("SELECT * FROM", "Select all columns", 8.0, true, "SELECT * FROM ");
+            var kwData = new Quell.Services.SqlCompletionData("SELECT", "SQL Keyword: SELECT", 10.0, false);
+            var snipData = new Quell.Services.SqlCompletionData("SELECT * FROM", "Select all columns", 8.0, true, "SELECT * FROM ");
             Console.WriteLine($"kwData: Text={kwData.Text}, IsSnippet={kwData.IsSnippet}, Category={kwData.Category}");
             Console.WriteLine($"snipData: Text={snipData.Text}, IsSnippet={snipData.IsSnippet}, InsertionText='{snipData.InsertionText}'");
 
@@ -561,7 +561,7 @@ sealed class Program
             te.CaretOffset = 1;
 
             editorForTest.UpdateAndShowCompletion("S", showAll: false);
-            var overlay = editorForTest.FindControl<Fdb.Components.SqlIntelliSenseOverlayComponent>("IntelliSenseOverlay")!;
+            var overlay = editorForTest.FindControl<Quell.Components.SqlIntelliSenseOverlayComponent>("IntelliSenseOverlay")!;
             Console.WriteLine($"After typing 'S': Overlay.IsVisible = {overlay.IsVisible}, ItemCount = {overlay.ItemCount}");
             if (!overlay.IsVisible || overlay.ItemCount == 0)
             {
@@ -596,7 +596,7 @@ sealed class Program
 
             // Test MainEditor in Window
             Console.WriteLine("\n[Action] Verifying MainEditor in Window visual tree...");
-            var mainEditor = window.FindControl<Fdb.Components.EditorComponent>("MainEditor");
+            var mainEditor = window.FindControl<Quell.Components.EditorComponent>("MainEditor");
             Console.WriteLine($"MainEditor found in window: {mainEditor != null}");
             var mainCodeEditor = mainEditor?.FindControl<AvaloniaEdit.TextEditor>("CodeEditor");
             Console.WriteLine($"MainCodeEditor found: {mainCodeEditor != null}");
@@ -615,7 +615,7 @@ sealed class Program
                 };
                 mainCodeEditor.TextArea.RaiseEvent(textArgs);
 
-                var winOverlay = mainEditor.FindControl<Fdb.Components.SqlIntelliSenseOverlayComponent>("IntelliSenseOverlay")!;
+                var winOverlay = mainEditor.FindControl<Quell.Components.SqlIntelliSenseOverlayComponent>("IntelliSenseOverlay")!;
                 Console.WriteLine($"Window MainEditor after typing 's': Overlay.IsVisible={winOverlay.IsVisible}, ItemCount={winOverlay.ItemCount}");
                 var winTopItem = winOverlay.SelectedItem;
                 Console.WriteLine($"Window MainEditor TopItem: '{winTopItem?.Text}'");
@@ -653,7 +653,7 @@ sealed class Program
 
             // 9. Test Splash Screen Lifecycle & SQLite Startup Execution
             Console.WriteLine("\n[Action] Verifying Splash Screen Window & SQL Startup Execution...");
-            var splashWindow = new Fdb.Views.SplashScreenWindow();
+            var splashWindow = new Quell.Views.SplashScreenWindow();
             Console.WriteLine($"Splash initial status: '{splashWindow.ViewModel.StatusText}', Progress: {splashWindow.ViewModel.ProgressValue}%");
             await splashWindow.RunStartupSequenceAsync().ConfigureAwait(false);
             Console.WriteLine($"Splash completed status: '{splashWindow.ViewModel.StatusText}', Progress: {splashWindow.ViewModel.ProgressValue}%");
@@ -665,7 +665,7 @@ sealed class Program
 
             // 10. Test SQLite Local Storage Service & Dialect Keywords
             Console.WriteLine("\n[Action] Verifying SQLite Local Storage Service & Multi-Dialect Keywords...");
-            var storageService = Fdb.Services.DatabaseStorageService.Instance;
+            var storageService = Quell.Services.DatabaseStorageService.Instance;
             await storageService.InitializeAsync();
 
             Console.WriteLine($"SQLite DatabasePath: '{storageService.DatabasePath}'");
@@ -732,19 +732,19 @@ sealed class Program
 
             // Test Dynamic Dialect Switching in SqlKeywordsService
             Console.WriteLine("\n[Action] Testing Dynamic Dialect Switching in SqlKeywordsService...");
-            await Fdb.Services.SqlKeywordsService.Instance.LoadKeywordsFromDatabaseAsync("PostgreSQL");
-            if (Fdb.Services.SqlKeywordsService.Instance.CurrentDialect != "PostgreSQL" || !Fdb.Services.SqlKeywordsService.Instance.Keywords.Contains("RETURNING"))
+            await Quell.Services.SqlKeywordsService.Instance.LoadKeywordsFromDatabaseAsync("PostgreSQL");
+            if (Quell.Services.SqlKeywordsService.Instance.CurrentDialect != "PostgreSQL" || !Quell.Services.SqlKeywordsService.Instance.Keywords.Contains("RETURNING"))
             {
                 throw new Exception("SqlKeywordsService failed to switch to PostgreSQL dialect!");
             }
-            Console.WriteLine($"Switched to PostgreSQL. Contains 'RETURNING': {Fdb.Services.SqlKeywordsService.Instance.Keywords.Contains("RETURNING")}");
+            Console.WriteLine($"Switched to PostgreSQL. Contains 'RETURNING': {Quell.Services.SqlKeywordsService.Instance.Keywords.Contains("RETURNING")}");
 
-            await Fdb.Services.SqlKeywordsService.Instance.LoadKeywordsFromDatabaseAsync("MSSQL");
-            if (Fdb.Services.SqlKeywordsService.Instance.CurrentDialect != "MSSQL" || !Fdb.Services.SqlKeywordsService.Instance.Keywords.Contains("TOP"))
+            await Quell.Services.SqlKeywordsService.Instance.LoadKeywordsFromDatabaseAsync("MSSQL");
+            if (Quell.Services.SqlKeywordsService.Instance.CurrentDialect != "MSSQL" || !Quell.Services.SqlKeywordsService.Instance.Keywords.Contains("TOP"))
             {
                 throw new Exception("SqlKeywordsService failed to switch back to MSSQL dialect!");
             }
-            Console.WriteLine($"Switched back to MSSQL. Contains 'TOP': {Fdb.Services.SqlKeywordsService.Instance.Keywords.Contains("TOP")}");
+            Console.WriteLine($"Switched back to MSSQL. Contains 'TOP': {Quell.Services.SqlKeywordsService.Instance.Keywords.Contains("TOP")}");
 
             var connections = await storageService.GetRecentConnectionsAsync();
             Console.WriteLine($"SQLite Connections loaded: {connections.Count} connection(s).");
@@ -764,7 +764,7 @@ sealed class Program
 
                         // 11. Test Dynamic Database Providers & Connect Modal Engine Switching
             Console.WriteLine("\n[Action] Verifying Dynamic Database Providers & Engine Switching...");
-            var registry = Fdb.Services.DatabaseProviders.DatabaseProviderRegistry.Instance;
+            var registry = Quell.Services.DatabaseProviders.DatabaseProviderRegistry.Instance;
             var allProviders = registry.GetAllProviders();
             Console.WriteLine($"Registered Providers: {string.Join(", ", System.Linq.Enumerable.Select(allProviders, p => p.Id))}");
             if (allProviders.Count < 4)
@@ -773,7 +773,7 @@ sealed class Program
             }
 
             var mssqlProv = registry.GetProvider("MSSQL");
-            var connStr = mssqlProv.BuildConnectionString(new Fdb.Services.DatabaseProviders.DatabaseConnectionConfig
+            var connStr = mssqlProv.BuildConnectionString(new Quell.Services.DatabaseProviders.DatabaseConnectionConfig
             {
                 Server = "127.0.0.1",
                 Port = 1433,
@@ -791,7 +791,7 @@ sealed class Program
 
             // Test SQLite Provider In-Memory
             var sqliteProv = registry.GetProvider("SQLite");
-            var sqliteTest = await sqliteProv.TestConnectionAsync(new Fdb.Services.DatabaseProviders.DatabaseConnectionConfig
+            var sqliteTest = await sqliteProv.TestConnectionAsync(new Quell.Services.DatabaseProviders.DatabaseConnectionConfig
             {
                 FilePath = ":memory:"
             });
@@ -846,7 +846,7 @@ sealed class Program
 
             // 13. Test Hierarchical Tree View: Adding connection, clicking to connect, displaying tables in tree
             Console.WriteLine("\n[Action] Verifying Hierarchical Tree View & Connecting from Tree...");
-            int testDbId = await Fdb.Services.DatabaseStorageService.Instance.SaveConnectionAsync(
+            int testDbId = await Quell.Services.DatabaseStorageService.Instance.SaveConnectionAsync(
                 ":memory:", 0, "TestStudioDB", "None", "sa", "SQLite");
             await vm.Sidebar.RefreshAsync();
             await vm.RefreshAvailableDatabasesAsync();
@@ -879,15 +879,15 @@ sealed class Program
             Console.WriteLine($"Tree Folder: '{testDbNode.TablesFolder.Title}', Child items count={testDbNode.TablesFolder.Children.Count}");
 
             // Create a table with rows in the connected database and verify it appears in the tree
-            await Fdb.Services.DatabaseProviders.DatabaseSessionService.Instance.ExecuteQueryAsync("CREATE TABLE Users (Id INTEGER PRIMARY KEY, Name TEXT);", testDbNode.ConnectionKey);
-            await Fdb.Services.DatabaseProviders.DatabaseSessionService.Instance.ExecuteQueryAsync("INSERT INTO Users (Id, Name) VALUES (1, 'Alice'), (2, 'Bob');", testDbNode.ConnectionKey);
+            await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.ExecuteQueryAsync("CREATE TABLE Users (Id INTEGER PRIMARY KEY, Name TEXT);", testDbNode.ConnectionKey);
+            await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.ExecuteQueryAsync("INSERT INTO Users (Id, Name) VALUES (1, 'Alice'), (2, 'Bob');", testDbNode.ConnectionKey);
             await vm.Sidebar.RefreshDatabaseNodeAsync(testDbNode);
             Console.WriteLine($"After table creation: Tree Folder '{testDbNode.TablesFolder.Title}', Child count={testDbNode.TablesFolder.Children.Count}");
             if (testDbNode.TablesFolder.Children.Count == 0)
             {
                 throw new Exception("Expected at least 1 table in tree folder after CREATE TABLE!");
             }
-            var tableItem = testDbNode.TablesFolder.Children[0] as Fdb.ViewModels.TableTreeNode;
+            var tableItem = testDbNode.TablesFolder.Children[0] as Quell.ViewModels.TableTreeNode;
             Console.WriteLine($"Found Table in Tree: {tableItem?.FullName}");
             if (tableItem?.TableName != "Users")
             {
@@ -929,7 +929,7 @@ sealed class Program
             {
                 throw new Exception($"Expected 1 matching table for 'user', got {testDbNode.TablesFolder.Children.Count}!");
             }
-            if (((Fdb.ViewModels.TableTreeNode)testDbNode.TablesFolder.Children[0]).TableName != "Users")
+            if (((Quell.ViewModels.TableTreeNode)testDbNode.TablesFolder.Children[0]).TableName != "Users")
             {
                 throw new Exception("Filtered table did not match 'Users'!");
             }
@@ -959,14 +959,14 @@ sealed class Program
 
             // 13.5 Test Table Auto-Completion from Active Database (e.g. SELECT * FROM u -> Users)
             Console.WriteLine("\n[Action] Verifying Active Database Table Auto-Completion in Editor...");
-            Console.WriteLine($"Active Database in KeywordsService: '{Fdb.Services.SqlKeywordsService.Instance.ActiveDatabaseName}', Tables Count: {Fdb.Services.SqlKeywordsService.Instance.ActiveTables.Count}");
-            if (Fdb.Services.SqlKeywordsService.Instance.ActiveTables.Count != 1 || Fdb.Services.SqlKeywordsService.Instance.ActiveTables[0].TableName != "Users")
+            Console.WriteLine($"Active Database in KeywordsService: '{Quell.Services.SqlKeywordsService.Instance.ActiveDatabaseName}', Tables Count: {Quell.Services.SqlKeywordsService.Instance.ActiveTables.Count}");
+            if (Quell.Services.SqlKeywordsService.Instance.ActiveTables.Count != 1 || Quell.Services.SqlKeywordsService.Instance.ActiveTables[0].TableName != "Users")
             {
-                throw new Exception($"Expected active tables to contain 'Users', got {Fdb.Services.SqlKeywordsService.Instance.ActiveTables.Count} table(s)!");
+                throw new Exception($"Expected active tables to contain 'Users', got {Quell.Services.SqlKeywordsService.Instance.ActiveTables.Count} table(s)!");
             }
-            bool isFromTableContext = Fdb.Components.SqlIntelliSenseOverlayComponent.IsTableContext("SELECT * FROM ");
-            bool isJoinTableContext = Fdb.Components.SqlIntelliSenseOverlayComponent.IsTableContext("SELECT * FROM Orders JOIN ");
-            bool isSelectContext = Fdb.Components.SqlIntelliSenseOverlayComponent.IsTableContext("SELECT ");
+            bool isFromTableContext = Quell.Components.SqlIntelliSenseOverlayComponent.IsTableContext("SELECT * FROM ");
+            bool isJoinTableContext = Quell.Components.SqlIntelliSenseOverlayComponent.IsTableContext("SELECT * FROM Orders JOIN ");
+            bool isSelectContext = Quell.Components.SqlIntelliSenseOverlayComponent.IsTableContext("SELECT ");
             Console.WriteLine($"Context Detection: 'FROM ' -> {isFromTableContext}, 'JOIN ' -> {isJoinTableContext}, 'SELECT ' -> {isSelectContext}");
             if (!isFromTableContext || !isJoinTableContext || isSelectContext)
             {
@@ -1005,7 +1005,7 @@ sealed class Program
             vm.ConnectModal.Database = "SalesDB";
             vm.ConnectModal.Username = "sales_admin";
             // Persist connection
-            await Fdb.Services.DatabaseStorageService.Instance.SaveConnectionAsync(
+            await Quell.Services.DatabaseStorageService.Instance.SaveConnectionAsync(
                 vm.ConnectModal.Server, vm.ConnectModal.Port, vm.ConnectModal.Database,
                 vm.ConnectModal.AuthType, vm.ConnectModal.Username, "MSSQL");
             await vm.Sidebar.RefreshAsync();
@@ -1031,7 +1031,7 @@ sealed class Program
                 }
                 // Update database name in modal and save
                 vm.ConnectModal.Database = "SalesDB_Updated";
-                await Fdb.Services.DatabaseStorageService.Instance.UpdateConnectionAsync(
+                await Quell.Services.DatabaseStorageService.Instance.UpdateConnectionAsync(
                     vm.ConnectModal.EditingConnectionId.Value,
                     vm.ConnectModal.Server, vm.ConnectModal.Port, vm.ConnectModal.Database,
                     vm.ConnectModal.AuthType, vm.ConnectModal.Username, vm.ConnectModal.SelectedDatabaseType);
@@ -1069,7 +1069,7 @@ sealed class Program
 
             // [Action] Verifying Graphical Cell Editor & Query Generator in Footer
             Console.WriteLine("\n[Action] Verifying Graphical Cell Editor & UPDATE Query Generator...");
-            var testUserRow = new Fdb.ViewModels.QueryResultRow
+            var testUserRow = new Quell.ViewModels.QueryResultRow
             {
                 RowIndex = 1,
                 Id = 101,
@@ -1081,7 +1081,7 @@ sealed class Program
             testUserRow["Email"] = "alice@example.com";
             vm.SampleQueryResult.SetResults(
                 new System.Collections.Generic.List<string> { "Id", "Name", "Email" },
-                new System.Collections.Generic.List<Fdb.ViewModels.QueryResultRow> { testUserRow },
+                new System.Collections.Generic.List<Quell.ViewModels.QueryResultRow> { testUserRow },
                 "5 ms");
             vm.SampleQueryResult.CurrentTableName = "Users";
             var firstRow = vm.SampleQueryResult.Rows[0];
@@ -1127,10 +1127,10 @@ sealed class Program
             // Verify Unicode / Multilingual Text UPDATE & Literal Encoding
             Console.WriteLine("\n[Action] Verifying Unicode / Multilingual Text UPDATE Query Generation & Execution...");
             // Verify FormatLiteral across dialects
-            string mssqlUnicode = Fdb.ViewModels.EditCellModalViewModel.FormatLiteral("José García", "MSSQL");
-            string sqliteUnicode = Fdb.ViewModels.EditCellModalViewModel.FormatLiteral("José García", "SQLITE");
-            string mysqlUnicode = Fdb.ViewModels.EditCellModalViewModel.FormatLiteral("José García", "MYSQL");
-            string pgUnicode = Fdb.ViewModels.EditCellModalViewModel.FormatLiteral("José García", "POSTGRESQL");
+            string mssqlUnicode = Quell.ViewModels.EditCellModalViewModel.FormatLiteral("José García", "MSSQL");
+            string sqliteUnicode = Quell.ViewModels.EditCellModalViewModel.FormatLiteral("José García", "SQLITE");
+            string mysqlUnicode = Quell.ViewModels.EditCellModalViewModel.FormatLiteral("José García", "MYSQL");
+            string pgUnicode = Quell.ViewModels.EditCellModalViewModel.FormatLiteral("José García", "POSTGRESQL");
             Console.WriteLine($"Unicode Formatted Literals:\nMSSQL: {mssqlUnicode}\nSQLite: {sqliteUnicode}\nMySQL: {mysqlUnicode}\nPostgres: {pgUnicode}");
             if (mssqlUnicode != "N'José García'") throw new Exception($"MSSQL must use N prefix for Unicode text! Got '{mssqlUnicode}'");
             if (sqliteUnicode != "'José García'") throw new Exception($"SQLite must use standard quotes without N prefix! Got '{sqliteUnicode}'");
@@ -1138,7 +1138,7 @@ sealed class Program
             if (pgUnicode != "N'José García'") throw new Exception($"Postgres must use N prefix for Unicode! Got '{pgUnicode}'");
 
             // Verify MSSQL UPDATE query with N prefix for Unicode text
-            string mssqlUpdate = Fdb.ViewModels.EditCellModalViewModel.BuildUpdateQuery("Users", "Name", "José García", firstRow, "MSSQL");
+            string mssqlUpdate = Quell.ViewModels.EditCellModalViewModel.BuildUpdateQuery("Users", "Name", "José García", firstRow, "MSSQL");
             Console.WriteLine($"Generated MSSQL Query for Unicode Name:\n{mssqlUpdate}");
             if (!mssqlUpdate.Contains("N'José García'") || !mssqlUpdate.Contains("SET [Name] = N'José García'"))
             {
@@ -1255,7 +1255,7 @@ sealed class Program
             }
 
             // 3. Test Refresh on Active Database Session
-            var activeSession = Fdb.Services.DatabaseProviders.DatabaseSessionService.Instance.ActiveSession;
+            var activeSession = Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.ActiveSession;
             if (activeSession != null)
             {
                 Console.WriteLine($"[Action] Testing Refresh on active session: {activeSession.DisplayName}...");
@@ -1398,14 +1398,14 @@ sealed class Program
             }
 
             // C. Verify heuristic FK detection on other common schema patterns
-            var deptFk = Fdb.ViewModels.QueryResultTableViewModel.DetectProbableForeignKey("department_id", "Employees");
+            var deptFk = Quell.ViewModels.QueryResultTableViewModel.DetectProbableForeignKey("department_id", "Employees");
             Console.WriteLine($"Heuristic FK 'department_id': Table={deptFk?.TargetTable}, Col={deptFk?.TargetColumn}");
             if (deptFk == null || deptFk.TargetTable != "Departments" || deptFk.TargetColumn != "Id")
             {
                 throw new Exception("Heuristic FK detection failed for 'department_id'!");
             }
 
-            var custFk = Fdb.ViewModels.QueryResultTableViewModel.DetectProbableForeignKey("customer_id", "Orders");
+            var custFk = Quell.ViewModels.QueryResultTableViewModel.DetectProbableForeignKey("customer_id", "Orders");
             Console.WriteLine($"Heuristic FK 'customer_id': Table={custFk?.TargetTable}, Col={custFk?.TargetColumn}");
             if (custFk == null || custFk.TargetTable != "Customers" || custFk.TargetColumn != "Id")
             {
@@ -1443,14 +1443,14 @@ sealed class Program
             Console.WriteLine("[Success] Foreign Key visual indicators and arrow navigation to referenced table verified!");
             // E. Test Course -> Users Foreign Key Navigation
             Console.WriteLine("\n[Action] Testing Course Foreign Key -> User Navigation...");
-            var courseFk = Fdb.ViewModels.QueryResultTableViewModel.DetectProbableForeignKey("Course");
+            var courseFk = Quell.ViewModels.QueryResultTableViewModel.DetectProbableForeignKey("Course");
             Console.WriteLine($"DetectProbableForeignKey('Course'): TargetTable={courseFk?.TargetTable}, TargetColumn={courseFk?.TargetColumn}");
             if (courseFk == null || courseFk.TargetTable != "Users")
             {
                 throw new Exception("Foreign Key detection failed for 'Course' linking to Users!");
             }
 
-            var studentFk = Fdb.ViewModels.QueryResultTableViewModel.DetectProbableForeignKey("student_name");
+            var studentFk = Quell.ViewModels.QueryResultTableViewModel.DetectProbableForeignKey("student_name");
             Console.WriteLine($"DetectProbableForeignKey('student_name'): TargetTable={studentFk?.TargetTable}, TargetColumn={studentFk?.TargetColumn}");
             if (studentFk == null || studentFk.TargetTable != "Users")
             {
@@ -1489,7 +1489,7 @@ sealed class Program
 
             // [Action] Verifying Hardware Graphics Adapter Detection, GPU vs CPU Modes & SQLite Persistence
             Console.WriteLine("\n[Action] Verifying Hardware Graphics Adapter Detection, GPU/CPU Modes & SQLite Persistence...");
-            var graphicsService = Fdb.Services.HardwareGraphicsService.Instance;
+            var graphicsService = Quell.Services.HardwareGraphicsService.Instance;
             graphicsService.DetectHardwareGpu();
             Console.WriteLine($"Detected GPU Adapter: '{graphicsService.GpuAdapterName}', IsGpuDetected={graphicsService.IsGpuDetected}");
             if (string.IsNullOrWhiteSpace(graphicsService.GpuAdapterName))
@@ -1535,7 +1535,7 @@ sealed class Program
             }
             await vm.SettingsModal.SaveAsync();
 
-            string dbModeAfterCpu = await Fdb.Services.DatabaseStorageService.Instance.GetGraphicsRenderingModeAsync();
+            string dbModeAfterCpu = await Quell.Services.DatabaseStorageService.Instance.GetGraphicsRenderingModeAsync();
             Console.WriteLine($"SQLite Saved GraphicsRenderingMode: '{dbModeAfterCpu}'");
             if (dbModeAfterCpu != "CPU")
             {
@@ -1555,7 +1555,7 @@ sealed class Program
             await vm.SettingsModal.OpenAsync();
             vm.SettingsModal.SelectRenderingMode("Auto");
             await vm.SettingsModal.SaveAsync();
-            string dbModeAfterAuto = await Fdb.Services.DatabaseStorageService.Instance.GetGraphicsRenderingModeAsync();
+            string dbModeAfterAuto = await Quell.Services.DatabaseStorageService.Instance.GetGraphicsRenderingModeAsync();
             Console.WriteLine($"SQLite Reset GraphicsRenderingMode: '{dbModeAfterAuto}'");
             if (dbModeAfterAuto != "Auto")
             {
@@ -1597,10 +1597,10 @@ sealed class Program
             Console.WriteLine("[Success] Footer TabItems and Theme-Synchronized Tab Switching verified!");
 
             // 2. Shell Profiles Detection
-            var shells = Fdb.Services.Terminal.ShellDetectorService.Instance.GetAvailableShells();
+            var shells = Quell.Services.Terminal.ShellDetectorService.Instance.GetAvailableShells();
             Console.WriteLine($"Detected available shells: {shells.Count} ({string.Join(", ", shells.Select(s => s.DisplayName))})");
             if (shells.Count == 0) throw new Exception("No available system shells were detected!");
-            var defaultShell = Fdb.Services.Terminal.ShellDetectorService.Instance.GetDefaultShell();
+            var defaultShell = Quell.Services.Terminal.ShellDetectorService.Instance.GetDefaultShell();
             if (defaultShell == null || string.IsNullOrEmpty(defaultShell.ExecutablePath))
             {
                 throw new Exception("Default shell resolution failed!");
@@ -1608,7 +1608,7 @@ sealed class Program
             Console.WriteLine($"[Success] Default shell resolved: {defaultShell.DisplayName} ({defaultShell.ExecutablePath})");
 
             // 3. Database CLI Resolution Tests (PostgreSQL, MySQL, SQLite, SQL Server)
-            var pgConfig = new Fdb.Services.DatabaseProviders.DatabaseConnectionConfig
+            var pgConfig = new Quell.Services.DatabaseProviders.DatabaseConnectionConfig
             {
                 DatabaseType = "PostgreSQL",
                 Server = "localhost",
@@ -1617,7 +1617,7 @@ sealed class Program
                 Username = "postgres",
                 Password = "secretpassword"
             };
-            var pgCli = Fdb.Services.Terminal.DatabaseCliService.Instance.ResolveCli(pgConfig);
+            var pgCli = Quell.Services.Terminal.DatabaseCliService.Instance.ResolveCli(pgConfig);
             if (!pgCli.EnvironmentVariables.ContainsKey("PGPASSWORD") || pgCli.EnvironmentVariables["PGPASSWORD"] != "secretpassword")
             {
                 throw new Exception("PostgreSQL CLI failed to set PGPASSWORD environment variable!");
@@ -1628,7 +1628,7 @@ sealed class Program
             }
             Console.WriteLine("[Success] PostgreSQL CLI resolution and secure environment variables verified!");
 
-            var myConfig = new Fdb.Services.DatabaseProviders.DatabaseConnectionConfig
+            var myConfig = new Quell.Services.DatabaseProviders.DatabaseConnectionConfig
             {
                 DatabaseType = "MySQL",
                 Server = "127.0.0.1",
@@ -1637,7 +1637,7 @@ sealed class Program
                 Username = "root",
                 Password = "mysqlsecret"
             };
-            var myCli = Fdb.Services.Terminal.DatabaseCliService.Instance.ResolveCli(myConfig);
+            var myCli = Quell.Services.Terminal.DatabaseCliService.Instance.ResolveCli(myConfig);
             if (!myCli.EnvironmentVariables.ContainsKey("MYSQL_PWD") || myCli.EnvironmentVariables["MYSQL_PWD"] != "mysqlsecret")
             {
                 throw new Exception("MySQL CLI failed to set MYSQL_PWD environment variable!");
@@ -1698,7 +1698,7 @@ sealed class Program
             Console.WriteLine("[Success] ToggleTerminalCommand toggle lifecycle verified!");
 
             // Run in Terminal execution
-            vm.RunSelectionInTerminal("SELECT 'Hello from Fdb Terminal';");
+            vm.RunSelectionInTerminal("SELECT 'Hello from Quell Terminal';");
             if (vm.Footer.SelectedTab != "Terminal")
             {
                 throw new Exception("RunSelectionInTerminal failed to switch to Terminal tab!");
@@ -1706,7 +1706,7 @@ sealed class Program
             Console.WriteLine("[Success] RunSelectionInTerminal workflow verified!");
 
             // 6. Terminal Preferences Persistence
-            var testSettings = new Fdb.Models.TerminalSettingsModel
+            var testSettings = new Quell.Models.TerminalSettingsModel
             {
                 DefaultShellId = defaultShell.Id,
                 FontFamily = "JetBrains Mono",
@@ -1716,8 +1716,8 @@ sealed class Program
                 MaxScrollback = 8000,
                 PsqlPath = @"C:\Custom\psql.exe"
             };
-            await Fdb.Services.Terminal.TerminalSettingsService.Instance.SaveSettingsAsync(testSettings);
-            var loadedSettings = await Fdb.Services.Terminal.TerminalSettingsService.Instance.LoadSettingsAsync();
+            await Quell.Services.Terminal.TerminalSettingsService.Instance.SaveSettingsAsync(testSettings);
+            var loadedSettings = await Quell.Services.Terminal.TerminalSettingsService.Instance.LoadSettingsAsync();
             if (loadedSettings.FontFamily != "JetBrains Mono" || loadedSettings.FontSize != 14.5 || loadedSettings.PsqlPath != @"C:\Custom\psql.exe")
             {
                 throw new Exception("TerminalSettingsService persistence test failed!");
@@ -1725,7 +1725,7 @@ sealed class Program
             Console.WriteLine("[Success] Terminal settings persistence in SQLite verified!");
 
             // Restore defaults
-            await Fdb.Services.Terminal.TerminalSettingsService.Instance.SaveSettingsAsync(new Fdb.Models.TerminalSettingsModel());
+            await Quell.Services.Terminal.TerminalSettingsService.Instance.SaveSettingsAsync(new Quell.Models.TerminalSettingsModel());
 
             Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER, SIMULTANEOUS BATCH CELL EDITING, FOREIGN KEY NAVIGATION, HARDWARE GPU/CPU RENDERING PIPELINE & INTEGRATED TERMINAL) PASSED! <<<");
             return;
@@ -1746,7 +1746,7 @@ sealed class Program
             .LogToTrace();
 
         // Hardware Graphics & Rendering Configuration (DirectX/ANGLE GPU vs CPU Software)
-        Fdb.Services.HardwareGraphicsService.Instance.ConfigureAppBuilder(builder);
+        Quell.Services.HardwareGraphicsService.Instance.ConfigureAppBuilder(builder);
 
         return builder;
     }

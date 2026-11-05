@@ -1,11 +1,11 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace Fdb.ViewModels;
+namespace Quell.ViewModels;
 
 public partial class ExportDataModalViewModel : ViewModelBase
 {

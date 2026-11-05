@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.Threading.Tasks;
-using Fdb.Models;
+using Quell.Models;
 
-namespace Fdb.Services.Terminal;
+namespace Quell.Services.Terminal;
 
 public class TerminalSettingsService
 {

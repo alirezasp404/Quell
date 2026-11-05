@@ -1,4 +1,4 @@
-# Fdb Studio
+# Quell
 
 Modern, high-performance, cross-platform database management tool and SQL IDE built with **Avalonia UI** and **.NET 10**.
 
@@ -66,12 +66,12 @@ dotnet run -- --verify
 
 ## Cross-Platform Packaging & CI/CD
 
-Fdb Studio includes an automated GitHub Actions workflow (`.github/workflows/ci-cd.yml`) that builds, packages, and attaches native installers whenever code is pushed to branch `main`, on pull requests to `main`, or via manual workflow dispatch.
+Quell includes an automated GitHub Actions workflow (`.github/workflows/ci-cd.yml`) that builds, packages, and attaches native installers whenever code is pushed to branch `main`, on pull requests to `main`, or via manual workflow dispatch.
 
 ### Supported Installer Formats
 | Platform | Target Runtime | Installer Format | Portable Package | Packaging Tool |
 | :--- | :--- | :--- | :--- | :--- |
-| **Windows** | `win-x64` | `Fdb-Studio-Setup-win-x64.exe` | `.zip` | Inno Setup (`packaging/windows/installer.iss`) |
-| **Linux** | `linux-x64` | `fdb-studio_1.0.0_amd64.deb` | `.tar.gz` | `dpkg-deb` (`packaging/linux/build-deb.sh`) |
-| **macOS** | `osx-x64` | `Fdb-Studio-1.0.0-osx-x64.dmg` | `.zip` | `hdiutil` (`packaging/macos/build-app.sh`) |
-| **macOS** | `osx-arm64` | `Fdb-Studio-1.0.0-osx-arm64.dmg` | `.zip` | `hdiutil` (`packaging/macos/build-app.sh`) |
+| **Windows** | `win-x64` | `Quell-Setup-win-x64.exe` | `.zip` | Inno Setup (`packaging/windows/installer.iss`) |
+| **Linux** | `linux-x64` | `quell_1.0.0_amd64.deb` | `.tar.gz` | `dpkg-deb` (`packaging/linux/build-deb.sh`) |
+| **macOS** | `osx-x64` | `Quell-1.0.0-osx-x64.dmg` | `.zip` | `hdiutil` (`packaging/macos/build-app.sh`) |
+| **macOS** | `osx-arm64` | `Quell-1.0.0-osx-arm64.dmg` | `.zip` | `hdiutil` (`packaging/macos/build-app.sh`) |

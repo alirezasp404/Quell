@@ -1,12 +1,12 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="using:Fdb.ViewModels"
-             xmlns:components="using:Fdb.Components"
+             xmlns:vm="using:Quell.ViewModels"
+             xmlns:components="using:Quell.Components"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="36"
-             x:Class="Fdb.Components.NavbarComponent"
+             x:Class="Quell.Components.NavbarComponent"
              x:DataType="vm:NavbarViewModel">
 
     <UserControl.Styles>
@@ -87,14 +87,14 @@
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Margin="8,0,4,0">
                 <!-- App Logo -->
                 <Border CornerRadius="4" ClipToBounds="True" Width="18" Height="18" Margin="0,0,4,0">
-                    <Image Source="avares://Fdb/Assets/fdb_icon.png" 
+                    <Image Source="avares://Quell/Assets/quell_icon.png" 
                            Width="18" Height="18" 
                            Stretch="Uniform" 
                            RenderOptions.BitmapInterpolationMode="HighQuality"/>
                 </Border>
                 
                 <!-- App Title -->
-                <TextBlock Text="Fdb Studio" 
+                <TextBlock Text="Quell" 
                            Foreground="{DynamicResource AppTextPrimaryBrush}" 
                            FontWeight="Bold" 
                            FontSize="11" 
@@ -188,7 +188,7 @@
                     <!-- Help Menu -->
                     <MenuItem Header="Help" FontSize="11">
                         <MenuItem Header="Documentation" />
-                        <MenuItem Header="About Fdb Studio" />
+                        <MenuItem Header="About Quell" />
                     </MenuItem>
                 </Menu>
             </StackPanel>

@@ -1,7 +1,7 @@
-using System;
+﻿using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace Fdb.Services.DatabaseProviders;
+namespace Quell.Services.DatabaseProviders;
 
 public class TargetDatabaseItem : ObservableObject
 {

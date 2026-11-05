@@ -1,14 +1,14 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using Microsoft.Data.Sqlite;
-using Fdb.ViewModels;
-using Fdb.Services.DatabaseProviders;
+using Quell.ViewModels;
+using Quell.Services.DatabaseProviders;
 
-namespace Fdb.Services;
+namespace Quell.Services;
 
 public class ConnectionRecord
 {
@@ -170,7 +170,11 @@ public class DatabaseStorageService
 
     public static string ResolveDatabasePath()
     {
-        string? envPath = Environment.GetEnvironmentVariable("FDB_STUDIO_DB_PATH");
+        string? envPath = Environment.GetEnvironmentVariable("QUELL_DB_PATH");
+        if (string.IsNullOrWhiteSpace(envPath))
+        {
+            envPath = Environment.GetEnvironmentVariable("FDB_STUDIO_DB_PATH");
+        }
         if (!string.IsNullOrWhiteSpace(envPath))
         {
             var dir = Path.GetDirectoryName(envPath);
@@ -181,15 +185,60 @@ public class DatabaseStorageService
             return envPath;
         }
 
-        string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        string appFolder = Path.Combine(appData, "FdbStudio");
-        if (!Directory.Exists(appFolder))
+        try
         {
-            Directory.CreateDirectory(appFolder);
-        }
-        return Path.Combine(appFolder, "fdb_studio.db");
-    }
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            if (!string.IsNullOrEmpty(appData))
+            {
+                string appFolder = Path.Combine(appData, "Quell");
+                if (!Directory.Exists(appFolder))
+                {
+                    Directory.CreateDirectory(appFolder);
+                }
 
+                string quellDbPath = Path.Combine(appFolder, "quell.db");
+                if (!File.Exists(quellDbPath))
+                {
+                    string oldDbPath = Path.Combine(appData, "FdbStudio", "fdb_studio.db");
+                    if (File.Exists(oldDbPath))
+                    {
+                        try
+                        {
+                            File.Copy(oldDbPath, quellDbPath, overwrite: false);
+                        }
+                        catch
+                        {
+                            // Ignore copy error
+                        }
+                    }
+                }
+
+                string testFile = Path.Combine(appFolder, ".perm_test");
+                File.WriteAllText(testFile, "1");
+                File.Delete(testFile);
+
+                return quellDbPath;
+            }
+        }
+        catch
+        {
+            // AppData not writable in current environment (sandbox/container), fallback below
+        }
+
+        string fallbackDir = Path.Combine(Directory.GetCurrentDirectory(), "data");
+        if (!Directory.Exists(fallbackDir))
+        {
+            try
+            {
+                Directory.CreateDirectory(fallbackDir);
+            }
+            catch
+            {
+                fallbackDir = AppDomain.CurrentDomain.BaseDirectory;
+            }
+        }
+        return Path.Combine(fallbackDir, "quell.db");
+    }
     public DatabaseStorageService()
     {
         DatabasePath = ResolveDatabasePath();
@@ -323,7 +372,7 @@ public class DatabaseStorageService
             reportProgress?.Invoke(90, "Pre-caching active SQL dialect keywords...");
             await SqlKeywordsService.Instance.LoadKeywordsFromDatabaseAsync();
 
-            reportProgress?.Invoke(100, "Studio Environment Ready — SQLite Engine Initialized.");
+            reportProgress?.Invoke(100, "Studio Environment Ready ΓÇö SQLite Engine Initialized.");
         }
         catch (Exception ex)
         {
@@ -411,7 +460,7 @@ public class DatabaseStorageService
         reportProgress?.Invoke(96, "Pre-caching Execution History & Dialect Metadata...");
         await GetQueryHistoryAsync(forceReload: true).ConfigureAwait(false);
 
-        reportProgress?.Invoke(100, "Studio Environment Ready — SQLite Engine Initialized.");
+        reportProgress?.Invoke(100, "Studio Environment Ready ΓÇö SQLite Engine Initialized.");
     }
 
     private static async Task ExecuteInitScriptStepsAsync(SqliteConnection connection, string fullSql, Action<double, string>? reportProgress)
@@ -944,7 +993,7 @@ public class DatabaseStorageService
                        COALESCE(Password, '') AS Password,
                        COALESCE(DatabaseType, 'MSSQL') AS DatabaseType, LastConnectedAt 
                 FROM Connections 
-                WHERE Server NOT LIKE '%fdb_studio%' AND DatabaseName NOT LIKE '%fdb_studio%'
+                WHERE Server NOT LIKE '%quell%' AND DatabaseName NOT LIKE '%quell%' AND Server NOT LIKE '%fdb_studio%' AND DatabaseName NOT LIKE '%fdb_studio%'
                 ORDER BY Id DESC 
                 LIMIT 20;";
 
@@ -975,7 +1024,7 @@ public class DatabaseStorageService
                        COALESCE(Password, '') AS Password,
                        COALESCE(DatabaseType, 'MSSQL') AS DatabaseType, LastConnectedAt 
                 FROM Connections 
-                WHERE Id = @id AND Server NOT LIKE '%fdb_studio%' AND DatabaseName NOT LIKE '%fdb_studio%';";
+                WHERE Id = @id AND Server NOT LIKE '%quell%' AND DatabaseName NOT LIKE '%quell%' AND Server NOT LIKE '%fdb_studio%' AND DatabaseName NOT LIKE '%fdb_studio%';";
 
             return await connection.QueryFirstOrDefaultAsync<ConnectionRecord>(sql, new { id });
         }

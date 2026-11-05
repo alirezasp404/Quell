@@ -1,14 +1,14 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Fdb.Services;
-using Fdb.Services.DatabaseProviders;
+using Quell.Services;
+using Quell.Services.DatabaseProviders;
 
-namespace Fdb.ViewModels;
+namespace Quell.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {
@@ -82,7 +82,7 @@ public partial class MainViewModel : ViewModelBase
             var res = await DatabaseSessionService.Instance.ExecuteQueryAsync(sql, key);
             if (res.Success)
             {
-                await Fdb.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
+                await Quell.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
                     sql, res.ExecutionTime, res.RowCount > 0 ? res.RowCount : 1, "Success");
                 return (true, null);
             }
@@ -190,7 +190,7 @@ public partial class MainViewModel : ViewModelBase
 
     private async Task InitializeStartupAsync()
     {
-        await Fdb.Services.DatabaseStorageService.Instance.InitializeAsync();
+        await Quell.Services.DatabaseStorageService.Instance.InitializeAsync();
         await RefreshAvailableDatabasesAsync();
         await Sidebar.RefreshAsync();
     }
@@ -199,8 +199,8 @@ public partial class MainViewModel : ViewModelBase
 
     public async Task RefreshAvailableDatabasesAsync()
     {
-        var conns = (await Fdb.Services.DatabaseStorageService.Instance.GetRecentConnectionsAsync())
-            .Where(c => !c.Server.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase) && !c.DatabaseName.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase))
+        var conns = (await Quell.Services.DatabaseStorageService.Instance.GetRecentConnectionsAsync())
+            .Where(c => !c.Server.Contains("quell", StringComparison.OrdinalIgnoreCase) && !c.DatabaseName.Contains("quell", StringComparison.OrdinalIgnoreCase) && !c.Server.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase) && !c.DatabaseName.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase))
             .ToList();
         var currentSelectedKey = SelectedTargetDatabase?.Key;
 
@@ -470,7 +470,7 @@ public partial class MainViewModel : ViewModelBase
 
         SampleQueryResult.TargetDatabaseName = targetDbName;
 
-        await Fdb.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
+        await Quell.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
             query, execTime, rowCount, status);
 
         _ = Sidebar.RefreshAsync();
@@ -636,7 +636,7 @@ public partial class MainViewModel : ViewModelBase
     {
         if (Editor.SelectedTab != null)
         {
-            await Fdb.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
+            await Quell.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
                 Editor.SelectedTab.Text, "0 ms", 0, "Saved");
             _ = Sidebar.RefreshAsync();
         }
@@ -762,7 +762,7 @@ public partial class MainViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    public void LaunchCliInTerminal(Fdb.Services.DatabaseProviders.DatabaseConnectionConfig? config = null)
+    public void LaunchCliInTerminal(Quell.Services.DatabaseProviders.DatabaseConnectionConfig? config = null)
     {
         Footer.IsVisible = true;
 
@@ -771,7 +771,7 @@ public partial class MainViewModel : ViewModelBase
             Footer.Tabs.Add("Terminal");
         }
         Footer.SelectedTab = "Terminal";
-        Terminal.LaunchDatabaseCli(config ?? Fdb.Services.DatabaseProviders.DatabaseSessionService.Instance.ActiveConfig);
+        Terminal.LaunchDatabaseCli(config ?? Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.ActiveConfig);
     }
 
     [RelayCommand]

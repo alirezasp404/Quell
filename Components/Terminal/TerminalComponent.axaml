@@ -1,13 +1,13 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
-             xmlns:vm="using:Fdb.ViewModels"
-             xmlns:models="using:Fdb.Models"
-             xmlns:components="using:Fdb.Components"
+             xmlns:vm="using:Quell.ViewModels"
+             xmlns:models="using:Quell.Models"
+             xmlns:components="using:Quell.Components"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="250"
-             x:Class="Fdb.Components.TerminalComponent"
+             x:Class="Quell.Components.TerminalComponent"
              x:DataType="vm:TerminalViewModel"
              Background="{DynamicResource AppWorkspaceBrush}">
 

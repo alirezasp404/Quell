@@ -1,13 +1,13 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
-using Fdb.Services.DatabaseProviders;
+using Quell.Services.DatabaseProviders;
 
-namespace Fdb.ViewModels;
+namespace Quell.ViewModels;
 
 public partial class NavbarViewModel : ViewModelBase
 {
     [ObservableProperty]
-    private string _title = "Fdb";
+    private string _title = "Quell";
 
     [ObservableProperty]
     private string _connectionStatusText = "master [localhost:1433]";

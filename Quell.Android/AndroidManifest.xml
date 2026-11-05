@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.cipherunits.fdb"
+          package="com.cipherunits.quell"
           android:versionCode="1"
           android:versionName="1.0.0">
     <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="34" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <application android:label="Fdb Studio"
+    <application android:label="Quell"
                  android:icon="@mipmap/icon"
                  android:roundIcon="@mipmap/icon"
                  android:allowBackup="true"

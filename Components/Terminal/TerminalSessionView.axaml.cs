@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -7,11 +7,11 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia;
-using Fdb.Services;
-using Fdb.Services.Terminal;
-using Fdb.ViewModels;
+using Quell.Services;
+using Quell.Services.Terminal;
+using Quell.ViewModels;
 
-namespace Fdb.Components;
+namespace Quell.Components;
 
 public partial class TerminalSessionView : UserControl
 {
@@ -41,7 +41,7 @@ public partial class TerminalSessionView : UserControl
     {
         if (_session != null && !string.IsNullOrWhiteSpace(_session.WorkingDirectory))
         {
-            await Fdb.Services.ClipboardService.CopyTextAsync(_session.WorkingDirectory, this);
+            await Quell.Services.ClipboardService.CopyTextAsync(_session.WorkingDirectory, this);
             _session.IsCopied = true;
             await Task.Delay(1500);
             _session.IsCopied = false;
@@ -140,7 +140,7 @@ public partial class TerminalSessionView : UserControl
     {
         try
         {
-            await Fdb.Services.ClipboardService.CopyTextAsync(text, this);
+            await Quell.Services.ClipboardService.CopyTextAsync(text, this);
         }
         catch (Exception ex)
         {

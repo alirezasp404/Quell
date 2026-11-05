@@ -1,5 +1,5 @@
--- ============================================================================
--- Fdb Studio: SQLite Database Startup & Dialect Keywords Initialization Script
+﻿-- ============================================================================
+-- Quell: SQLite Database Startup & Dialect Keywords Initialization Script
 -- ============================================================================
 
 -- [STEP 1/4] Core Schema & Tables

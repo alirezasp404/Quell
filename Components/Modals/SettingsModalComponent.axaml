@@ -1,12 +1,12 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
               xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
               xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-              xmlns:vm="using:Fdb.ViewModels"
-              xmlns:components="using:Fdb.Components"
+              xmlns:vm="using:Quell.ViewModels"
+              xmlns:components="using:Quell.Components"
               xmlns:ui="using:FluentAvalonia.UI.Controls"
               mc:Ignorable="d" d:DesignWidth="850" d:DesignHeight="680"
-              x:Class="Fdb.Components.SettingsModalComponent"
+              x:Class="Quell.Components.SettingsModalComponent"
               x:DataType="vm:SettingsModalViewModel">
 
     <!-- Composed Settings & Preferences Modal Dialog Component -->
@@ -72,7 +72,7 @@
                                                FontSize="15" 
                                                FontWeight="Bold" 
                                                Foreground="{DynamicResource AppTextPrimaryBrush}"/>
-                                    <TextBlock Text="Choose how Fdb Studio looks and feels. Changes preview instantly." 
+                                    <TextBlock Text="Choose how Quell looks and feels. Changes preview instantly." 
                                                FontSize="11" 
                                                Foreground="{DynamicResource AppTextMutedBrush}"/>
                                 </StackPanel>

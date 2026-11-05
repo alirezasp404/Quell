@@ -31,10 +31,10 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore Dependencies
-        run: dotnet restore Fdb.csproj
+        run: dotnet restore Quell.csproj
 
       - name: Build Project
-        run: dotnet build Fdb.csproj --configuration Release --no-restore
+        run: dotnet build Quell.csproj --configuration Release --no-restore
 
       - name: Execute Verification Suite (--verify)
         run: dotnet run --configuration Release --no-build -- --verify
@@ -57,7 +57,7 @@ jobs:
 
       - name: Publish Windows Standalone Executable (win-x64)
         run: >
-          dotnet publish Fdb.csproj
+          dotnet publish Quell.csproj
           -c Release
           -r win-x64
           --self-contained true
@@ -78,7 +78,7 @@ jobs:
       - name: Create Portable Zip Package
         shell: pwsh
         run: |
-          Compress-Archive -Path ./publish/win-x64/* -DestinationPath ./dist/windows/Fdb-Studio-1.0.0-win-x64-portable.zip -Force
+          Compress-Archive -Path ./publish/win-x64/* -DestinationPath ./dist/windows/Quell-1.0.0-win-x64-portable.zip -Force
 
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v4
@@ -105,7 +105,7 @@ jobs:
 
       - name: Publish Linux Standalone Executable (linux-x64)
         run: >
-          dotnet publish Fdb.csproj
+          dotnet publish Quell.csproj
           -c Release
           -r linux-x64
           --self-contained true
@@ -120,7 +120,7 @@ jobs:
       - name: Create Portable .tar.gz Package
         run: |
           mkdir -p dist/linux
-          tar -czvf dist/linux/Fdb-Studio-1.0.0-linux-x64-portable.tar.gz -C publish/linux-x64 .
+          tar -czvf dist/linux/Quell-1.0.0-linux-x64-portable.tar.gz -C publish/linux-x64 .
 
       - name: Upload Linux Artifacts
         uses: actions/upload-artifact@v4
@@ -150,7 +150,7 @@ jobs:
 
       - name: Publish macOS App Binaries (${{ matrix.rid }})
         run: >
-          dotnet publish Fdb.csproj
+          dotnet publish Quell.csproj
           -c Release
           -r ${{ matrix.rid }}
           --self-contained true
@@ -218,11 +218,11 @@ jobs:
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG_NAME="${GITHUB_REF#refs/tags/}"
             echo "tag=$TAG_NAME" >> "$GITHUB_OUTPUT"
-            echo "title=Fdb Studio $TAG_NAME" >> "$GITHUB_OUTPUT"
+            echo "title=Quell $TAG_NAME" >> "$GITHUB_OUTPUT"
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
           else
             echo "tag=latest" >> "$GITHUB_OUTPUT"
-            echo "title=Fdb Studio Continuous Build" >> "$GITHUB_OUTPUT"
+            echo "title=Quell Continuous Build" >> "$GITHUB_OUTPUT"
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
           fi
 

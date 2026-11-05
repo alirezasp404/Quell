@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 using Avalonia.Input.Platform;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Fdb.Services;
-using Fdb.Services.DatabaseProviders;
+using Quell.Services;
+using Quell.Services.DatabaseProviders;
 
-namespace Fdb.ViewModels;
+namespace Quell.ViewModels;
 
 public abstract partial class SidebarTreeNodeBase : ViewModelBase
 {

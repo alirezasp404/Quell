@@ -17,7 +17,7 @@ echo "Building macOS application bundle and installer for $RID (v$VERSION)..."
 echo "Source publish dir: $PUBLISH_DIR"
 echo "Target dist dir:    $DIST_DIR"
 
-APP_NAME="Fdb Studio.app"
+APP_NAME="Quell.app"
 STAGING_DIR=$(mktemp -d)
 trap 'rm -rf "$STAGING_DIR"' EXIT
 
@@ -31,7 +31,9 @@ mkdir -p "$RESOURCES_PATH"
 
 # Copy published application files
 cp -r "$PUBLISH_DIR"/* "$MACOS_PATH/"
-if [ -f "$MACOS_PATH/Fdb" ]; then
+if [ -f "$MACOS_PATH/Quell" ]; then
+    chmod +x "$MACOS_PATH/Quell"
+elif [ -f "$MACOS_PATH/Fdb" ]; then
     chmod +x "$MACOS_PATH/Fdb"
 fi
 
@@ -44,7 +46,7 @@ if [ -d "$ROOT_DIR/Assets" ]; then
 fi
 
 # Create portable zip archive
-ZIP_FILE="$DIST_DIR/Fdb-Studio-${VERSION}-${RID}.zip"
+ZIP_FILE="$DIST_DIR/Quell-${VERSION}-${RID}.zip"
 (cd "$STAGING_DIR" && zip -r -y "$ZIP_FILE" "$APP_NAME")
 echo "Created zip bundle: $ZIP_FILE"
 
@@ -55,9 +57,9 @@ if command -v hdiutil &>/dev/null; then
     cp -R "$APP_PATH" "$DMG_DIR/"
     ln -s /Applications "$DMG_DIR/Applications"
 
-    DMG_FILE="$DIST_DIR/Fdb-Studio-${VERSION}-${RID}.dmg"
+    DMG_FILE="$DIST_DIR/Quell-${VERSION}-${RID}.dmg"
     rm -f "$DMG_FILE"
-    hdiutil create -volname "Fdb Studio" -srcfolder "$DMG_DIR" -ov -format UDZO "$DMG_FILE"
+    hdiutil create -volname "Quell" -srcfolder "$DMG_DIR" -ov -format UDZO "$DMG_FILE"
     echo "Created DMG installer: $DMG_FILE"
 fi
 

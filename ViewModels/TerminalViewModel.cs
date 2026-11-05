@@ -1,15 +1,15 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Fdb.Models;
-using Fdb.Services.DatabaseProviders;
-using Fdb.Services.Terminal;
+using Quell.Models;
+using Quell.Services.DatabaseProviders;
+using Quell.Services.Terminal;
 
-namespace Fdb.ViewModels;
+namespace Quell.ViewModels;
 
 public partial class TerminalViewModel : ViewModelBase
 {

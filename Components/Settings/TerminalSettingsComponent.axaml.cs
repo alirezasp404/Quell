@@ -1,7 +1,7 @@
-using Avalonia.Controls;
-using Fdb.ViewModels;
+﻿using Avalonia.Controls;
+using Quell.ViewModels;
 
-namespace Fdb.Components;
+namespace Quell.Components;
 
 public partial class TerminalSettingsComponent : UserControl
 {
