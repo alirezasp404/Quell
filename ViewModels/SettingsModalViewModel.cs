@@ -1697,6 +1697,8 @@ public partial class SettingsModalViewModel : ObservableObject
             // 5. Save Graphics Rendering Mode to SQLite
             await DatabaseStorageService.Instance.SaveGraphicsRenderingModeAsync(SelectedRenderingMode).ConfigureAwait(false);
             HardwareGraphicsService.Instance.RenderingMode = SelectedRenderingMode;
+            HardwareGraphicsService.Instance.EffectiveRenderingMode = HardwareGraphicsService.Instance.ResolveEffectiveMode(SelectedRenderingMode);
+            HardwareGraphicsService.Instance.NotifyRenderingModeChanged();
             _initialRenderingMode = SelectedRenderingMode;
             OnPropertyChanged(nameof(RequiresGraphicsRestart));
             // 5. Save Terminal Settings to SQLite

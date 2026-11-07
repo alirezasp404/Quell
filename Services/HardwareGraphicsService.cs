@@ -20,9 +20,17 @@ public class HardwareGraphicsService
     public string GpuAdapterName { get; private set; } = "Detecting Graphics Adapter...";
     public bool IsGpuDetected { get; private set; }
     public string RenderingMode { get; set; } = "Auto"; // "Auto", "GPU", "CPU"
-    public string EffectiveRenderingMode { get; private set; } = "GPU";
+    public string EffectiveRenderingMode { get; set; } = "GPU";
     public string ActiveRendererSummary { get; private set; } = "Skia Hardware (DirectX 11 / ANGLE)";
     public int VramCacheMb { get; private set; } = 128;
+
+    public bool IsGpuMotionActive => string.Equals(EffectiveRenderingMode, "GPU", StringComparison.OrdinalIgnoreCase);
+    public event EventHandler? RenderingModeChanged;
+
+    public void NotifyRenderingModeChanged()
+    {
+        RenderingModeChanged?.Invoke(this, EventArgs.Empty);
+    }
 
     private bool _hasDetectedHardware;
 
@@ -157,6 +165,7 @@ public class HardwareGraphicsService
 
         RenderingMode = mode;
         EffectiveRenderingMode = ResolveEffectiveMode(mode);
+        NotifyRenderingModeChanged();
         return EffectiveRenderingMode;
     }
 

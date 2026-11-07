@@ -68,7 +68,8 @@
                 PointerPressed="OnBackdropPointerPressed" />
 
         <!-- Centered Dialog Window Card (Zero Black Edges with ClipToBounds) -->
-        <Border Background="{DynamicResource AppWorkspaceBrush}" 
+        <Border Classes="modal-dialog-card"
+                Background="{DynamicResource AppWorkspaceBrush}" 
                 BorderBrush="{DynamicResource AppBorderBrush}" 
                 BorderThickness="1" 
                 CornerRadius="8" 

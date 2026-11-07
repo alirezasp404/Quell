@@ -491,4 +491,84 @@
         <Setter Property="Background" Value="{DynamicResource AppSplitterHoverBrush}"/>
     </Style>
 
+
+    <!-- ========================================================================= -->
+    <!-- GPU-Accelerated Dynamic Motion Pipeline (Active only in GPU Mode)         -->
+    <!-- ========================================================================= -->
+
+    <!-- 1. Smooth Fade-In for Modal Backdrop -->
+    <Style Selector=":is(TopLevel).gpu-mode Border.modal-backdrop">
+        <Style.Animations>
+            <Animation Duration="0:0:0.18" FillMode="Forward" Easing="CubicEaseOut">
+                <KeyFrame Cue="0%">
+                    <Setter Property="Opacity" Value="0.0"/>
+                </KeyFrame>
+                <KeyFrame Cue="100%">
+                    <Setter Property="Opacity" Value="1.0"/>
+                </KeyFrame>
+            </Animation>
+        </Style.Animations>
+    </Style>
+
+    <!-- 2. Spring-like Pop & Scale for Centered Modal Dialog Cards -->
+    <Style Selector=":is(TopLevel).gpu-mode Border.modal-dialog-card">
+        <Setter Property="RenderTransformOrigin" Value="50%,50%"/>
+        <Style.Animations>
+            <Animation Duration="0:0:0.24" FillMode="Forward" Easing="BackEaseOut">
+                <KeyFrame Cue="0%">
+                    <Setter Property="Opacity" Value="0.0"/>
+                    <Setter Property="ScaleTransform.ScaleX" Value="0.92"/>
+                    <Setter Property="ScaleTransform.ScaleY" Value="0.92"/>
+                    <Setter Property="TranslateTransform.Y" Value="14"/>
+                </KeyFrame>
+                <KeyFrame Cue="100%">
+                    <Setter Property="Opacity" Value="1.0"/>
+                    <Setter Property="ScaleTransform.ScaleX" Value="1.0"/>
+                    <Setter Property="ScaleTransform.ScaleY" Value="1.0"/>
+                    <Setter Property="TranslateTransform.Y" Value="0"/>
+                </KeyFrame>
+            </Animation>
+        </Style.Animations>
+    </Style>
+
+    <!-- 3. GPU-Accelerated Interactive Button Transitions -->
+    <Style Selector=":is(TopLevel).gpu-mode Button.classic-tool-btn">
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15"/>
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector=":is(TopLevel).gpu-mode Button.classic-tool-btn:pressed">
+        <Setter Property="RenderTransform" Value="scale(0.96)"/>
+    </Style>
+
+    <!-- 4. GPU-Accelerated Filter Pill Buttons -->
+    <Style Selector=":is(TopLevel).gpu-mode Button.filter-pill-btn">
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15"/>
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector=":is(TopLevel).gpu-mode Button.filter-pill-btn:pressed">
+        <Setter Property="RenderTransform" Value="scale(0.96)"/>
+    </Style>
+
+    <!-- 5. GPU-Accelerated ER Diagram Entity Cards Dynamic Hover Elevation -->
+    <Style Selector=":is(TopLevel).gpu-mode Border.diagram-table-card">
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.18" Easing="CubicEaseOut"/>
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.18"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector=":is(TopLevel).gpu-mode Border.diagram-table-card:pointerover">
+        <Setter Property="RenderTransform" Value="scale(1.02) translateY(-2px)"/>
+    </Style>
 </Styles>

@@ -15,10 +15,12 @@
         <Border Classes="modal-backdrop" Cursor="Hand" Focusable="False" FocusAdorner="{x:Null}" Background="{DynamicResource AppModalOverlayBrush}" PointerPressed="OnBackdropPointerPressed" />
 
         <!-- Centered Dialog Window Card -->
-        <Border Background="{DynamicResource AppWorkspaceBrush}" 
+        <Border Classes="modal-dialog-card"
+                Background="{DynamicResource AppWorkspaceBrush}" 
                 BorderBrush="{DynamicResource AppBorderBrush}" 
                 BorderThickness="1" 
                 CornerRadius="8" 
+                ClipToBounds="True"
                 Focusable="False" FocusAdorner="{x:Null}" 
                 BoxShadow="0 10 25 0 #33000000"
                 Width="480"

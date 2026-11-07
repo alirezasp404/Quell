@@ -17,7 +17,8 @@
                 PointerPressed="OnBackdropPointerPressed" />
 
         <!-- Centered Settings Dialog Card -->
-        <Border Width="820" 
+        <Border Classes="modal-dialog-card"
+                Width="820" 
                 Height="620" 
                 MaxWidth="960"
                 MaxHeight="720"

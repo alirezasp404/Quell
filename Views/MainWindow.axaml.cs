@@ -32,6 +32,25 @@ public partial class MainWindow : Window
         // Global Tunneling Key Handler: intercepts application shortcuts (Ctrl+B, F5, Ctrl+J, etc.)
         // at the Window root level before any child control (e.g. AvaloniaEdit TextEditor) can swallow them!
         AddHandler(KeyDownEvent, OnWindowKeyDownTunnel, RoutingStrategies.Tunnel);
+
+        UpdateGpuModeClass();
+        HardwareGraphicsService.Instance.RenderingModeChanged += (s, e) => Avalonia.Threading.Dispatcher.UIThread.Post(UpdateGpuModeClass);
+    }
+
+    public void UpdateGpuModeClass()
+    {
+        bool isGpu = HardwareGraphicsService.Instance.IsGpuMotionActive;
+        if (isGpu)
+        {
+            if (!Classes.Contains("gpu-mode"))
+            {
+                Classes.Add("gpu-mode");
+            }
+        }
+        else
+        {
+            Classes.Remove("gpu-mode");
+        }
     }
 
     private void OnWindowKeyDownTunnel(object? sender, KeyEventArgs e)
