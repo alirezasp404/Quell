@@ -1,4 +1,4 @@
-﻿<UserControl xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -55,6 +55,31 @@
             <Setter Property="Foreground" Value="White"/>
         </Style>
 
+        <!-- Hamburger Menu Button Styling in Title Bar -->
+        <Style Selector="MenuItem.hamburger-menu-btn">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="7,4"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="MinHeight" Value="24"/>
+            <Setter Property="MinWidth" Value="28"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusAdorner" Value="{x:Null}"/>
+        </Style>
+        <Style Selector="MenuItem.hamburger-menu-btn:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+        </Style>
+        <Style Selector="MenuItem.hamburger-menu-btn:open">
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+        </Style>
+
         <!-- Compact Action Button in Title Bar -->
         <Style Selector="Button.titlebar-action-btn">
             <Setter Property="Background" Value="Transparent"/>
@@ -103,92 +128,155 @@
 
                 <Border Width="1" Height="14" Background="{DynamicResource AppBorderBrush}" Margin="2,0,4,0" VerticalAlignment="Center"/>
 
-                <!-- Main Menu Strip (File, Edit, View, Window, Help) -->
+                <!-- Unified Hamburger Application Menu (File, Edit, View, Window, Help) -->
                 <Menu Background="Transparent" FocusAdorner="{x:Null}" VerticalAlignment="Center">
-                    <!-- File Menu -->
-                    <MenuItem Header="File" FontSize="11">
-                        <MenuItem Header="Connect to Database..." 
-                                  InputGesture="Ctrl+Shift+C"
-                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ConnectModal.OpenCommand}" />
-                        <MenuItem Header="Export Results to File..." 
-                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ExportModal.OpenCommand}" />
-                        <Separator />
-                        <MenuItem Header="New Query" 
-                                  InputGesture="Ctrl+N" 
-                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).Editor.AddTabCommand}" />
-                        <MenuItem Header="Save" 
-                                  InputGesture="Ctrl+S" 
-                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).SaveQueryCommand}" />
-                        <Separator />
-                        <MenuItem Header="Settings..." 
-                                  InputGesture="Ctrl+," 
-                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).SettingsModal.OpenCommand}" />
-                        <Separator />
-                        <MenuItem Header="Exit" 
-                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ExitCommand}" />
-                    </MenuItem>
+                    <MenuItem Classes="hamburger-menu-btn" FocusAdorner="{x:Null}" ToolTip.Tip="Application Menu">
+                        <MenuItem.Header>
+                            <PathIcon Data="M2 3.5h12v1.5H2zm0 3.75h12v1.5H2zm0 3.75h12v1.5H2z"
+                                      Width="12" Height="11"
+                                      Foreground="{Binding $parent[MenuItem].Foreground}" />
+                        </MenuItem.Header>
 
-                    <!-- Edit Menu -->
-                    <MenuItem Header="Edit" FontSize="11">
-                        <MenuItem Header="Undo" InputGesture="Ctrl+Z" />
-                        <MenuItem Header="Redo" InputGesture="Ctrl+Y" />
-                        <Separator />
-                        <MenuItem Header="Cut" InputGesture="Ctrl+X" />
-                        <MenuItem Header="Copy" InputGesture="Ctrl+C" />
-                        <MenuItem Header="Paste" InputGesture="Ctrl+V" />
-                    </MenuItem>
-
-                    <!-- View Menu -->
-                    <MenuItem Header="View" FontSize="11">
-                        <MenuItem Header="Object Explorer (Sidebar)" 
-                                  InputGesture="Ctrl+B"
-                                  HotKey="Ctrl+B"
-                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ToggleSidebarCommand}" />
-                        <MenuItem Header="Output &amp; Results (Footer)" 
-                                  InputGesture="Ctrl+J"
-                                  HotKey="Ctrl+J"
-                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ToggleFooterCommand}" />
-                        <Separator />
-                        <MenuItem Header="Integrated Terminal" 
-                                  InputGesture="Ctrl+Oem3"
-                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ToggleTerminalCommand}" />
-                    </MenuItem>
-
-                    <!-- Window / Workspace Menu -->
-                    <MenuItem Header="Window" FontSize="11">
-                        <MenuItem Header="Show Object Explorer" 
-                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ShowSidebarCommand}" />
-                        <MenuItem Header="Show Output &amp; Results" 
-                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ShowFooterCommand}" />
-                        <Separator />
-                        <MenuItem Header="Restore Footer Tabs">
-                            <MenuItem Header="Results" 
-                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreFooterTabCommand}" 
-                                      CommandParameter="Results" />
-                            <MenuItem Header="Terminal" 
-                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreFooterTabCommand}" 
-                                      CommandParameter="Terminal" />
+                        <!-- File Menu -->
+                        <MenuItem Header="File" FontSize="11">
+                            <MenuItem.Icon>
+                                <ui:FASymbolIcon Symbol="Folder" FontSize="11" />
+                            </MenuItem.Icon>
+                            <MenuItem Header="Connect to Database..." 
+                                      InputGesture="Ctrl+Shift+C"
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ConnectModal.OpenCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Link" FontSize="11" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Export Results to File..." 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ExportModal.OpenCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Download" FontSize="11" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <Separator />
+                            <MenuItem Header="New Query" 
+                                      InputGesture="Ctrl+N" 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).Editor.AddTabCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Add" FontSize="11" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Save" 
+                                      InputGesture="Ctrl+S" 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).SaveQueryCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Save" FontSize="11" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <Separator />
+                            <MenuItem Header="Settings..." 
+                                      InputGesture="Ctrl+," 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).SettingsModal.OpenCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Settings" FontSize="11" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <Separator />
+                            <MenuItem Header="Exit" 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ExitCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Dismiss" FontSize="11" />
+                                </MenuItem.Icon>
+                            </MenuItem>
                         </MenuItem>
-                        <MenuItem Header="Restore Sidebar Tabs">
-                            <MenuItem Header="Explorer" 
-                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreSidebarTabCommand}" 
-                                      CommandParameter="Explorer" />
-                            <MenuItem Header="Databases" 
-                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreSidebarTabCommand}" 
-                                      CommandParameter="Databases" />
-                            <MenuItem Header="History" 
-                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreSidebarTabCommand}" 
-                                      CommandParameter="History" />
-                        </MenuItem>
-                        <Separator />
-                        <MenuItem Header="Reset Window Layout" 
-                                  Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ResetLayoutCommand}" />
-                    </MenuItem>
 
-                    <!-- Help Menu -->
-                    <MenuItem Header="Help" FontSize="11">
-                        <MenuItem Header="Documentation" />
-                        <MenuItem Header="About Quell" />
+                        <!-- Edit Menu -->
+                        <MenuItem Header="Edit" FontSize="11">
+                            <MenuItem.Icon>
+                                <ui:FASymbolIcon Symbol="Edit" FontSize="11" />
+                            </MenuItem.Icon>
+                            <MenuItem Header="Undo" InputGesture="Ctrl+Z" />
+                            <MenuItem Header="Redo" InputGesture="Ctrl+Y" />
+                            <Separator />
+                            <MenuItem Header="Cut" InputGesture="Ctrl+X" />
+                            <MenuItem Header="Copy" InputGesture="Ctrl+C" />
+                            <MenuItem Header="Paste" InputGesture="Ctrl+V" />
+                        </MenuItem>
+
+                        <!-- View Menu -->
+                        <MenuItem Header="View" FontSize="11">
+                            <MenuItem.Icon>
+                                <ui:FASymbolIcon Symbol="FullScreen" FontSize="11" />
+                            </MenuItem.Icon>
+                            <MenuItem Header="Object Explorer (Sidebar)" 
+                                      InputGesture="Ctrl+B"
+                                      HotKey="Ctrl+B"
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ToggleSidebarCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Folder" FontSize="11" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Output &amp; Results (Footer)" 
+                                      InputGesture="Ctrl+J"
+                                      HotKey="Ctrl+J"
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ToggleFooterCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Document" FontSize="11" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <Separator />
+                            <MenuItem Header="Integrated Terminal" 
+                                      InputGesture="Ctrl+Oem3"
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ToggleTerminalCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Code" FontSize="11" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                        </MenuItem>
+
+                        <!-- Window / Workspace Menu -->
+                        <MenuItem Header="Window" FontSize="11">
+                            <MenuItem.Icon>
+                                <ui:FASymbolIcon Symbol="Globe" FontSize="11" />
+                            </MenuItem.Icon>
+                            <MenuItem Header="Show Object Explorer" 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ShowSidebarCommand}" />
+                            <MenuItem Header="Show Output &amp; Results" 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ShowFooterCommand}" />
+                            <Separator />
+                            <MenuItem Header="Restore Footer Tabs">
+                                <MenuItem Header="Results" 
+                                          Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreFooterTabCommand}" 
+                                          CommandParameter="Results" />
+                                <MenuItem Header="Terminal" 
+                                          Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreFooterTabCommand}" 
+                                          CommandParameter="Terminal" />
+                            </MenuItem>
+                            <MenuItem Header="Restore Sidebar Tabs">
+                                <MenuItem Header="Explorer" 
+                                          Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreSidebarTabCommand}" 
+                                          CommandParameter="Explorer" />
+                                <MenuItem Header="Databases" 
+                                          Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreSidebarTabCommand}" 
+                                          CommandParameter="Databases" />
+                                <MenuItem Header="History" 
+                                          Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreSidebarTabCommand}" 
+                                          CommandParameter="History" />
+                            </MenuItem>
+                            <Separator />
+                            <MenuItem Header="Reset Window Layout" 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ResetLayoutCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Sync" FontSize="11" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                        </MenuItem>
+
+                        <!-- Help Menu -->
+                        <MenuItem Header="Help" FontSize="11">
+                            <MenuItem.Icon>
+                                <ui:FASymbolIcon Symbol="Important" FontSize="11" />
+                            </MenuItem.Icon>
+                            <MenuItem Header="Documentation" />
+                            <MenuItem Header="About Quell" />
+                        </MenuItem>
                     </MenuItem>
                 </Menu>
             </StackPanel>
