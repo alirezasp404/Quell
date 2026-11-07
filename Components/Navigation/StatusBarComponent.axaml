@@ -2,8 +2,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Quell.ViewModels"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="24"
-             x:Class="Quell.Components.StatusBarComponent">
+             x:Class="Quell.Components.StatusBarComponent"
+             x:DataType="vm:MainViewModel">
 
     <!-- Reusable Desktop Status Bar Component -->
     <Border Background="{DynamicResource AppSurfaceBrush}" 
@@ -21,8 +23,28 @@
                            VerticalAlignment="Center"/>
             </StackPanel>
 
-            <!-- Right: Document & Server Metadata -->
-            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+            <!-- Right: Document & Server Metadata + Corner Update Badge -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+                
+                <!-- Corner "Get Updates" Pill Button in Status Bar -->
+                <Button Classes="classic-tool-btn"
+                        IsVisible="{Binding UpdateModal.IsCornerBadgeVisible}"
+                        Command="{Binding OpenUpdateModalCommand}"
+                        Padding="6,2"
+                        Height="20"
+                        CornerRadius="4"
+                        Background="{DynamicResource AppSurfaceMutedBrush}"
+                        BorderBrush="{DynamicResource AppAccentBrush}"
+                        BorderThickness="1"
+                        Cursor="Hand"
+                        ToolTip.Tip="A new version of Quell Studio is ready. Click to update.">
+                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                        <Ellipse Width="6" Height="6" Fill="#10B981" VerticalAlignment="Center"/>
+                        <TextBlock Text="Get Updates" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding UpdateModal.LatestVersion}" FontSize="9.5" Foreground="{DynamicResource AppAccentBrush}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
                 <TextBlock Text="Ln 1, Col 1" 
                            Foreground="{DynamicResource AppTextMutedBrush}" 
                            FontSize="11" 

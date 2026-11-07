@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Quell.ViewModels"
         xmlns:components="using:Quell.Components"
+        xmlns:ui="using:FluentAvalonia.UI.Controls"
         x:Class="Quell.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Icon="/Assets/quell_icon.ico"
@@ -73,6 +74,43 @@
         <!-- 3. FIXED BOTTOM STATUS BAR -->
         <components:StatusBarComponent Grid.Row="2" />
 
+        <!-- FLOATING CORNER "GET UPDATES" BADGE BOX (Shown when modal is dismissed) -->
+        <Border Grid.Row="1" 
+                HorizontalAlignment="Right" 
+                VerticalAlignment="Bottom"
+                Margin="0,0,24,18"
+                ZIndex="85"
+                IsVisible="{Binding UpdateModal.IsCornerBadgeVisible}"
+                Background="{DynamicResource AppSurfaceBrush}"
+                BorderBrush="{DynamicResource AppAccentBrush}"
+                BorderThickness="1.5"
+                CornerRadius="6"
+                BoxShadow="0 4 16 0 #40000000"
+                Padding="10,6">
+            <Button Classes="classic-tool-btn"
+                    Command="{Binding OpenUpdateModalCommand}"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="0"
+                    Cursor="Hand"
+                    ToolTip.Tip="A new version of Quell Studio is available. Click to open release details.">
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Border Background="{DynamicResource AppAccentBrush}" CornerRadius="4" Width="22" Height="22">
+                        <ui:FASymbolIcon Symbol="Download" FontSize="11" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel Spacing="1" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                            <TextBlock Text="Get Updates" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                            <Border Background="#10B981" CornerRadius="3" Padding="4,1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding UpdateModal.LatestVersion}" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Text="New version available • Click to view" FontSize="9" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Button>
+        </Border>
+
         <!-- 4. MODAL DIALOGS OVERLAYS (Top-level ZIndex & Full Viewport) -->
         <components:ConnectDatabaseModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="100" DataContext="{Binding ConnectModal}" />
         <components:ConfirmActionModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="101" DataContext="{Binding ConfirmModal}" />
@@ -80,5 +118,6 @@
         <components:SettingsModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="103" DataContext="{Binding SettingsModal}" />
         <components:EditCellModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="104" DataContext="{Binding SampleQueryResult.EditCellModal}" />
         <components:DatabaseDiagramModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="105" DataContext="{Binding DiagramModal}" />
+        <components:UpdateModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="106" DataContext="{Binding UpdateModal}" />
     </Grid>
 </Window>
