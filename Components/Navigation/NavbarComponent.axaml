@@ -200,6 +200,99 @@
                             <MenuItem Header="Paste" InputGesture="Ctrl+V" />
                         </MenuItem>
 
+                        <!-- Database Management & Tools Menu -->
+                        <MenuItem Header="Database" FontSize="11">
+                            <MenuItem.Icon>
+                                <ui:FASymbolIcon Symbol="Folder" FontSize="11" Foreground="{DynamicResource AppAccentBrush}"/>
+                            </MenuItem.Icon>
+
+                            <!-- Connection Management -->
+                            <MenuItem Header="Connect to Database..." 
+                                      InputGesture="Ctrl+Shift+C"
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ConnectModal.OpenCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Link" FontSize="11" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Disconnect Active Session" 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).DisconnectCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Dismiss" FontSize="11" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Refresh Schema &amp; Tables" 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RefreshDatabaseSchemaCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Sync" FontSize="11" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+
+                            <Separator />
+
+                            <!-- Data Export & Excel -->
+                            <MenuItem Header="Export Table Data..." 
+                                      InputGesture="Ctrl+E"
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).OpenExportTableModalCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Download" FontSize="11" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Create Excel from Table (*.xlsx)..." 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).QuickExportExcelCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Document" FontSize="11" Foreground="#10B981"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+
+                            <Separator />
+
+                            <!-- Backup & Restore -->
+                            <MenuItem Header="Backup Database (.sql dump)..." 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).BackupDatabaseCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Save" FontSize="11" Foreground="#38BDF8"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Restore Database from Backup..." 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreDatabaseCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Sync" FontSize="11" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+
+                            <Separator />
+
+                            <!-- ER Diagram & Schema Relations -->
+                            <MenuItem Header="ER Diagram &amp; Schema Relations..." 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).OpenDiagramModalCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Preview" FontSize="11" Foreground="#F59E0B"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="View Table Schema &amp; Properties" 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ShowTablePropertiesCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Tag" FontSize="11" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Generate DDL Script (CREATE TABLE)" 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).GenerateTableDdlCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Code" FontSize="11" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+
+                            <Separator />
+
+                            <!-- Maintenance -->
+                            <MenuItem Header="Optimize &amp; Vacuum Database" 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).OptimizeDatabaseCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Settings" FontSize="11" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                        </MenuItem>
+
                         <!-- View Menu -->
                         <MenuItem Header="View" FontSize="11">
                             <MenuItem.Icon>

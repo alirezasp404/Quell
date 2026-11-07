@@ -1,4 +1,4 @@
-﻿<UserControl xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -21,7 +21,7 @@
                 CornerRadius="8" 
                 Focusable="False" FocusAdorner="{x:Null}" 
                 BoxShadow="0 10 25 0 #33000000"
-                Width="460"
+                Width="480"
                 HorizontalAlignment="Center" 
                 VerticalAlignment="Center">
             
@@ -46,11 +46,11 @@
                         </Border>
 
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="Export Data" 
+                            <TextBlock Text="Export Data &amp; Create Excel" 
                                        Foreground="{DynamicResource AppTextPrimaryBrush}" 
                                        FontSize="13" 
                                        FontWeight="Bold"/>
-                            <TextBlock Text="Save query results or table rows to disk" 
+                            <TextBlock Text="Save database tables or query results as Excel, CSV, JSON, or SQL" 
                                        Foreground="{DynamicResource AppTextMutedBrush}" 
                                        FontSize="11" 
                                        Margin="0,2,0,0"/>
@@ -60,7 +60,8 @@
                                 Classes="classic-menu-btn" 
                                 Command="{Binding CloseCommand}"
                                 Padding="6,2" 
-                                MinHeight="22">
+                                MinHeight="22"
+                                ToolTip.Tip="Close (Esc)">
                             <ui:FASymbolIcon Symbol="Dismiss" FontSize="10"/>
                         </Button>
                     </Grid>
@@ -68,6 +69,18 @@
 
                 <!-- 2. Form Body -->
                 <StackPanel Grid.Row="1" Margin="20,16" Spacing="12">
+                    <!-- Export Source -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Export Source" FontSize="11" FontWeight="Medium" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                        <ComboBox ItemsSource="{Binding ExportSources}" SelectedItem="{Binding ExportSource}" HorizontalAlignment="Stretch" Height="30" CornerRadius="4" FontSize="12" />
+                    </StackPanel>
+
+                    <!-- Table Selector (Visible when Source is Specific Database Table) -->
+                    <StackPanel Spacing="4" IsVisible="{Binding IsTableSourceSelected}">
+                        <TextBlock Text="Select Database Table" FontSize="11" FontWeight="Medium" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                        <ComboBox ItemsSource="{Binding AvailableTables}" SelectedItem="{Binding SelectedTable}" PlaceholderText="Choose a table..." HorizontalAlignment="Stretch" Height="30" CornerRadius="4" FontSize="12" />
+                    </StackPanel>
+
                     <!-- Export Format -->
                     <StackPanel Spacing="4">
                         <TextBlock Text="Export Format" FontSize="11" FontWeight="Medium" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
@@ -95,6 +108,14 @@
                                   FontSize="11" 
                                   Foreground="{DynamicResource AppTextSecondaryBrush}"/>
                     </StackPanel>
+
+                    <!-- Status / Progress Message -->
+                    <TextBlock Text="{Binding StatusMessage}" 
+                               IsVisible="{Binding HasStatusMessage}"
+                               Foreground="{DynamicResource AppAccentBrush}" 
+                               FontSize="11" 
+                               FontWeight="SemiBold"
+                               Margin="0,4,0,0"/>
                 </StackPanel>
 
                 <!-- 3. Footer -->
@@ -118,7 +139,7 @@
                                 Command="{Binding ExportCommand}">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <ui:FASymbolIcon Symbol="Download" FontSize="11" Foreground="White" VerticalAlignment="Center"/>
-                                <TextBlock Text="Export Data" VerticalAlignment="Center"/>
+                                <TextBlock Text="Export Now" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>

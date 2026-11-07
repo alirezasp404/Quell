@@ -72,8 +72,19 @@ public partial class EditorComponent : UserControl
     {
         if (e.PropertyName == nameof(EditorViewModel.SelectedTab))
         {
-            HideCompletion();
-            LoadActiveTabContent();
+            if (Dispatcher.UIThread.CheckAccess())
+            {
+                HideCompletion();
+                LoadActiveTabContent();
+            }
+            else
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    HideCompletion();
+                    LoadActiveTabContent();
+                });
+            }
         }
     }
 

@@ -1026,6 +1026,56 @@ sealed class Program
             }
             Console.WriteLine("[Success] Full text fallback execution verified when nothing is selected!");
 
+            // 14.2 Test Database Tools in Hamburger Menu: Excel Table Export, Backup, ER Diagram, DDL
+            Console.WriteLine("\n[Action] Verifying Database Tools: Excel Export, Backup, ER Diagram & DDL...");
+            
+            // A. Quick Export to Excel from Table
+            vm.QuickExportExcel();
+            Console.WriteLine($"Quick Export Excel Modal State: IsOpen={vm.ExportModal.IsOpen}, Format='{vm.ExportModal.SelectedFormat}', Source='{vm.ExportModal.ExportSource}', Tables={vm.ExportModal.AvailableTables.Count}");
+            if (!vm.ExportModal.IsOpen || !vm.ExportModal.SelectedFormat.Contains("Excel") || vm.ExportModal.AvailableTables.Count == 0)
+            {
+                throw new Exception("QuickExportExcel failed to configure ExportModal properly!");
+            }
+            await vm.ExportModal.ExportAsync();
+            Console.WriteLine($"Export Status: {vm.ExportModal.StatusMessage}, File: {vm.ExportModal.FilePath}");
+            if (System.IO.File.Exists(vm.ExportModal.FilePath))
+            {
+                Console.WriteLine($"Exported file verified on disk: size = {new System.IO.FileInfo(vm.ExportModal.FilePath).Length} bytes");
+            }
+            vm.ExportModal.Close();
+
+            // B. Full Database Backup
+            await vm.BackupDatabase();
+            Console.WriteLine($"Backup Status: {vm.SampleQueryResult.LastQueryMessage}");
+            if (!vm.SampleQueryResult.LastQueryMessage.Contains("Backup"))
+            {
+                throw new Exception("BackupDatabase failed to execute and report status!");
+            }
+
+            // C. Interactive ER Diagram & Schema Relations
+            await vm.OpenDiagramModal();
+            Console.WriteLine($"ER Diagram Modal State: IsOpen={vm.DiagramModal.IsOpen}, Total Tables={vm.DiagramModal.TotalTablesCount}, Relations={vm.DiagramModal.TotalRelationsCount}");
+            if (!vm.DiagramModal.IsOpen || vm.DiagramModal.TotalTablesCount == 0)
+            {
+                throw new Exception("OpenDiagramModal failed to load tables and open dialog!");
+            }
+            await vm.DiagramModal.CopyMermaidDiagramAsync();
+            Console.WriteLine($"Mermaid Diagram status: {vm.DiagramModal.StatusMessage}");
+            vm.DiagramModal.Close();
+
+            // D. Generate Table DDL
+            vm.GenerateTableDdl();
+            Console.WriteLine($"Generated DDL Tab: Title='{vm.Editor.SelectedTab.Title}', Content Length={vm.Editor.SelectedTab.Text.Length}");
+            if (!vm.Editor.SelectedTab.Text.Contains("CREATE TABLE"))
+            {
+                throw new Exception("GenerateTableDdl failed to create DDL script!");
+            }
+
+            // E. Database Optimization & Vacuum
+            await vm.OptimizeDatabase();
+            Console.WriteLine($"Optimize Status: {vm.SampleQueryResult.LastQueryMessage}");
+            Console.WriteLine("[Success] Dedicated database tools (Excel, Backup, Diagram, DDL, Optimize) verified!");
+
             // 15. Test Saving Connections in Connect Modal and SQLite Persistence
             Console.WriteLine("\n[Action] Verifying Connection Persistence in SQLite...");
             int initialSaved = vm.Sidebar.SavedConnections.Count;

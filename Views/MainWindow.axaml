@@ -79,5 +79,6 @@
         <components:ExportDataModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="102" DataContext="{Binding ExportModal}" />
         <components:SettingsModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="103" DataContext="{Binding SettingsModal}" />
         <components:EditCellModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="104" DataContext="{Binding SampleQueryResult.EditCellModal}" />
+        <components:DatabaseDiagramModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="105" DataContext="{Binding DiagramModal}" />
     </Grid>
 </Window>

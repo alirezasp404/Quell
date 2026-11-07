@@ -1,4 +1,4 @@
-﻿using Quell.Services.DatabaseProviders;
+using Quell.Services.DatabaseProviders;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -379,6 +379,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
     }
 
     private IReadOnlyList<string>? _lastColumns;
+    public IReadOnlyList<string>? LastColumns => _lastColumns;
 
     [ObservableProperty]
     private string _lastQueryMessage = string.Empty;

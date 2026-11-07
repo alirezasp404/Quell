@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -199,11 +199,16 @@ public partial class MainWindow : Window
         if (e.Handled || _viewModel == null) return;
 
         // If a modal dialog is open, do not execute workspace shortcuts (except Escape)
-        if (_viewModel.SettingsModal.IsOpen || _viewModel.ConnectModal.IsOpen || _viewModel.ConfirmModal.IsOpen || _viewModel.ExportModal.IsOpen)
+        if (_viewModel.SettingsModal.IsOpen || _viewModel.ConnectModal.IsOpen || _viewModel.ConfirmModal.IsOpen || _viewModel.ExportModal.IsOpen || _viewModel.DiagramModal.IsOpen)
         {
             if (e.Key == Key.Escape)
             {
-                if (_viewModel.ConnectModal.IsOpen)
+                if (_viewModel.DiagramModal.IsOpen)
+                {
+                    _viewModel.DiagramModal.IsOpen = false;
+                    e.Handled = true;
+                }
+                else if (_viewModel.ConnectModal.IsOpen)
                 {
                     _viewModel.ConnectModal.IsOpen = false;
                     e.Handled = true;

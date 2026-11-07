@@ -302,6 +302,12 @@ public partial class SqlIntelliSenseOverlayComponent : UserControl
 
     public void Hide()
     {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => Hide());
+            return;
+        }
+
         IsVisible = false;
         _currentMatches.Clear();
         _activeFilterWord = string.Empty;
