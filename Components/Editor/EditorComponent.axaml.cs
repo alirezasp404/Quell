@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
@@ -32,6 +32,9 @@ public partial class EditorComponent : UserControl
         CodeEditor.TextArea.PointerPressed += (s, e) => HideCompletion();
         CodeEditor.PointerWheelChanged += OnPointerWheelChanged;
 
+        // 3. Selection Tracking: synchronizes mouse/keyboard text selections
+        CodeEditor.TextArea.SelectionChanged += OnSelectionChanged;
+
         // Tunneling key handler ensures zoom shortcuts & completion navigation are intercepted
         AddHandler(KeyDownEvent, OnTunnelKeyDown, RoutingStrategies.Tunnel);
     }
@@ -41,6 +44,10 @@ public partial class EditorComponent : UserControl
         if (_viewModel != null)
         {
             _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            if (_viewModel.GetActiveSelection != null)
+            {
+                _viewModel.GetActiveSelection = null;
+            }
         }
 
         _viewModel = DataContext as EditorViewModel;
@@ -48,7 +55,16 @@ public partial class EditorComponent : UserControl
         if (_viewModel != null)
         {
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            _viewModel.GetActiveSelection = () => CodeEditor?.SelectedText ?? string.Empty;
             LoadActiveTabContent();
+        }
+    }
+
+    private void OnSelectionChanged(object? sender, EventArgs e)
+    {
+        if (_viewModel?.SelectedTab != null && CodeEditor != null)
+        {
+            _viewModel.SelectedTab.SelectedText = CodeEditor.SelectedText ?? string.Empty;
         }
     }
 
@@ -70,6 +86,9 @@ public partial class EditorComponent : UserControl
             CodeEditor.Document = _viewModel.SelectedTab.Document;
             CodeEditor.TextArea.Focus();
         }
+
+        // Keep selection state in sync
+        _viewModel.SelectedTab.SelectedText = CodeEditor.SelectedText ?? string.Empty;
     }
 
     private void OnPanelCustomizationChanged(object? sender, PanelCustomizationRecord custom)

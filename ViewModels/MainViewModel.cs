@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -325,7 +325,7 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     public async Task ExecuteQuery()
     {
-        string query = Editor.SelectedTab?.Text ?? "SELECT * FROM dbo.Users;";
+        string query = Editor.GetQueryToExecute();
         string execTime = "0 ms";
         int rowCount = 0;
         string status = "Success";

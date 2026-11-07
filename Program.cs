@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Controls;
 using System;
 using System.Linq;
@@ -995,6 +995,36 @@ sealed class Program
             {
                 throw new Exception($"Expected dynamic column values '42' and 'Antigravity', got '{resultRow["Answer"]}' and '{resultRow["Assistant"]}'!");
             }
+
+            // 14.1 Test Selective Query Execution (Selected Text vs Full Text)
+            Console.WriteLine("\n[Action] Verifying Selective Text Execution in Code Editor...");
+            vm.Editor.SelectedTab.Text = "SELECT 'Full' AS ExecMode; SELECT 'Partial' AS ExecMode;";
+            
+            // Case A: A sub-part of query is selected with mouse/keyboard
+            vm.Editor.SelectedTab.SelectedText = "SELECT 'Partial' AS ExecMode;";
+            Console.WriteLine($"Editor Selection Set: '{vm.Editor.SelectedTab.SelectedText}'");
+            string resolvedQuery = vm.Editor.GetQueryToExecute();
+            Console.WriteLine($"Resolved Query to Execute: '{resolvedQuery}'");
+            if (resolvedQuery != "SELECT 'Partial' AS ExecMode;")
+            {
+                throw new Exception($"Expected selected query 'SELECT 'Partial' AS ExecMode;', but got '{resolvedQuery}'");
+            }
+            await vm.ExecuteQuery();
+            if (vm.SampleQueryResult.Rows.Count == 0 || vm.SampleQueryResult.Rows[0]["ExecMode"] != "Partial")
+            {
+                throw new Exception($"Expected partial selection result 'Partial', but got '{vm.SampleQueryResult.Rows.FirstOrDefault()?["ExecMode"]}'!");
+            }
+            Console.WriteLine("[Success] Partial selected text executed successfully!");
+
+            // Case B: No text selected (selection cleared) -> Full editor content executed
+            vm.Editor.SelectedTab.SelectedText = string.Empty;
+            string fallbackQuery = vm.Editor.GetQueryToExecute();
+            Console.WriteLine($"Fallback Query (no selection): '{fallbackQuery}'");
+            if (fallbackQuery != "SELECT 'Full' AS ExecMode; SELECT 'Partial' AS ExecMode;")
+            {
+                throw new Exception($"Expected full query text fallback, but got '{fallbackQuery}'");
+            }
+            Console.WriteLine("[Success] Full text fallback execution verified when nothing is selected!");
 
             // 15. Test Saving Connections in Connect Modal and SQLite Persistence
             Console.WriteLine("\n[Action] Verifying Connection Persistence in SQLite...");
