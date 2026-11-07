@@ -1,8 +1,8 @@
-using System.Windows.Input;
+﻿using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 
-namespace Fdb.Components;
+namespace Quell.Components;
 
 public partial class ToolWindowHeaderComponent : UserControl
 {

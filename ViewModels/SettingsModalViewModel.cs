@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Fdb.Services;
+using Quell.Services;
 
-namespace Fdb.ViewModels;
+namespace Quell.ViewModels;
 
 public partial class SettingsModalViewModel : ObservableObject
 {
@@ -20,12 +20,16 @@ public partial class SettingsModalViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsTableCategory))]
     [NotifyPropertyChangedFor(nameof(IsCustomizationCategory))]
     [NotifyPropertyChangedFor(nameof(IsShortcutsCategory))]
+    [NotifyPropertyChangedFor(nameof(IsPerformanceCategory))]
+    [NotifyPropertyChangedFor(nameof(IsTerminalCategory))]
     private string _selectedCategory = "Appearance";
 
     public bool IsAppearanceCategory => string.Equals(SelectedCategory, "Appearance", StringComparison.OrdinalIgnoreCase);
     public bool IsTableCategory => string.Equals(SelectedCategory, "Table", StringComparison.OrdinalIgnoreCase);
     public bool IsCustomizationCategory => string.Equals(SelectedCategory, "Customization", StringComparison.OrdinalIgnoreCase);
     public bool IsShortcutsCategory => string.Equals(SelectedCategory, "Shortcuts", StringComparison.OrdinalIgnoreCase);
+    public bool IsPerformanceCategory => string.Equals(SelectedCategory, "Performance", StringComparison.OrdinalIgnoreCase);
+    public bool IsTerminalCategory => string.Equals(SelectedCategory, "Terminal", StringComparison.OrdinalIgnoreCase);
 
     #region Appearance & Theme Properties
 
@@ -121,12 +125,20 @@ public partial class SettingsModalViewModel : ObservableObject
     private string _splitterColor = "Default";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewTerminalBackgroundBrush))]
+    private string _terminalBackground = "Default";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PreviewTerminalForegroundBrush))]
+    private string _terminalForeground = "Default";
+
+    [ObservableProperty]
     private double _editorFontSize = 13.0;
 
     [ObservableProperty]
     private bool _editorShowLineNumbers = true;
 
-    #region Color Maker ("رنگ‌ساز") Properties
+    #region Color Maker Properties
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ColorMakerPreviewBrush))]
@@ -174,7 +186,9 @@ public partial class SettingsModalViewModel : ObservableObject
         "Table: Alternating Row",
         "Table: Header Background",
         "Table: Grid Lines",
-        "Table: Cell Text"
+        "Table: Cell Text",
+        "Terminal: Background",
+        "Terminal: Text"
     };
 
     public IBrush ColorMakerPreviewBrush
@@ -209,6 +223,26 @@ public partial class SettingsModalViewModel : ObservableObject
             if (!string.IsNullOrWhiteSpace(EditorBackground) && !EditorBackground.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(EditorBackground, out var color))
                 return new SolidColorBrush(color);
             return IsDarkTheme ? new SolidColorBrush(Color.Parse("#0F172A")) : new SolidColorBrush(Color.Parse("#FFFFFF"));
+        }
+    }
+
+    public IBrush PreviewTerminalBackgroundBrush
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(TerminalBackground) && !TerminalBackground.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(TerminalBackground, out var color))
+                return new SolidColorBrush(color);
+            return IsDarkTheme ? new SolidColorBrush(Color.Parse("#0F172A")) : new SolidColorBrush(Color.Parse("#FFFFFF"));
+        }
+    }
+
+    public IBrush PreviewTerminalForegroundBrush
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(TerminalForeground) && !TerminalForeground.Equals("Default", StringComparison.OrdinalIgnoreCase) && Color.TryParse(TerminalForeground, out var color))
+                return new SolidColorBrush(color);
+            return IsDarkTheme ? new SolidColorBrush(Color.Parse("#F8FAFC")) : new SolidColorBrush(Color.Parse("#0F172A"));
         }
     }
 
@@ -510,6 +544,42 @@ public partial class SettingsModalViewModel : ObservableObject
 
     #endregion
 
+    #region Terminal Settings Properties
+
+    [ObservableProperty]
+    private string _terminalDefaultShell = "default";
+
+    [ObservableProperty]
+    private string _terminalFontFamily = "Cascadia Code, Consolas, Courier New, monospace";
+
+    [ObservableProperty]
+    private double _terminalFontSize = 13.0;
+
+    [ObservableProperty]
+    private string _terminalCursorStyle = "Block";
+
+    [ObservableProperty]
+    private bool _terminalCursorBlink = true;
+
+    [ObservableProperty]
+    private int _terminalMaxScrollback = 5000;
+
+    [ObservableProperty]
+    private string _terminalPsqlPath = string.Empty;
+
+    [ObservableProperty]
+    private string _terminalMySqlPath = string.Empty;
+
+    [ObservableProperty]
+    private string _terminalSqlitePath = string.Empty;
+
+    [ObservableProperty]
+    private string _terminalSqlCmdPath = string.Empty;
+
+    public System.Collections.ObjectModel.ObservableCollection<Quell.Models.ShellProfile> AvailableTerminalShells { get; } = new();
+
+    #endregion
+
     public SettingsModalViewModel()
     {
         _selectedTheme = ThemeService.Instance.CurrentTheme;
@@ -552,6 +622,8 @@ public partial class SettingsModalViewModel : ObservableObject
             SplitterColor = _initialPanelCustomization.SplitterColor;
             EditorFontSize = _initialPanelCustomization.EditorFontSize;
             EditorShowLineNumbers = _initialPanelCustomization.EditorShowLineNumbers;
+            TerminalBackground = _initialPanelCustomization.TerminalBackground;
+            TerminalForeground = _initialPanelCustomization.TerminalForeground;
 
             // 3. Load Table Customizations from SQLite
             _initialTableCustomization = await DatabaseStorageService.Instance.GetTableCustomizationAsync().ConfigureAwait(false);
@@ -574,6 +646,34 @@ public partial class SettingsModalViewModel : ObservableObject
             // 4. Load Dynamic Shortcuts from SQLite
             await ShortcutService.Instance.InitializeAsync().ConfigureAwait(false);
             LoadShortcutsList();
+
+            // 5. Load Performance & Graphics Configuration from SQLite
+            _initialRenderingMode = await DatabaseStorageService.Instance.GetGraphicsRenderingModeAsync().ConfigureAwait(false);
+            SelectedRenderingMode = _initialRenderingMode;
+            GpuAdapterName = HardwareGraphicsService.Instance.GpuAdapterName;
+            IsGpuDetected = HardwareGraphicsService.Instance.IsGpuDetected;
+            ActiveRendererSummary = HardwareGraphicsService.Instance.ActiveRendererSummary;
+            VramCacheMb = HardwareGraphicsService.Instance.VramCacheMb;
+            OnPropertyChanged(nameof(EffectiveModeDescription));
+            OnPropertyChanged(nameof(RequiresGraphicsRestart));
+            // 5. Load Terminal Settings from SQLite
+            var termSettings = await Quell.Services.Terminal.TerminalSettingsService.Instance.LoadSettingsAsync().ConfigureAwait(false);
+            TerminalDefaultShell = termSettings.DefaultShellId;
+            TerminalFontFamily = termSettings.FontFamily;
+            TerminalFontSize = termSettings.FontSize;
+            TerminalCursorStyle = termSettings.CursorStyle;
+            TerminalCursorBlink = termSettings.CursorBlink;
+            TerminalMaxScrollback = termSettings.MaxScrollback;
+            TerminalPsqlPath = termSettings.PsqlPath;
+            TerminalMySqlPath = termSettings.MySqlPath;
+            TerminalSqlitePath = termSettings.SqlitePath;
+            TerminalSqlCmdPath = termSettings.SqlCmdPath;
+
+            AvailableTerminalShells.Clear();
+            foreach (var sh in Quell.Services.Terminal.ShellDetectorService.Instance.GetAvailableShells())
+            {
+                AvailableTerminalShells.Add(sh);
+            }
         }
         catch (Exception ex)
         {
@@ -582,6 +682,8 @@ public partial class SettingsModalViewModel : ObservableObject
             _initialTheme = SelectedTheme;
             SelectedKeywordColor = ThemeService.Instance.CurrentKeywordColor;
             _initialKeywordColor = SelectedKeywordColor;
+            SelectedRenderingMode = HardwareGraphicsService.Instance.RenderingMode;
+            _initialRenderingMode = SelectedRenderingMode;
         }
 
         IsOpen = true;
@@ -656,6 +758,20 @@ public partial class SettingsModalViewModel : ObservableObject
     public void SelectEditorBackground(string hex)
     {
         EditorBackground = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewPanelCustomization();
+    }
+
+    [RelayCommand]
+    public void SelectTerminalBackground(string hex)
+    {
+        TerminalBackground = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
+        LivePreviewPanelCustomization();
+    }
+
+    [RelayCommand]
+    public void SelectTerminalForeground(string hex)
+    {
+        TerminalForeground = string.IsNullOrWhiteSpace(hex) ? "Default" : hex;
         LivePreviewPanelCustomization();
     }
 
@@ -743,7 +859,7 @@ public partial class SettingsModalViewModel : ObservableObject
         LivePreviewPanelCustomization();
     }
 
-    #region Color Maker ("رنگ‌ساز") Methods & Commands
+    #region Color Maker Methods & Commands
 
     partial void OnColorMakerRChanged(double value) => UpdateHexFromRgb();
     partial void OnColorMakerGChanged(double value) => UpdateHexFromRgb();
@@ -865,6 +981,12 @@ public partial class SettingsModalViewModel : ObservableObject
             case "Table: Grid Lines":
                 TableGridLinesColor = hex;
                 LivePreviewTableCustomization();
+                break;
+            case "Terminal: Background":
+                TerminalBackground = hex;
+                break;
+            case "Terminal: Text":
+                TerminalForeground = hex;
                 break;
             case "Table: Cell Text":
                 TableCellTextColor = hex;
@@ -1031,6 +1153,8 @@ public partial class SettingsModalViewModel : ObservableObject
         ButtonBorderColor = "Default";
         BorderColor = "Default";
         SplitterColor = "Default";
+        TerminalBackground = "Default";
+        TerminalForeground = "Default";
         EditorFontSize = 13.0;
         EditorShowLineNumbers = true;
         LivePreviewPanelCustomization();
@@ -1054,6 +1178,8 @@ public partial class SettingsModalViewModel : ObservableObject
             BorderColor = BorderColor,
             SplitterColor = SplitterColor,
             TableBackground = TableBackground,
+            TerminalBackground = TerminalBackground,
+            TerminalForeground = TerminalForeground,
             EditorFontSize = EditorFontSize,
             EditorShowLineNumbers = EditorShowLineNumbers
         };
@@ -1061,6 +1187,8 @@ public partial class SettingsModalViewModel : ObservableObject
 
         OnPropertyChanged(nameof(PreviewEditorBackgroundBrush));
         OnPropertyChanged(nameof(PreviewEditorForegroundBrush));
+        OnPropertyChanged(nameof(PreviewTerminalBackgroundBrush));
+        OnPropertyChanged(nameof(PreviewTerminalForegroundBrush));
         OnPropertyChanged(nameof(PreviewSidebarBackgroundBrush));
         OnPropertyChanged(nameof(PreviewSidebarHeaderBrush));
         OnPropertyChanged(nameof(PreviewSidebarHoverBrush));
@@ -1396,6 +1524,66 @@ public partial class SettingsModalViewModel : ObservableObject
 
     #endregion
 
+    #region Performance & Graphics Properties & Commands
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsAutoRenderingMode))]
+    [NotifyPropertyChangedFor(nameof(IsGpuRenderingMode))]
+    [NotifyPropertyChangedFor(nameof(IsCpuRenderingMode))]
+    [NotifyPropertyChangedFor(nameof(EffectiveModeDescription))]
+    [NotifyPropertyChangedFor(nameof(RequiresGraphicsRestart))]
+    private string _selectedRenderingMode = "Auto"; // "Auto", "GPU", "CPU"
+
+    public bool IsAutoRenderingMode => string.Equals(SelectedRenderingMode, "Auto", StringComparison.OrdinalIgnoreCase);
+    public bool IsGpuRenderingMode => string.Equals(SelectedRenderingMode, "GPU", StringComparison.OrdinalIgnoreCase);
+    public bool IsCpuRenderingMode => string.Equals(SelectedRenderingMode, "CPU", StringComparison.OrdinalIgnoreCase);
+
+    [ObservableProperty]
+    private string _gpuAdapterName = "Detecting Graphics Adapter...";
+
+    [ObservableProperty]
+    private bool _isGpuDetected;
+
+    [ObservableProperty]
+    private string _activeRendererSummary = "Skia Hardware (DirectX 11 / ANGLE)";
+
+    [ObservableProperty]
+    private int _vramCacheMb = 128;
+
+    private string _initialRenderingMode = "Auto";
+
+    public bool RequiresGraphicsRestart => !string.Equals(SelectedRenderingMode, _initialRenderingMode, StringComparison.OrdinalIgnoreCase);
+
+    public string EffectiveModeDescription
+    {
+        get
+        {
+            string eff = HardwareGraphicsService.Instance.ResolveEffectiveMode(SelectedRenderingMode);
+            if (string.Equals(SelectedRenderingMode, "Auto", StringComparison.OrdinalIgnoreCase))
+            {
+                return IsGpuDetected
+                    ? $"Auto-detect: Dedicated/Integrated GPU detected -> Active Engine: GPU Hardware Acceleration ({GpuAdapterName})"
+                    : "Auto-detect: No discrete GPU detected -> Active Engine: CPU Software Rasterizer (Lightweight)";
+            }
+            if (string.Equals(SelectedRenderingMode, "GPU", StringComparison.OrdinalIgnoreCase))
+            {
+                return $"Forced GPU Mode: Hardware-accelerated DirectX 11 / ANGLE pipeline with {VramCacheMb}MB VRAM cache";
+            }
+            return $"Forced CPU Mode: Minimal RAM footprint with CPU Software Rasterizer ({VramCacheMb}MB buffer)";
+        }
+    }
+
+    [RelayCommand]
+    public void SelectRenderingMode(string mode)
+    {
+        if (string.IsNullOrWhiteSpace(mode)) return;
+        SelectedRenderingMode = mode;
+        OnPropertyChanged(nameof(EffectiveModeDescription));
+        OnPropertyChanged(nameof(RequiresGraphicsRestart));
+    }
+
+    #endregion
+
     #region Appearance Commands
 
     [RelayCommand]
@@ -1407,6 +1595,8 @@ public partial class SettingsModalViewModel : ObservableObject
         OnPropertyChanged(nameof(CurrentKeywordBrush));
         OnPropertyChanged(nameof(PreviewEditorBackgroundBrush));
         OnPropertyChanged(nameof(PreviewEditorForegroundBrush));
+        OnPropertyChanged(nameof(PreviewTerminalBackgroundBrush));
+        OnPropertyChanged(nameof(PreviewTerminalForegroundBrush));
         OnPropertyChanged(nameof(PreviewSidebarBackgroundBrush));
         OnPropertyChanged(nameof(PreviewSidebarHeaderBrush));
         OnPropertyChanged(nameof(PreviewSidebarHoverBrush));
@@ -1469,6 +1659,8 @@ public partial class SettingsModalViewModel : ObservableObject
                 BorderColor = BorderColor,
                 SplitterColor = SplitterColor,
                 TableBackground = TableBackground,
+                TerminalBackground = TerminalBackground,
+                TerminalForeground = TerminalForeground,
                 EditorFontSize = EditorFontSize,
                 EditorShowLineNumbers = EditorShowLineNumbers
             };
@@ -1501,6 +1693,29 @@ public partial class SettingsModalViewModel : ObservableObject
 
             // 4. Save Shortcuts to SQLite
             await ShortcutService.Instance.SaveAllAsync(Shortcuts).ConfigureAwait(false);
+
+            // 5. Save Graphics Rendering Mode to SQLite
+            await DatabaseStorageService.Instance.SaveGraphicsRenderingModeAsync(SelectedRenderingMode).ConfigureAwait(false);
+            HardwareGraphicsService.Instance.RenderingMode = SelectedRenderingMode;
+            HardwareGraphicsService.Instance.EffectiveRenderingMode = HardwareGraphicsService.Instance.ResolveEffectiveMode(SelectedRenderingMode);
+            HardwareGraphicsService.Instance.NotifyRenderingModeChanged();
+            _initialRenderingMode = SelectedRenderingMode;
+            OnPropertyChanged(nameof(RequiresGraphicsRestart));
+            // 5. Save Terminal Settings to SQLite
+            var termSettingsToSave = new Quell.Models.TerminalSettingsModel
+            {
+                DefaultShellId = TerminalDefaultShell,
+                FontFamily = TerminalFontFamily,
+                FontSize = TerminalFontSize,
+                CursorStyle = TerminalCursorStyle,
+                CursorBlink = TerminalCursorBlink,
+                MaxScrollback = TerminalMaxScrollback,
+                PsqlPath = TerminalPsqlPath,
+                MySqlPath = TerminalMySqlPath,
+                SqlitePath = TerminalSqlitePath,
+                SqlCmdPath = TerminalSqlCmdPath
+            };
+            await Quell.Services.Terminal.TerminalSettingsService.Instance.SaveSettingsAsync(termSettingsToSave).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -1532,6 +1747,12 @@ public partial class SettingsModalViewModel : ObservableObject
 
         // Revert Table Customization
         ThemeService.Instance.ApplyTableCustomization(_initialTableCustomization);
+
+        // Revert Rendering Mode
+        if (!string.Equals(SelectedRenderingMode, _initialRenderingMode, StringComparison.OrdinalIgnoreCase))
+        {
+            SelectedRenderingMode = _initialRenderingMode;
+        }
 
         IsOpen = false;
     }

@@ -1,11 +1,11 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="using:Fdb.ViewModels"
+             xmlns:vm="using:Quell.ViewModels"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="620" d:DesignHeight="1200"
-             x:Class="Fdb.Components.PanelCustomizationComponent"
+             x:Class="Quell.Components.PanelCustomizationComponent"
              x:DataType="vm:SettingsModalViewModel">
 
     <UserControl.Styles>
@@ -70,7 +70,7 @@
         <Separator Background="{DynamicResource AppBorderBrush}" Margin="0,2"/>
 
         <!-- ===================================================================== -->
-        <!-- 1. COLOR MAKER / BUILDER STUDIO ("رنگ‌ساز دلخواه")                     -->
+        <!-- 1. COLOR MAKER / BUILDER STUDIO                                       -->
         <!-- ===================================================================== -->
         <Border Background="{DynamicResource AppSurfaceMutedBrush}" 
                 BorderBrush="{DynamicResource AppAccentBrush}" 
@@ -83,7 +83,7 @@
                     <StackPanel Grid.Column="0" Spacing="2">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <ui:FASymbolIcon Symbol="Edit" FontSize="13" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text="Custom Color Maker (رنگ‌ساز پیشرفته)" 
+                            <TextBlock Text="Custom Color Maker (RGB/HEX Studio)" 
                                        FontSize="13" 
                                        FontWeight="Bold" 
                                        Foreground="{DynamicResource AppTextPrimaryBrush}"/>
@@ -221,7 +221,7 @@
         </Border>
 
         <!-- ===================================================================== -->
-        <!-- 2. BUTTONS & ACTIONS CUSTOMIZATION ("دکمه‌ها و المان‌های اکشن")         -->
+        <!-- 2. BUTTONS & ACTIONS CUSTOMIZATION                                    -->
         <!-- ===================================================================== -->
         <Border Background="{DynamicResource AppSurfaceMutedBrush}" 
                 BorderBrush="{DynamicResource AppBorderBrush}" 
@@ -233,7 +233,7 @@
                     <StackPanel Grid.Column="0" Spacing="2">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <ui:FASymbolIcon Symbol="Play" FontSize="12" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text="Buttons &amp; Action Controls (شخصی‌سازی دکمه‌ها)" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                            <TextBlock Text="Buttons &amp; Action Controls" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
                         </StackPanel>
                         <TextBlock Text="Change primary accent color for action buttons (Save, Run, Connect) and button faces." FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
                     </StackPanel>
@@ -291,7 +291,7 @@
         </Border>
 
         <!-- ===================================================================== -->
-        <!-- 3. GLOBAL BORDERS & SPLITTERS CUSTOMIZATION ("کادربندی و جداکننده‌ها")   -->
+        <!-- 3. GLOBAL BORDERS & SPLITTERS CUSTOMIZATION                           -->
         <!-- ===================================================================== -->
         <Border Background="{DynamicResource AppSurfaceMutedBrush}" 
                 BorderBrush="{DynamicResource AppBorderBrush}" 
@@ -301,7 +301,7 @@
             <StackPanel Spacing="10">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <ui:FASymbolIcon Symbol="ViewAll" FontSize="12" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
-                    <TextBlock Text="Borders &amp; Dividers (کادربندی و بردرهای پنجره)" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                    <TextBlock Text="Borders &amp; Dividers" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
                 </StackPanel>
                 <TextBlock Text="Control border outlines and splitter handles across panels, tables, and dialogs." FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
 
@@ -351,7 +351,7 @@
             <StackPanel Spacing="10">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <ui:FASymbolIcon Symbol="Folder" FontSize="12" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
-                    <TextBlock Text="Object Explorer (Sidebar) Parts (بخش‌های مختلف سایدبار)" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                    <TextBlock Text="Object Explorer (Sidebar) Parts" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
                 </StackPanel>
                 <TextBlock Text="Customize sidebar background, header bar, tree item hover, text, and border independently." FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
 
@@ -430,7 +430,7 @@
                     <StackPanel Grid.Column="0" Spacing="2">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <ui:FASymbolIcon Symbol="Document" FontSize="12" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text="SQL Query Editor Canvas (ویرایشگر متن)" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                            <TextBlock Text="SQL Query Editor Canvas" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
                         </StackPanel>
                         <TextBlock Text="Change background, text font size, and code canvas styling." FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
                     </StackPanel>
@@ -476,10 +476,61 @@
         </Border>
 
         <!-- ===================================================================== -->
-        <!-- 6. QUICK THEME BUNDLES ("قالب‌های آماده یک‌کلیکی")                     -->
+        <!-- 6. INTEGRATED TERMINAL & CONSOLE COLORS                              -->
+        <!-- ===================================================================== -->
+        <Border Background="{DynamicResource AppCardBackgroundBrush}" 
+                BorderBrush="{DynamicResource AppBorderBrush}" 
+                BorderThickness="1" 
+                CornerRadius="8" 
+                Padding="16,14">
+            <StackPanel Spacing="10">
+                <Grid ColumnDefinitions="*, Auto">
+                    <StackPanel Grid.Column="0" Spacing="2">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <ui:FASymbolIcon Symbol="Play" FontSize="11" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="INTEGRATED TERMINAL &amp; CONSOLE" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AppAccentBrush}"/>
+                        </StackPanel>
+                        <TextBlock Text="Terminal canvas background and command line output foreground text." FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                        <Border Width="14" Height="14" CornerRadius="7" Background="{Binding PreviewTerminalBackgroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" ToolTip.Tip="Terminal Background"/>
+                        <Border Width="14" Height="14" CornerRadius="7" Background="{Binding PreviewTerminalForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" ToolTip.Tip="Terminal Foreground"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Terminal Background Swatches -->
+                <Grid ColumnDefinitions="160, *" Margin="0,4,0,0">
+                    <TextBlock Grid.Column="0" Text="Terminal Background:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center"/>
+                    <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalBackgroundCommand}" CommandParameter="Default" Background="{DynamicResource AppTerminalBackgroundBrush}" ToolTip.Tip="Default Theme" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalBackgroundCommand}" CommandParameter="#0F172A" Background="#0F172A" ToolTip.Tip="Slate Dark (#0F172A)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalBackgroundCommand}" CommandParameter="#000000" Background="#000000" ToolTip.Tip="Pure Black (#000000)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalBackgroundCommand}" CommandParameter="#0C0E14" Background="#0C0E14" ToolTip.Tip="Midnight (#0C0E14)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalBackgroundCommand}" CommandParameter="#002B36" Background="#002B36" ToolTip.Tip="Solarized (#002B36)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalBackgroundCommand}" CommandParameter="#FFFFFF" Background="#FFFFFF" ToolTip.Tip="Pure White (#FFFFFF)" Margin="0,0,6,4"/>
+                    </WrapPanel>
+                </Grid>
+
+                <!-- Terminal Foreground Swatches -->
+                <Grid ColumnDefinitions="160, *" Margin="0,4,0,0">
+                    <TextBlock Grid.Column="0" Text="Terminal Text Color:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center"/>
+                    <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalForegroundCommand}" CommandParameter="Default" Background="{DynamicResource AppTerminalForegroundBrush}" ToolTip.Tip="Default Theme" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalForegroundCommand}" CommandParameter="#F8FAFC" Background="#F8FAFC" ToolTip.Tip="White (#F8FAFC)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalForegroundCommand}" CommandParameter="#38BDF8" Background="#38BDF8" ToolTip.Tip="Cyan (#38BDF8)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalForegroundCommand}" CommandParameter="#34D399" Background="#34D399" ToolTip.Tip="Emerald (#34D399)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalForegroundCommand}" CommandParameter="#FBBF24" Background="#FBBF24" ToolTip.Tip="Amber (#FBBF24)" Margin="0,0,6,4"/>
+                        <Button Classes="color-swatch-btn" Command="{Binding SelectTerminalForegroundCommand}" CommandParameter="#0F172A" Background="#0F172A" ToolTip.Tip="Charcoal (#0F172A)" Margin="0,0,6,4"/>
+                    </WrapPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- ===================================================================== -->
+        <!-- 7. QUICK THEME BUNDLES                                                -->
         <!-- ===================================================================== -->
         <StackPanel Spacing="8">
-            <TextBlock Text="ONE-CLICK THEME BUNDLES (قالب‌های ست شده کامل)" 
+            <TextBlock Text="ONE-CLICK THEME BUNDLES (Pre-Configured Styles)" 
                        FontSize="11" 
                        FontWeight="Bold" 
                        Foreground="{DynamicResource AppTextSecondaryBrush}"/>
@@ -553,7 +604,7 @@
                 Padding="14">
             <StackPanel Spacing="10">
                 <Grid ColumnDefinitions="*, Auto">
-                    <TextBlock Grid.Column="0" Text="LIVE INTERACTIVE LAYOUT PREVIEW (پیش‌نمایش زنده)" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                    <TextBlock Grid.Column="0" Text="LIVE INTERACTIVE LAYOUT PREVIEW" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
                         <Border Width="8" Height="8" CornerRadius="4" Background="{Binding PreviewButtonAccentBrush}" VerticalAlignment="Center"/>
                         <TextBlock Text="Live Synced" FontSize="9" Foreground="{DynamicResource AppTextMutedBrush}" VerticalAlignment="Center"/>

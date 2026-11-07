@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Npgsql;
 
-namespace Fdb.Services.DatabaseProviders;
+namespace Quell.Services.DatabaseProviders;
 
 public class PostgreSqlDatabaseProvider : IDatabaseProvider
 {

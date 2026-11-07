@@ -1,12 +1,12 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
               xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
               xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-              xmlns:vm="using:Fdb.ViewModels"
-              xmlns:services="using:Fdb.Services"
+              xmlns:vm="using:Quell.ViewModels"
+              xmlns:services="using:Quell.Services"
               xmlns:ui="using:FluentAvalonia.UI.Controls"
               mc:Ignorable="d" d:DesignWidth="550" d:DesignHeight="700"
-              x:Class="Fdb.Components.ShortcutsSettingsComponent"
+              x:Class="Quell.Components.ShortcutsSettingsComponent"
               x:Name="ShortcutsRoot"
               x:DataType="vm:SettingsModalViewModel">
 

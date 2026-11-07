@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Avalonia.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace Fdb.Services;
+namespace Quell.Services;
 
 public static class ShortcutActions
 {
@@ -23,6 +23,8 @@ public static class ShortcutActions
     public const string ZoomIn = "ZoomIn";
     public const string ZoomOut = "ZoomOut";
     public const string ResetZoom = "ResetZoom";
+    public const string ToggleTerminal = "ToggleTerminal";
+    public const string RunInTerminal = "RunInTerminal";
 }
 
 public partial class ShortcutItem : ObservableObject
@@ -75,7 +77,9 @@ public class ShortcutService
         new() { Id = ShortcutActions.ExportData, Name = "Export Query Results", Category = "Data", DefaultGesture = "Ctrl+E", CurrentGesture = "Ctrl+E", Description = "Opens data export modal (CSV, JSON, SQL, TSV formats)." },
         new() { Id = ShortcutActions.ZoomIn, Name = "Editor Zoom In", Category = "Editor", DefaultGesture = "Ctrl++", CurrentGesture = "Ctrl++", Description = "Increases SQL code editor font size." },
         new() { Id = ShortcutActions.ZoomOut, Name = "Editor Zoom Out", Category = "Editor", DefaultGesture = "Ctrl+-", CurrentGesture = "Ctrl+-", Description = "Decreases SQL code editor font size." },
-        new() { Id = ShortcutActions.ResetZoom, Name = "Reset Editor Zoom", Category = "Editor", DefaultGesture = "Ctrl+0", CurrentGesture = "Ctrl+0", Description = "Resets SQL code editor font size to default 13px." }
+        new() { Id = ShortcutActions.ResetZoom, Name = "Reset Editor Zoom", Category = "Editor", DefaultGesture = "Ctrl+0", CurrentGesture = "Ctrl+0", Description = "Resets SQL code editor font size to default 13px." },
+        new() { Id = ShortcutActions.ToggleTerminal, Name = "Toggle Terminal Panel", Category = "Panels & View", DefaultGesture = "Ctrl+`", CurrentGesture = "Ctrl+`", Description = "Toggles or focuses the integrated terminal in the footer panel." },
+        new() { Id = ShortcutActions.RunInTerminal, Name = "Run Selection in Terminal", Category = "Query & Execution", DefaultGesture = "Ctrl+Shift+Enter", CurrentGesture = "Ctrl+Shift+Enter", Description = "Sends selected SQL query or command directly to active terminal." }
     };
 
     public IReadOnlyList<ShortcutItem> Shortcuts
@@ -224,6 +228,11 @@ public class ShortcutService
     public static bool MatchesKey(string keyString, Key key)
     {
         // Special symbol aliases
+        if (keyString == "`" || keyString == "~" || keyString.Equals("Oem3", StringComparison.OrdinalIgnoreCase) || keyString.Equals("OemTilde", StringComparison.OrdinalIgnoreCase))
+        {
+            return key is Key.Oem3 or Key.OemTilde;
+        }
+
         if (keyString == "," || keyString.Equals("OemComma", StringComparison.OrdinalIgnoreCase))
         {
             return key == Key.OemComma;
@@ -277,6 +286,7 @@ public class ShortcutService
 
         string keyName = e.Key switch
         {
+            Key.Oem3 or Key.OemTilde => "`",
             Key.OemComma => ",",
             Key.OemPeriod => ".",
             Key.OemPlus or Key.Add => "+",

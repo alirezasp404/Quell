@@ -1,0 +1,122 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Quell.ViewModels"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             mc:Ignorable="d" d:DesignWidth="550" d:DesignHeight="700"
+             x:Class="Quell.Components.TerminalSettingsComponent"
+             x:DataType="vm:SettingsModalViewModel">
+
+    <StackPanel Spacing="16">
+        <!-- Section Header -->
+        <StackPanel Spacing="3">
+            <TextBlock Text="Integrated Terminal Preferences" 
+                       FontSize="15" 
+                       FontWeight="Bold" 
+                       Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+            <TextBlock Text="Configure emulator fonts, shell profiles, and external database CLI executable locations." 
+                       FontSize="11" 
+                       Foreground="{DynamicResource AppTextMutedBrush}"/>
+        </StackPanel>
+
+        <!-- Card 1: Shell & Typography -->
+        <Border Background="{DynamicResource AppCardBackgroundBrush}" 
+                BorderBrush="{DynamicResource AppBorderBrush}" 
+                BorderThickness="1" 
+                CornerRadius="6" 
+                Padding="16">
+            <StackPanel Spacing="14">
+                <TextBlock Text="EMULATOR &amp; SHELL OPTIONS" 
+                           FontSize="11" 
+                           FontWeight="Bold" 
+                           Foreground="{DynamicResource AppAccentBrush}"/>
+
+                <!-- Default Shell -->
+                <Grid ColumnDefinitions="160, *">
+                    <TextBlock Grid.Column="0" Text="Default Shell" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                    <ComboBox Grid.Column="1" 
+                              ItemsSource="{Binding AvailableTerminalShells}" 
+                              SelectedValue="{Binding TerminalDefaultShell}"
+                              SelectedValueBinding="{Binding Id}"
+                              DisplayMemberBinding="{Binding DisplayName}"
+                              HorizontalAlignment="Stretch"
+                              Height="28" FontSize="11"/>
+                </Grid>
+
+                <!-- Font Family -->
+                <Grid ColumnDefinitions="160, *">
+                    <TextBlock Grid.Column="0" Text="Font Family" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                    <TextBox Grid.Column="1" Text="{Binding TerminalFontFamily}" Height="28" FontSize="11" VerticalContentAlignment="Center"/>
+                </Grid>
+
+                <!-- Font Size -->
+                <Grid ColumnDefinitions="160, *">
+                    <TextBlock Grid.Column="0" Text="Font Size (pt)" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                    <NumericUpDown Grid.Column="1" Value="{Binding TerminalFontSize}" Minimum="8" Maximum="28" Increment="1" Height="28" FontSize="11" HorizontalAlignment="Left" Width="120"/>
+                </Grid>
+
+                <!-- Cursor Style & Blink -->
+                <Grid ColumnDefinitions="160, *">
+                    <TextBlock Grid.Column="0" Text="Cursor Style" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                        <ComboBox SelectedValue="{Binding TerminalCursorStyle}" Height="28" Width="120" FontSize="11">
+                            <ComboBoxItem Content="Block" />
+                            <ComboBoxItem Content="Underline" />
+                            <ComboBoxItem Content="Bar" />
+                        </ComboBox>
+                        <CheckBox Content="Blinking Cursor" IsChecked="{Binding TerminalCursorBlink}" FontSize="11" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Scrollback Lines -->
+                <Grid ColumnDefinitions="160, *">
+                    <TextBlock Grid.Column="0" Text="Scrollback Buffer" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                    <NumericUpDown Grid.Column="1" Value="{Binding TerminalMaxScrollback}" Minimum="500" Maximum="50000" Increment="500" Height="28" FontSize="11" HorizontalAlignment="Left" Width="120"/>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- Card 2: Database CLI Tool Paths -->
+        <Border Background="{DynamicResource AppCardBackgroundBrush}" 
+                BorderBrush="{DynamicResource AppBorderBrush}" 
+                BorderThickness="1" 
+                CornerRadius="6" 
+                Padding="16">
+            <StackPanel Spacing="14">
+                <TextBlock Text="DATABASE CLI EXECUTABLE PATHS (OVERRIDES)" 
+                           FontSize="11" 
+                           FontWeight="Bold" 
+                           Foreground="{DynamicResource AppAccentBrush}"/>
+                <TextBlock Text="Leave empty to use automatic PATH resolution. Specify absolute paths if binaries are not in system PATH." 
+                           FontSize="11" 
+                           Foreground="{DynamicResource AppTextMutedBrush}" 
+                           TextWrapping="Wrap"/>
+
+                <!-- PostgreSQL psql -->
+                <Grid ColumnDefinitions="140, *">
+                    <TextBlock Grid.Column="0" Text="PostgreSQL (psql)" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                    <TextBox Grid.Column="1" Text="{Binding TerminalPsqlPath}" PlaceholderText="e.g. C:\Program Files\PostgreSQL\17\bin\psql.exe" Height="28" FontSize="11" VerticalContentAlignment="Center"/>
+                </Grid>
+
+                <!-- MySQL mysql -->
+                <Grid ColumnDefinitions="140, *">
+                    <TextBlock Grid.Column="0" Text="MySQL (mysql)" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                    <TextBox Grid.Column="1" Text="{Binding TerminalMySqlPath}" PlaceholderText="e.g. C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe" Height="28" FontSize="11" VerticalContentAlignment="Center"/>
+                </Grid>
+
+                <!-- SQLite sqlite3 -->
+                <Grid ColumnDefinitions="140, *">
+                    <TextBlock Grid.Column="0" Text="SQLite (sqlite3)" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                    <TextBox Grid.Column="1" Text="{Binding TerminalSqlitePath}" PlaceholderText="e.g. C:\sqlite\sqlite3.exe" Height="28" FontSize="11" VerticalContentAlignment="Center"/>
+                </Grid>
+
+                <!-- SQL Server sqlcmd -->
+                <Grid ColumnDefinitions="140, *">
+                    <TextBlock Grid.Column="0" Text="SQL Server (sqlcmd)" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                    <TextBox Grid.Column="1" Text="{Binding TerminalSqlCmdPath}" PlaceholderText="e.g. C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\sqlcmd.exe" Height="28" FontSize="11" VerticalContentAlignment="Center"/>
+                </Grid>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

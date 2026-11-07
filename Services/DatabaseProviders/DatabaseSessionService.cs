@@ -6,9 +6,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Fdb.ViewModels;
+using Quell.ViewModels;
 
-namespace Fdb.Services.DatabaseProviders;
+namespace Quell.Services.DatabaseProviders;
 
 public record QueryExecutionResult
 {
@@ -518,6 +518,71 @@ public class DatabaseSessionService
         {
             Console.WriteLine($"[DatabaseSessionService] GetPrimaryKeyColumnsAsync error: {ex.Message}");
             return new List<string>();
+        }
+        finally
+        {
+            _connectionLock.Release();
+        }
+    }
+
+    public async Task<List<(string ColumnName, string DataType)>> GetColumnsAsync(string tableName, string? sessionKey = null, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(tableName)) return new List<(string, string)>();
+
+        await _connectionLock.WaitAsync(cancellationToken);
+        try
+        {
+            var session = ResolveSession(sessionKey);
+            if (session == null || session.Connection.State != ConnectionState.Open)
+            {
+                return new List<(string, string)>();
+            }
+
+            string cleanTable = tableName.Trim('[', ']', '"', '`');
+            if (cleanTable.Contains('.'))
+            {
+                cleanTable = cleanTable.Split('.')[1];
+            }
+
+            var list = new List<(string, string)>();
+
+            if (session.Config.DatabaseType == "SQLite")
+            {
+                using var cmd = session.Connection.CreateCommand();
+                cmd.CommandText = $"PRAGMA table_info('{cleanTable.Replace("'", "''")}');";
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    string colName = reader.GetString(1);
+                    string colType = reader.GetString(2);
+                    list.Add((colName, string.IsNullOrWhiteSpace(colType) ? "TEXT" : colType));
+                }
+            }
+            else
+            {
+                string sql = $@"
+                    SELECT COLUMN_NAME, DATA_TYPE 
+                    FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_NAME = '{cleanTable.Replace("'", "''")}'
+                    ORDER BY ORDINAL_POSITION;";
+
+                using var cmd = session.Connection.CreateCommand();
+                cmd.CommandText = sql;
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    string colName = reader.GetString(0);
+                    string colType = reader.GetString(1);
+                    list.Add((colName, colType));
+                }
+            }
+
+            return list;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseSessionService] GetColumnsAsync error: {ex.Message}");
+            return new List<(string, string)>();
         }
         finally
         {

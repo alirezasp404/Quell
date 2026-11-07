@@ -1,4 +1,4 @@
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -6,10 +6,10 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using FluentAvalonia.UI.Controls;
-using Fdb.Services;
-using Fdb.ViewModels;
+using Quell.Services;
+using Quell.ViewModels;
 
-namespace Fdb.Components;
+namespace Quell.Components;
 
 public partial class SidebarComponent : UserControl
 {

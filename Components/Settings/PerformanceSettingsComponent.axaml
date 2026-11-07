@@ -1,0 +1,288 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+              xmlns:vm="using:Quell.ViewModels"
+              xmlns:ui="using:FluentAvalonia.UI.Controls"
+              mc:Ignorable="d" d:DesignWidth="550" d:DesignHeight="850"
+              x:Class="Quell.Components.PerformanceSettingsComponent"
+              x:DataType="vm:SettingsModalViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="Button.perf-mode-card">
+            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="14,12"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.perf-mode-card:pointerover /template/ ContentPresenter">
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+        </Style>
+        <Style Selector="Button.perf-mode-card.active /template/ ContentPresenter">
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AppTabHoverBackgroundBrush}"/>
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel Spacing="16">
+        <!-- 1. Section Header -->
+        <StackPanel Spacing="2">
+            <TextBlock Text="Performance &amp; Graphics Engine" 
+                       FontSize="15" 
+                       FontWeight="Bold" 
+                       Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+            <TextBlock Text="Configure hardware acceleration and Skia graphics rendering pipeline. Managed via SQLite and pre-cached on startup." 
+                       FontSize="11" 
+                       Foreground="{DynamicResource AppTextMutedBrush}"/>
+        </StackPanel>
+
+        <Separator Background="{DynamicResource AppBorderBrush}" Margin="0,2"/>
+
+        <!-- 2. Detected Hardware Adapter Card -->
+        <Border Background="{DynamicResource AppCardBackgroundBrush}" 
+                BorderBrush="{DynamicResource AppBorderBrush}" 
+                BorderThickness="1" 
+                CornerRadius="8" 
+                Padding="14,12">
+            <Grid ColumnDefinitions="Auto, *, Auto">
+                <!-- Hardware Chip Icon -->
+                <Border Grid.Column="0" 
+                        Width="40" Height="40" 
+                        CornerRadius="8" 
+                        Background="{DynamicResource AppToolHoverBrush}" 
+                        BorderBrush="{DynamicResource AppBorderBrush}" 
+                        BorderThickness="1" 
+                        VerticalAlignment="Center" 
+                        Margin="0,0,12,0">
+                    <PathIcon Data="M15 9H9v6h6V9zm-2 4h-2v-2h2v2zm8-2V9h-2V7c0-1.1-.9-2-2-2h-2V3h-2v2h-2V3h-2v2H9c-1.1 0-2 .9-2 2v2H5v2h2v2H5v2h2v2c0 1.1.9 2 2 2h2v2h2v-2h2v2h2v-2h2c1.1 0 2-.9 2-2v-2h2v-2h-2v-2h2zm-4 6H7V7h10v10z" 
+                              Width="18" Height="18" 
+                              Foreground="{DynamicResource AppAccentBrush}" 
+                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+
+                <!-- Hardware Device Info -->
+                <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                    <TextBlock Text="DETECTED GRAPHICS HARDWARE" 
+                               FontSize="10" 
+                               FontWeight="Bold" 
+                               Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    <TextBlock Text="{Binding GpuAdapterName}" 
+                               FontSize="13" 
+                               FontWeight="SemiBold" 
+                               Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                    <TextBlock Text="{Binding ActiveRendererSummary}" 
+                               FontSize="11" 
+                               Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                </StackPanel>
+
+                <!-- Hardware Status Badge -->
+                <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" Spacing="4">
+                    <Border CornerRadius="4" Padding="8,3"
+                            Background="{DynamicResource AppSuccessBackgroundBrush}"
+                            BorderBrush="{DynamicResource AppSuccessBorderBrush}"
+                            BorderThickness="1"
+                            IsVisible="{Binding IsGpuDetected}">
+                        <TextBlock Text="GPU DETECTED" 
+                                   FontSize="10" 
+                                   FontWeight="Bold" 
+                                   Foreground="{DynamicResource AppSuccessForegroundBrush}"/>
+                    </Border>
+                    <Border CornerRadius="4" Padding="8,3"
+                            Background="{DynamicResource AppWarningBackgroundBrush}"
+                            BorderBrush="{DynamicResource AppWarningBorderBrush}"
+                            BorderThickness="1"
+                            IsVisible="{Binding !IsGpuDetected}">
+                        <TextBlock Text="CPU BASIC DISPLAY" 
+                                   FontSize="10" 
+                                   FontWeight="Bold" 
+                                   Foreground="{DynamicResource AppWarningForegroundBrush}"/>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 3. Rendering Pipeline Selection Cards -->
+        <StackPanel Spacing="10">
+            <TextBlock Text="RENDERING PIPELINE MODE" 
+                       FontSize="11" 
+                       FontWeight="Bold" 
+                       Foreground="{DynamicResource AppTextMutedBrush}"/>
+
+            <!-- Mode 1: Auto (Recommended) -->
+            <Button Classes="perf-mode-card"
+                    Classes.active="{Binding IsAutoRenderingMode}"
+                    Command="{Binding SelectRenderingModeCommand}"
+                    CommandParameter="Auto">
+                <Grid ColumnDefinitions="Auto, *, Auto">
+                    <!-- Radio Indicator -->
+                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="9" 
+                            BorderBrush="{DynamicResource AppBorderBrush}" 
+                            BorderThickness="2" 
+                            VerticalAlignment="Center" 
+                            Margin="0,0,12,0">
+                        <Border Width="10" Height="10" CornerRadius="5" 
+                                Background="{DynamicResource AppAccentBrush}" 
+                                HorizontalAlignment="Center" 
+                                VerticalAlignment="Center"
+                                IsVisible="{Binding IsAutoRenderingMode}"/>
+                    </Border>
+
+                    <!-- Text Details -->
+                    <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Auto (Hardware Auto-Detect)" 
+                                       FontSize="12" 
+                                       FontWeight="Bold" 
+                                       Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                            <Border Background="{DynamicResource AppBadgeBackgroundBrush}" 
+                                    BorderBrush="{DynamicResource AppBadgeBorderBrush}" 
+                                    BorderThickness="1" 
+                                    CornerRadius="3" 
+                                    Padding="6,1">
+                                <TextBlock Text="RECOMMENDED" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AppAccentBrush}"/>
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Text="Automatically inspects GPU hardware. If a discrete or integrated graphics card is present, DirectX 11 / ANGLE hardware acceleration is enabled; otherwise, it switches to CPU software rasterization." 
+                                   FontSize="11" 
+                                   TextWrapping="Wrap" 
+                                   Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                    </StackPanel>
+                </Grid>
+            </Button>
+
+            <!-- Mode 2: Force GPU Mode -->
+            <Button Classes="perf-mode-card"
+                    Classes.active="{Binding IsGpuRenderingMode}"
+                    Command="{Binding SelectRenderingModeCommand}"
+                    CommandParameter="GPU">
+                <Grid ColumnDefinitions="Auto, *, Auto">
+                    <!-- Radio Indicator -->
+                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="9" 
+                            BorderBrush="{DynamicResource AppBorderBrush}" 
+                            BorderThickness="2" 
+                            VerticalAlignment="Center" 
+                            Margin="0,0,12,0">
+                        <Border Width="10" Height="10" CornerRadius="5" 
+                                Background="{DynamicResource AppAccentBrush}" 
+                                HorizontalAlignment="Center" 
+                                VerticalAlignment="Center"
+                                IsVisible="{Binding IsGpuRenderingMode}"/>
+                    </Border>
+
+                    <!-- Text Details -->
+                    <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="GPU Acceleration (Hardware Pipeline)" 
+                                       FontSize="12" 
+                                       FontWeight="Bold" 
+                                       Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                            <Border Background="{DynamicResource AppBadgeBackgroundBrush}" 
+                                    BorderBrush="{DynamicResource AppBadgeBorderBrush}" 
+                                    BorderThickness="1" 
+                                    CornerRadius="3" 
+                                    Padding="6,1">
+                                <TextBlock Text="MAX FLUIDITY" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AppAccentBrush}"/>
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Text="Forces hardware-accelerated DirectX 11 / ANGLE pipeline with 128 MB Skia VRAM cache for ultra-smooth 60/120+ FPS rendering and zero jank." 
+                                   FontSize="11" 
+                                   TextWrapping="Wrap" 
+                                   Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                    </StackPanel>
+                </Grid>
+            </Button>
+
+            <!-- Mode 3: Force CPU Mode -->
+            <Button Classes="perf-mode-card"
+                    Classes.active="{Binding IsCpuRenderingMode}"
+                    Command="{Binding SelectRenderingModeCommand}"
+                    CommandParameter="CPU">
+                <Grid ColumnDefinitions="Auto, *, Auto">
+                    <!-- Radio Indicator -->
+                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="9" 
+                            BorderBrush="{DynamicResource AppBorderBrush}" 
+                            BorderThickness="2" 
+                            VerticalAlignment="Center" 
+                            Margin="0,0,12,0">
+                        <Border Width="10" Height="10" CornerRadius="5" 
+                                Background="{DynamicResource AppAccentBrush}" 
+                                HorizontalAlignment="Center" 
+                                VerticalAlignment="Center"
+                                IsVisible="{Binding IsCpuRenderingMode}"/>
+                    </Border>
+
+                    <!-- Text Details -->
+                    <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="CPU Software Rasterizer (Lightweight)" 
+                                       FontSize="12" 
+                                       FontWeight="Bold" 
+                                       Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                            <Border Background="{DynamicResource AppBadgeBackgroundBrush}" 
+                                    BorderBrush="{DynamicResource AppBadgeBorderBrush}" 
+                                    BorderThickness="1" 
+                                    CornerRadius="3" 
+                                    Padding="6,1">
+                                <TextBlock Text="LIGHTWEIGHT" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Text="Pure CPU software rendering with minimal RAM footprint (16 MB buffer). Ideal for low-spec machines, VMs, Remote Desktop (RDP), or optimizing laptop battery life." 
+                                   FontSize="11" 
+                                   TextWrapping="Wrap" 
+                                   Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                    </StackPanel>
+                </Grid>
+            </Button>
+        </StackPanel>
+
+        <!-- 4. Active Effective Mode Info Callout -->
+        <Border Background="{DynamicResource AppToolHoverBrush}" 
+                BorderBrush="{DynamicResource AppBorderBrush}" 
+                BorderThickness="1" 
+                CornerRadius="6" 
+                Padding="12,10">
+            <Grid ColumnDefinitions="Auto, *">
+                <ui:FASymbolIcon Grid.Column="0" Symbol="Checkmark" FontSize="13" 
+                                 Foreground="{DynamicResource AppAccentBrush}" 
+                                 VerticalAlignment="Top" 
+                                 Margin="0,2,8,0"/>
+                <TextBlock Grid.Column="1" 
+                           Text="{Binding EffectiveModeDescription}" 
+                           FontSize="11" 
+                           FontWeight="SemiBold" 
+                           Foreground="{DynamicResource AppTextPrimaryBrush}" 
+                           TextWrapping="Wrap"/>
+            </Grid>
+        </Border>
+
+        <!-- 5. Restart Notification Badge (Shown when mode changed) -->
+        <Border Background="{DynamicResource AppWarningBackgroundBrush}" 
+                BorderBrush="{DynamicResource AppWarningBorderBrush}" 
+                BorderThickness="1" 
+                CornerRadius="6" 
+                Padding="12,10"
+                IsVisible="{Binding RequiresGraphicsRestart}">
+            <Grid ColumnDefinitions="Auto, *">
+                <ui:FASymbolIcon Grid.Column="0" Symbol="Important" FontSize="14" 
+                                 Foreground="{DynamicResource AppWarningForegroundBrush}" 
+                                 VerticalAlignment="Top" 
+                                 Margin="0,2,8,0"/>
+                <StackPanel Grid.Column="1" Spacing="2">
+                    <TextBlock Text="Restart Required to Apply Graphics Engine" 
+                               FontSize="11" 
+                               FontWeight="Bold" 
+                               Foreground="{DynamicResource AppWarningForegroundBrush}"/>
+                    <TextBlock Text="Switching the OS-level rendering pipeline takes effect upon restarting Quell. Your selection is immediately saved in SQLite when clicking 'Save &amp; Apply'." 
+                               FontSize="10" 
+                               Foreground="{DynamicResource AppWarningForegroundBrush}" 
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </StackPanel>
+</UserControl>

@@ -1,12 +1,12 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="using:Fdb.ViewModels"
-             xmlns:components="using:Fdb.Components"
+             xmlns:vm="using:Quell.ViewModels"
+             xmlns:components="using:Quell.Components"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="400"
-             x:Class="Fdb.Components.QueryResultTableComponent"
+             x:Class="Quell.Components.QueryResultTableComponent"
              x:DataType="vm:QueryResultTableViewModel">
 
     <UserControl.Styles>
@@ -389,7 +389,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <!-- Col 5: COURSE / دوره (Foreign Key with distinct FK badge and navigation arrow button) -->
+                    <!-- Col 5: COURSE (Foreign Key with distinct FK badge and navigation arrow button) -->
                     <DataGridTemplateColumn Header="COURSE" 
                                             CellStyleClasses="white-col fk-col"
                                             Width="190">

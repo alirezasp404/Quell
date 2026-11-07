@@ -6,10 +6,10 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using AvaloniaEdit.Rendering;
-using Fdb.Services;
-using Fdb.ViewModels;
+using Quell.Services;
+using Quell.ViewModels;
 
-namespace Fdb.Components;
+namespace Quell.Components;
 
 public partial class EditorComponent : UserControl
 {
@@ -32,6 +32,9 @@ public partial class EditorComponent : UserControl
         CodeEditor.TextArea.PointerPressed += (s, e) => HideCompletion();
         CodeEditor.PointerWheelChanged += OnPointerWheelChanged;
 
+        // 3. Selection Tracking: synchronizes mouse/keyboard text selections
+        CodeEditor.TextArea.SelectionChanged += OnSelectionChanged;
+
         // Tunneling key handler ensures zoom shortcuts & completion navigation are intercepted
         AddHandler(KeyDownEvent, OnTunnelKeyDown, RoutingStrategies.Tunnel);
     }
@@ -41,6 +44,10 @@ public partial class EditorComponent : UserControl
         if (_viewModel != null)
         {
             _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            if (_viewModel.GetActiveSelection != null)
+            {
+                _viewModel.GetActiveSelection = null;
+            }
         }
 
         _viewModel = DataContext as EditorViewModel;
@@ -48,7 +55,16 @@ public partial class EditorComponent : UserControl
         if (_viewModel != null)
         {
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            _viewModel.GetActiveSelection = () => CodeEditor?.SelectedText ?? string.Empty;
             LoadActiveTabContent();
+        }
+    }
+
+    private void OnSelectionChanged(object? sender, EventArgs e)
+    {
+        if (_viewModel?.SelectedTab != null && CodeEditor != null)
+        {
+            _viewModel.SelectedTab.SelectedText = CodeEditor.SelectedText ?? string.Empty;
         }
     }
 
@@ -56,8 +72,19 @@ public partial class EditorComponent : UserControl
     {
         if (e.PropertyName == nameof(EditorViewModel.SelectedTab))
         {
-            HideCompletion();
-            LoadActiveTabContent();
+            if (Dispatcher.UIThread.CheckAccess())
+            {
+                HideCompletion();
+                LoadActiveTabContent();
+            }
+            else
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    HideCompletion();
+                    LoadActiveTabContent();
+                });
+            }
         }
     }
 
@@ -70,6 +97,9 @@ public partial class EditorComponent : UserControl
             CodeEditor.Document = _viewModel.SelectedTab.Document;
             CodeEditor.TextArea.Focus();
         }
+
+        // Keep selection state in sync
+        _viewModel.SelectedTab.SelectedText = CodeEditor.SelectedText ?? string.Empty;
     }
 
     private void OnPanelCustomizationChanged(object? sender, PanelCustomizationRecord custom)
@@ -145,8 +175,28 @@ public partial class EditorComponent : UserControl
         }
     }
 
+    public void OnRunInTerminalClicked(object? sender, RoutedEventArgs e)
+    {
+        var textToSend = !string.IsNullOrWhiteSpace(CodeEditor.SelectedText)
+            ? CodeEditor.SelectedText
+            : CodeEditor.Text;
+
+        if (string.IsNullOrWhiteSpace(textToSend)) return;
+
+        var mainVm = (VisualRoot as Window)?.DataContext as MainViewModel;
+        mainVm?.RunSelectionInTerminalCommand.Execute(textToSend);
+    }
+
     private void OnTunnelKeyDown(object? sender, KeyEventArgs e)
     {
+        // 0. Run in Terminal shortcut (Ctrl+Shift+Enter)
+        if (e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.Enter)
+        {
+            e.Handled = true;
+            OnRunInTerminalClicked(this, new RoutedEventArgs());
+            return;
+        }
+
         // 1. First priority: Handle Zoom shortcuts (Ctrl++, Ctrl+-, Ctrl+0)
         if (HandleZoomKeys(e)) return;
 

@@ -1,12 +1,12 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
               xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
               xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-              xmlns:vm="using:Fdb.ViewModels"
-              xmlns:components="using:Fdb.Components"
+              xmlns:vm="using:Quell.ViewModels"
+              xmlns:components="using:Quell.Components"
               xmlns:ae="using:AvaloniaEdit"
               mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="500"
-              x:Class="Fdb.Components.EditorComponent"
+              x:Class="Quell.Components.EditorComponent"
               x:DataType="vm:EditorViewModel">
 
     <!-- Composed SQL Editor Workspace Component: EditorTabStripComponent + Code Canvas + IntelliSense -->
@@ -19,13 +19,12 @@
                                                 DataContext="{Binding}" 
                                                 TabSelected="OnTabStripTabSelected" />
 
-            <!-- 2. Text Editor Canvas with SQL Syntax Highlighting & IntelliSense Overlay -->
+            <!-- 2. Text Editor Canvas with SQL Syntax Highlighting & IntelliSense Overlay (Docked flush) -->
             <Border Grid.Row="1" 
                     Background="{DynamicResource AppWorkspaceBrush}" 
-                    BorderBrush="{DynamicResource AppBorderBrush}" 
-                    BorderThickness="1" 
-                    CornerRadius="4" 
-                    Margin="6" 
+                    BorderThickness="0" 
+                    CornerRadius="0" 
+                    Margin="0" 
                     ClipToBounds="True">
                 <Grid>
                     <ae:TextEditor Name="CodeEditor"
@@ -37,7 +36,22 @@
                                    HorizontalScrollBarVisibility="Auto"
                                    VerticalScrollBarVisibility="Auto"
                                    WordWrap="False"
-                                   Margin="4"/>
+                                   Margin="4">
+                        <ae:TextEditor.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Run Active Query" InputGesture="F5"
+                                          Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ExecuteQueryCommand}" />
+                                <MenuItem Header="Run Selection in Terminal" InputGesture="Ctrl+Shift+Enter"
+                                          Click="OnRunInTerminalClicked" />
+                                <Separator />
+                                <MenuItem Header="Cut" InputGesture="Ctrl+X" Command="{Binding $parent[ae:TextEditor].Cut}" />
+                                <MenuItem Header="Copy" InputGesture="Ctrl+C" Command="{Binding $parent[ae:TextEditor].Copy}" />
+                                <MenuItem Header="Paste" InputGesture="Ctrl+V" Command="{Binding $parent[ae:TextEditor].Paste}" />
+                                <Separator />
+                                <MenuItem Header="Select All" InputGesture="Ctrl+A" Command="{Binding $parent[ae:TextEditor].SelectAll}" />
+                            </ContextMenu>
+                        </ae:TextEditor.ContextMenu>
+                    </ae:TextEditor>
 
                     <!-- In-Place Autocomplete Floating Card Overlay (Modular Reusable Component) -->
                     <Canvas Name="CompletionOverlayCanvas" ClipToBounds="True">

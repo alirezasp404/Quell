@@ -3,10 +3,10 @@ using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Fdb.Services;
-using Fdb.ViewModels;
+using Quell.Services;
+using Quell.ViewModels;
 
-namespace Fdb.Views;
+namespace Quell.Views;
 
 public partial class MainWindow : Window
 {
@@ -32,6 +32,25 @@ public partial class MainWindow : Window
         // Global Tunneling Key Handler: intercepts application shortcuts (Ctrl+B, F5, Ctrl+J, etc.)
         // at the Window root level before any child control (e.g. AvaloniaEdit TextEditor) can swallow them!
         AddHandler(KeyDownEvent, OnWindowKeyDownTunnel, RoutingStrategies.Tunnel);
+
+        UpdateGpuModeClass();
+        HardwareGraphicsService.Instance.RenderingModeChanged += (s, e) => Avalonia.Threading.Dispatcher.UIThread.Post(UpdateGpuModeClass);
+    }
+
+    public void UpdateGpuModeClass()
+    {
+        bool isGpu = HardwareGraphicsService.Instance.IsGpuMotionActive;
+        if (isGpu)
+        {
+            if (!Classes.Contains("gpu-mode"))
+            {
+                Classes.Add("gpu-mode");
+            }
+        }
+        else
+        {
+            Classes.Remove("gpu-mode");
+        }
     }
 
     private void OnWindowKeyDownTunnel(object? sender, KeyEventArgs e)
@@ -199,11 +218,16 @@ public partial class MainWindow : Window
         if (e.Handled || _viewModel == null) return;
 
         // If a modal dialog is open, do not execute workspace shortcuts (except Escape)
-        if (_viewModel.SettingsModal.IsOpen || _viewModel.ConnectModal.IsOpen || _viewModel.ConfirmModal.IsOpen || _viewModel.ExportModal.IsOpen)
+        if (_viewModel.SettingsModal.IsOpen || _viewModel.ConnectModal.IsOpen || _viewModel.ConfirmModal.IsOpen || _viewModel.ExportModal.IsOpen || _viewModel.DiagramModal.IsOpen)
         {
             if (e.Key == Key.Escape)
             {
-                if (_viewModel.ConnectModal.IsOpen)
+                if (_viewModel.DiagramModal.IsOpen)
+                {
+                    _viewModel.DiagramModal.IsOpen = false;
+                    e.Handled = true;
+                }
+                else if (_viewModel.ConnectModal.IsOpen)
                 {
                     _viewModel.ConnectModal.IsOpen = false;
                     e.Handled = true;
@@ -292,6 +316,24 @@ public partial class MainWindow : Window
         if (ShortcutService.Instance.IsMatch(ShortcutActions.ToggleFooter, e) || (e.Key == Key.J && e.KeyModifiers == KeyModifiers.Control))
         {
             _viewModel.ToggleFooterCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
+
+        // Toggle Terminal (Ctrl+` or Ctrl+Tilde)
+        if (ShortcutService.Instance.IsMatch(ShortcutActions.ToggleTerminal, e) || 
+            (e.KeyModifiers == KeyModifiers.Control && (e.Key == Key.Oem3 || e.Key == Key.OemTilde)))
+        {
+            _viewModel.ToggleTerminalCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
+
+        // Run in Terminal (Ctrl+Shift+Enter)
+        if (ShortcutService.Instance.IsMatch(ShortcutActions.RunInTerminal, e) || 
+            (e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.Enter))
+        {
+            _viewModel.RunSelectionInTerminalCommand.Execute(null);
             e.Handled = true;
             return;
         }

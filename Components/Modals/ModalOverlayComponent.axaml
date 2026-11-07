@@ -1,24 +1,27 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:components="using:Fdb.Components"
+             xmlns:components="using:Quell.Components"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
-             x:Class="Fdb.Components.ModalOverlayComponent"
+             x:Class="Quell.Components.ModalOverlayComponent"
              IsVisible="{Binding $self.IsOpen}">
 
     <!-- Modern Reusable Modal Backdrop & Dialog Container -->
     <Grid>
         <!-- 1. Semi-Transparent Backdrop (Click to Dismiss) -->
-        <Border Classes="modal-backdrop" Cursor="Hand" Background="{DynamicResource AppModalOverlayBrush}" 
+        <Border Classes="modal-backdrop" Cursor="Hand" Focusable="False" FocusAdorner="{x:Null}" Background="{DynamicResource AppModalOverlayBrush}" 
                 PointerPressed="OnBackdropPointerPressed"/>
 
         <!-- 2. Centered Modal Dialog Card -->
-        <Border Background="{DynamicResource AppWorkspaceBrush}" 
+        <Border Classes="modal-dialog-card"
+                Background="{DynamicResource AppWorkspaceBrush}" 
                 BorderBrush="{DynamicResource AppBorderBrush}" 
                 BorderThickness="1" 
                 CornerRadius="8" 
+                ClipToBounds="True"
+                Focusable="False" FocusAdorner="{x:Null}" 
                 BoxShadow="0 10 25 0 #33000000"
                 Width="{Binding $parent[components:ModalOverlayComponent].DialogWidth}"
                 HorizontalAlignment="Center" 

@@ -1,0 +1,207 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:terminal="using:Iciclecreek.Terminal"
+             xmlns:vm="using:Quell.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="300"
+             x:Class="Quell.Components.TerminalSessionView"
+             x:DataType="vm:TerminalSessionViewModel"
+             Background="{DynamicResource AppWorkspaceBrush}">
+
+    <UserControl.Styles>
+        <!-- Modern Slim Scrollbar for Terminal Control (Theme Synchronized) -->
+        <Style Selector="ScrollBar:vertical">
+            <Setter Property="Width" Value="8" />
+            <Setter Property="MinWidth" Value="8" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ScrollBar:vertical /template/ Thumb">
+            <Setter Property="Background" Value="{DynamicResource AppBorderDarkBrush}" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Opacity" Value="0.6" />
+        </Style>
+        <Style Selector="ScrollBar:vertical /template/ Thumb:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppTextMutedBrush}" />
+            <Setter Property="Opacity" Value="0.9" />
+        </Style>
+        <Style Selector="ScrollBar:vertical /template/ RepeatButton">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="ScrollBar:horizontal">
+            <Setter Property="Height" Value="8" />
+            <Setter Property="MinHeight" Value="8" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ScrollBar:horizontal /template/ Thumb">
+            <Setter Property="Background" Value="{DynamicResource AppBorderDarkBrush}" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Opacity" Value="0.6" />
+        </Style>
+        <Style Selector="ScrollBar:horizontal /template/ RepeatButton">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+
+        <!-- Flat Terminal Icon Button (Theme Synchronized) -->
+        <Style Selector="Button.terminal-icon-btn">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="MinWidth" Value="22"/>
+            <Setter Property="MinHeight" Value="22"/>
+            <Setter Property="Width" Value="22"/>
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FocusAdorner" Value="{x:Null}"/>
+        </Style>
+        <Style Selector="Button.terminal-icon-btn:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="*, Auto">
+        <!-- 1. Sleek Terminal Canvas Container with Comfortable Padding -->
+        <Border Grid.Row="0"
+                Background="{DynamicResource AppTerminalBackgroundBrush}"
+                Padding="10,8,8,6"
+                ClipToBounds="True">
+            <Grid>
+                <!-- Live Terminal Control (Theme Synchronized) -->
+                <terminal:TerminalControl x:Name="TermControl"
+                                          Background="{DynamicResource AppTerminalBackgroundBrush}"
+                                          Foreground="{DynamicResource AppTerminalForegroundBrush}"
+                                          SelectionBrush="{DynamicResource AppTerminalSelectionBrush}"
+                                          FontFamily="Cascadia Code, Consolas, Courier New, monospace"
+                                          FontSize="13"
+                                          IsVisible="{Binding !HasCliError}"
+                                          VerticalAlignment="Stretch"
+                                          HorizontalAlignment="Stretch" />
+
+                <!-- Missing CLI Guidance Banner (when CLI tool is not in PATH) -->
+                <Border IsVisible="{Binding HasCliError}"
+                        Background="{DynamicResource AppCardBackgroundBrush}"
+                        BorderBrush="{DynamicResource AppBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Margin="16"
+                        Padding="24"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        MaxWidth="640">
+                    <StackPanel Spacing="14">
+                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <ui:FASymbolIcon Symbol="Important" FontSize="22" Foreground="#F59E0B" />
+                            <TextBlock Text="{Binding CliErrorTitle}"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource AppTextPrimaryBrush}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <TextBlock Text="{Binding CliErrorMessage}"
+                                   TextWrapping="Wrap"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource AppTextSecondaryBrush}"
+                                   LineHeight="18" />
+
+                        <!-- Action Buttons -->
+                        <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,8,0,0">
+                            <Button Classes="classic-accent-btn"
+                                    Command="{Binding OpenDownloadUrlCommand}"
+                                    IsVisible="{Binding CliDownloadUrl.Length}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <ui:FASymbolIcon Symbol="Globe" FontSize="12" />
+                                    <TextBlock Text="Download &amp; Install Guide" FontSize="11" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Classes="classic-tool-btn"
+                                    x:Name="OpenShellFallbackButton">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <ui:FASymbolIcon Symbol="Play" FontSize="12" />
+                                    <TextBlock Text="Open System Shell" FontSize="11" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Classes="classic-tool-btn"
+                                    x:Name="OpenSettingsButton">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <ui:FASymbolIcon Symbol="Settings" FontSize="12" />
+                                    <TextBlock Text="Configure Path..." FontSize="11" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Classes="classic-tool-btn"
+                                    Command="{Binding RestartSessionCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <ui:FASymbolIcon Symbol="Sync" FontSize="12" />
+                                    <TextBlock Text="Retry" FontSize="11" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- 2. Modern Slim Metadata & Status Breadcrumb Bar -->
+        <Border Grid.Row="1"
+                Background="{DynamicResource AppTerminalStatusBackgroundBrush}"
+                BorderBrush="{DynamicResource AppTerminalStatusBorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,5"
+                MinHeight="28">
+            <Grid ColumnDefinitions="Auto, *, Auto">
+                <!-- Left: Status dot & Shell Badge -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Ellipse Width="6" Height="6" Fill="#10B981" VerticalAlignment="Center" IsVisible="{Binding IsRunning}" Margin="0,0,2,0" />
+                        <Ellipse Width="6" Height="6" Fill="#EF4444" VerticalAlignment="Center" IsVisible="{Binding !IsRunning}" Margin="0,0,2,0" />
+                        <TextBlock Text="{Binding StatusText}" FontSize="10" FontWeight="Medium" Foreground="{DynamicResource AppTextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                    </StackPanel>
+
+                    <Border Background="{DynamicResource AppSurfaceMutedBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="6,2">
+                        <TextBlock Text="{Binding ShellBadge}" FontSize="9" FontWeight="SemiBold" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center" />
+                    </Border>
+                </StackPanel>
+
+                <!-- Center: Working Directory with Copy button -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <ui:FASymbolIcon Symbol="Folder" FontSize="11" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding WorkingDirectory}"
+                               FontSize="10"
+                               Foreground="{DynamicResource AppTextPrimaryBrush}"
+                               VerticalAlignment="Center"
+                               MaxWidth="450"
+                               TextTrimming="CharacterEllipsis"
+                               ToolTip.Tip="{Binding WorkingDirectory}" />
+                    <Button x:Name="CopyPathButton"
+                            Classes="terminal-icon-btn"
+                            Command="{Binding CopyWorkingDirectoryCommand}"
+                            ToolTip.Tip="Copy working directory to clipboard">
+                        <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <ui:FASymbolIcon Symbol="Copy" FontSize="11" Foreground="{DynamicResource AppTextSecondaryBrush}" IsVisible="{Binding !IsCopied}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <ui:FASymbolIcon Symbol="Checkmark" FontSize="11" Foreground="#10B981" IsVisible="{Binding IsCopied}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Panel>
+                    </Button>
+                </StackPanel>
+
+                <!-- Right: Shortcut Tips -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Border Background="{DynamicResource AppSurfaceMutedBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="3" Padding="6,2">
+                        <TextBlock Text="Ctrl+L: Clear" FontSize="9" Foreground="{DynamicResource AppTextMutedBrush}" />
+                    </Border>
+                    <Border Background="{DynamicResource AppSurfaceMutedBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="3" Padding="6,2">
+                        <TextBlock Text="Ctrl+Shift+Enter: Run Selection" FontSize="9" Foreground="{DynamicResource AppTextMutedBrush}" />
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

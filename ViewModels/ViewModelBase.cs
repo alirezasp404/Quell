@@ -1,6 +1,6 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace Fdb.ViewModels;
+namespace Quell.ViewModels;
 
 public abstract class ViewModelBase : ObservableObject
 {

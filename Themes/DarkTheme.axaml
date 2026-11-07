@@ -1,13 +1,14 @@
-<ResourceDictionary xmlns="https://github.com/avaloniaui"
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- ================================================================= -->
-    <!-- Fdb Studio Design System: Componentized Dark Theme Palette        -->
+    <!-- Quell Design System: Componentized Dark Theme Palette        -->
     <!-- Modern dark slate aesthetic for focused low-light development     -->
     <!-- ================================================================= -->
 
     <!-- Base Palette Colors -->
     <Color x:Key="AppControlFaceColor">#1E293B</Color>
+    <Color x:Key="AppSurfaceColor">#1E293B</Color>
     <Color x:Key="AppWindowBackgroundColor">#0F172A</Color>
     <Color x:Key="AppWorkspaceColor">#0F172A</Color>
     <Color x:Key="AppBorderColor">#334155</Color>
@@ -63,6 +64,20 @@
     <SolidColorBrush x:Key="AppModalOverlayBrush" Color="#88000000" />
     <SolidColorBrush x:Key="AppCardBackgroundBrush" Color="#1E293B" />
 
+    <!-- Terminal Component Semantic Brushes -->
+    <SolidColorBrush x:Key="AppTerminalBackgroundBrush" Color="#0F172A" />
+    <SolidColorBrush x:Key="AppTerminalForegroundBrush" Color="#F8FAFC" />
+    <SolidColorBrush x:Key="AppTerminalToolbarBackgroundBrush" Color="#1E293B" />
+    <SolidColorBrush x:Key="AppTerminalToolbarBorderBrush" Color="#334155" />
+    <SolidColorBrush x:Key="AppTerminalTabBackgroundBrush" Color="#141E2E" />
+    <SolidColorBrush x:Key="AppTerminalTabActiveBackgroundBrush" Color="#1E293B" />
+    <SolidColorBrush x:Key="AppTerminalTabBorderBrush" Color="#334155" />
+    <SolidColorBrush x:Key="AppTerminalTabActiveBorderBrush" Color="#3B82F6" />
+    <SolidColorBrush x:Key="AppTerminalSelectionBrush" Color="#4038BDF8" />
+    <SolidColorBrush x:Key="AppTerminalCursorBrush" Color="#38BDF8" />
+    <SolidColorBrush x:Key="AppTerminalStatusBackgroundBrush" Color="#0B0F17" />
+    <SolidColorBrush x:Key="AppTerminalStatusBorderBrush" Color="#1E293B" />
+
     <!-- Table Component Semantic Brushes (QueryResultTable & SchemaPropertiesTable) -->
     <SolidColorBrush x:Key="AppTableGutterBackgroundBrush" Color="#1E293B" />
     <SolidColorBrush x:Key="AppTableGutterForegroundBrush" Color="#F8FAFC" />
@@ -106,5 +121,21 @@
 
     <!-- SQL Syntax Keyword Color Token (Default: Dark Mode Sky Blue) -->
     <SolidColorBrush x:Key="AppKeywordBrush" Color="#60A5FA" />
+
+    <!-- Focus Visual Suppression Tokens (Eliminate harsh black focus outlines) -->
+    <SolidColorBrush x:Key="SystemControlFocusVisualPrimaryBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="SystemControlFocusVisualSecondaryBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="FocusStrokeColorOuterBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="FocusStrokeColorInnerBrush" Color="Transparent" />
+    <Thickness x:Key="SystemControlFocusVisualPrimaryThickness">0</Thickness>
+    <Thickness x:Key="SystemControlFocusVisualSecondaryThickness">0</Thickness>
+
+    <!-- Menu & Flyout Default Tokens -->
+    <SolidColorBrush x:Key="PopupBackground" Color="Transparent" />
+    <SolidColorBrush x:Key="MenuFlyoutPresenterBackground" Color="{StaticResource AppSurfaceColor}" />
+    <SolidColorBrush x:Key="MenuFlyoutPresenterBorderBrush" Color="{StaticResource AppBorderColor}" />
+    <Thickness x:Key="MenuFlyoutPresenterBorderThemeThickness">1</Thickness>
+    <CornerRadius x:Key="OverlayCornerRadius">6</CornerRadius>
+    <CornerRadius x:Key="MenuFlyoutPresenterCornerRadius">6</CornerRadius>
 
 </ResourceDictionary>

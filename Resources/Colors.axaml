@@ -1,19 +1,19 @@
-<ResourceDictionary xmlns="https://github.com/avaloniaui"
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- ======================================================== -->
-    <!-- Fdb Studio Design System: Modular Theme Includes         -->
+    <!-- Quell Design System: Modular Theme Includes         -->
     <!-- Componentized Light / Dark Palettes and Tokens           -->
     <!-- ======================================================== -->
 
     <ResourceDictionary.MergedDictionaries>
-        <ResourceInclude Source="avares://Fdb/Themes/ThemeTokens.axaml" />
+        <ResourceInclude Source="avares://Quell/Themes/ThemeTokens.axaml" />
     </ResourceDictionary.MergedDictionaries>
 
     <ResourceDictionary.ThemeDictionaries>
-        <ResourceInclude x:Key="Default" Source="avares://Fdb/Themes/LightTheme.axaml" />
-                <ResourceInclude x:Key="Light" Source="avares://Fdb/Themes/LightTheme.axaml" />
-        <ResourceInclude x:Key="Dark" Source="avares://Fdb/Themes/DarkTheme.axaml" />
+        <ResourceInclude x:Key="Default" Source="avares://Quell/Themes/LightTheme.axaml" />
+                <ResourceInclude x:Key="Light" Source="avares://Quell/Themes/LightTheme.axaml" />
+        <ResourceInclude x:Key="Dark" Source="avares://Quell/Themes/DarkTheme.axaml" />
     </ResourceDictionary.ThemeDictionaries>
 
 </ResourceDictionary>

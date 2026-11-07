@@ -1,10 +1,10 @@
-using System.Windows.Input;
+﻿using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Metadata;
 
-namespace Fdb.Components;
+namespace Quell.Components;
 
 public partial class ModalOverlayComponent : UserControl
 {

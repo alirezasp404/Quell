@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Fdb.Services.DatabaseProviders;
+using Quell.Services.DatabaseProviders;
 
-namespace Fdb.Services;
+namespace Quell.Services;
 
 public class SqlSnippet
 {

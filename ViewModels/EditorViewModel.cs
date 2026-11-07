@@ -4,7 +4,7 @@ using AvaloniaEdit.Document;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace Fdb.ViewModels;
+namespace Quell.ViewModels;
 
 public partial class EditorTabItem : ObservableObject
 {
@@ -13,6 +13,9 @@ public partial class EditorTabItem : ObservableObject
 
     [ObservableProperty]
     private bool _isActive;
+
+    [ObservableProperty]
+    private string _selectedText = string.Empty;
 
     private string _rawText = string.Empty;
 
@@ -34,6 +37,7 @@ public partial class EditorTabItem : ObservableObject
         set
         {
             _rawText = value ?? string.Empty;
+            SelectedText = string.Empty;
             try
             {
                 if (Document.Text != value)
@@ -69,6 +73,32 @@ public partial class EditorViewModel : ViewModelBase
 
     [ObservableProperty]
     private EditorTabItem? _selectedTab;
+
+    /// <summary>
+    /// Optional live delegate returning the active editor's highlighted/selected text (e.g. from AvaloniaEdit.TextEditor.SelectedText).
+    /// </summary>
+    public System.Func<string>? GetActiveSelection { get; set; }
+
+    /// <summary>
+    /// Resolves the SQL query to execute: returns the selected/highlighted text if any;
+    /// otherwise falls back to the full text of the currently active editor tab.
+    /// </summary>
+    public string GetQueryToExecute()
+    {
+        var selection = GetActiveSelection?.Invoke();
+        if (!string.IsNullOrWhiteSpace(selection))
+        {
+            return selection.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(SelectedTab?.SelectedText))
+        {
+            return SelectedTab.SelectedText.Trim();
+        }
+
+        string full = SelectedTab?.Text ?? string.Empty;
+        return !string.IsNullOrWhiteSpace(full) ? full : "SELECT * FROM dbo.Users;";
+    }
 
     public EditorViewModel()
     {

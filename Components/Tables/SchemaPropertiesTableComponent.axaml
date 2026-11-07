@@ -1,12 +1,12 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="using:Fdb.ViewModels"
-             xmlns:models="using:Fdb.Models"
+             xmlns:vm="using:Quell.ViewModels"
+             xmlns:models="using:Quell.Models"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="350"
-             x:Class="Fdb.Components.SchemaPropertiesTableComponent"
+             x:Class="Quell.Components.SchemaPropertiesTableComponent"
              x:DataType="vm:SchemaPropertiesTableViewModel">
 
     <UserControl.Styles>

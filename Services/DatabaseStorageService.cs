@@ -1,14 +1,14 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using Microsoft.Data.Sqlite;
-using Fdb.ViewModels;
-using Fdb.Services.DatabaseProviders;
+using Quell.ViewModels;
+using Quell.Services.DatabaseProviders;
 
-namespace Fdb.Services;
+namespace Quell.Services;
 
 public class ConnectionRecord
 {
@@ -119,6 +119,10 @@ public class PanelCustomizationRecord
 
     // Legacy / Shared Table
     public string TableBackground { get; set; } = "Default";
+
+    // Terminal Multi-part
+    public string TerminalBackground { get; set; } = "Default";
+    public string TerminalForeground { get; set; } = "Default";
 }
 
 public class TableCustomizationRecord
@@ -166,7 +170,11 @@ public class DatabaseStorageService
 
     public static string ResolveDatabasePath()
     {
-        string? envPath = Environment.GetEnvironmentVariable("FDB_STUDIO_DB_PATH");
+        string? envPath = Environment.GetEnvironmentVariable("QUELL_DB_PATH");
+        if (string.IsNullOrWhiteSpace(envPath))
+        {
+            envPath = Environment.GetEnvironmentVariable("FDB_STUDIO_DB_PATH");
+        }
         if (!string.IsNullOrWhiteSpace(envPath))
         {
             var dir = Path.GetDirectoryName(envPath);
@@ -177,15 +185,60 @@ public class DatabaseStorageService
             return envPath;
         }
 
-        string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        string appFolder = Path.Combine(appData, "FdbStudio");
-        if (!Directory.Exists(appFolder))
+        try
         {
-            Directory.CreateDirectory(appFolder);
-        }
-        return Path.Combine(appFolder, "fdb_studio.db");
-    }
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            if (!string.IsNullOrEmpty(appData))
+            {
+                string appFolder = Path.Combine(appData, "Quell");
+                if (!Directory.Exists(appFolder))
+                {
+                    Directory.CreateDirectory(appFolder);
+                }
 
+                string quellDbPath = Path.Combine(appFolder, "quell.db");
+                if (!File.Exists(quellDbPath))
+                {
+                    string oldDbPath = Path.Combine(appData, "FdbStudio", "fdb_studio.db");
+                    if (File.Exists(oldDbPath))
+                    {
+                        try
+                        {
+                            File.Copy(oldDbPath, quellDbPath, overwrite: false);
+                        }
+                        catch
+                        {
+                            // Ignore copy error
+                        }
+                    }
+                }
+
+                string testFile = Path.Combine(appFolder, ".perm_test");
+                File.WriteAllText(testFile, "1");
+                File.Delete(testFile);
+
+                return quellDbPath;
+            }
+        }
+        catch
+        {
+            // AppData not writable in current environment (sandbox/container), fallback below
+        }
+
+        string fallbackDir = Path.Combine(Directory.GetCurrentDirectory(), "data");
+        if (!Directory.Exists(fallbackDir))
+        {
+            try
+            {
+                Directory.CreateDirectory(fallbackDir);
+            }
+            catch
+            {
+                fallbackDir = AppDomain.CurrentDomain.BaseDirectory;
+            }
+        }
+        return Path.Combine(fallbackDir, "quell.db");
+    }
     public DatabaseStorageService()
     {
         DatabasePath = ResolveDatabasePath();
@@ -319,7 +372,7 @@ public class DatabaseStorageService
             reportProgress?.Invoke(90, "Pre-caching active SQL dialect keywords...");
             await SqlKeywordsService.Instance.LoadKeywordsFromDatabaseAsync();
 
-            reportProgress?.Invoke(100, "Studio Environment Ready — SQLite Engine Initialized.");
+            reportProgress?.Invoke(100, "Studio Environment Ready ΓÇö SQLite Engine Initialized.");
         }
         catch (Exception ex)
         {
@@ -372,20 +425,41 @@ public class DatabaseStorageService
     /// Runs SQLite schema initialization/migrations, pre-caches all settings, applies theme,
     /// pre-caches SQL dialect keywords, shortcuts, saved connections, and query history.
     /// </summary>
-    public async Task PreloadStartupDataAsync(Action<double, string>? reportProgress = null)
+    /// Unified high-performance startup routine executed during the splash screen sequence.
+    /// Runs SQLite schema initialization/migrations, pre-caches all settings, applies theme,
+    /// pre-caches SQL dialect keywords, shortcuts, saved connections, and query history.
+    /// </summary>
+    public Task PreloadStartupDataAsync(Action<double, string>? reportProgress)
     {
-        reportProgress?.Invoke(10, "Opening SQLite Storage Engine...");
+        return PreloadStartupDataAsync(reportProgress == null ? null : (p, s, sub) =>
+        {
+            reportProgress(p, s);
+            return Task.CompletedTask;
+        });
+    }
+
+    public async Task PreloadStartupDataAsync(Func<double, string, string, Task>? reportProgress = null)
+    {
+        if (reportProgress != null)
+            await reportProgress(10, "Opening SQLite Storage Engine...", "Verifying database file and initial connections...").ConfigureAwait(false);
+
         await InitializeWithProgressAsync((p, s) =>
         {
-            // Map the schema init progress from 10 to 50
-            double mapped = 10 + (p * 0.4);
-            reportProgress?.Invoke(mapped, s);
+            // Map the schema init progress from 10 to 30
+            double mapped = 10 + (p * 0.2);
+            reportProgress?.Invoke(mapped, s, "Verifying schema tables and migrations...");
         }).ConfigureAwait(false);
 
-        reportProgress?.Invoke(55, "Pre-caching Application Settings & Preferences...");
+        if (reportProgress != null)
+            await reportProgress(32, "Loading Preferences & Settings...", "Reading AppSettings cache from SQLite...").ConfigureAwait(false);
         await LoadAllSettingsAsync().ConfigureAwait(false);
 
-        reportProgress?.Invoke(68, "Applying Appearance, Themes & Customizations...");
+        if (reportProgress != null)
+            await reportProgress(45, "Detecting GPU Hardware...", "Resolving DirectX 11 / ANGLE hardware pipeline...").ConfigureAwait(false);
+        await HardwareGraphicsService.Instance.InitializeAsync().ConfigureAwait(false);
+
+        if (reportProgress != null)
+            await reportProgress(58, "Applying Appearance & Themes...", "Configuring Light/Dark palette and syntax colors...").ConfigureAwait(false);
         string theme = await GetThemeAsync().ConfigureAwait(false);
         ThemeService.Instance.ApplyTheme(theme);
         string keywordColor = await GetKeywordColorAsync().ConfigureAwait(false);
@@ -395,16 +469,21 @@ public class DatabaseStorageService
         var tableCustom = await GetTableCustomizationAsync().ConfigureAwait(false);
         ThemeService.Instance.ApplyTableCustomization(tableCustom);
 
-        reportProgress?.Invoke(80, "Pre-caching Keyboard Shortcuts...");
+        if (reportProgress != null)
+            await reportProgress(70, "Pre-caching Keyboard Shortcuts...", "Loading key gestures and shortcut map...").ConfigureAwait(false);
         await ShortcutService.Instance.InitializeAsync().ConfigureAwait(false);
 
-        reportProgress?.Invoke(90, "Pre-caching Saved Connections & Database Nodes...");
+        if (reportProgress != null)
+            await reportProgress(78, "Loading Multi-Dialect SQL Lexers...", "Pre-caching MSSQL, PostgreSQL, MySQL, SQLite keywords...").ConfigureAwait(false);
+        await SqlKeywordsService.Instance.LoadKeywordsFromDatabaseAsync().ConfigureAwait(false);
+
+        if (reportProgress != null)
+            await reportProgress(84, "Pre-caching Saved Connections...", "Pre-loading database tree nodes...").ConfigureAwait(false);
         await GetRecentConnectionsAsync(forceReload: true).ConfigureAwait(false);
 
-        reportProgress?.Invoke(96, "Pre-caching Execution History & Dialect Metadata...");
+        if (reportProgress != null)
+            await reportProgress(88, "Pre-caching Execution History...", "Loading recent query logs & workspace state...").ConfigureAwait(false);
         await GetQueryHistoryAsync(forceReload: true).ConfigureAwait(false);
-
-        reportProgress?.Invoke(100, "Studio Environment Ready — SQLite Engine Initialized.");
     }
 
     private static async Task ExecuteInitScriptStepsAsync(SqliteConnection connection, string fullSql, Action<double, string>? reportProgress)
@@ -937,7 +1016,7 @@ public class DatabaseStorageService
                        COALESCE(Password, '') AS Password,
                        COALESCE(DatabaseType, 'MSSQL') AS DatabaseType, LastConnectedAt 
                 FROM Connections 
-                WHERE Server NOT LIKE '%fdb_studio%' AND DatabaseName NOT LIKE '%fdb_studio%'
+                WHERE Server NOT LIKE '%quell%' AND DatabaseName NOT LIKE '%quell%' AND Server NOT LIKE '%fdb_studio%' AND DatabaseName NOT LIKE '%fdb_studio%'
                 ORDER BY Id DESC 
                 LIMIT 20;";
 
@@ -968,7 +1047,7 @@ public class DatabaseStorageService
                        COALESCE(Password, '') AS Password,
                        COALESCE(DatabaseType, 'MSSQL') AS DatabaseType, LastConnectedAt 
                 FROM Connections 
-                WHERE Id = @id AND Server NOT LIKE '%fdb_studio%' AND DatabaseName NOT LIKE '%fdb_studio%';";
+                WHERE Id = @id AND Server NOT LIKE '%quell%' AND DatabaseName NOT LIKE '%quell%' AND Server NOT LIKE '%fdb_studio%' AND DatabaseName NOT LIKE '%fdb_studio%';";
 
             return await connection.QueryFirstOrDefaultAsync<ConnectionRecord>(sql, new { id });
         }
@@ -1191,6 +1270,16 @@ public class DatabaseStorageService
         }
     }
 
+    public async Task<string> GetGraphicsRenderingModeAsync()
+    {
+        return await GetSettingAsync("GraphicsRenderingMode", "Auto").ConfigureAwait(false);
+    }
+
+    public async Task SaveGraphicsRenderingModeAsync(string mode)
+    {
+        await SaveSettingAsync("GraphicsRenderingMode", mode ?? "Auto").ConfigureAwait(false);
+    }
+
     public async Task<PanelCustomizationRecord> GetPanelCustomizationAsync()
     {
         var record = new PanelCustomizationRecord();
@@ -1212,6 +1301,9 @@ public class DatabaseStorageService
             record.BorderColor = await GetSettingAsync("BorderColor", "Default");
             record.SplitterColor = await GetSettingAsync("SplitterColor", "Default");
             record.TableBackground = await GetSettingAsync("TableBackground", "Default");
+
+            record.TerminalBackground = await GetSettingAsync("TerminalBackground", "Default");
+            record.TerminalForeground = await GetSettingAsync("TerminalForeground", "Default");
 
             string fontSizeStr = await GetSettingAsync("EditorFontSize", "13");
             if (double.TryParse(fontSizeStr, System.Globalization.CultureInfo.InvariantCulture, out double fs))
@@ -1249,6 +1341,8 @@ public class DatabaseStorageService
                 ["BorderColor"] = record.BorderColor,
                 ["SplitterColor"] = record.SplitterColor,
                 ["TableBackground"] = record.TableBackground,
+                ["TerminalBackground"] = record.TerminalBackground,
+                ["TerminalForeground"] = record.TerminalForeground,
                 ["EditorFontSize"] = record.EditorFontSize.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["EditorShowLineNumbers"] = record.EditorShowLineNumbers ? "true" : "false"
             };

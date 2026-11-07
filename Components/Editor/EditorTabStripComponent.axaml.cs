@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Fdb.ViewModels;
+using Quell.ViewModels;
 
-namespace Fdb.Components;
+namespace Quell.Components;
 
 public partial class EditorTabStripComponent : UserControl
 {

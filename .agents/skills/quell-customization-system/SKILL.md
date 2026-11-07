@@ -1,14 +1,14 @@
----
-name: fdb-customization-system
+﻿---
+name: quell-customization-system
 description: >-
-  Architectural patterns, procedural runbook, and token catalog for Fdb Studio's customization and color system.
-  Use when adding, modifying, or extending UI customization, Color Maker (رنگ‌ساز), theme tokens, button/border/sidebar styling,
-  or SQLite persistence of user preferences in Fdb.
+  Architectural patterns, procedural runbook, and token catalog for Quell's customization and color system.
+  Use when adding, modifying, or extending UI customization, Color Maker, theme tokens, button/border/sidebar styling,
+  or SQLite persistence of user preferences in Quell.
 ---
 
-# Fdb Studio Customization & Color System Skill
+# Quell Customization & Color System Skill
 
-This skill defines the architectural blueprint, token taxonomy, and step-by-step procedures for extending Fdb Studio's UI customization, Color Maker ("رنگ‌ساز"), theme brushes, and SQLite configuration engine.
+This skill defines the architectural blueprint, token taxonomy, and step-by-step procedures for extending Quell's UI customization, Color Maker, theme brushes, and SQLite configuration engine.
 
 Follow this standard whenever you add new customizable elements, modify existing colors, or implement theme tokens.
 
@@ -16,7 +16,7 @@ Follow this standard whenever you add new customizable elements, modify existing
 
 ## 1. Architectural Overview (The 4-Layer System)
 
-Fdb Studio's customization engine operates across four synchronized layers:
+Quell's customization engine operates across four synchronized layers:
 
 ```
 ┌────────────────────────────────────────────────────────┐
@@ -133,7 +133,7 @@ public void SelectMyElementColor(string hex)
 }
 ```
 
-### Step 6: Register in the Color Maker ("رنگ‌ساز")
+### Step 6: Register in the Color Maker
 In `ViewModels/SettingsModalViewModel.cs`:
 - Add `"My Element Category: Target Name"` to `ColorMakerTargets`.
 - In `ApplyColorMakerToTarget()`, add the switch case:
@@ -190,6 +190,11 @@ Add an assertion in `VerifyLayoutAndPanelsAsync()` verifying that the property p
 | `AppTableGridLinesHorizontalBrush`| `#CBD5E1`| `#334155` | `GridLinesColor` | Horizontal data grid lines |
 | `AppTableGridLinesVerticalBrush` | `#E2E8F0` | `#334155` | `GridLinesColor` | Vertical data grid lines |
 | `AppTableSelectedBackgroundBrush`| `#DBEAFE` | `#1E3A5F` | `SelectionColor` | Selected row / cell highlight |
+| `AppTerminalBackgroundBrush` | `#FFFFFF` | `#0F172A` | `TerminalBackground` | Integrated Terminal emulator background |
+| `AppTerminalForegroundBrush` | `#0F172A` | `#F8FAFC` | `TerminalForeground` | Integrated Terminal output text |
+| `AppTerminalToolbarBackgroundBrush`| `#F8FAFC` | `#1E293B` | Derived from Theme / `AppSurfaceBrush` | Terminal session bar background |
+| `AppTerminalToolbarBorderBrush`| `#E2E8F0` | `#334155` | Derived from Theme / `AppBorderBrush` | Terminal session bar border |
+| `AppTerminalStatusBackgroundBrush`| `#F8FAFC` | `#0B0F17` | Derived from Theme / `AppSurfaceBrush` | Terminal bottom status breadcrumb bar |
 
 ---
 
@@ -199,7 +204,7 @@ Always run these two commands before committing any customization or styling cha
 
 ```powershell
 # 1. Compile in Release mode (must be 0 warnings, 0 errors)
-dotnet build Fdb.csproj --configuration Release
+dotnet build Quell.csproj --configuration Release
 
 # 2. Run automated headless verification suite
 dotnet run --configuration Release --no-build -- --verify

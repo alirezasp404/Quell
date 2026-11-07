@@ -1,21 +1,24 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
               xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
               xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-              xmlns:vm="using:Fdb.ViewModels"
+              xmlns:vm="using:Quell.ViewModels"
               xmlns:ui="using:FluentAvalonia.UI.Controls"
               mc:Ignorable="d" d:DesignWidth="720" d:DesignHeight="400"
-              x:Class="Fdb.Components.SplashScreenCardComponent"
-              x:DataType="vm:SplashScreenViewModel">
+              x:Class="Quell.Components.SplashScreenCardComponent"
+              x:DataType="vm:SplashScreenViewModel"
+              Focusable="False">
 
     <!-- Reusable Frameless Splash Screen Card Component (Artwork + Real-time SQLite Loading Indicator) -->
-    <Border Margin="16"
-            CornerRadius="12"
+    <Border Margin="0"
+            CornerRadius="8"
+            BorderThickness="1"
+            BorderBrush="#1E293B"
             ClipToBounds="True"
-            BoxShadow="0 16 40 0 #66000000">
+            Focusable="False">
         <Grid>
             <!-- Background Splash Artwork -->
-            <Image Source="avares://Fdb/Assets/Images/splash_screen.jpg"
+            <Image Source="avares://Quell/Assets/Images/quell_splash.jpg"
                    Stretch="UniformToFill"
                    RenderOptions.BitmapInterpolationMode="HighQuality"/>
 
@@ -47,11 +50,17 @@
                                  Value="{Binding ProgressValue}"
                                  Foreground="#E8943A"
                                  Background="#33FFFFFF"
-                                 HorizontalAlignment="Stretch"/>
+                                 HorizontalAlignment="Stretch">
+                        <ProgressBar.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Value" Duration="0:0:0.12" Easing="CubicEaseOut"/>
+                            </Transitions>
+                        </ProgressBar.Transitions>
+                    </ProgressBar>
 
                     <Grid ColumnDefinitions="*, Auto" Margin="0,2,0,0">
                         <TextBlock Grid.Column="0"
-                                   Text="Connecting to local database engine..."
+                                   Text="{Binding SubStatusText}"
                                    FontSize="10"
                                    Foreground="#94A3B8"/>
                         <TextBlock Grid.Column="1"

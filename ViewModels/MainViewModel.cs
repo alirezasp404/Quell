@@ -5,10 +5,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Fdb.Services;
-using Fdb.Services.DatabaseProviders;
+using Quell.Services;
+using Quell.Services.DatabaseProviders;
 
-namespace Fdb.ViewModels;
+namespace Quell.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {
@@ -25,6 +25,9 @@ public partial class MainViewModel : ViewModelBase
     private FooterViewModel _footer;
 
     [ObservableProperty]
+    private TerminalViewModel _terminal;
+
+    [ObservableProperty]
     private ConnectDatabaseModalViewModel _connectModal;
 
     [ObservableProperty]
@@ -32,6 +35,9 @@ public partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     private ExportDataModalViewModel _exportModal;
+
+    [ObservableProperty]
+    private DatabaseDiagramModalViewModel _diagramModal;
 
     [ObservableProperty]
     private SettingsModalViewModel _settingsModal;
@@ -53,12 +59,43 @@ public partial class MainViewModel : ViewModelBase
         _sidebar = new SidebarViewModel();
         _editor = new EditorViewModel();
         _footer = new FooterViewModel();
+        _terminal = new TerminalViewModel();
         _connectModal = new ConnectDatabaseModalViewModel();
         _confirmModal = new ConfirmActionModalViewModel();
         _exportModal = new ExportDataModalViewModel();
+        _diagramModal = new DatabaseDiagramModalViewModel();
         _settingsModal = new SettingsModalViewModel();
         _sampleQueryResult = new QueryResultTableViewModel();
         _sampleSchema = new SchemaPropertiesTableViewModel();
+
+        _exportModal.PerformExportCallback = async (source, tableName, includeHeaders, filePath) =>
+        {
+            return await ExecuteDataExportAsync(source, tableName, includeHeaders, filePath);
+        };
+
+        _diagramModal.OpenTableDataCallback = async tableName =>
+        {
+            string q = $"SELECT * FROM {tableName} LIMIT 100;";
+            if (Editor.SelectedTab != null) Editor.SelectedTab.Text = q;
+            await ExecuteQuery();
+        };
+
+        _diagramModal.GenerateDdlCallback = tableName =>
+        {
+            GenerateTableDdlFor(tableName);
+        };
+        _diagramModal.RefreshDiagramCallback = async () =>
+        {
+            await OpenDiagramModal();
+        };
+
+        _footer.TerminalTabActivated += () =>
+        {
+            if (_terminal.Sessions.Count == 0)
+            {
+                _terminal.NewSession();
+            }
+        };
 
         _sampleQueryResult.EditCellModal.ExecuteQueryDetailedCallback = async sql =>
         {
@@ -70,7 +107,7 @@ public partial class MainViewModel : ViewModelBase
             var res = await DatabaseSessionService.Instance.ExecuteQueryAsync(sql, key);
             if (res.Success)
             {
-                await Fdb.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
+                await Quell.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
                     sql, res.ExecutionTime, res.RowCount > 0 ? res.RowCount : 1, "Success");
                 return (true, null);
             }
@@ -168,6 +205,7 @@ public partial class MainViewModel : ViewModelBase
         DatabaseSessionService.Instance.ConnectionChanged += () =>
         {
             Navbar.UpdateConnectionStatus();
+            Terminal.UpdateConnectionContext(DatabaseSessionService.Instance.ActiveConfig);
             _ = RefreshAvailableDatabasesAsync();
         };
 
@@ -177,7 +215,7 @@ public partial class MainViewModel : ViewModelBase
 
     private async Task InitializeStartupAsync()
     {
-        await Fdb.Services.DatabaseStorageService.Instance.InitializeAsync();
+        await Quell.Services.DatabaseStorageService.Instance.InitializeAsync();
         await RefreshAvailableDatabasesAsync();
         await Sidebar.RefreshAsync();
     }
@@ -186,8 +224,8 @@ public partial class MainViewModel : ViewModelBase
 
     public async Task RefreshAvailableDatabasesAsync()
     {
-        var conns = (await Fdb.Services.DatabaseStorageService.Instance.GetRecentConnectionsAsync())
-            .Where(c => !c.Server.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase) && !c.DatabaseName.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase))
+        var conns = (await Quell.Services.DatabaseStorageService.Instance.GetRecentConnectionsAsync())
+            .Where(c => !c.Server.Contains("quell", StringComparison.OrdinalIgnoreCase) && !c.DatabaseName.Contains("quell", StringComparison.OrdinalIgnoreCase) && !c.Server.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase) && !c.DatabaseName.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase))
             .ToList();
         var currentSelectedKey = SelectedTargetDatabase?.Key;
 
@@ -312,7 +350,7 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     public async Task ExecuteQuery()
     {
-        string query = Editor.SelectedTab?.Text ?? "SELECT * FROM dbo.Users;";
+        string query = Editor.GetQueryToExecute();
         string execTime = "0 ms";
         int rowCount = 0;
         string status = "Success";
@@ -345,7 +383,7 @@ public partial class MainViewModel : ViewModelBase
                 },
                 "0 ms");
             SampleQueryResult.TargetDatabaseName = "(No Connection)";
-            ShowFooter();
+            ShowQueryResultFooter();
             return;
         }
 
@@ -382,7 +420,7 @@ public partial class MainViewModel : ViewModelBase
                     },
                     "0 ms");
                 SampleQueryResult.TargetDatabaseName = targetDbName;
-                ShowFooter();
+                ShowQueryResultFooter();
                 return;
             }
         }
@@ -457,11 +495,11 @@ public partial class MainViewModel : ViewModelBase
 
         SampleQueryResult.TargetDatabaseName = targetDbName;
 
-        await Fdb.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
+        await Quell.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
             query, execTime, rowCount, status);
 
         _ = Sidebar.RefreshAsync();
-        ShowFooter();
+        ShowQueryResultFooter();
     }
 
     public async Task NavigateToForeignKeyTableAsync(string targetTable, string targetColumn, string? cellValue, string? sourceColumn)
@@ -475,9 +513,9 @@ public partial class MainViewModel : ViewModelBase
         {
             whereClause = string.Empty;
         }
-        else if (targetTable.Equals("Users", StringComparison.OrdinalIgnoreCase) || targetTable.Equals("کاربران", StringComparison.OrdinalIgnoreCase))
+        else if (targetTable.Equals("Users", StringComparison.OrdinalIgnoreCase))
         {
-            if (sourceColumn != null && (sourceColumn.Equals("دوره", StringComparison.OrdinalIgnoreCase) || sourceColumn.Equals("Course", StringComparison.OrdinalIgnoreCase) || sourceColumn.Equals("TITLE", StringComparison.OrdinalIgnoreCase) || sourceColumn.Equals("CourseTitle", StringComparison.OrdinalIgnoreCase)))
+            if (sourceColumn != null && (sourceColumn.Equals("Course", StringComparison.OrdinalIgnoreCase) || sourceColumn.Equals("TITLE", StringComparison.OrdinalIgnoreCase) || sourceColumn.Equals("CourseTitle", StringComparison.OrdinalIgnoreCase)))
             {
                 whereClause = isNumeric ? $"WHERE Id = {cellValue} OR Course = '{cleanVal}'" : $"WHERE Course = '{cleanVal}'";
             }
@@ -540,7 +578,7 @@ public partial class MainViewModel : ViewModelBase
                     catch { }
                 });
 
-                ShowFooter();
+                ShowQueryResultFooter();
                 return;
             }
         }
@@ -550,7 +588,7 @@ public partial class MainViewModel : ViewModelBase
         string matchedInfo = SampleQueryResult.SelectedRow != null ? $" (User: {SampleQueryResult.SelectedRow.Name})" : "";
         SampleQueryResult.LastQueryMessage = $"Navigated to {targetTable} via FK [{sourceColumn} -> {targetTable}]{matchedInfo} ({SampleQueryResult.TotalRows} rows)";
         SampleQueryResult.HasLastQueryMessage = true;
-        ShowFooter();
+        ShowQueryResultFooter();
     }
 
     public async Task RefreshQueryResultAsync()
@@ -623,7 +661,7 @@ public partial class MainViewModel : ViewModelBase
     {
         if (Editor.SelectedTab != null)
         {
-            await Fdb.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
+            await Quell.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
                 Editor.SelectedTab.Text, "0 ms", 0, "Saved");
             _ = Sidebar.RefreshAsync();
         }
@@ -693,15 +731,95 @@ public partial class MainViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    public void ToggleTerminal()
+    {
+        if (!Footer.IsVisible)
+        {
+            Footer.IsVisible = true;
+
+            if (!Footer.Tabs.Contains("Terminal"))
+            {
+                Footer.Tabs.Add("Terminal");
+            }
+            Footer.SelectedTab = "Terminal";
+            if (Terminal.Sessions.Count == 0)
+            {
+                Terminal.NewSession();
+            }
+        }
+        else if (Footer.SelectedTab == "Terminal")
+        {
+            Footer.IsVisible = false;
+        }
+        else
+        {
+            if (!Footer.Tabs.Contains("Terminal"))
+            {
+                Footer.Tabs.Add("Terminal");
+            }
+            Footer.SelectedTab = "Terminal";
+            if (Terminal.Sessions.Count == 0)
+            {
+                Terminal.NewSession();
+            }
+        }
+    }
+
+    [RelayCommand]
+    public void RunSelectionInTerminal(string? queryText = null)
+    {
+        var textToSend = queryText;
+        if (string.IsNullOrWhiteSpace(textToSend))
+        {
+            textToSend = Editor.SelectedTab?.Text;
+        }
+        if (string.IsNullOrWhiteSpace(textToSend)) return;
+
+        Footer.IsVisible = true;
+
+        if (!Footer.Tabs.Contains("Terminal"))
+        {
+            Footer.Tabs.Add("Terminal");
+        }
+        Footer.SelectedTab = "Terminal";
+
+        Terminal.SendTextToActiveTerminal(textToSend);
+    }
+
+    [RelayCommand]
+    public void LaunchCliInTerminal(Quell.Services.DatabaseProviders.DatabaseConnectionConfig? config = null)
+    {
+        Footer.IsVisible = true;
+
+        if (!Footer.Tabs.Contains("Terminal"))
+        {
+            Footer.Tabs.Add("Terminal");
+        }
+        Footer.SelectedTab = "Terminal";
+        Terminal.LaunchDatabaseCli(config ?? Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.ActiveConfig);
+    }
+
+    [RelayCommand]
     public void ShowFooter()
     {
         Footer.IsVisible = true;
+    }
+
+    public void ShowQueryResultFooter()
+    {
+        Footer.IsVisible = true;
+        if (!Footer.Tabs.Contains("Results"))
+        {
+            Footer.Tabs.Insert(0, "Results");
+        }
+        Footer.SelectedTab = "Results";
     }
 
     [RelayCommand]
     public void RestoreFooterTab(string tabName)
     {
         Footer.IsVisible = true;
+
         if (!Footer.Tabs.Contains(tabName))
         {
             Footer.Tabs.Add(tabName);
@@ -733,6 +851,7 @@ public partial class MainViewModel : ViewModelBase
 
         // Restore Footer
         Footer.IsVisible = true;
+
         ResetFooterTabs();
 
         // Restore Editor
@@ -746,6 +865,7 @@ public partial class MainViewModel : ViewModelBase
     {
         Footer.Tabs.Clear();
         Footer.Tabs.Add("Results");
+        Footer.Tabs.Add("Terminal");
         Footer.SelectedTab = "Results";
     }
 
@@ -763,6 +883,589 @@ public partial class MainViewModel : ViewModelBase
         return null;
     }
 
+    #region Database Management, Backup, Export &amp; Diagram Commands
+
+    public void PopulateExportModalTables(string? defaultTable = null)
+    {
+        var tables = new List<string>();
+        var cached = DatabaseSessionService.Instance.GetActiveCachedTables();
+        foreach (var t in cached)
+        {
+            tables.Add(t.FullName);
+        }
+
+        var activeDb = Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsActive) ?? Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsConnected);
+        if (tables.Count == 0 && activeDb != null)
+        {
+            foreach (var t in activeDb.AllTableNodes)
+            {
+                tables.Add(t.FullName);
+            }
+        }
+
+        if (tables.Count == 0)
+        {
+            tables.AddRange(new[] { "Users", "Orders", "Products", "Roles" });
+        }
+
+        string? selected = defaultTable ?? Sidebar.SelectedTable?.FullName ?? SampleQueryResult.CurrentTableName;
+        ExportModal.SetAvailableTables(tables, selected);
+    }
+
+    [RelayCommand]
+    public void OpenExportTableModal()
+    {
+        PopulateExportModalTables();
+        ExportModal.Open();
+    }
+
+    [RelayCommand]
+    public void QuickExportExcel()
+    {
+        PopulateExportModalTables();
+        ExportModal.SelectedFormat = "Excel Spreadsheet (*.xlsx)";
+        ExportModal.ExportSource = "Specific Database Table";
+        ExportModal.Open();
+    }
+
+    [RelayCommand]
+    public async Task BackupDatabase()
+    {
+        await ExecuteDatabaseBackupAsync();
+    }
+
+    [RelayCommand]
+    public async Task RestoreDatabase()
+    {
+        await ExecuteDatabaseRestoreAsync();
+    }
+
+    [RelayCommand]
+    public async Task OpenDiagramModal()
+    {
+        var activeSession = DatabaseSessionService.Instance.ActiveSession;
+        string dbName = activeSession?.DisplayName ?? SelectedTargetDatabase?.DisplayName ?? "Quell Studio DB";
+        string dbType = activeSession?.DatabaseType ?? SelectedTargetDatabase?.DatabaseType ?? "SQLite";
+
+        // 1. Immediately open the modal and display loading state
+        DiagramModal.DatabaseTitle = dbName;
+        DiagramModal.DatabaseType = dbType;
+        DiagramModal.IsLoading = true;
+        DiagramModal.LoadingMessage = "Discovering database tables and relationships...";
+        DiagramModal.LoadingDetailText = "Querying schema information...";
+        DiagramModal.LoadingProgress = 0.0;
+        DiagramModal.AllTables.Clear();
+        DiagramModal.FilteredTables.Clear();
+        DiagramModal.Open();
+
+        await Task.Delay(250);
+
+        try
+        {
+            var cachedTables = DatabaseSessionService.Instance.GetActiveCachedTables();
+            var activeDb = Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsActive) ?? Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsConnected);
+            if (cachedTables.Count == 0 && activeDb != null)
+            {
+                cachedTables = activeDb.AllTableNodes.Select(t => t.Table).ToList();
+            }
+
+            if (cachedTables.Count == 0)
+            {
+                var sampleTables = GetSampleDiagramTables();
+                DiagramModal.LoadTables(sampleTables, dbName, dbType);
+                return;
+            }
+
+            var tables = new System.Collections.Concurrent.ConcurrentBag<DiagramTableItem>();
+            int total = cachedTables.Count;
+            int processed = 0;
+
+            using var semaphore = new System.Threading.SemaphoreSlim(4);
+            var tasks = cachedTables.Select(async t =>
+            {
+                await semaphore.WaitAsync();
+                try
+                {
+                    var pksTask = DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(t.FullName);
+                    var fksTask = DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(t.FullName);
+                    var colsTask = DatabaseSessionService.Instance.GetColumnsAsync(t.FullName);
+
+                    await Task.WhenAll(pksTask, fksTask, colsTask);
+
+                    var pks = await pksTask;
+                    var fks = await fksTask;
+                    var cols = await colsTask;
+
+                    var item = new DiagramTableItem
+                    {
+                        TableName = t.TableName,
+                        Schema = t.SchemaName,
+                        DatabaseType = dbType
+                    };
+
+                    foreach (var c in cols)
+                    {
+                        bool isPk = pks.Contains(c.ColumnName, StringComparer.OrdinalIgnoreCase);
+                        var fk = fks.FirstOrDefault(f => f.ColumnName.Equals(c.ColumnName, StringComparison.OrdinalIgnoreCase));
+
+                        item.Columns.Add(new DiagramColumnItem
+                        {
+                            ColumnName = c.ColumnName,
+                            DataType = c.DataType,
+                            IsPrimaryKey = isPk,
+                            IsForeignKey = fk != null,
+                            ReferencedTable = fk?.TargetTable,
+                            ReferencedColumn = fk?.TargetColumn
+                        });
+
+                        if (fk != null)
+                        {
+                            item.OutgoingRelations.Add($"{item.TableName}.{c.ColumnName} -> {fk.TargetTable}.{fk.TargetColumn}");
+                        }
+                    }
+
+                    tables.Add(item);
+
+                    int current = System.Threading.Interlocked.Increment(ref processed);
+                    double progress = (double)current / total * 100.0;
+
+                    void UpdateProgress()
+                    {
+                        DiagramModal.LoadingMessage = $"Analyzing schema: {t.TableName} ({current} of {total})";
+                        DiagramModal.LoadingDetailText = $"Loaded {cols.Count} columns for {t.TableName}";
+                        DiagramModal.LoadingProgress = progress;
+                    }
+
+                    if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+                    {
+                        UpdateProgress();
+                    }
+                    else
+                    {
+                        Avalonia.Threading.Dispatcher.UIThread.Post(UpdateProgress);
+                    }
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+
+            await Task.WhenAll(tasks);
+
+            var sortedTables = tables.OrderBy(t => t.TableName).ToList();
+            if (sortedTables.Count == 0)
+            {
+                sortedTables = GetSampleDiagramTables();
+            }
+
+            DiagramModal.LoadTables(sortedTables, dbName, dbType);
+        }
+        catch (Exception ex)
+        {
+            DiagramModal.StatusMessage = $"Schema analysis warning: {ex.Message}";
+            DiagramModal.HasStatusMessage = true;
+            if (DiagramModal.AllTables.Count == 0)
+            {
+                DiagramModal.LoadTables(GetSampleDiagramTables(), dbName, dbType);
+            }
+        }
+        finally
+        {
+            DiagramModal.IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    public void GenerateTableDdl()
+    {
+        string target = Sidebar.SelectedTable?.FullName ?? SampleQueryResult.CurrentTableName ?? "Users";
+        GenerateTableDdlFor(target);
+    }
+
+    [RelayCommand]
+    public async Task ShowTableProperties()
+    {
+        string target = Sidebar.SelectedTable?.FullName ?? SampleQueryResult.CurrentTableName ?? "Users";
+        await LoadTablePropertiesAsync(target);
+    }
+
+    [RelayCommand]
+    public async Task OptimizeDatabase()
+    {
+        string key = SelectedTargetDatabase?.Key ?? DatabaseSessionService.Instance.ActiveSession?.Key ?? string.Empty;
+        string dbType = SelectedTargetDatabase?.DatabaseType ?? "SQLite";
+        string sql = dbType.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase) || dbType.Equals("SQLite", StringComparison.OrdinalIgnoreCase)
+            ? "VACUUM;"
+            : (dbType.Equals("MySQL", StringComparison.OrdinalIgnoreCase) ? "OPTIMIZE TABLE Users;" : "CHECKPOINT;");
+
+        var res = await DatabaseSessionService.Instance.ExecuteQueryAsync(sql, key);
+        SampleQueryResult.LastQueryMessage = $"Database optimization executed ({res.ExecutionTime})";
+        SampleQueryResult.HasLastQueryMessage = true;
+        ShowQueryResultFooter();
+    }
+
+    [RelayCommand]
+    public async Task RefreshDatabaseSchema()
+    {
+        await Sidebar.RefreshAsync();
+        SampleQueryResult.LastQueryMessage = "Database schema & tables refreshed";
+        SampleQueryResult.HasLastQueryMessage = true;
+    }
+
+    private async Task<(bool Success, string Message, int RowCount)> ExecuteDataExportAsync(
+        string source, string tableName, bool includeHeaders, string filePath)
+    {
+        try
+        {
+            List<string> columns = new();
+            List<Dictionary<string, string>> rows = new();
+
+            if (source.Contains("Table", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(tableName))
+            {
+                string key = SelectedTargetDatabase?.Key ?? DatabaseSessionService.Instance.ActiveSession?.Key ?? string.Empty;
+                var res = await DatabaseSessionService.Instance.ExecuteQueryAsync($"SELECT * FROM {tableName};", key);
+                if (!res.Success)
+                {
+                    return (false, $"Failed to query table {tableName}: {res.Message}", 0);
+                }
+                columns = res.ColumnNames;
+                foreach (var r in res.Rows)
+                {
+                    var dict = new Dictionary<string, string>();
+                    foreach (var c in columns)
+                    {
+                        dict[c] = r[c];
+                    }
+                    rows.Add(dict);
+                }
+            }
+            else
+            {
+                columns = SampleQueryResult.LastColumns?.ToList() ?? SampleQueryResult.Rows.FirstOrDefault()?.Values.Keys.ToList() ?? new List<string>();
+                foreach (var r in SampleQueryResult.Rows)
+                {
+                    var dict = new Dictionary<string, string>();
+                    foreach (var c in columns)
+                    {
+                        dict[c] = r[c];
+                    }
+                    rows.Add(dict);
+                }
+            }
+
+            if (columns.Count == 0 && rows.Count == 0)
+            {
+                return (false, "No data available to export.", 0);
+            }
+
+            string dir = System.IO.Path.GetDirectoryName(filePath) ?? "";
+            if (!string.IsNullOrEmpty(dir) && !System.IO.Directory.Exists(dir))
+            {
+                System.IO.Directory.CreateDirectory(dir);
+            }
+
+            string ext = System.IO.Path.GetExtension(filePath).ToLowerInvariant();
+            if (ext is ".xlsx" or ".xml")
+            {
+                string excelContent = GenerateExcelXml(columns, rows);
+                await System.IO.File.WriteAllTextAsync(filePath, excelContent, System.Text.Encoding.UTF8);
+            }
+            else if (ext == ".json")
+            {
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("[");
+                for (int i = 0; i < rows.Count; i++)
+                {
+                    sb.Append("  { ");
+                    var pairs = rows[i].Select(kv => $"\"{kv.Key.Replace("\"", "\\\"")}\": \"{kv.Value.Replace("\"", "\\\"")}\"");
+                    sb.Append(string.Join(", ", pairs));
+                    sb.AppendLine(i < rows.Count - 1 ? " }," : " }");
+                }
+                sb.AppendLine("]");
+                await System.IO.File.WriteAllTextAsync(filePath, sb.ToString(), System.Text.Encoding.UTF8);
+            }
+            else if (ext == ".sql")
+            {
+                string target = !string.IsNullOrWhiteSpace(tableName) ? tableName : "ExportedTable";
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine($"-- Exported data for table {target}");
+                foreach (var row in rows)
+                {
+                    var colNames = string.Join(", ", columns.Select(c => $"[{c}]"));
+                    var values = string.Join(", ", columns.Select(c => $"'{row.GetValueOrDefault(c, "").Replace("'", "''")}'"));
+                    sb.AppendLine($"INSERT INTO {target} ({colNames}) VALUES ({values});");
+                }
+                await System.IO.File.WriteAllTextAsync(filePath, sb.ToString(), System.Text.Encoding.UTF8);
+            }
+            else if (ext == ".html")
+            {
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("<!DOCTYPE html><html><head><meta charset='utf-8'/><style>table{border-collapse:collapse;font-family:sans-serif;width:100%}th,td{border:1px solid #ccc;padding:6px 10px;text-align:left}th{background:#f0f0f0}</style></head><body>");
+                sb.AppendLine("<table><thead><tr>");
+                foreach (var col in columns) sb.Append($"<th>{System.Net.WebUtility.HtmlEncode(col)}</th>");
+                sb.AppendLine("</tr></thead><tbody>");
+                foreach (var row in rows)
+                {
+                    sb.Append("<tr>");
+                    foreach (var col in columns) sb.Append($"<td>{System.Net.WebUtility.HtmlEncode(row.GetValueOrDefault(col, ""))}</td>");
+                    sb.AppendLine("</tr>");
+                }
+                sb.AppendLine("</tbody></table></body></html>");
+                await System.IO.File.WriteAllTextAsync(filePath, sb.ToString(), System.Text.Encoding.UTF8);
+            }
+            else
+            {
+                char delim = ext == ".tsv" ? '\t' : ',';
+                var sb = new System.Text.StringBuilder();
+                if (includeHeaders)
+                {
+                    sb.AppendLine(string.Join(delim, columns.Select(c => EscapeCsv(c, delim))));
+                }
+                foreach (var row in rows)
+                {
+                    sb.AppendLine(string.Join(delim, columns.Select(c => EscapeCsv(row.GetValueOrDefault(c, ""), delim))));
+                }
+                await System.IO.File.WriteAllTextAsync(filePath, sb.ToString(), new System.Text.UTF8Encoding(true));
+            }
+
+            return (true, $"Exported {rows.Count} rows to {System.IO.Path.GetFileName(filePath)}", rows.Count);
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Export error: {ex.Message}", 0);
+        }
+    }
+
+    private static string EscapeCsv(string val, char delimiter)
+    {
+        if (string.IsNullOrEmpty(val)) return "";
+        if (val.Contains(delimiter) || val.Contains('"') || val.Contains('\n') || val.Contains('\r'))
+        {
+            return $"\"{val.Replace("\"", "\"\"")}\"";
+        }
+        return val;
+    }
+
+    private static string GenerateExcelXml(List<string> columns, List<Dictionary<string, string>> rows)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("<?xml version=\"1.0\"?>");
+        sb.AppendLine("<?mso-application progid=\"Excel.Sheet\"?>");
+        sb.AppendLine("<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\"");
+        sb.AppendLine(" xmlns:o=\"urn:schemas-microsoft-com:office:office\"");
+        sb.AppendLine(" xmlns:x=\"urn:schemas-microsoft-com:office:excel\"");
+        sb.AppendLine(" xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\">");
+        sb.AppendLine(" <Styles>");
+        sb.AppendLine("  <Style ss:ID=\"HeaderStyle\">");
+        sb.AppendLine("   <Font ss:Bold=\"1\" ss:Color=\"#FFFFFF\"/>");
+        sb.AppendLine("   <Interior ss:Color=\"#0284C7\" ss:Pattern=\"Solid\"/>");
+        sb.AppendLine("  </Style>");
+        sb.AppendLine(" </Styles>");
+        sb.AppendLine(" <Worksheet ss:Name=\"ExportedData\">");
+        sb.AppendLine("  <Table>");
+
+        sb.AppendLine("   <Row ss:StyleID=\"HeaderStyle\">");
+        foreach (var col in columns)
+        {
+            sb.AppendLine($"    <Cell><Data ss:Type=\"String\">{System.Security.SecurityElement.Escape(col)}</Data></Cell>");
+        }
+        sb.AppendLine("   </Row>");
+
+        foreach (var row in rows)
+        {
+            sb.AppendLine("   <Row>");
+            foreach (var col in columns)
+            {
+                string val = row.GetValueOrDefault(col, "");
+                string type = double.TryParse(val, out _) && !val.StartsWith("0") && val.Length < 11 ? "Number" : "String";
+                sb.AppendLine($"    <Cell><Data ss:Type=\"{type}\">{System.Security.SecurityElement.Escape(val)}</Data></Cell>");
+            }
+            sb.AppendLine("   </Row>");
+        }
+
+        sb.AppendLine("  </Table>");
+        sb.AppendLine(" </Worksheet>");
+        sb.AppendLine("</Workbook>");
+        return sb.ToString();
+    }
+
+    private async Task ExecuteDatabaseBackupAsync()
+    {
+        try
+        {
+            var activeSession = DatabaseSessionService.Instance.ActiveSession;
+            string dbType = activeSession?.DatabaseType ?? SelectedTargetDatabase?.DatabaseType ?? "SQLite";
+            string dbName = activeSession?.DisplayName ?? SelectedTargetDatabase?.DisplayName ?? "quell_db";
+            string cleanName = dbName.Replace(" ", "_").Replace(":", "_").Replace("/", "_").Replace("\\", "_");
+            string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+
+            string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            if (string.IsNullOrEmpty(desktopPath)) desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
+            string key = SelectedTargetDatabase?.Key ?? activeSession?.Key ?? string.Empty;
+
+            var tables = await DatabaseSessionService.Instance.GetTablesAsync(key);
+            var activeDb = Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsActive) ?? Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsConnected);
+            if (tables.Count == 0 && activeDb != null)
+            {
+                tables = activeDb.AllTableNodes.Select(t => t.Table).ToList();
+            }
+
+            string backupFile = System.IO.Path.Combine(desktopPath, $"{cleanName}_backup_{timestamp}.sql");
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"-- =============================================");
+            sb.AppendLine($"-- Quell Database Backup");
+            sb.AppendLine($"-- Database: {dbName} ({dbType})");
+            sb.AppendLine($"-- Backup Date: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            sb.AppendLine($"-- Total Tables: {tables.Count}");
+            sb.AppendLine($"-- =============================================\n");
+
+            foreach (var t in tables)
+            {
+                sb.AppendLine($"-- Table: {t.FullName}");
+                var queryRes = await DatabaseSessionService.Instance.ExecuteQueryAsync($"SELECT * FROM {t.FullName};", key);
+                if (queryRes.Success && queryRes.ColumnNames.Count > 0)
+                {
+                    string colList = string.Join(", ", queryRes.ColumnNames.Select(c => $"[{c}]"));
+                    foreach (var row in queryRes.Rows)
+                    {
+                        var valList = string.Join(", ", queryRes.ColumnNames.Select(c => $"'{row[c].Replace("'", "''")}'"));
+                        sb.AppendLine($"INSERT INTO {t.FullName} ({colList}) VALUES ({valList});");
+                    }
+                }
+                sb.AppendLine();
+            }
+
+            await System.IO.File.WriteAllTextAsync(backupFile, sb.ToString(), System.Text.Encoding.UTF8);
+
+            SampleQueryResult.LastQueryMessage = $"Backup saved: {System.IO.Path.GetFileName(backupFile)} ({tables.Count} tables)";
+            SampleQueryResult.HasLastQueryMessage = true;
+            ShowQueryResultFooter();
+        }
+        catch (Exception ex)
+        {
+            SampleQueryResult.LastQueryMessage = $"Backup failed: {ex.Message}";
+            SampleQueryResult.HasLastQueryMessage = true;
+        }
+    }
+
+    private async Task ExecuteDatabaseRestoreAsync()
+    {
+        SampleQueryResult.LastQueryMessage = "Ready to restore. Open a .sql backup script in the Editor and click Run (F5).";
+        SampleQueryResult.HasLastQueryMessage = true;
+        ShowQueryResultFooter();
+    }
+
+    private void GenerateTableDdlFor(string tableName)
+    {
+        string clean = tableName.Trim('[', ']', '"');
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"-- DDL Script generated by Quell for {clean}");
+        sb.AppendLine($"CREATE TABLE {clean} (");
+
+        var cols = DatabaseSessionService.Instance.GetColumnsAsync(clean).GetAwaiter().GetResult();
+        var pks = DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(clean).GetAwaiter().GetResult();
+
+        if (cols.Count > 0)
+        {
+            for (int i = 0; i < cols.Count; i++)
+            {
+                var col = cols[i];
+                string pkStr = pks.Contains(col.ColumnName, StringComparer.OrdinalIgnoreCase) ? " PRIMARY KEY" : "";
+                string comma = (i < cols.Count - 1) ? "," : "";
+                sb.AppendLine($"    [{col.ColumnName}] {col.DataType}{pkStr}{comma}");
+            }
+        }
+        else
+        {
+            sb.AppendLine("    [Id] INT PRIMARY KEY IDENTITY(1,1),");
+            sb.AppendLine("    [Name] NVARCHAR(100) NOT NULL,");
+            sb.AppendLine("    [CreatedAt] DATETIME DEFAULT CURRENT_TIMESTAMP");
+        }
+
+        sb.AppendLine(");");
+
+        Editor.AddTab();
+        if (Editor.SelectedTab != null)
+        {
+            Editor.SelectedTab.Title = $"{clean}_DDL.sql";
+            Editor.SelectedTab.Text = sb.ToString();
+        }
+    }
+
+    private async Task LoadTablePropertiesAsync(string tableName)
+    {
+        string clean = tableName.Trim('[', ']', '"');
+        var cols = await DatabaseSessionService.Instance.GetColumnsAsync(clean);
+        var pks = await DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(clean);
+        var fks = await DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(clean);
+
+        if (cols.Count > 0)
+        {
+            SampleSchema.Columns.Clear();
+            int ord = 1;
+            foreach (var col in cols)
+            {
+                bool isPk = pks.Contains(col.ColumnName, StringComparer.OrdinalIgnoreCase);
+                var fk = fks.FirstOrDefault(f => f.ColumnName.Equals(col.ColumnName, StringComparison.OrdinalIgnoreCase));
+
+                SampleSchema.Columns.Add(new Quell.Models.TableColumnItem
+                {
+                    Name = col.ColumnName,
+                    DataType = col.DataType,
+                    IsNullable = !isPk,
+                    IsPrimaryKey = isPk,
+                    IsForeignKey = fk != null,
+                    DefaultValue = string.Empty,
+                    Ordinal = ord++
+                });
+            }
+        }
+
+        ShowQueryResultFooter();
+    }
+
+    private List<DiagramTableItem> GetSampleDiagramTables()
+    {
+        var list = new List<DiagramTableItem>();
+
+        var users = new DiagramTableItem { TableName = "Users", Schema = "dbo", DatabaseType = "SQL" };
+        users.Columns.Add(new DiagramColumnItem { ColumnName = "Id", DataType = "INT", IsPrimaryKey = true });
+        users.Columns.Add(new DiagramColumnItem { ColumnName = "Name", DataType = "VARCHAR(100)" });
+        users.Columns.Add(new DiagramColumnItem { ColumnName = "Email", DataType = "VARCHAR(150)" });
+        users.Columns.Add(new DiagramColumnItem { ColumnName = "RoleId", DataType = "INT", IsForeignKey = true, ReferencedTable = "Roles", ReferencedColumn = "Id" });
+        users.Columns.Add(new DiagramColumnItem { ColumnName = "CreatedAt", DataType = "DATETIME" });
+        users.OutgoingRelations.Add("Users.RoleId -> Roles.Id");
+        list.Add(users);
+
+        var roles = new DiagramTableItem { TableName = "Roles", Schema = "dbo", DatabaseType = "SQL" };
+        roles.Columns.Add(new DiagramColumnItem { ColumnName = "Id", DataType = "INT", IsPrimaryKey = true });
+        roles.Columns.Add(new DiagramColumnItem { ColumnName = "Title", DataType = "VARCHAR(50)" });
+        roles.Columns.Add(new DiagramColumnItem { ColumnName = "Description", DataType = "VARCHAR(255)" });
+        list.Add(roles);
+
+        var orders = new DiagramTableItem { TableName = "Orders", Schema = "dbo", DatabaseType = "SQL" };
+        orders.Columns.Add(new DiagramColumnItem { ColumnName = "Id", DataType = "INT", IsPrimaryKey = true });
+        orders.Columns.Add(new DiagramColumnItem { ColumnName = "UserId", DataType = "INT", IsForeignKey = true, ReferencedTable = "Users", ReferencedColumn = "Id" });
+        orders.Columns.Add(new DiagramColumnItem { ColumnName = "TotalAmount", DataType = "DECIMAL(10,2)" });
+        orders.Columns.Add(new DiagramColumnItem { ColumnName = "OrderDate", DataType = "DATETIME" });
+        orders.OutgoingRelations.Add("Orders.UserId -> Users.Id");
+        list.Add(orders);
+
+        var products = new DiagramTableItem { TableName = "Products", Schema = "dbo", DatabaseType = "SQL" };
+        products.Columns.Add(new DiagramColumnItem { ColumnName = "Id", DataType = "INT", IsPrimaryKey = true });
+        products.Columns.Add(new DiagramColumnItem { ColumnName = "Name", DataType = "VARCHAR(100)" });
+        products.Columns.Add(new DiagramColumnItem { ColumnName = "Price", DataType = "DECIMAL(10,2)" });
+        products.Columns.Add(new DiagramColumnItem { ColumnName = "StockQuantity", DataType = "INT" });
+        list.Add(products);
+
+        return list;
+    }
+
+    #endregion
+
     [RelayCommand]
     public void Exit()
     {
@@ -772,3 +1475,4 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 }
+

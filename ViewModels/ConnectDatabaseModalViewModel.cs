@@ -1,13 +1,13 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Fdb.Services;
-using Fdb.Services.DatabaseProviders;
+using Quell.Services;
+using Quell.Services.DatabaseProviders;
 
-namespace Fdb.ViewModels;
+namespace Quell.ViewModels;
 
 public class DatabaseEngineItem : ObservableObject
 {
@@ -190,7 +190,7 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
         {
             var conns = await DatabaseStorageService.Instance.GetRecentConnectionsAsync();
             SavedConnections.Clear();
-            foreach (var c in conns.Where(c => !c.Server.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase) && !c.DatabaseName.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase)))
+            foreach (var c in conns.Where(c => !c.Server.Contains("quell", StringComparison.OrdinalIgnoreCase) && !c.DatabaseName.Contains("quell", StringComparison.OrdinalIgnoreCase) && !c.Server.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase) && !c.DatabaseName.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase)))
             {
                 SavedConnections.Add(c);
             }

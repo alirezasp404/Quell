@@ -1,9 +1,9 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using Avalonia.Media;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Rendering;
 
-namespace Fdb.Services;
+namespace Quell.Services;
 
 public class SqlKeywordColorizer : DocumentColorizingTransformer
 {

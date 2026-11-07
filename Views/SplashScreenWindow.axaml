@@ -1,19 +1,20 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:Fdb.ViewModels"
-        xmlns:components="using:Fdb.Components"
-        xmlns:views="using:Fdb.Views"
-        x:Class="Fdb.Views.SplashScreenWindow"
+        xmlns:vm="using:Quell.ViewModels"
+        xmlns:components="using:Quell.Components"
+        xmlns:views="using:Quell.Views"
+        x:Class="Quell.Views.SplashScreenWindow"
         x:DataType="vm:SplashScreenViewModel"
-        Title="Fdb Studio - Starting"
-        Width="752" Height="434"
+        Title="Quell - Starting"
+        Icon="/Assets/quell_icon.ico"
+        Width="720" Height="400"
         CanResize="False"
         WindowStartupLocation="CenterScreen"
         WindowDecorations="None"
         Topmost="True"
         ShowInTaskbar="True"
-        Background="Transparent"
-        TransparencyLevelHint="Transparent">
+        Background="#0B0F14"
+        Focusable="False">
 
     <!-- Composed Splash Window Hosting SplashScreenCardComponent -->
     <components:SplashScreenCardComponent />

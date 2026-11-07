@@ -1,6 +1,6 @@
-using Avalonia.Controls;
+﻿using Avalonia.Controls;
 
-namespace Fdb.Components;
+namespace Quell.Components;
 
 public partial class PanelCustomizationComponent : UserControl
 {

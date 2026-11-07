@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace Fdb.ViewModels;
+namespace Quell.ViewModels;
 
 public partial class EditCellModalViewModel : ViewModelBase
 {

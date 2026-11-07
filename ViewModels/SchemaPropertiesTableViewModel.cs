@@ -1,8 +1,8 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Fdb.Models;
+using Quell.Models;
 
-namespace Fdb.ViewModels;
+namespace Quell.ViewModels;
 
 public partial class SchemaPropertiesTableViewModel : ViewModelBase
 {

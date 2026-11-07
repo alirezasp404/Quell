@@ -8,12 +8,20 @@
     </Style>
 
     <!-- ========================================================================= -->
+    <!-- Global Focus Visual Suppression (Eliminates Harsh Black Focus Borders)   -->
+    <!-- ========================================================================= -->
+    <Style Selector=":is(TemplatedControl)">
+        <Setter Property="FocusAdorner" Value="{x:Null}"/>
+    </Style>
+
+    <!-- ========================================================================= -->
     <!-- Global Interactive Hover Cursors (Hand Pointer for Clickable Controls)    -->
     <!-- ========================================================================= -->
 
     <!-- Buttons (Standard, Tool, Menu, Tab, Action, Icon) -->
     <Style Selector=":is(Button)">
         <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusAdorner" Value="{x:Null}"/>
     </Style>
     <Style Selector=":is(Button):pointerover">
         <Setter Property="Cursor" Value="Hand"/>
@@ -24,6 +32,7 @@
 
     <Style Selector="Button">
         <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusAdorner" Value="{x:Null}"/>
     </Style>
     <Style Selector="Button:pointerover">
         <Setter Property="Cursor" Value="Hand"/>
@@ -53,15 +62,137 @@
         <Setter Property="Cursor" Value="Arrow"/>
     </Style>
 
-    <!-- Menu & Context Menu Items -->
+    <!-- Menu & Context Menu Items (Zero Black Border on Click, Focus, or Selection) -->
     <Style Selector="MenuItem">
         <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusAdorner" Value="{x:Null}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
     </Style>
     <Style Selector="MenuItem:pointerover">
         <Setter Property="Cursor" Value="Hand"/>
     </Style>
     <Style Selector="MenuItem:disabled">
         <Setter Property="Cursor" Value="Arrow"/>
+    </Style>
+    <Style Selector="MenuItem /template/ Border#PART_LayoutRoot">
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+    </Style>
+    <Style Selector="MenuItem:focus /template/ Border#PART_LayoutRoot">
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+    </Style>
+    <Style Selector="MenuItem:focus-visible /template/ Border#PART_LayoutRoot">
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+    </Style>
+    <Style Selector="MenuItem:selected /template/ Border#PART_LayoutRoot">
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+    </Style>
+
+    <!-- Top-Level Menu Items in Menu Bar (File, Edit, View, Window, Help) -->
+    <Style Selector="Menu > MenuItem">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="8,4"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="FocusAdorner" Value="{x:Null}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Menu > MenuItem:pointerover /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+    <Style Selector="Menu > MenuItem:selected /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+    <Style Selector="Menu > MenuItem:focus /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+    <Style Selector="Menu > MenuItem:focus-visible /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+    <Style Selector="Menu > MenuItem:open /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+
+    <!-- Complete Elimination of Black Corners on Popups, Menus, ToolTips and Flyouts -->
+    <Style Selector="PopupRoot">
+        <Setter Property="TransparencyLevelHint" Value="Transparent"/>
+        <Setter Property="Background" Value="Transparent"/>
+    </Style>
+    <Style Selector="OverlayPopupHost">
+        <Setter Property="Background" Value="Transparent"/>
+    </Style>
+    <Style Selector="Popup">
+        <Setter Property="WindowManagerAddShadowHint" Value="False"/>
+    </Style>
+
+    <!-- Dropdown Popup and Flyout Presenters (Theme-Colored Borders, No Black Outline) -->
+    <Style Selector="MenuFlyoutPresenter">
+        <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="Padding" Value="4"/>
+        <Setter Property="FocusAdorner" Value="{x:Null}"/>
+    </Style>
+    <Style Selector="ContextMenu">
+        <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="Padding" Value="4"/>
+        <Setter Property="FocusAdorner" Value="{x:Null}"/>
+    </Style>
+
+    <!-- Top-Level Menu and MenuItem Dropdown Popup Borders (Zero Black Corners) -->
+    <Style Selector="MenuItem /template/ Border#PART_Border">
+        <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="BoxShadow" Value="0 8 24 0 #40000000"/>
+        <Setter Property="ClipToBounds" Value="True"/>
+    </Style>
+    <Style Selector="Menu > MenuItem /template/ Border#PART_Border">
+        <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="BoxShadow" Value="0 8 24 0 #40000000"/>
+        <Setter Property="ClipToBounds" Value="True"/>
+    </Style>
+
+    <!-- ComboBox Dropdown Popups -->
+    <Style Selector="ComboBox /template/ Border#PopupBorder">
+        <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="BoxShadow" Value="0 8 24 0 #40000000"/>
+        <Setter Property="ClipToBounds" Value="True"/>
+    </Style>
+
+    <!-- ToolTips -->
+    <Style Selector="ToolTip">
+        <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Padding" Value="8,4"/>
     </Style>
 
     <!-- CheckBoxes & RadioButtons -->
@@ -291,6 +422,14 @@
         <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
         <Setter Property="Cursor" Value="Hand"/>
     </Style>
+    <Style Selector="Button.classic-menu-btn:focus /template/ ContentPresenter">
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+    </Style>
+    <Style Selector="Button.classic-menu-btn:focus-visible /template/ ContentPresenter">
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+    </Style>
 
     <!-- Modern Toolbar Action Button -->
     <Style Selector="Button.classic-tool-btn">
@@ -309,6 +448,12 @@
         <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource AppToolHoverBorderBrush}"/>
         <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Button.classic-tool-btn:focus /template/ ContentPresenter">
+        <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+    </Style>
+    <Style Selector="Button.classic-tool-btn:focus-visible /template/ ContentPresenter">
+        <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
     </Style>
 
     <!-- Modern Tab Button -->
@@ -346,4 +491,84 @@
         <Setter Property="Background" Value="{DynamicResource AppSplitterHoverBrush}"/>
     </Style>
 
+
+    <!-- ========================================================================= -->
+    <!-- GPU-Accelerated Dynamic Motion Pipeline (Active only in GPU Mode)         -->
+    <!-- ========================================================================= -->
+
+    <!-- 1. Smooth Fade-In for Modal Backdrop -->
+    <Style Selector=":is(TopLevel).gpu-mode Border.modal-backdrop">
+        <Style.Animations>
+            <Animation Duration="0:0:0.18" FillMode="Forward" Easing="CubicEaseOut">
+                <KeyFrame Cue="0%">
+                    <Setter Property="Opacity" Value="0.0"/>
+                </KeyFrame>
+                <KeyFrame Cue="100%">
+                    <Setter Property="Opacity" Value="1.0"/>
+                </KeyFrame>
+            </Animation>
+        </Style.Animations>
+    </Style>
+
+    <!-- 2. Spring-like Pop & Scale for Centered Modal Dialog Cards -->
+    <Style Selector=":is(TopLevel).gpu-mode Border.modal-dialog-card">
+        <Setter Property="RenderTransformOrigin" Value="50%,50%"/>
+        <Style.Animations>
+            <Animation Duration="0:0:0.24" FillMode="Forward" Easing="BackEaseOut">
+                <KeyFrame Cue="0%">
+                    <Setter Property="Opacity" Value="0.0"/>
+                    <Setter Property="ScaleTransform.ScaleX" Value="0.92"/>
+                    <Setter Property="ScaleTransform.ScaleY" Value="0.92"/>
+                    <Setter Property="TranslateTransform.Y" Value="14"/>
+                </KeyFrame>
+                <KeyFrame Cue="100%">
+                    <Setter Property="Opacity" Value="1.0"/>
+                    <Setter Property="ScaleTransform.ScaleX" Value="1.0"/>
+                    <Setter Property="ScaleTransform.ScaleY" Value="1.0"/>
+                    <Setter Property="TranslateTransform.Y" Value="0"/>
+                </KeyFrame>
+            </Animation>
+        </Style.Animations>
+    </Style>
+
+    <!-- 3. GPU-Accelerated Interactive Button Transitions -->
+    <Style Selector=":is(TopLevel).gpu-mode Button.classic-tool-btn">
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15"/>
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector=":is(TopLevel).gpu-mode Button.classic-tool-btn:pressed">
+        <Setter Property="RenderTransform" Value="scale(0.96)"/>
+    </Style>
+
+    <!-- 4. GPU-Accelerated Filter Pill Buttons -->
+    <Style Selector=":is(TopLevel).gpu-mode Button.filter-pill-btn">
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15"/>
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector=":is(TopLevel).gpu-mode Button.filter-pill-btn:pressed">
+        <Setter Property="RenderTransform" Value="scale(0.96)"/>
+    </Style>
+
+    <!-- 5. GPU-Accelerated ER Diagram Entity Cards Dynamic Hover Elevation -->
+    <Style Selector=":is(TopLevel).gpu-mode Border.diagram-table-card">
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.18" Easing="CubicEaseOut"/>
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.18"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector=":is(TopLevel).gpu-mode Border.diagram-table-card:pointerover">
+        <Setter Property="RenderTransform" Value="scale(1.02) translateY(-2px)"/>
+    </Style>
 </Styles>

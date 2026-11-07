@@ -1,10 +1,10 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
               xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
               xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-              xmlns:vm="using:Fdb.ViewModels"
+              xmlns:vm="using:Quell.ViewModels"
               mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="26"
-              x:Class="Fdb.Components.MainMenuBarComponent"
+              x:Class="Quell.Components.MainMenuBarComponent"
               x:DataType="vm:NavbarViewModel">
 
     <!-- Native Desktop MenuBar (File, Edit, View, Window, Help) + Brand & Connection Badge -->
@@ -18,7 +18,7 @@
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                 <!-- Project Brand Logo -->
                 <Border CornerRadius="4" ClipToBounds="True" Width="18" Height="18" Margin="0,0,6,0">
-                    <Image Source="avares://Fdb/Assets/fdb_icon.png" 
+                    <Image Source="avares://Quell/Assets/quell_icon.png" 
                            Width="18" Height="18" 
                            Stretch="Uniform" 
                            RenderOptions.BitmapInterpolationMode="HighQuality"/>
@@ -31,7 +31,7 @@
                            Margin="0,0,10,0"/>
 
                 <!-- Native Menu Dropdown System -->
-                <Menu Background="Transparent">
+                <Menu Background="Transparent" FocusAdorner="{x:Null}">
                     <!-- File Menu -->
                     <MenuItem Header="File">
                         <MenuItem Header="Connect to Database..." 
@@ -75,6 +75,10 @@
                                   InputGesture="Ctrl+J"
                                   HotKey="Ctrl+J"
                                   Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ToggleFooterCommand}" />
+                        <Separator />
+                        <MenuItem Header="Integrated Terminal" 
+                                  InputGesture="Ctrl+Oem3"
+                                  Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ToggleTerminalCommand}" />
                     </MenuItem>
 
                     <!-- Window / Workspace Menu (Restore Tabs & Panels) -->
@@ -88,6 +92,9 @@
                             <MenuItem Header="Results" 
                                       Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).RestoreFooterTabCommand}" 
                                       CommandParameter="Results" />
+                            <MenuItem Header="Terminal" 
+                                      Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).RestoreFooterTabCommand}" 
+                                      CommandParameter="Terminal" />
                         </MenuItem>
                         <MenuItem Header="Restore Sidebar Tabs">
                             <MenuItem Header="Explorer" 
@@ -108,7 +115,7 @@
                     <!-- Help Menu -->
                     <MenuItem Header="Help">
                         <MenuItem Header="Documentation" />
-                        <MenuItem Header="About Fdb Studio" />
+                        <MenuItem Header="About Quell" />
                     </MenuItem>
                 </Menu>
             </StackPanel>
