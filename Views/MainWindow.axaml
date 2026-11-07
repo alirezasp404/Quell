@@ -1,4 +1,4 @@
-﻿<Window xmlns="https://github.com/avaloniaui"
+<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Quell.ViewModels"
         xmlns:components="using:Quell.Components"
@@ -10,7 +10,7 @@
         Width="1200" Height="750"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="36"
-        WindowDecorations="Full"
+        WindowDecorations="BorderOnly"
         Background="{DynamicResource AppBackgroundBrush}">
 
     <!-- Modern Desktop Layout: Navbar (Top), Dynamic Center Workspace, Status Bar (Bottom) -->
