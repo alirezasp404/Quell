@@ -50,11 +50,17 @@
                                  Value="{Binding ProgressValue}"
                                  Foreground="#E8943A"
                                  Background="#33FFFFFF"
-                                 HorizontalAlignment="Stretch"/>
+                                 HorizontalAlignment="Stretch">
+                        <ProgressBar.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Value" Duration="0:0:0.12" Easing="CubicEaseOut"/>
+                            </Transitions>
+                        </ProgressBar.Transitions>
+                    </ProgressBar>
 
                     <Grid ColumnDefinitions="*, Auto" Margin="0,2,0,0">
                         <TextBlock Grid.Column="0"
-                                   Text="Connecting to local database engine..."
+                                   Text="{Binding SubStatusText}"
                                    FontSize="10"
                                    Foreground="#94A3B8"/>
                         <TextBlock Grid.Column="1"

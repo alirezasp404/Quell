@@ -47,38 +47,50 @@ public partial class SplashScreenWindow : Window
         _dismissTcs.TrySetResult(true);
     }
 
-    public async Task RunStartupSequenceAsync(int durationMs = 0)
+    public void UpdateProgress(double progress, string status, string subStatus = "")
     {
         var vm = ViewModel;
-        _isDatabaseReady = false;
-
-        void UpdateProgress(double progress, string status)
+        vm.ProgressValue = progress;
+        vm.StatusText = status;
+        if (!string.IsNullOrWhiteSpace(subStatus))
         {
-            vm.ProgressValue = progress;
-            vm.StatusText = status;
-            if (!Dispatcher.UIThread.CheckAccess())
-            {
-                Dispatcher.UIThread.Post(() =>
-                {
-                    vm.ProgressValue = progress;
-                    vm.StatusText = status;
-                });
-            }
+            vm.SubStatusText = subStatus;
         }
 
-        UpdateProgress(5, "Connecting to SQLite Storage Engine...");
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                vm.ProgressValue = progress;
+                vm.StatusText = status;
+                if (!string.IsNullOrWhiteSpace(subStatus))
+                {
+                    vm.SubStatusText = subStatus;
+                }
+            });
+        }
+    }
+
+    public async Task RunStartupSequenceAsync(bool completeTo100 = true)
+    {
+        _isDatabaseReady = false;
+
+        UpdateProgress(5, "Connecting to SQLite Storage Engine...", "Verifying database file and schemas...");
 
         // Preload all startup data, run SQLite schema migrations, cache settings, theme, keywords and connections
-        await DatabaseStorageService.Instance.PreloadStartupDataAsync((progress, status) =>
+        await DatabaseStorageService.Instance.PreloadStartupDataAsync(async (progress, status, subStatus) =>
         {
-            UpdateProgress(progress, status);
+            UpdateProgress(progress, status, subStatus);
+            // Brief micro-delay so the UI thread renders this real step's progress and the user can see it
+            await Task.Delay(40).ConfigureAwait(false);
         }).ConfigureAwait(false);
 
         _isDatabaseReady = true;
 
-        UpdateProgress(100, "Studio Environment Ready — SQLite Engine Initialized.");
-
-        // Short smooth transition grace period so 100% progress is cleanly visible
-        await Task.Delay(180).ConfigureAwait(false);
+        if (completeTo100)
+        {
+            UpdateProgress(100, "Studio Environment Ready — SQLite Engine Initialized.", "All configurations loaded.");
+            await Task.Delay(180).ConfigureAwait(false);
+        }
     }
 }

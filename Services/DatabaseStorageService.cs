@@ -425,23 +425,41 @@ public class DatabaseStorageService
     /// Runs SQLite schema initialization/migrations, pre-caches all settings, applies theme,
     /// pre-caches SQL dialect keywords, shortcuts, saved connections, and query history.
     /// </summary>
-    public async Task PreloadStartupDataAsync(Action<double, string>? reportProgress = null)
+    /// Unified high-performance startup routine executed during the splash screen sequence.
+    /// Runs SQLite schema initialization/migrations, pre-caches all settings, applies theme,
+    /// pre-caches SQL dialect keywords, shortcuts, saved connections, and query history.
+    /// </summary>
+    public Task PreloadStartupDataAsync(Action<double, string>? reportProgress)
     {
-        reportProgress?.Invoke(10, "Opening SQLite Storage Engine...");
+        return PreloadStartupDataAsync(reportProgress == null ? null : (p, s, sub) =>
+        {
+            reportProgress(p, s);
+            return Task.CompletedTask;
+        });
+    }
+
+    public async Task PreloadStartupDataAsync(Func<double, string, string, Task>? reportProgress = null)
+    {
+        if (reportProgress != null)
+            await reportProgress(10, "Opening SQLite Storage Engine...", "Verifying database file and initial connections...").ConfigureAwait(false);
+
         await InitializeWithProgressAsync((p, s) =>
         {
-            // Map the schema init progress from 10 to 50
-            double mapped = 10 + (p * 0.4);
-            reportProgress?.Invoke(mapped, s);
+            // Map the schema init progress from 10 to 30
+            double mapped = 10 + (p * 0.2);
+            reportProgress?.Invoke(mapped, s, "Verifying schema tables and migrations...");
         }).ConfigureAwait(false);
 
-        reportProgress?.Invoke(55, "Pre-caching Application Settings & Preferences...");
+        if (reportProgress != null)
+            await reportProgress(32, "Loading Preferences & Settings...", "Reading AppSettings cache from SQLite...").ConfigureAwait(false);
         await LoadAllSettingsAsync().ConfigureAwait(false);
 
-        reportProgress?.Invoke(62, "Detecting GPU Hardware & Configuring Rendering Pipeline...");
+        if (reportProgress != null)
+            await reportProgress(45, "Detecting GPU Hardware...", "Resolving DirectX 11 / ANGLE hardware pipeline...").ConfigureAwait(false);
         await HardwareGraphicsService.Instance.InitializeAsync().ConfigureAwait(false);
 
-        reportProgress?.Invoke(68, "Applying Appearance, Themes & Customizations...");
+        if (reportProgress != null)
+            await reportProgress(58, "Applying Appearance & Themes...", "Configuring Light/Dark palette and syntax colors...").ConfigureAwait(false);
         string theme = await GetThemeAsync().ConfigureAwait(false);
         ThemeService.Instance.ApplyTheme(theme);
         string keywordColor = await GetKeywordColorAsync().ConfigureAwait(false);
@@ -451,16 +469,21 @@ public class DatabaseStorageService
         var tableCustom = await GetTableCustomizationAsync().ConfigureAwait(false);
         ThemeService.Instance.ApplyTableCustomization(tableCustom);
 
-        reportProgress?.Invoke(80, "Pre-caching Keyboard Shortcuts...");
+        if (reportProgress != null)
+            await reportProgress(70, "Pre-caching Keyboard Shortcuts...", "Loading key gestures and shortcut map...").ConfigureAwait(false);
         await ShortcutService.Instance.InitializeAsync().ConfigureAwait(false);
 
-        reportProgress?.Invoke(90, "Pre-caching Saved Connections & Database Nodes...");
+        if (reportProgress != null)
+            await reportProgress(78, "Loading Multi-Dialect SQL Lexers...", "Pre-caching MSSQL, PostgreSQL, MySQL, SQLite keywords...").ConfigureAwait(false);
+        await SqlKeywordsService.Instance.LoadKeywordsFromDatabaseAsync().ConfigureAwait(false);
+
+        if (reportProgress != null)
+            await reportProgress(84, "Pre-caching Saved Connections...", "Pre-loading database tree nodes...").ConfigureAwait(false);
         await GetRecentConnectionsAsync(forceReload: true).ConfigureAwait(false);
 
-        reportProgress?.Invoke(96, "Pre-caching Execution History & Dialect Metadata...");
+        if (reportProgress != null)
+            await reportProgress(88, "Pre-caching Execution History...", "Loading recent query logs & workspace state...").ConfigureAwait(false);
         await GetQueryHistoryAsync(forceReload: true).ConfigureAwait(false);
-
-        reportProgress?.Invoke(100, "Studio Environment Ready ΓÇö SQLite Engine Initialized.");
     }
 
     private static async Task ExecuteInitScriptStepsAsync(SqliteConnection connection, string fullSql, Action<double, string>? reportProgress)

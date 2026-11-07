@@ -42,17 +42,30 @@ public partial class App : Application
                 {
                     try
                     {
-                        // Execute startup SQL queries and initialize SQLite engine
-                        await splash.RunStartupSequenceAsync();
+                        // 1. Real Phase: Storage, schema, graphics, appearance, shortcuts & keywords (0% -> 88%)
+                        await splash.RunStartupSequenceAsync(completeTo100: false);
 
-                        await Dispatcher.UIThread.InvokeAsync(() =>
+                        // 2. Real Phase: Constructing Studio Workspace (89% -> 94%)
+                        splash.UpdateProgress(89, "Building Studio Workspace...", "Initializing SQL Editor & IntelliSense engine...");
+
+                        await Dispatcher.UIThread.InvokeAsync(async () =>
                         {
                             try
                             {
+                                var vm = new MainViewModel();
+
+                                // 3. Real Phase: Building MainWindow & UI Shell (95% -> 99%)
+                                splash.UpdateProgress(95, "Rendering Desktop Interface...", "Binding controls, layout grids and tabs...");
+                                await Task.Delay(45);
+
                                 var mainWindow = new MainWindow
                                 {
-                                    DataContext = new MainViewModel(),
+                                    DataContext = vm,
                                 };
+
+                                // 4. Real Phase: Finalizing Studio Environment (100%)
+                                splash.UpdateProgress(100, "Studio Environment Ready", "Quell v1.0.0 Ready");
+                                await Task.Delay(140);
 
                                 desktop.MainWindow = mainWindow;
                                 mainWindow.Show();
@@ -69,10 +82,7 @@ public partial class App : Application
                     catch (Exception ex)
                     {
                         Console.WriteLine($"[App Startup Error]: {ex}");
-                        await Dispatcher.UIThread.InvokeAsync(() =>
-                        {
-                            splash.Close();
-                        });
+                        await Dispatcher.UIThread.InvokeAsync(() => splash.Close());
                     }
                 });
             }
