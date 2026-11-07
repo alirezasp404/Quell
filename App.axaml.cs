@@ -1,4 +1,5 @@
-﻿using System.Linq;
+using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -39,20 +40,40 @@ public partial class App : Application
 
                 _ = Task.Run(async () =>
                 {
-                    // Execute startup SQL queries and initialize SQLite engine
-                    await splash.RunStartupSequenceAsync();
-
-                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    try
                     {
-                        var mainWindow = new MainWindow
-                        {
-                            DataContext = new MainViewModel(),
-                        };
+                        // Execute startup SQL queries and initialize SQLite engine
+                        await splash.RunStartupSequenceAsync();
 
-                        desktop.MainWindow = mainWindow;
-                        mainWindow.Show();
-                        splash.Close();
-                    });
+                        await Dispatcher.UIThread.InvokeAsync(() =>
+                        {
+                            try
+                            {
+                                var mainWindow = new MainWindow
+                                {
+                                    DataContext = new MainViewModel(),
+                                };
+
+                                desktop.MainWindow = mainWindow;
+                                mainWindow.Show();
+                                splash.Close();
+                            }
+                            catch (Exception uiEx)
+                            {
+                                Console.WriteLine($"[App Startup UI Error]: {uiEx}");
+                                splash.Close();
+                                throw;
+                            }
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[App Startup Error]: {ex}");
+                        await Dispatcher.UIThread.InvokeAsync(() =>
+                        {
+                            splash.Close();
+                        });
+                    }
                 });
             }
         }

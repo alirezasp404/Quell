@@ -8,6 +8,7 @@
 
     <!-- Base Palette Colors -->
     <Color x:Key="AppControlFaceColor">#F8FAFC</Color>
+    <Color x:Key="AppSurfaceColor">#F8FAFC</Color>
     <Color x:Key="AppWindowBackgroundColor">#FFFFFF</Color>
     <Color x:Key="AppWorkspaceColor">#FFFFFF</Color>
     <Color x:Key="AppBorderColor">#E2E8F0</Color>
