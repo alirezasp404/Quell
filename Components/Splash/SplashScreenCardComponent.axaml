@@ -18,7 +18,7 @@
             Focusable="False">
         <Grid>
             <!-- Background Splash Artwork -->
-            <Image Source="avares://Quell/Assets/Images/splash_screen.jpg"
+            <Image Source="avares://Quell/Assets/Images/quell_splash.jpg"
                    Stretch="UniformToFill"
                    RenderOptions.BitmapInterpolationMode="HighQuality"/>
 
