@@ -43,6 +43,9 @@ public partial class MainViewModel : ViewModelBase
     private SettingsModalViewModel _settingsModal;
 
     [ObservableProperty]
+    private UpdateModalViewModel _updateModal;
+
+    [ObservableProperty]
     private QueryResultTableViewModel _sampleQueryResult;
 
     [ObservableProperty]
@@ -65,6 +68,7 @@ public partial class MainViewModel : ViewModelBase
         _exportModal = new ExportDataModalViewModel();
         _diagramModal = new DatabaseDiagramModalViewModel();
         _settingsModal = new SettingsModalViewModel();
+        _updateModal = new UpdateModalViewModel();
         _sampleQueryResult = new QueryResultTableViewModel();
         _sampleSchema = new SchemaPropertiesTableViewModel();
 
@@ -218,6 +222,13 @@ public partial class MainViewModel : ViewModelBase
         await Quell.Services.DatabaseStorageService.Instance.InitializeAsync();
         await RefreshAvailableDatabasesAsync();
         await Sidebar.RefreshAsync();
+
+        // Check for updates asynchronously from GitHub releases (non-blocking)
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(2500).ConfigureAwait(false);
+            await AppUpdateService.Instance.CheckForUpdatesAsync().ConfigureAwait(false);
+        });
     }
 
     private bool _isUpdatingTargetSilently;
@@ -1465,6 +1476,12 @@ public partial class MainViewModel : ViewModelBase
     }
 
     #endregion
+
+    [RelayCommand]
+    public void OpenUpdateModal()
+    {
+        UpdateModal.Open();
+    }
 
     [RelayCommand]
     public void Exit()

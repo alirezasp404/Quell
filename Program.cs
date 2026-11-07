@@ -1807,6 +1807,66 @@ sealed class Program
             // Restore defaults
             await Quell.Services.Terminal.TerminalSettingsService.Instance.SaveSettingsAsync(new Quell.Models.TerminalSettingsModel());
 
+            // 23. Test Application Versioning Architecture, GitHub Releases Checker & Corner "Get Updates" Box
+            Console.WriteLine("\n[Action] Verifying Semantic Versioning, GitHub Releases Service & Corner 'Get Updates' Notification...");
+            
+            // 23.1 Test Version Parsing & SemVer Comparisons
+            bool p1 = Quell.Services.AppUpdateService.TryParseVersion("v1.2.0", out var v1);
+            bool p2 = Quell.Services.AppUpdateService.TryParseVersion("1.0.0-rc1", out var v2);
+            bool p3 = Quell.Services.AppUpdateService.TryParseVersion("v0.9.8", out var v3);
+            if (!p1 || v1 == null || v1 != new Version(1, 2, 0)) throw new Exception("Version parsing for v1.2.0 failed!");
+            if (!p2 || v2 == null || v2 != new Version(1, 0, 0)) throw new Exception("Version parsing for 1.0.0-rc1 failed!");
+            if (!p3 || v3 == null || v3 >= Quell.Services.AppUpdateService.CurrentVersion) throw new Exception("SemVer comparison failed: v0.9.8 should be less than current version!");
+            if (v1 <= Quell.Services.AppUpdateService.CurrentVersion) throw new Exception("SemVer comparison failed: v1.2.0 should be greater than current version!");
+            Console.WriteLine($"[Success] Semantic version parsing & comparison verified (Current: {Quell.Services.AppUpdateService.CurrentVersionString})!");
+
+            // 23.2 Test Update Modal & Corner "Get Updates" Box Lifecycle
+            vm.UpdateModal.IsOpen = false;
+            vm.UpdateModal.IsCornerBadgeVisible = false;
+
+            // Simulate newer release notification
+            Quell.Services.AppUpdateService.Instance.SimulateUpdateAvailable(
+                newVersion: "v1.1.0",
+                releaseTitle: "Quell Studio 1.1.0 - Next-Gen SQL Performance",
+                notes: "• Automatic GitHub Releases version detection & notification\n• GPU-Accelerated Fluid Modal Animations"
+            );
+            vm.UpdateModal.ApplyRelease(Quell.Services.AppUpdateService.Instance.LatestRelease!);
+            vm.UpdateModal.Open();
+
+            if (!vm.UpdateModal.IsOpen || vm.UpdateModal.IsCornerBadgeVisible)
+            {
+                throw new Exception("UpdateModal should be Open, and CornerBadge should be hidden while modal is open!");
+            }
+            if (vm.UpdateModal.LatestVersion != "v1.1.0" || !vm.UpdateModal.IsUpdateAvailable)
+            {
+                throw new Exception("UpdateModal version binding mismatch!");
+            }
+            Console.WriteLine($"[Success] New update modal auto-opened: Version={vm.UpdateModal.LatestVersion}, Title='{vm.UpdateModal.ReleaseTitle}'!");
+
+            // Simulate user dismissing / clicking (X) on the modal
+            Console.WriteLine("[Action] User dismissed update modal with (X)...");
+            vm.UpdateModal.Dismiss();
+
+            if (vm.UpdateModal.IsOpen || !vm.UpdateModal.IsCornerBadgeVisible)
+            {
+                throw new Exception("Upon modal dismissal, UpdateModal.IsOpen must be False and IsCornerBadgeVisible MUST be True!");
+            }
+            Console.WriteLine("[Success] Modal closed; Corner 'Get Updates' box is now active and visible!");
+
+            // Simulate user clicking on corner "Get Updates" box anytime later
+            Console.WriteLine("[Action] User clicked on corner 'Get Updates' box...");
+            vm.OpenUpdateModalCommand.Execute(null);
+
+            if (!vm.UpdateModal.IsOpen || vm.UpdateModal.IsCornerBadgeVisible)
+            {
+                throw new Exception("Re-opening from corner box must show UpdateModal and hide the corner badge!");
+            }
+            Console.WriteLine("[Success] Update modal successfully re-opened from corner 'Get Updates' box!");
+
+            // Reset state
+            vm.UpdateModal.Dismiss();
+            Quell.Services.AppUpdateService.Instance.Reset();
+
             Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER, SIMULTANEOUS BATCH CELL EDITING, FOREIGN KEY NAVIGATION, HARDWARE GPU/CPU RENDERING PIPELINE & INTEGRATED TERMINAL) PASSED! <<<");
             return;
         }
