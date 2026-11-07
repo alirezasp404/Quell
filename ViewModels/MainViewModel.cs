@@ -943,59 +943,131 @@ public partial class MainViewModel : ViewModelBase
         string dbName = activeSession?.DisplayName ?? SelectedTargetDatabase?.DisplayName ?? "Quell Studio DB";
         string dbType = activeSession?.DatabaseType ?? SelectedTargetDatabase?.DatabaseType ?? "SQLite";
 
-        var tables = new List<DiagramTableItem>();
-        var cachedTables = DatabaseSessionService.Instance.GetActiveCachedTables();
+        // 1. Immediately open the modal and display loading state
+        DiagramModal.DatabaseTitle = dbName;
+        DiagramModal.DatabaseType = dbType;
+        DiagramModal.IsLoading = true;
+        DiagramModal.LoadingMessage = "Discovering database tables and relationships...";
+        DiagramModal.LoadingDetailText = "Querying schema information...";
+        DiagramModal.LoadingProgress = 0.0;
+        DiagramModal.AllTables.Clear();
+        DiagramModal.FilteredTables.Clear();
+        DiagramModal.Open();
 
-        var activeDb = Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsActive) ?? Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsConnected);
-        if (cachedTables.Count == 0 && activeDb != null)
+        try
         {
-            cachedTables = activeDb.AllTableNodes.Select(t => t.Table).ToList();
-        }
-
-        foreach (var t in cachedTables)
-        {
-            var item = new DiagramTableItem
+            var cachedTables = DatabaseSessionService.Instance.GetActiveCachedTables();
+            var activeDb = Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsActive) ?? Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsConnected);
+            if (cachedTables.Count == 0 && activeDb != null)
             {
-                TableName = t.TableName,
-                Schema = t.SchemaName,
-                DatabaseType = dbType
-            };
-
-            var pks = await DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(t.FullName);
-            var fks = await DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(t.FullName);
-            var cols = await DatabaseSessionService.Instance.GetColumnsAsync(t.FullName);
-
-            foreach (var c in cols)
-            {
-                bool isPk = pks.Contains(c.ColumnName, StringComparer.OrdinalIgnoreCase);
-                var fk = fks.FirstOrDefault(f => f.ColumnName.Equals(c.ColumnName, StringComparison.OrdinalIgnoreCase));
-
-                item.Columns.Add(new DiagramColumnItem
-                {
-                    ColumnName = c.ColumnName,
-                    DataType = c.DataType,
-                    IsPrimaryKey = isPk,
-                    IsForeignKey = fk != null,
-                    ReferencedTable = fk?.TargetTable,
-                    ReferencedColumn = fk?.TargetColumn
-                });
-
-                if (fk != null)
-                {
-                    item.OutgoingRelations.Add($"{item.TableName}.{c.ColumnName} -> {fk.TargetTable}.{fk.TargetColumn}");
-                }
+                cachedTables = activeDb.AllTableNodes.Select(t => t.Table).ToList();
             }
 
-            tables.Add(item);
-        }
+            if (cachedTables.Count == 0)
+            {
+                var sampleTables = GetSampleDiagramTables();
+                DiagramModal.LoadTables(sampleTables, dbName, dbType);
+                return;
+            }
 
-        if (tables.Count == 0)
+            var tables = new System.Collections.Concurrent.ConcurrentBag<DiagramTableItem>();
+            int total = cachedTables.Count;
+            int processed = 0;
+
+            using var semaphore = new System.Threading.SemaphoreSlim(4);
+            var tasks = cachedTables.Select(async t =>
+            {
+                await semaphore.WaitAsync();
+                try
+                {
+                    var pksTask = DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(t.FullName);
+                    var fksTask = DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(t.FullName);
+                    var colsTask = DatabaseSessionService.Instance.GetColumnsAsync(t.FullName);
+
+                    await Task.WhenAll(pksTask, fksTask, colsTask);
+
+                    var pks = await pksTask;
+                    var fks = await fksTask;
+                    var cols = await colsTask;
+
+                    var item = new DiagramTableItem
+                    {
+                        TableName = t.TableName,
+                        Schema = t.SchemaName,
+                        DatabaseType = dbType
+                    };
+
+                    foreach (var c in cols)
+                    {
+                        bool isPk = pks.Contains(c.ColumnName, StringComparer.OrdinalIgnoreCase);
+                        var fk = fks.FirstOrDefault(f => f.ColumnName.Equals(c.ColumnName, StringComparison.OrdinalIgnoreCase));
+
+                        item.Columns.Add(new DiagramColumnItem
+                        {
+                            ColumnName = c.ColumnName,
+                            DataType = c.DataType,
+                            IsPrimaryKey = isPk,
+                            IsForeignKey = fk != null,
+                            ReferencedTable = fk?.TargetTable,
+                            ReferencedColumn = fk?.TargetColumn
+                        });
+
+                        if (fk != null)
+                        {
+                            item.OutgoingRelations.Add($"{item.TableName}.{c.ColumnName} -> {fk.TargetTable}.{fk.TargetColumn}");
+                        }
+                    }
+
+                    tables.Add(item);
+
+                    int current = System.Threading.Interlocked.Increment(ref processed);
+                    double progress = (double)current / total * 100.0;
+
+                    void UpdateProgress()
+                    {
+                        DiagramModal.LoadingMessage = $"Analyzing schema: {t.TableName} ({current} of {total})";
+                        DiagramModal.LoadingDetailText = $"Loaded {cols.Count} columns for {t.TableName}";
+                        DiagramModal.LoadingProgress = progress;
+                    }
+
+                    if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+                    {
+                        UpdateProgress();
+                    }
+                    else
+                    {
+                        Avalonia.Threading.Dispatcher.UIThread.Post(UpdateProgress);
+                    }
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+
+            await Task.WhenAll(tasks);
+
+            var sortedTables = tables.OrderBy(t => t.TableName).ToList();
+            if (sortedTables.Count == 0)
+            {
+                sortedTables = GetSampleDiagramTables();
+            }
+
+            DiagramModal.LoadTables(sortedTables, dbName, dbType);
+        }
+        catch (Exception ex)
         {
-            tables = GetSampleDiagramTables();
+            DiagramModal.StatusMessage = $"Schema analysis warning: {ex.Message}";
+            DiagramModal.HasStatusMessage = true;
+            if (DiagramModal.AllTables.Count == 0)
+            {
+                DiagramModal.LoadTables(GetSampleDiagramTables(), dbName, dbType);
+            }
         }
-
-        DiagramModal.LoadTables(tables, dbName, dbType);
-        DiagramModal.Open();
+        finally
+        {
+            DiagramModal.IsLoading = false;
+        }
     }
 
     [RelayCommand]

@@ -59,6 +59,25 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
     [ObservableProperty]
     private bool _hasStatusMessage;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsIndeterminate))]
+    [NotifyPropertyChangedFor(nameof(IsEmptyState))]
+    private bool _isLoading;
+
+    [ObservableProperty]
+    private string _loadingMessage = "Analyzing database schema & relations...";
+
+    [ObservableProperty]
+    private string _loadingDetailText = "Inspecting tables, primary keys, and foreign keys...";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsIndeterminate))]
+    private double _loadingProgress;
+
+    public bool IsIndeterminate => LoadingProgress <= 0.0;
+
+    public bool IsEmptyState => !IsLoading && FilteredTables.Count == 0;
+
     public ObservableCollection<DiagramTableItem> AllTables { get; } = new();
     public ObservableCollection<DiagramTableItem> FilteredTables { get; } = new();
 
@@ -83,6 +102,7 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
     public void Close()
     {
         IsOpen = false;
+        IsLoading = false;
     }
 
     partial void OnSearchFilterChanged(string value)
@@ -107,6 +127,7 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
 
         OnPropertyChanged(nameof(TotalTablesCount));
         OnPropertyChanged(nameof(TotalRelationsCount));
+        OnPropertyChanged(nameof(IsEmptyState));
     }
 
     public void LoadTables(IEnumerable<DiagramTableItem> tables, string databaseName, string dbType)
@@ -121,6 +142,7 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
         }
 
         ApplyFilter();
+        IsLoading = false;
     }
 
     [RelayCommand]
