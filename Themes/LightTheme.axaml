@@ -130,7 +130,11 @@
     <Thickness x:Key="SystemControlFocusVisualSecondaryThickness">0</Thickness>
 
     <!-- Menu & Flyout Default Tokens -->
+    <SolidColorBrush x:Key="PopupBackground" Color="Transparent" />
+    <SolidColorBrush x:Key="MenuFlyoutPresenterBackground" Color="{StaticResource AppSurfaceColor}" />
     <SolidColorBrush x:Key="MenuFlyoutPresenterBorderBrush" Color="{StaticResource AppBorderColor}" />
     <Thickness x:Key="MenuFlyoutPresenterBorderThemeThickness">1</Thickness>
+    <CornerRadius x:Key="OverlayCornerRadius">6</CornerRadius>
+    <CornerRadius x:Key="MenuFlyoutPresenterCornerRadius">6</CornerRadius>
 
 </ResourceDictionary>

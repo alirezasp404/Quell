@@ -79,6 +79,27 @@
             <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
         </Style>
+        <Style Selector="MenuItem.hamburger-menu-btn /template/ Border#PART_LayoutRoot">
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="ClipToBounds" Value="True"/>
+        </Style>
+        <Style Selector="MenuItem.hamburger-menu-btn /template/ Border#PART_Border">
+            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="BoxShadow" Value="0 8 24 0 #40000000"/>
+            <Setter Property="ClipToBounds" Value="True"/>
+        </Style>
+        <Style Selector="MenuItem.hamburger-menu-btn MenuItem /template/ Border#PART_Border">
+            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="BoxShadow" Value="0 8 24 0 #40000000"/>
+            <Setter Property="ClipToBounds" Value="True"/>
+        </Style>
 
         <!-- Compact Action Button in Title Bar -->
         <Style Selector="Button.titlebar-action-btn">

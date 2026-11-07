@@ -84,6 +84,10 @@ public partial class MainViewModel : ViewModelBase
         {
             GenerateTableDdlFor(tableName);
         };
+        _diagramModal.RefreshDiagramCallback = async () =>
+        {
+            await OpenDiagramModal();
+        };
 
         _footer.TerminalTabActivated += () =>
         {
@@ -953,6 +957,8 @@ public partial class MainViewModel : ViewModelBase
         DiagramModal.AllTables.Clear();
         DiagramModal.FilteredTables.Clear();
         DiagramModal.Open();
+
+        await Task.Delay(250);
 
         try
         {

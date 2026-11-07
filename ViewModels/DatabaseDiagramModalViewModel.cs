@@ -37,6 +37,7 @@ public partial class DiagramTableItem : ObservableObject
 
     public int PrimaryKeysCount => Columns.Count(c => c.IsPrimaryKey);
     public int ForeignKeysCount => Columns.Count(c => c.IsForeignKey);
+    public int TotalColumnsCount => Columns.Count;
 }
 
 public partial class DatabaseDiagramModalViewModel : ViewModelBase
@@ -54,6 +55,12 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
     private string _searchFilter = string.Empty;
 
     [ObservableProperty]
+    private string _filterMode = "All"; // "All", "Relations", "PK"
+
+    [ObservableProperty]
+    private double _zoomLevel = 1.0; // 0.7 .. 1.5
+
+    [ObservableProperty]
     private string _statusMessage = string.Empty;
 
     [ObservableProperty]
@@ -65,10 +72,10 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
     private bool _isLoading;
 
     [ObservableProperty]
-    private string _loadingMessage = "Analyzing database schema & relations...";
+    private string _loadingMessage = "Analyzing database schema & relationships...";
 
     [ObservableProperty]
-    private string _loadingDetailText = "Inspecting tables, primary keys, and foreign keys...";
+    private string _loadingDetailText = "Scanning tables, primary keys, and foreign keys...";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsIndeterminate))]
@@ -83,9 +90,12 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
 
     public int TotalTablesCount => AllTables.Count;
     public int TotalRelationsCount => AllTables.Sum(t => t.OutgoingRelations.Count);
+    public int TablesWithRelationsCount => AllTables.Count(t => t.OutgoingRelations.Count > 0 || t.Columns.Any(c => c.IsForeignKey));
+    public int TablesWithPkCount => AllTables.Count(t => t.Columns.Any(c => c.IsPrimaryKey));
 
     public Func<string, Task>? OpenTableDataCallback { get; set; }
     public Action<string>? GenerateDdlCallback { get; set; }
+    public Func<Task>? RefreshDiagramCallback { get; set; }
 
     public DatabaseDiagramModalViewModel()
     {
@@ -105,7 +115,46 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
         IsLoading = false;
     }
 
+    [RelayCommand]
+    public void SetFilterMode(string mode)
+    {
+        FilterMode = mode;
+        ApplyFilter();
+    }
+
+    [RelayCommand]
+    public void ZoomIn()
+    {
+        ZoomLevel = Math.Min(1.5, Math.Round(ZoomLevel + 0.1, 1));
+    }
+
+    [RelayCommand]
+    public void ZoomOut()
+    {
+        ZoomLevel = Math.Max(0.7, Math.Round(ZoomLevel - 0.1, 1));
+    }
+
+    [RelayCommand]
+    public void ResetZoom()
+    {
+        ZoomLevel = 1.0;
+    }
+
+    [RelayCommand]
+    public async Task RefreshDiagramAsync()
+    {
+        if (RefreshDiagramCallback != null)
+        {
+            await RefreshDiagramCallback();
+        }
+    }
+
     partial void OnSearchFilterChanged(string value)
+    {
+        ApplyFilter();
+    }
+
+    partial void OnFilterModeChanged(string value)
     {
         ApplyFilter();
     }
@@ -117,6 +166,15 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
 
         foreach (var table in AllTables)
         {
+            if (FilterMode == "Relations" && table.OutgoingRelations.Count == 0 && !table.Columns.Any(c => c.IsForeignKey))
+            {
+                continue;
+            }
+            if (FilterMode == "PK" && !table.Columns.Any(c => c.IsPrimaryKey))
+            {
+                continue;
+            }
+
             if (string.IsNullOrWhiteSpace(filter) ||
                 table.TableName.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
                 table.Columns.Any(c => c.ColumnName.Contains(filter, StringComparison.OrdinalIgnoreCase)))
@@ -127,6 +185,8 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
 
         OnPropertyChanged(nameof(TotalTablesCount));
         OnPropertyChanged(nameof(TotalRelationsCount));
+        OnPropertyChanged(nameof(TablesWithRelationsCount));
+        OnPropertyChanged(nameof(TablesWithPkCount));
         OnPropertyChanged(nameof(IsEmptyState));
     }
 
@@ -165,7 +225,6 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
 
             foreach (var rel in table.OutgoingRelations)
             {
-                // Format: SourceTable -> TargetTable
                 var parts = rel.Split(new[] { "->" }, StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length == 2)
                 {
