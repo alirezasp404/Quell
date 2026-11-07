@@ -1,10 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using Fdb.Models;
-using Fdb.Services.DatabaseProviders;
+using Quell.Models;
+using Quell.Services.DatabaseProviders;
 
-namespace Fdb.Services.Terminal;
+namespace Quell.Services.Terminal;
 
 public class DatabaseCliService
 {

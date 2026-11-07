@@ -1,10 +1,10 @@
-# Fdb Studio — Reusable UI Components & Integration Guide
+﻿# Quell — Reusable UI Components & Integration Guide
 
 ## 1. Overview & Architecture
 
-**Fdb Studio** is an enterprise-grade database management desktop IDE built with **.NET 10**, **Avalonia UI 12.1.1**, **FluentAvalonia 3.1.0**, **AvaloniaEdit 12.0.0**, and **Dapper 2.1.89**.
+**Quell** is an enterprise-grade database management desktop IDE built with **.NET 10**, **Avalonia UI 12.1.1**, **FluentAvalonia 3.1.0**, **AvaloniaEdit 12.0.0**, and **Dapper 2.1.89**.
 
-The application is structured around a **strictly modular, reusable component architecture**. Visual elements are isolated into self-contained `UserControl` components residing in the `Fdb.Components` namespace, accompanied by dedicated MVVM ViewModels, SQLite persistent services, and Microsoft Fluent vector iconography.
+The application is structured around a **strictly modular, reusable component architecture**. Visual elements are isolated into self-contained `UserControl` components residing in the `Quell.Components` namespace, accompanied by dedicated MVVM ViewModels, SQLite persistent services, and Microsoft Fluent vector iconography.
 
 ### Core Principles
 1. **Zero Emojis / Native Vector Icons:** All graphical glyphs strictly utilize Microsoft Fluent vector symbols (`FluentAvalonia.UI.Controls.FASymbolIcon`) and `PathIcon` vector geometries.
@@ -78,13 +78,13 @@ This section provides comprehensive documentation and copy-pasteable code exampl
 
 ```xml
 <!-- Add the XML namespace to your XAML root: -->
-xmlns:components="using:Fdb.Components"
+xmlns:components="using:Quell.Components"
 ```
 
 ---
 
 ### 3.1 `SqlIntelliSenseOverlayComponent`
-* **File:** [SqlIntelliSenseOverlayComponent.axaml](file:///c:/Users/ehsan/Desktop/Fdb/Components/SqlIntelliSenseOverlayComponent.axaml) | [SqlIntelliSenseOverlayComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Fdb/Components/SqlIntelliSenseOverlayComponent.axaml.cs)
+* **File:** [SqlIntelliSenseOverlayComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/SqlIntelliSenseOverlayComponent.axaml) | [SqlIntelliSenseOverlayComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/SqlIntelliSenseOverlayComponent.axaml.cs)
 * **Description:** A floating IntelliSense suggestion card featuring SQL keyword prioritization (e.g., `SELECT` ranking #1 on typing 'S'), code snippet templates, vector icons, keyboard navigation, and live documentation previews.
 
 #### Public API:
@@ -161,7 +161,7 @@ private void OnIntelliSenseItemCommitted(object? sender, SqlCompletionData item)
 ---
 
 ### 3.2 `EditorComponent`
-* **File:** [EditorComponent.axaml](file:///c:/Users/ehsan/Desktop/Fdb/Components/EditorComponent.axaml) | [EditorComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Fdb/Components/EditorComponent.axaml.cs)
+* **File:** [EditorComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/EditorComponent.axaml) | [EditorComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/EditorComponent.axaml.cs)
 * **DataContext:** `EditorViewModel`
 * **Description:** A multi-tab SQL document editor featuring isolated per-tab undo/redo history, auto-expanding uniform tabs, blue syntax highlighting (`#2563EB`), zooming shortcuts, and built-in IntelliSense autocomplete.
 
@@ -196,7 +196,7 @@ editorComponent.ResetZoom();
 ---
 
 ### 3.3 `QueryResultTableComponent`
-* **File:** [QueryResultTableComponent.axaml](file:///c:/Users/ehsan/Desktop/Fdb/Components/QueryResultTableComponent.axaml) | [QueryResultTableComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Fdb/Components/QueryResultTableComponent.axaml.cs)
+* **File:** [QueryResultTableComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/QueryResultTableComponent.axaml) | [QueryResultTableComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/QueryResultTableComponent.axaml.cs)
 * **DataContext:** `QueryResultTableViewModel`
 * **Description:** An Excel-grade, high-performance database query results grid with compact 25px row heights, dynamic alternating column backgrounds, an explicit `ROW #` gutter column, quick search filter, execution metrics, and full data export capabilities. Fully adapted to both Light and Dark themes via semantic brush bindings without visual bugs or contrast issues.
 
@@ -234,7 +234,7 @@ var tableControl = new QueryResultTableComponent { DataContext = tableVm };
 ---
 
 ### 3.4 `SchemaPropertiesTableComponent`
-* **File:** [SchemaPropertiesTableComponent.axaml](file:///c:/Users/ehsan/Desktop/Fdb/Components/SchemaPropertiesTableComponent.axaml) | [SchemaPropertiesTableComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Fdb/Components/SchemaPropertiesTableComponent.axaml.cs)
+* **File:** [SchemaPropertiesTableComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/SchemaPropertiesTableComponent.axaml) | [SchemaPropertiesTableComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/SchemaPropertiesTableComponent.axaml.cs)
 * **DataContext:** `SchemaPropertiesTableViewModel`
 * **Description:** Interactive table schema metadata viewer showing primary keys, foreign keys, data types, nullability, default values, and column descriptions with compact 25px alternating rows.
 
@@ -266,7 +266,7 @@ var schemaControl = new SchemaPropertiesTableComponent { DataContext = schemaVm 
 ---
 
 ### 3.5 `ModalOverlayComponent` (Universal Modal Base Card)
-* **File:** [ModalOverlayComponent.axaml](file:///c:/Users/ehsan/Desktop/Fdb/Components/ModalOverlayComponent.axaml) | [ModalOverlayComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Fdb/Components/ModalOverlayComponent.axaml.cs)
+* **File:** [ModalOverlayComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/ModalOverlayComponent.axaml) | [ModalOverlayComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/ModalOverlayComponent.axaml.cs)
 * **Description:** The foundational reusable modal card supporting arbitrary custom content via `ModalContent`, an interactive backdrop dismissal, keyboard `Escape` handling, and elevated `ZIndex`.
 
 #### Styled Properties:
@@ -303,7 +303,7 @@ var schemaControl = new SchemaPropertiesTableComponent { DataContext = schemaVm 
 ---
 
 ### 3.6 `ConnectDatabaseModalComponent`
-* **File:** [ConnectDatabaseModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Fdb/Components/ConnectDatabaseModalComponent.axaml) | [ConnectDatabaseModalComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Fdb/Components/ConnectDatabaseModalComponent.axaml.cs)
+* **File:** [ConnectDatabaseModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/ConnectDatabaseModalComponent.axaml) | [ConnectDatabaseModalComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/ConnectDatabaseModalComponent.axaml.cs)
 * **DataContext:** `ConnectDatabaseModalViewModel`
 * **Description:** Dedicated SQL Server connection dialog supporting host, port, database, authentication modes, encryption options, and live connection testing with status feedback.
 
@@ -325,7 +325,7 @@ Console.WriteLine(mainVm.ConnectModal.StatusMessage);
 ---
 
 ### 3.7 `ConfirmActionModalComponent`
-* **File:** [ConfirmActionModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Fdb/Components/ConfirmActionModalComponent.axaml) | [ConfirmActionModalComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Fdb/Components/ConfirmActionModalComponent.axaml.cs)
+* **File:** [ConfirmActionModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/ConfirmActionModalComponent.axaml) | [ConfirmActionModalComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/ConfirmActionModalComponent.axaml.cs)
 * **DataContext:** `ConfirmActionModalViewModel`
 * **Description:** Danger alert dialog for destructive actions (`Disconnect`, `DROP`, `TRUNCATE`) featuring red warning accents, target resource tags, and confirmation commands.
 
@@ -347,7 +347,7 @@ mainVm.ConfirmModal.Open(
 ---
 
 ### 3.8 `ExportDataModalComponent`
-* **File:** [ExportDataModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Fdb/Components/ExportDataModalComponent.axaml) | [ExportDataModalComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Fdb/Components/ExportDataModalComponent.axaml.cs)
+* **File:** [ExportDataModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/ExportDataModalComponent.axaml) | [ExportDataModalComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/ExportDataModalComponent.axaml.cs)
 * **DataContext:** `ExportDataModalViewModel`
 * **Description:** Data export configuration dialog supporting CSV, JSON, SQL INSERT, and TSV formats with native OS file dialog integration.
 
@@ -359,7 +359,7 @@ mainVm.ConfirmModal.Open(
 ---
 
 ### 3.9 `SettingsModalComponent` (Appearance, Theme & Syntax Colors)
-* **File:** [SettingsModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Fdb/Components/SettingsModalComponent.axaml) | [SettingsModalComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Fdb/Components/SettingsModalComponent.axaml.cs)
+* **File:** [SettingsModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/SettingsModalComponent.axaml) | [SettingsModalComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/SettingsModalComponent.axaml.cs)
 * **DataContext:** `SettingsModalViewModel`
 * **Description:** Application preferences dialog featuring real-time color theme switching (`Light`, `Dark`, `System Default`) and SQL syntax keyword color customization, backed by SQLite persistent storage (`AppSettings` table via Dapper) and automatic loading during the startup splash screen.
 
@@ -410,9 +410,9 @@ await mainVm.SettingsModal.SaveAsync();
 
 ### 3.10 Theme Components & Color Tokens
 * **Files:**
-  * [ThemeTokens.axaml](file:///c:/Users/ehsan/Desktop/Fdb/Themes/ThemeTokens.axaml): Shared corner radii, table row heights (`25px`), and typography.
-  * [LightTheme.axaml](file:///c:/Users/ehsan/Desktop/Fdb/Themes/LightTheme.axaml): Light mode semantic color tokens and table brushes.
-  * [DarkTheme.axaml](file:///c:/Users/ehsan/Desktop/Fdb/Themes/DarkTheme.axaml): Dark mode semantic color tokens and table brushes.
+  * [ThemeTokens.axaml](file:///c:/Users/ehsan/Desktop/Quell/Themes/ThemeTokens.axaml): Shared corner radii, table row heights (`25px`), and typography.
+  * [LightTheme.axaml](file:///c:/Users/ehsan/Desktop/Quell/Themes/LightTheme.axaml): Light mode semantic color tokens and table brushes.
+  * [DarkTheme.axaml](file:///c:/Users/ehsan/Desktop/Quell/Themes/DarkTheme.axaml): Dark mode semantic color tokens and table brushes.
 * **Description:** Modular AXAML resource dictionaries componentizing the application design system. Each theme is an independent component loaded into `Application.Resources.ThemeDictionaries`.
 
 #### Usage in App.axaml:
@@ -420,11 +420,11 @@ await mainVm.SettingsModal.SaveAsync();
 <Application.Resources>
     <ResourceDictionary>
         <ResourceDictionary.MergedDictionaries>
-            <ResourceInclude Source="avares://Fdb/Themes/ThemeTokens.axaml" />
+            <ResourceInclude Source="avares://Quell/Themes/ThemeTokens.axaml" />
         </ResourceDictionary.MergedDictionaries>
         <ResourceDictionary.ThemeDictionaries>
-            <ResourceInclude x:Key="Light" Source="avares://Fdb/Themes/LightTheme.axaml" />
-            <ResourceInclude x:Key="Dark" Source="avares://Fdb/Themes/DarkTheme.axaml" />
+            <ResourceInclude x:Key="Light" Source="avares://Quell/Themes/LightTheme.axaml" />
+            <ResourceInclude x:Key="Dark" Source="avares://Quell/Themes/DarkTheme.axaml" />
         </ResourceDictionary.ThemeDictionaries>
     </ResourceDictionary>
 </Application.Resources>
@@ -433,7 +433,7 @@ await mainVm.SettingsModal.SaveAsync();
 ---
 
 ### 3.10 `ToolWindowHeaderComponent`
-* **File:** [ToolWindowHeaderComponent.axaml](file:///c:/Users/ehsan/Desktop/Fdb/Components/ToolWindowHeaderComponent.axaml) | [ToolWindowHeaderComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Fdb/Components/ToolWindowHeaderComponent.axaml.cs)
+* **File:** [ToolWindowHeaderComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/ToolWindowHeaderComponent.axaml) | [ToolWindowHeaderComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/ToolWindowHeaderComponent.axaml.cs)
 * **Description:** Reusable title header for dockable panels and tool windows with built-in Fullscreen/Maximize and Close buttons.
 
 #### Styled Properties:
@@ -454,7 +454,7 @@ await mainVm.SettingsModal.SaveAsync();
 ---
 
 ### 3.11 `NavbarComponent`
-* **File:** [NavbarComponent.axaml](file:///c:/Users/ehsan/Desktop/Fdb/Components/NavbarComponent.axaml) | [NavbarComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Fdb/Components/NavbarComponent.axaml.cs)
+* **File:** [NavbarComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/NavbarComponent.axaml) | [NavbarComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/NavbarComponent.axaml.cs)
 * **DataContext:** `NavbarViewModel`
 * **Description:** The top navigation bar containing native desktop menus (`File`, `Edit`, `View`, `Window`, `Help`) and action shortcuts.
 
@@ -467,7 +467,7 @@ await mainVm.SettingsModal.SaveAsync();
 ---
 
 ### 3.12 `SidebarComponent`
-* **File:** [SidebarComponent.axaml](file:///c:/Users/ehsan/Desktop/Fdb/Components/SidebarComponent.axaml) | [SidebarComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Fdb/Components/SidebarComponent.axaml.cs)
+* **File:** [SidebarComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/SidebarComponent.axaml) | [SidebarComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/SidebarComponent.axaml.cs)
 * **DataContext:** `SidebarViewModel`
 * **Description:** The left-hand tool panel hosting the Database Object Explorer and schema tree views.
 
@@ -480,7 +480,7 @@ await mainVm.SettingsModal.SaveAsync();
 ---
 
 ### 3.13 `FooterComponent`
-* **File:** [FooterComponent.axaml](file:///c:/Users/ehsan/Desktop/Fdb/Components/FooterComponent.axaml) | [FooterComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Fdb/Components/FooterComponent.axaml.cs)
+* **File:** [FooterComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/FooterComponent.axaml) | [FooterComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/FooterComponent.axaml.cs)
 * **DataContext:** `FooterViewModel`
 * **Description:** The collapsible and maximizable bottom dock housing query output tables, execution statistics, and logs.
 
@@ -493,7 +493,7 @@ await mainVm.SettingsModal.SaveAsync();
 ---
 
 ### 3.14 `StatusBarComponent`
-* **File:** [StatusBarComponent.axaml](file:///c:/Users/ehsan/Desktop/Fdb/Components/StatusBarComponent.axaml) | [StatusBarComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Fdb/Components/StatusBarComponent.axaml.cs)
+* **File:** [StatusBarComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/StatusBarComponent.axaml) | [StatusBarComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/StatusBarComponent.axaml.cs)
 * **Description:** Anchored application footer bar displaying active database connection, server version, execution time, and keyboard layout indicators.
 
 #### XAML Usage Example:
@@ -504,7 +504,7 @@ await mainVm.SettingsModal.SaveAsync();
 ---
 
 ### 3.15 `SplashScreenCardComponent` & Startup Pre-load Sequence
-* **File:** [SplashScreenCardComponent.axaml](file:///c:/Users/ehsan/Desktop/Fdb/Components/Splash/SplashScreenCardComponent.axaml) | [SplashScreenWindow.axaml.cs](file:///c:/Users/ehsan/Desktop/Fdb/Views/SplashScreenWindow.axaml.cs)
+* **File:** [SplashScreenCardComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Splash/SplashScreenCardComponent.axaml) | [SplashScreenWindow.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Views/SplashScreenWindow.axaml.cs)
 * **DataContext:** `SplashScreenViewModel`
 * **Description:** Reusable frameless splash card with high-resolution artwork and live real-time SQLite initialization diagnostics. Pre-loads all core app configurations (theme, keyword syntax color, panel customizations, table dimensions, keyboard shortcuts, dialect keywords, saved connections, and query history) into in-memory caches before displaying `MainWindow`, ensuring instant rendering with zero startup query lag.
 
@@ -546,7 +546,7 @@ MainViewModel
 
 ## 5. Verification & Test Suite
 
-Fdb Studio includes an automated layout, component, and autocomplete verification suite in `Program.cs`. To verify all components and behaviors:
+Quell includes an automated layout, component, and autocomplete verification suite in `Program.cs`. To verify all components and behaviors:
 
 ```powershell
 dotnet run -- --verify

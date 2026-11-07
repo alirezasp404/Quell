@@ -1,12 +1,12 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
               xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
               xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-              xmlns:vm="using:Fdb.ViewModels"
-              xmlns:components="using:Fdb.Components"
+              xmlns:vm="using:Quell.ViewModels"
+              xmlns:components="using:Quell.Components"
               xmlns:ae="using:AvaloniaEdit"
               mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="500"
-              x:Class="Fdb.Components.EditorComponent"
+              x:Class="Quell.Components.EditorComponent"
               x:DataType="vm:EditorViewModel">
 
     <!-- Composed SQL Editor Workspace Component: EditorTabStripComponent + Code Canvas + IntelliSense -->

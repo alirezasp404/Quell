@@ -1,8 +1,8 @@
-<Application xmlns="https://github.com/avaloniaui"
+﻿<Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="using:Fdb"
+             xmlns:local="using:Quell"
              xmlns:sty="using:FluentAvalonia.Styling"
-             x:Class="Fdb.App">
+             x:Class="Quell.App">
 
     <Application.DataTemplates>
         <local:ViewLocator />
@@ -11,12 +11,12 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="avares://Fdb/Themes/ThemeTokens.axaml" />
+                <ResourceInclude Source="avares://Quell/Themes/ThemeTokens.axaml" />
             </ResourceDictionary.MergedDictionaries>
             <ResourceDictionary.ThemeDictionaries>
-                <ResourceInclude x:Key="Default" Source="avares://Fdb/Themes/LightTheme.axaml" />
-                <ResourceInclude x:Key="Light" Source="avares://Fdb/Themes/LightTheme.axaml" />
-                <ResourceInclude x:Key="Dark" Source="avares://Fdb/Themes/DarkTheme.axaml" />
+                <ResourceInclude x:Key="Default" Source="avares://Quell/Themes/LightTheme.axaml" />
+                <ResourceInclude x:Key="Light" Source="avares://Quell/Themes/LightTheme.axaml" />
+                <ResourceInclude x:Key="Dark" Source="avares://Quell/Themes/DarkTheme.axaml" />
             </ResourceDictionary.ThemeDictionaries>
         </ResourceDictionary>
     </Application.Resources>
@@ -25,6 +25,6 @@
         <sty:FluentAvaloniaTheme PreferUserAccentColor="True" />
         <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
         <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
-        <StyleInclude Source="avares://Fdb/Resources/ClassicStyles.axaml" />
+        <StyleInclude Source="avares://Quell/Resources/ClassicStyles.axaml" />
     </Application.Styles>
 </Application>

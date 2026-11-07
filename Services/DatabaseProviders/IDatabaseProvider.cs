@@ -1,8 +1,8 @@
-using System.Data;
+﻿using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Fdb.Services.DatabaseProviders;
+namespace Quell.Services.DatabaseProviders;
 
 public interface IDatabaseProvider
 {

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using Avalonia;
@@ -6,7 +6,7 @@ using Avalonia.Skia;
 using Avalonia.Win32;
 using Microsoft.Win32;
 
-namespace Fdb.Services;
+namespace Quell.Services;
 
 /// <summary>
 /// Service managing graphics hardware adapter detection, GPU vs CPU rendering mode resolution,

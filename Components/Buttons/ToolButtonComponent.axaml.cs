@@ -1,9 +1,9 @@
-using System.Windows.Input;
+﻿using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 using FluentAvalonia.UI.Controls;
 
-namespace Fdb.Components;
+namespace Quell.Components;
 
 public partial class ToolButtonComponent : UserControl
 {

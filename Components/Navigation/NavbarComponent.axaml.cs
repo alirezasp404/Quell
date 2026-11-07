@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 
-namespace Fdb.Components;
+namespace Quell.Components;
 
 public partial class NavbarComponent : UserControl
 {

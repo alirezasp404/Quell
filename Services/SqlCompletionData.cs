@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using AvaloniaEdit.CodeCompletion;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Editing;
 
-namespace Fdb.Services;
+namespace Quell.Services;
 
 public class SqlCompletionData : ICompletionData
 {

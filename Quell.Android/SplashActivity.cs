@@ -2,8 +2,9 @@ using Android.App;
 using Android.OS;
 using Avalonia;
 using Avalonia.Android;
+using Quell;
 
-namespace Fdb.Android;
+namespace Quell.Android;
 
 [Activity(
     Theme = "@style/MyTheme.Splash",

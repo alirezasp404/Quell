@@ -1,8 +1,8 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:Fdb.ViewModels"
-             xmlns:components="using:Fdb.Components"
-             x:Class="Fdb.Views.MainView"
+             xmlns:vm="using:Quell.ViewModels"
+             xmlns:components="using:Quell.Components"
+             x:Class="Quell.Views.MainView"
              x:DataType="vm:MainViewModel"
              Background="{DynamicResource AppBackgroundBrush}">
 

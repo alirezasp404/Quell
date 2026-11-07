@@ -1,12 +1,12 @@
-using System;
+﻿using System;
 using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Fdb.Services;
-using Fdb.ViewModels;
+using Quell.Services;
+using Quell.ViewModels;
 
-namespace Fdb.Views;
+namespace Quell.Views;
 
 public partial class MainWindow : Window
 {

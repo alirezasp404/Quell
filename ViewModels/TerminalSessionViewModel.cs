@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -8,9 +8,9 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input.Platform;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Fdb.Models;
+using Quell.Models;
 
-namespace Fdb.ViewModels;
+namespace Quell.ViewModels;
 
 public partial class TerminalSessionViewModel : ViewModelBase
 {
@@ -117,7 +117,7 @@ public partial class TerminalSessionViewModel : ViewModelBase
             }
             else
             {
-                await Fdb.Services.ClipboardService.CopyTextAsync(WorkingDirectory);
+                await Quell.Services.ClipboardService.CopyTextAsync(WorkingDirectory);
             }
 
             IsCopied = true;

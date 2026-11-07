@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,7 +8,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input.Platform;
 using Avalonia.Threading;
 
-namespace Fdb.Services;
+namespace Quell.Services;
 
 /// <summary>
 /// Cross-platform resilient clipboard service that handles Windows OLE/Win32 locks with retries

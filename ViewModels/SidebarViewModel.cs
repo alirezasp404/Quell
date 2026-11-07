@@ -1,13 +1,13 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Fdb.Services;
-using Fdb.Services.DatabaseProviders;
+using Quell.Services;
+using Quell.Services.DatabaseProviders;
 
-namespace Fdb.ViewModels;
+namespace Quell.ViewModels;
 
 public partial class SidebarViewModel : ViewModelBase
 {
@@ -230,7 +230,7 @@ public partial class SidebarViewModel : ViewModelBase
         {
             // Load saved connections from SQLite
             var conns = (await DatabaseStorageService.Instance.GetRecentConnectionsAsync())
-                .Where(c => !c.Server.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase) && !c.DatabaseName.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase))
+                .Where(c => !c.Server.Contains("quell", StringComparison.OrdinalIgnoreCase) && !c.DatabaseName.Contains("quell", StringComparison.OrdinalIgnoreCase) && !c.Server.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase) && !c.DatabaseName.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase))
                 .ToList();
             SavedConnections.Clear();
             foreach (var c in conns)

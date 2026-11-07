@@ -2,11 +2,12 @@ using Android.App;
 using Android.Content.PM;
 using Avalonia;
 using Avalonia.Android;
+using Quell;
 
-namespace Fdb.Android;
+namespace Quell.Android;
 
 [Activity(
-    Label = "Fdb Studio",
+    Label = "Quell",
     Theme = "@style/MyTheme.NoActionBar",
     Icon = "@mipmap/icon",
     MainLauncher = true,

@@ -9,16 +9,16 @@
     <Version>1.0.0</Version>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>
-    <Product>Fdb Studio</Product>
+    <Product>Quell</Product>
     <Description>Modern, Cross-Platform Database Client and SQL IDE</Description>
     <Company>CipherUnits</Company>
     <Authors>CipherUnits</Authors>
-    <ApplicationIcon>Assets\fdb_icon.ico</ApplicationIcon>
+    <ApplicationIcon>Assets\quell_icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Fdb.Android\**" />
-    <None Remove="Fdb.Android\**" />
+    <Compile Remove="Quell.Android\**" />
+    <None Remove="Quell.Android\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -50,7 +50,7 @@
     <PackageReference Include="Npgsql" Version="10.0.3" />
   </ItemGroup>
   <Target Name="CleanStrayDatabaseFiles" BeforeTargets="BeforeBuild;BeforePublish">
-    <Delete Files="$(OutputPath)fdb_studio.db;$(OutputPath)fdb_studio.db-shm;$(OutputPath)fdb_studio.db-wal" TreatErrorsAsWarnings="true" />
+    <Delete Files="$(OutputPath)quell.db;$(OutputPath)quell.db-shm;$(OutputPath)quell.db-wal;$(OutputPath)fdb_studio.db;$(OutputPath)fdb_studio.db-shm;$(OutputPath)fdb_studio.db-wal" TreatErrorsAsWarnings="true" />
   </Target>
 
 </Project>

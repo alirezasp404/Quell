@@ -1,4 +1,4 @@
-namespace Fdb.Models;
+﻿namespace Quell.Models;
 
 public class PropertyItem
 {

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -11,10 +11,10 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.Media;
 using Avalonia.VisualTree;
-using Fdb.Services;
-using Fdb.ViewModels;
+using Quell.Services;
+using Quell.ViewModels;
 
-namespace Fdb.Components;
+namespace Quell.Components;
 
 public partial class QueryResultTableComponent : UserControl
 {

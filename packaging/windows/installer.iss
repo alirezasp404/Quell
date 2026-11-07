@@ -1,11 +1,11 @@
-; Inno Setup Script for Fdb Studio
-; Generates Windows Installer executable (Fdb-Studio-Setup-win-x64.exe)
+; Inno Setup Script for Quell
+; Generates Windows Installer executable (Quell-Setup-win-x64.exe)
 
-#define MyAppName "Fdb Studio"
+#define MyAppName "Quell"
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "CipherUnits"
-#define MyAppURL "https://github.com/cipherunits/Fdb"
-#define MyAppExeName "Fdb.exe"
+#define MyAppURL "https://github.com/cipherunits/Quell"
+#define MyAppExeName "Quell.exe"
 #ifndef SourceDir
   #define SourceDir "..\..\publish\win-x64"
 #endif
@@ -23,13 +23,13 @@ AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DisableProgramGroupPage=yes
-OutputBaseFilename=Fdb-Studio-Setup-win-x64
+OutputBaseFilename=Quell-Setup-win-x64
 OutputDir={#OutputDir}
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
 ArchitecturesInstallIn64BitMode=x64compatible
-SetupIconFile=..\..\Assets\fdb_icon.ico
+SetupIconFile=..\..\Assets\quell_icon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 
 [Languages]

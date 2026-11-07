@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Fdb.Services;
+using Quell.Services;
 
-namespace Fdb.ViewModels;
+namespace Quell.ViewModels;
 
 public partial class SettingsModalViewModel : ObservableObject
 {
@@ -576,7 +576,7 @@ public partial class SettingsModalViewModel : ObservableObject
     [ObservableProperty]
     private string _terminalSqlCmdPath = string.Empty;
 
-    public System.Collections.ObjectModel.ObservableCollection<Fdb.Models.ShellProfile> AvailableTerminalShells { get; } = new();
+    public System.Collections.ObjectModel.ObservableCollection<Quell.Models.ShellProfile> AvailableTerminalShells { get; } = new();
 
     #endregion
 
@@ -657,7 +657,7 @@ public partial class SettingsModalViewModel : ObservableObject
             OnPropertyChanged(nameof(EffectiveModeDescription));
             OnPropertyChanged(nameof(RequiresGraphicsRestart));
             // 5. Load Terminal Settings from SQLite
-            var termSettings = await Fdb.Services.Terminal.TerminalSettingsService.Instance.LoadSettingsAsync().ConfigureAwait(false);
+            var termSettings = await Quell.Services.Terminal.TerminalSettingsService.Instance.LoadSettingsAsync().ConfigureAwait(false);
             TerminalDefaultShell = termSettings.DefaultShellId;
             TerminalFontFamily = termSettings.FontFamily;
             TerminalFontSize = termSettings.FontSize;
@@ -670,7 +670,7 @@ public partial class SettingsModalViewModel : ObservableObject
             TerminalSqlCmdPath = termSettings.SqlCmdPath;
 
             AvailableTerminalShells.Clear();
-            foreach (var sh in Fdb.Services.Terminal.ShellDetectorService.Instance.GetAvailableShells())
+            foreach (var sh in Quell.Services.Terminal.ShellDetectorService.Instance.GetAvailableShells())
             {
                 AvailableTerminalShells.Add(sh);
             }
@@ -1700,7 +1700,7 @@ public partial class SettingsModalViewModel : ObservableObject
             _initialRenderingMode = SelectedRenderingMode;
             OnPropertyChanged(nameof(RequiresGraphicsRestart));
             // 5. Save Terminal Settings to SQLite
-            var termSettingsToSave = new Fdb.Models.TerminalSettingsModel
+            var termSettingsToSave = new Quell.Models.TerminalSettingsModel
             {
                 DefaultShellId = TerminalDefaultShell,
                 FontFamily = TerminalFontFamily,
@@ -1713,7 +1713,7 @@ public partial class SettingsModalViewModel : ObservableObject
                 SqlitePath = TerminalSqlitePath,
                 SqlCmdPath = TerminalSqlCmdPath
             };
-            await Fdb.Services.Terminal.TerminalSettingsService.Instance.SaveSettingsAsync(termSettingsToSave).ConfigureAwait(false);
+            await Quell.Services.Terminal.TerminalSettingsService.Instance.SaveSettingsAsync(termSettingsToSave).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

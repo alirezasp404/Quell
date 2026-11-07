@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
@@ -6,10 +6,10 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using AvaloniaEdit.Rendering;
-using Fdb.Services;
-using Fdb.ViewModels;
+using Quell.Services;
+using Quell.ViewModels;
 
-namespace Fdb.Components;
+namespace Quell.Components;
 
 public partial class EditorComponent : UserControl
 {

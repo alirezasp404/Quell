@@ -1,4 +1,4 @@
-# Fdb Studio Theme Tokens Reference
+﻿# Quell Theme Tokens Reference
 
 This document catalogs all XAML color and brush resources defined in the design system, their fallback defaults, and their relationships with `ThemeService`.
 

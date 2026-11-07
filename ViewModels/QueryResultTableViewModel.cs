@@ -1,4 +1,4 @@
-using Fdb.Services.DatabaseProviders;
+﻿using Quell.Services.DatabaseProviders;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -10,7 +10,7 @@ using Avalonia.Input.Platform;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace Fdb.ViewModels;
+namespace Quell.ViewModels;
 
 public partial class QueryResultRow : ObservableObject
 {

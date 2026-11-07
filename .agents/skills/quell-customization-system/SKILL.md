@@ -1,14 +1,14 @@
----
-name: fdb-customization-system
+﻿---
+name: quell-customization-system
 description: >-
-  Architectural patterns, procedural runbook, and token catalog for Fdb Studio's customization and color system.
+  Architectural patterns, procedural runbook, and token catalog for Quell's customization and color system.
   Use when adding, modifying, or extending UI customization, Color Maker, theme tokens, button/border/sidebar styling,
-  or SQLite persistence of user preferences in Fdb.
+  or SQLite persistence of user preferences in Quell.
 ---
 
-# Fdb Studio Customization & Color System Skill
+# Quell Customization & Color System Skill
 
-This skill defines the architectural blueprint, token taxonomy, and step-by-step procedures for extending Fdb Studio's UI customization, Color Maker, theme brushes, and SQLite configuration engine.
+This skill defines the architectural blueprint, token taxonomy, and step-by-step procedures for extending Quell's UI customization, Color Maker, theme brushes, and SQLite configuration engine.
 
 Follow this standard whenever you add new customizable elements, modify existing colors, or implement theme tokens.
 
@@ -16,7 +16,7 @@ Follow this standard whenever you add new customizable elements, modify existing
 
 ## 1. Architectural Overview (The 4-Layer System)
 
-Fdb Studio's customization engine operates across four synchronized layers:
+Quell's customization engine operates across four synchronized layers:
 
 ```
 ┌────────────────────────────────────────────────────────┐
@@ -204,7 +204,7 @@ Always run these two commands before committing any customization or styling cha
 
 ```powershell
 # 1. Compile in Release mode (must be 0 warnings, 0 errors)
-dotnet build Fdb.csproj --configuration Release
+dotnet build Quell.csproj --configuration Release
 
 # 2. Run automated headless verification suite
 dotnet run --configuration Release --no-build -- --verify

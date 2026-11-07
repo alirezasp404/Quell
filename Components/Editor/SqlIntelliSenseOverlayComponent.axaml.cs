@@ -1,14 +1,14 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
-using Fdb.Services;
-using Fdb.Services.DatabaseProviders;
+using Quell.Services;
+using Quell.Services.DatabaseProviders;
 
-namespace Fdb.Components;
+namespace Quell.Components;
 
 public partial class SqlIntelliSenseOverlayComponent : UserControl
 {

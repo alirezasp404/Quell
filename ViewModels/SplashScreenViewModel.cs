@@ -1,11 +1,11 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace Fdb.ViewModels;
+namespace Quell.ViewModels;
 
 public partial class SplashScreenViewModel : ViewModelBase
 {
     [ObservableProperty]
-    private string _statusText = "Initializing Fdb Studio...";
+    private string _statusText = "Initializing Quell...";
 
     [ObservableProperty]
     private double _progressValue = 0;

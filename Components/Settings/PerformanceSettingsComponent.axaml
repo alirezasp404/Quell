@@ -1,11 +1,11 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
               xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
               xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-              xmlns:vm="using:Fdb.ViewModels"
+              xmlns:vm="using:Quell.ViewModels"
               xmlns:ui="using:FluentAvalonia.UI.Controls"
               mc:Ignorable="d" d:DesignWidth="550" d:DesignHeight="850"
-              x:Class="Fdb.Components.PerformanceSettingsComponent"
+              x:Class="Quell.Components.PerformanceSettingsComponent"
               x:DataType="vm:SettingsModalViewModel">
 
     <UserControl.Styles>
@@ -277,7 +277,7 @@
                                FontSize="11" 
                                FontWeight="Bold" 
                                Foreground="{DynamicResource AppWarningForegroundBrush}"/>
-                    <TextBlock Text="Switching the OS-level rendering pipeline takes effect upon restarting Fdb Studio. Your selection is immediately saved in SQLite when clicking 'Save &amp; Apply'." 
+                    <TextBlock Text="Switching the OS-level rendering pipeline takes effect upon restarting Quell. Your selection is immediately saved in SQLite when clicking 'Save &amp; Apply'." 
                                FontSize="10" 
                                Foreground="{DynamicResource AppWarningForegroundBrush}" 
                                TextWrapping="Wrap"/>

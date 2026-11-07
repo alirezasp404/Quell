@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
@@ -6,9 +6,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Fdb.ViewModels;
+using Quell.ViewModels;
 
-namespace Fdb.Services.DatabaseProviders;
+namespace Quell.Services.DatabaseProviders;
 
 public record QueryExecutionResult
 {

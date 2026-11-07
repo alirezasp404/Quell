@@ -1,6 +1,6 @@
-using Avalonia.Controls;
+﻿using Avalonia.Controls;
 
-namespace Fdb.Views;
+namespace Quell.Views;
 
 public partial class MainView : UserControl
 {

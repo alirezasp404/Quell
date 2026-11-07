@@ -1,8 +1,8 @@
-using Avalonia.Controls;
+﻿using Avalonia.Controls;
 using Avalonia.Input;
-using Fdb.Services;
+using Quell.Services;
 
-namespace Fdb.Components;
+namespace Quell.Components;
 
 public partial class ShortcutsSettingsComponent : UserControl
 {

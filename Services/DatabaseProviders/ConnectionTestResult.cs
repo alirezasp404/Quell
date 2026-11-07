@@ -1,6 +1,6 @@
-using System;
+﻿using System;
 
-namespace Fdb.Services.DatabaseProviders;
+namespace Quell.Services.DatabaseProviders;
 
 public record ConnectionTestResult
 {

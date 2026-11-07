@@ -1,4 +1,4 @@
-namespace Fdb.Services.DatabaseProviders;
+﻿namespace Quell.Services.DatabaseProviders;
 
 public class TableMetadata
 {

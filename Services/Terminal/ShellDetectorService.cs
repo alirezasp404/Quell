@@ -1,10 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
-using Fdb.Models;
+using Quell.Models;
 
-namespace Fdb.Services.Terminal;
+namespace Quell.Services.Terminal;
 
 public class ShellDetectorService
 {

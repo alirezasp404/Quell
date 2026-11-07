@@ -1,13 +1,13 @@
-using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
-using Fdb.ViewModels;
-using Fdb.Views;
+using Quell.ViewModels;
+using Quell.Views;
 
-namespace Fdb;
+namespace Quell;
 
 public partial class App : Application
 {
