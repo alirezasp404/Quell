@@ -173,6 +173,81 @@ sealed class Program
             vm.ConnectModal.CloseCommand.Execute(null);
             Console.WriteLine($"ConnectModal: IsOpen = {vm.ConnectModal.IsOpen} (Closed)");
 
+            // 5b. Test Hamburger Menu Toggle, Animated Navbar Strip and Hardware GPU Motion
+            Console.WriteLine("\n[Action] Verifying Hamburger Menu Toggle, Animated Navbar Strip and GPU Pipeline...");
+            var hamburgerBtn = navbarComp?.FindControl<Avalonia.Controls.Button>("HamburgerButton");
+            var navContainer = navbarComp?.FindControl<Avalonia.Controls.Border>("NavMenuContainer");
+            var navMenuBar = navbarComp?.FindControl<Avalonia.Controls.Menu>("NavMenuBar");
+            if (navbarComp == null || hamburgerBtn == null || navContainer == null || navMenuBar == null)
+            {
+                throw new Exception("Navbar HamburgerButton, NavMenuContainer or NavMenuBar control is missing!");
+            }
+            bool initHasOpen = navContainer.Classes.Contains("menu-open");
+            Console.WriteLine($"Initial State: IsNavMenuOpen={vm.Navbar.IsNavMenuOpen}, ContainerHasOpenClass={initHasOpen}");
+            if (vm.Navbar.IsNavMenuOpen || initHasOpen)
+            {
+                throw new Exception("Navbar menu should be collapsed initially!");
+            }
+
+            // Click Hamburger to Open
+            navbarComp.OnHamburgerClicked(hamburgerBtn, new Avalonia.Interactivity.RoutedEventArgs());
+            bool openHasOpen = navContainer.Classes.Contains("menu-open");
+            bool hamburgerActive = hamburgerBtn.Classes.Contains("active-menu");
+            Console.WriteLine($"After Click 1: IsNavMenuOpen={vm.Navbar.IsNavMenuOpen}, ContainerHasOpenClass={openHasOpen}, HamburgerActive={hamburgerActive}");
+            if (!vm.Navbar.IsNavMenuOpen || !openHasOpen || !hamburgerActive)
+            {
+                throw new Exception("Hamburger click failed to open navbar menu strip!");
+            }
+            var menuItems = navMenuBar.Items.OfType<Avalonia.Controls.MenuItem>().ToList();
+            var menuNames = string.Join(", ", menuItems.Select(m => m.Header?.ToString() ?? ""));
+            Console.WriteLine($"Navbar Menu Items Count: {menuItems.Count} ({menuNames})");
+            if (menuItems.Count < 6)
+            {
+                throw new Exception($"Expected at least 6 top-level menu items in navbar, but found {menuItems.Count}!");
+            }
+
+            // Verify GPU Mode Integration
+            bool isGpu = Quell.Services.HardwareGraphicsService.Instance.IsGpuMotionActive;
+            bool navbarHasGpu = navbarComp.Classes.Contains("gpu-mode");
+            string gpuAdapter = Quell.Services.HardwareGraphicsService.Instance.GpuAdapterName;
+            Console.WriteLine($"GPU Motion Integration: ServiceIsGpu={isGpu}, NavbarHasGpuClass={navbarHasGpu}, GpuAdapter='{gpuAdapter}'");
+            if (isGpu != navbarHasGpu)
+            {
+                throw new Exception("NavbarComponent failed to reflect HardwareGraphicsService GPU motion mode!");
+            }
+
+            // Click Hamburger to Close
+            navbarComp.OnHamburgerClicked(hamburgerBtn, new Avalonia.Interactivity.RoutedEventArgs());
+            bool closedHasOpen = navContainer.Classes.Contains("menu-open");
+            bool closedActive = hamburgerBtn.Classes.Contains("active-menu");
+            Console.WriteLine($"After Click 2: IsNavMenuOpen={vm.Navbar.IsNavMenuOpen}, ContainerHasOpenClass={closedHasOpen}, HamburgerActive={closedActive}");
+            if (vm.Navbar.IsNavMenuOpen || closedHasOpen || closedActive)
+            {
+                throw new Exception("Hamburger click failed to close navbar menu strip!");
+            }
+
+            // Test Keyboard Shortcut Alt+M to Toggle Open and Escape to Close
+            window.RaiseEvent(new Avalonia.Input.KeyEventArgs
+            {
+                RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent,
+                Key = Avalonia.Input.Key.M,
+                KeyModifiers = Avalonia.Input.KeyModifiers.Alt
+            });
+            if (!vm.Navbar.IsNavMenuOpen || !navContainer.Classes.Contains("menu-open"))
+            {
+                throw new Exception("Alt+M shortcut failed to toggle open navbar menu strip!");
+            }
+            window.RaiseEvent(new Avalonia.Input.KeyEventArgs
+            {
+                RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent,
+                Key = Avalonia.Input.Key.Escape
+            });
+            if (vm.Navbar.IsNavMenuOpen || navContainer.Classes.Contains("menu-open"))
+            {
+                throw new Exception("Escape key failed to close open navbar menu strip!");
+            }
+            Console.WriteLine("[Success] Hamburger menu animation, navbar item expansion, GPU pipeline and shortcuts verified!");
+
             // Test Disconnect Command triggering ConfirmModal
             vm.DisconnectCommand.Execute(null);
             Console.WriteLine($"ConfirmModal opened by Disconnect: {vm.ConfirmModal.IsOpen}, Target = {vm.ConfirmModal.TargetName}");
