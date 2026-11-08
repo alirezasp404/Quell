@@ -251,6 +251,14 @@ public partial class MainWindow : Window
             return;
         }
 
+        // Toggle Application Menu Strip in Navbar (Alt+M or F10)
+        if ((e.Key == Key.M && (e.KeyModifiers == KeyModifiers.Alt || e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Alt))) || e.Key == Key.F10)
+        {
+            _viewModel.Navbar.ToggleNavMenu();
+            e.Handled = true;
+            return;
+        }
+
         // Toggle or Close Explorer Sidebar (Ctrl+B)
         if (ShortcutService.Instance.IsMatch(ShortcutActions.ToggleSidebar, e) || 
             (e.Key == Key.B && e.KeyModifiers == KeyModifiers.Control))
@@ -378,9 +386,16 @@ public partial class MainWindow : Window
             return;
         }
 
-        // Escape: restore footer if maximized
+        // Escape: close navbar menu if open, or restore footer if maximized
         if (e.Key == Key.Escape)
         {
+            if (_viewModel.Navbar.IsNavMenuOpen)
+            {
+                _viewModel.Navbar.IsNavMenuOpen = false;
+                e.Handled = true;
+                return;
+            }
+
             if (_viewModel.Footer.IsMaximized)
             {
                 _viewModel.Footer.IsMaximized = false;

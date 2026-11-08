@@ -1,5 +1,7 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using Quell.Services;
 using Quell.Services.DatabaseProviders;
 
 namespace Quell.ViewModels;
@@ -15,7 +17,14 @@ public partial class NavbarViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isConnected = true;
 
+    [ObservableProperty]
+    private bool _isNavMenuOpen;
+
     public string ConnectionDotColor => IsConnected ? "#10B981" : "#94A3B8";
+
+    public string GpuTooltipText => HardwareGraphicsService.Instance.IsGpuMotionActive
+        ? $"Toggle Application Menu (Alt+M) • GPU Hardware Acceleration Active ({HardwareGraphicsService.Instance.GpuAdapterName})"
+        : "Toggle Application Menu (Alt+M) • CPU Lightweight Motion";
 
     public ObservableCollection<string> MenuItems { get; } = new()
     {
@@ -26,6 +35,12 @@ public partial class NavbarViewModel : ViewModelBase
         "Help",
         "windows"
     };
+
+    [RelayCommand]
+    public void ToggleNavMenu()
+    {
+        IsNavMenuOpen = !IsNavMenuOpen;
+    }
 
     public void UpdateConnectionStatus()
     {

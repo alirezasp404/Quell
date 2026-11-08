@@ -55,44 +55,130 @@
             <Setter Property="Foreground" Value="White"/>
         </Style>
 
-        <!-- Hamburger Menu Button Styling in Title Bar -->
-        <Style Selector="MenuItem.hamburger-menu-btn">
+        <!-- Hamburger Menu Toggle Button Styling -->
+        <Style Selector="Button.hamburger-btn">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="4"/>
-            <Setter Property="Padding" Value="7,4"/>
+            <Setter Property="Padding" Value="6,4"/>
             <Setter Property="Height" Value="24"/>
-            <Setter Property="MinHeight" Value="24"/>
-            <Setter Property="MinWidth" Value="28"/>
+            <Setter Property="Width" Value="28"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="FocusAdorner" Value="{x:Null}"/>
         </Style>
-        <Style Selector="MenuItem.hamburger-menu-btn:pointerover">
+        <Style Selector="Button.hamburger-btn:pointerover">
             <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
             <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
         </Style>
-        <Style Selector="MenuItem.hamburger-menu-btn:open">
+        <Style Selector="Button.hamburger-btn.active-menu">
             <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
         </Style>
-        <Style Selector="MenuItem.hamburger-menu-btn /template/ Border#PART_LayoutRoot">
+
+        <!-- GPU-Accelerated Hamburger Icon Transform Pipeline -->
+        <Style Selector=":is(TopLevel).gpu-mode Button.hamburger-btn PathIcon.hamburger-icon">
+            <Setter Property="RenderTransformOrigin" Value="50%,50%"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.28" Easing="CubicEaseOut"/>
+                    <BrushTransition Property="Foreground" Duration="0:0:0.20"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.hamburger-btn.active-menu PathIcon.hamburger-icon">
+            <Setter Property="RenderTransform" Value="rotate(90deg)"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
+        </Style>
+
+        <!-- Animated Navbar Menu Items Container (Closed / Base State) -->
+        <Style Selector="Border.nav-menu-bar-container">
+            <Setter Property="MaxWidth" Value="0"/>
+            <Setter Property="Opacity" Value="0.0"/>
+            <Setter Property="IsHitTestVisible" Value="False"/>
+            <Setter Property="RenderTransformOrigin" Value="0%,50%"/>
+            <Setter Property="RenderTransform" Value="translateX(-18px) scale(0.95)"/>
+            <Setter Property="ClipToBounds" Value="True"/>
+        </Style>
+
+        <!-- Animated Navbar Menu Items Container (Open / Active State) -->
+        <Style Selector="Border.nav-menu-bar-container.menu-open">
+            <Setter Property="MaxWidth" Value="480"/>
+            <Setter Property="Opacity" Value="1.0"/>
+            <Setter Property="IsHitTestVisible" Value="True"/>
+            <Setter Property="RenderTransform" Value="translateX(0px) scale(1.0)"/>
+        </Style>
+
+        <!-- GPU-Accelerated Fluid Motion Pipeline for Navbar Menu Container (Skia DirectX 11 / ANGLE hardware pipeline) -->
+        <Style Selector=":is(TopLevel).gpu-mode Border.nav-menu-bar-container">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="MaxWidth" Duration="0:0:0.32" Easing="CubicEaseOut"/>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.25" Easing="CubicEaseOut"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.32" Easing="CubicEaseOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <!-- CPU Software Mode: Lightweight & Fast Transitions (0 lag on basic software rasterizer) -->
+        <Style Selector=":is(TopLevel):not(.gpu-mode) Border.nav-menu-bar-container">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="MaxWidth" Duration="0:0:0.12" Easing="LinearEasing"/>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.10" Easing="LinearEasing"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12" Easing="LinearEasing"/>
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <!-- Top-Level Menu Items in Navbar Strip -->
+        <Style Selector="Menu.navbar-menu-strip">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+        <Style Selector="Menu.navbar-menu-strip > MenuItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Padding" Value="7,3"/>
+            <Setter Property="Height" Value="24"/>
             <Setter Property="CornerRadius" Value="4"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="ClipToBounds" Value="True"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusAdorner" Value="{x:Null}"/>
         </Style>
-        <Style Selector="MenuItem.hamburger-menu-btn /template/ Border#PART_Border">
+        <Style Selector="Menu.navbar-menu-strip > MenuItem:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+        </Style>
+        <Style Selector="Menu.navbar-menu-strip > MenuItem:open">
             <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="BoxShadow" Value="0 8 24 0 #40000000"/>
-            <Setter Property="ClipToBounds" Value="True"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
         </Style>
-        <Style Selector="MenuItem.hamburger-menu-btn MenuItem /template/ Border#PART_Border">
+
+        <!-- GPU-Accelerated Micro-Interactions on Top-Level Menu Items -->
+        <Style Selector=":is(TopLevel).gpu-mode Menu.navbar-menu-strip > MenuItem">
+            <Setter Property="RenderTransformOrigin" Value="50%,50%"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.22" Easing="CubicEaseOut"/>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.20" Easing="CubicEaseOut"/>
+                    <BrushTransition Property="Background" Duration="0:0:0.15"/>
+                    <BrushTransition Property="Foreground" Duration="0:0:0.15"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector=":is(TopLevel).gpu-mode Menu.navbar-menu-strip > MenuItem:pointerover">
+            <Setter Property="RenderTransform" Value="scale(1.04) translateY(-1px)"/>
+        </Style>
+        <Style Selector=":is(TopLevel).gpu-mode Menu.navbar-menu-strip > MenuItem:pressed">
+            <Setter Property="RenderTransform" Value="scale(0.96)"/>
+        </Style>
+
+        <!-- Dropdown Popup Border & Shadow Styling -->
+        <Style Selector="Menu.navbar-menu-strip MenuItem /template/ Border#PART_Border">
             <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
@@ -129,7 +215,7 @@
             PointerPressed="OnTitleBarPointerPressed">
         <Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto">
             
-            <!-- 1. Left: Brand Logo, App Title & Native Menu Dropdown Strip -->
+            <!-- 1. Left: Brand Logo, App Title, Hamburger Toggle Button & GPU-Animated Navbar Menu Strip -->
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Margin="8,0,4,0">
                 <!-- App Logo -->
                 <Border CornerRadius="4" ClipToBounds="True" Width="18" Height="18" Margin="0,0,4,0">
@@ -149,17 +235,33 @@
 
                 <Border Width="1" Height="14" Background="{DynamicResource AppBorderBrush}" Margin="2,0,4,0" VerticalAlignment="Center"/>
 
-                <!-- Unified Hamburger Application Menu (File, Edit, View, Window, Help) -->
-                <Menu Background="Transparent" FocusAdorner="{x:Null}" VerticalAlignment="Center">
-                    <MenuItem Classes="hamburger-menu-btn" FocusAdorner="{x:Null}" ToolTip.Tip="Application Menu">
-                        <MenuItem.Header>
-                            <PathIcon Data="M2 3.5h12v1.5H2zm0 3.75h12v1.5H2zm0 3.75h12v1.5H2z"
-                                      Width="12" Height="11"
-                                      Foreground="{Binding $parent[MenuItem].Foreground}" />
-                        </MenuItem.Header>
+                <!-- Hamburger Menu Toggle Button (Hardware-Accelerated Icon Motion) -->
+                <Button x:Name="HamburgerButton"
+                        Classes="hamburger-btn"
+                        Click="OnHamburgerClicked"
+                        ToolTip.Tip="{Binding GpuTooltipText}">
+                    <Panel Width="14" Height="14">
+                        <PathIcon x:Name="HamburgerIcon"
+                                  Classes="hamburger-icon"
+                                  Data="M2 3.5h12v1.5H2zm0 3.75h12v1.5H2zm0 3.75h12v1.5H2z"
+                                  Width="12" Height="11"
+                                  Foreground="{DynamicResource AppTextSecondaryBrush}" />
+                    </Panel>
+                </Button>
 
+                <!-- Animated Navbar Menu Items Container (Slides & Glides fluidly into navbar) -->
+                <Border x:Name="NavMenuContainer" 
+                        Classes="nav-menu-bar-container"
+                        ClipToBounds="True"
+                        VerticalAlignment="Center">
+                    <Menu x:Name="NavMenuBar" 
+                          Classes="navbar-menu-strip" 
+                          Background="Transparent" 
+                          FocusAdorner="{x:Null}" 
+                          VerticalAlignment="Center">
+                        
                         <!-- File Menu -->
-                        <MenuItem Header="File" FontSize="11">
+                        <MenuItem x:Name="MenuFile" Classes="nav-item nav-item-1" Header="File" FontSize="11">
                             <MenuItem.Icon>
                                 <ui:FASymbolIcon Symbol="Folder" FontSize="11" />
                             </MenuItem.Icon>
@@ -209,7 +311,7 @@
                         </MenuItem>
 
                         <!-- Edit Menu -->
-                        <MenuItem Header="Edit" FontSize="11">
+                        <MenuItem x:Name="MenuEdit" Classes="nav-item nav-item-2" Header="Edit" FontSize="11">
                             <MenuItem.Icon>
                                 <ui:FASymbolIcon Symbol="Edit" FontSize="11" />
                             </MenuItem.Icon>
@@ -222,7 +324,7 @@
                         </MenuItem>
 
                         <!-- Database Management & Tools Menu -->
-                        <MenuItem Header="Database" FontSize="11">
+                        <MenuItem x:Name="MenuDatabase" Classes="nav-item nav-item-3" Header="Database" FontSize="11">
                             <MenuItem.Icon>
                                 <ui:FASymbolIcon Symbol="Folder" FontSize="11" Foreground="{DynamicResource AppAccentBrush}"/>
                             </MenuItem.Icon>
@@ -315,7 +417,7 @@
                         </MenuItem>
 
                         <!-- View Menu -->
-                        <MenuItem Header="View" FontSize="11">
+                        <MenuItem x:Name="MenuView" Classes="nav-item nav-item-4" Header="View" FontSize="11">
                             <MenuItem.Icon>
                                 <ui:FASymbolIcon Symbol="FullScreen" FontSize="11" />
                             </MenuItem.Icon>
@@ -346,7 +448,7 @@
                         </MenuItem>
 
                         <!-- Window / Workspace Menu -->
-                        <MenuItem Header="Window" FontSize="11">
+                        <MenuItem x:Name="MenuWindow" Classes="nav-item nav-item-5" Header="Window" FontSize="11">
                             <MenuItem.Icon>
                                 <ui:FASymbolIcon Symbol="Globe" FontSize="11" />
                             </MenuItem.Icon>
@@ -384,15 +486,15 @@
                         </MenuItem>
 
                         <!-- Help Menu -->
-                        <MenuItem Header="Help" FontSize="11">
+                        <MenuItem x:Name="MenuHelp" Classes="nav-item nav-item-6" Header="Help" FontSize="11">
                             <MenuItem.Icon>
                                 <ui:FASymbolIcon Symbol="Important" FontSize="11" />
                             </MenuItem.Icon>
                             <MenuItem Header="Documentation" />
                             <MenuItem Header="About Quell" />
                         </MenuItem>
-                    </MenuItem>
-                </Menu>
+                    </Menu>
+                </Border>
             </StackPanel>
 
             <!-- 2. Center-Left: Core Action Tools Strip -->
