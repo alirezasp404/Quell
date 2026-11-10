@@ -58,7 +58,7 @@
         <!-- Hamburger Menu Toggle Button Styling -->
         <Style Selector="Button.hamburger-btn">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="4"/>
@@ -71,12 +71,15 @@
         <Style Selector="Button.hamburger-btn:pointerover">
             <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
             <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderDarkBrush}"/>
         </Style>
         <Style Selector="Button.hamburger-btn.active-menu">
             <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderDarkBrush}"/>
+        </Style>
+        <Style Selector="Button.hamburger-btn PathIcon.hamburger-icon">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
         </Style>
 
         <!-- GPU-Accelerated Hamburger Icon Transform Pipeline -->
@@ -91,7 +94,7 @@
         </Style>
         <Style Selector="Button.hamburger-btn.active-menu PathIcon.hamburger-icon">
             <Setter Property="RenderTransform" Value="rotate(90deg)"/>
-            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
         </Style>
 
         <!-- Animated Navbar Menu Items Container (Closed / Base State) -->
@@ -155,7 +158,39 @@
         </Style>
         <Style Selector="Menu.navbar-menu-strip > MenuItem:open">
             <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+        </Style>
+
+        <!-- Dropdown Menu Items inside Navbar Menu Strip (Strict High-Contrast Black in Light Mode) -->
+        <Style Selector="Menu.navbar-menu-strip MenuItem">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Menu.navbar-menu-strip MenuItem:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+        </Style>
+        <Style Selector="Menu.navbar-menu-strip MenuItem:selected">
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+        </Style>
+        <Style Selector="Menu.navbar-menu-strip MenuItem:open">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+        </Style>
+        <Style Selector="Menu.navbar-menu-strip MenuItem /template/ ContentPresenter#PART_HeaderPresenter">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+        </Style>
+        <Style Selector="Menu.navbar-menu-strip MenuItem TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+        </Style>
+        <Style Selector="Menu.navbar-menu-strip MenuItem /template/ TextBlock#PART_InputGestureText">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}"/>
+        </Style>
+        <Style Selector="Menu.navbar-menu-strip MenuItem ui|FASymbolIcon">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}"/>
+        </Style>
+        <Style Selector="Menu.navbar-menu-strip MenuItem:pointerover ui|FASymbolIcon">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
         </Style>
 
         <!-- GPU-Accelerated Micro-Interactions on Top-Level Menu Items -->
@@ -190,7 +225,7 @@
         <!-- Compact Action Button in Title Bar -->
         <Style Selector="Button.titlebar-action-btn">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="4"/>
@@ -203,7 +238,7 @@
         <Style Selector="Button.titlebar-action-btn:pointerover">
             <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
             <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderDarkBrush}"/>
         </Style>
 
         <!-- ========================================================================= -->
@@ -374,7 +409,7 @@
                         <!-- Database Management & Tools Menu -->
                         <MenuItem x:Name="MenuDatabase" Classes="nav-item nav-item-3" Header="Database" FontSize="11">
                             <MenuItem.Icon>
-                                <ui:FASymbolIcon Symbol="Folder" FontSize="11" Foreground="{DynamicResource AppAccentBrush}"/>
+                                <ui:FASymbolIcon Symbol="Folder" FontSize="11" />
                             </MenuItem.Icon>
 
                             <!-- Connection Management -->
@@ -411,7 +446,7 @@
                             <MenuItem Header="Create Excel from Table (*.xlsx)..." 
                                       Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).QuickExportExcelCommand}">
                                 <MenuItem.Icon>
-                                    <ui:FASymbolIcon Symbol="Document" FontSize="11" Foreground="#10B981"/>
+                                    <ui:FASymbolIcon Symbol="Document" FontSize="11" />
                                 </MenuItem.Icon>
                             </MenuItem>
 
@@ -421,7 +456,7 @@
                             <MenuItem Header="Backup Database (.sql dump)..." 
                                       Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).BackupDatabaseCommand}">
                                 <MenuItem.Icon>
-                                    <ui:FASymbolIcon Symbol="Save" FontSize="11" Foreground="#38BDF8"/>
+                                    <ui:FASymbolIcon Symbol="Save" FontSize="11" />
                                 </MenuItem.Icon>
                             </MenuItem>
                             <MenuItem Header="Restore Database from Backup..." 
@@ -437,7 +472,7 @@
                             <MenuItem Header="ER Diagram &amp; Schema Relations..." 
                                       Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).OpenDiagramModalCommand}">
                                 <MenuItem.Icon>
-                                    <ui:FASymbolIcon Symbol="Preview" FontSize="11" Foreground="#F59E0B"/>
+                                    <ui:FASymbolIcon Symbol="Preview" FontSize="11" />
                                 </MenuItem.Icon>
                             </MenuItem>
                             <MenuItem Header="View Table Schema &amp; Properties" 
@@ -602,7 +637,7 @@
                             Padding="4,0" 
                             VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                            <ui:FASymbolIcon Symbol="Folder" FontSize="10" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                            <ui:FASymbolIcon Symbol="Folder" FontSize="10" Foreground="{DynamicResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
                             <TextBlock Classes="db-label-text" Text="DB:" FontSize="9" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
                             <ComboBox ItemsSource="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).AvailableTargetDatabases}"
                                       SelectedItem="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).SelectedTargetDatabase}"

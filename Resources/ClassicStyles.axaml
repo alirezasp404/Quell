@@ -68,12 +68,27 @@
         <Setter Property="FocusAdorner" Value="{x:Null}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
     </Style>
     <Style Selector="MenuItem:pointerover">
         <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+    </Style>
+    <Style Selector="MenuItem:selected">
+        <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+    </Style>
+    <Style Selector="MenuItem:open">
+        <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+    </Style>
+    <Style Selector="MenuItem /template/ ContentPresenter#PART_HeaderPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+    </Style>
+    <Style Selector="MenuItem /template/ TextBlock#PART_InputGestureText">
+        <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}"/>
     </Style>
     <Style Selector="MenuItem:disabled">
         <Setter Property="Cursor" Value="Arrow"/>
+        <Setter Property="Foreground" Value="{DynamicResource AppTextMutedBrush}"/>
     </Style>
     <Style Selector="MenuItem /template/ Border#PART_LayoutRoot">
         <Setter Property="BorderThickness" Value="0"/>
@@ -101,6 +116,16 @@
         <Setter Property="CornerRadius" Value="4"/>
         <Setter Property="FocusAdorner" Value="{x:Null}"/>
         <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+    </Style>
+    <Style Selector="Menu > MenuItem:pointerover">
+        <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+    </Style>
+    <Style Selector="Menu > MenuItem:selected">
+        <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+    </Style>
+    <Style Selector="Menu > MenuItem:open">
+        <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
     </Style>
     <Style Selector="Menu > MenuItem:pointerover /template/ Border#PART_LayoutRoot">
         <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
