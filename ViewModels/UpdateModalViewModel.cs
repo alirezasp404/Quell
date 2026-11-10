@@ -80,11 +80,7 @@ public partial class UpdateModalViewModel : ObservableObject
     public void Dismiss()
     {
         IsOpen = false;
-        // If an update is available, closing the modal surfaces the corner "Get Updates" badge
-        if (IsUpdateAvailable)
-        {
-            IsCornerBadgeVisible = true;
-        }
+        IsCornerBadgeVisible = false;
     }
 
     [RelayCommand]

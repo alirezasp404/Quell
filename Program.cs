@@ -1968,21 +1968,25 @@ sealed class Program
             Console.WriteLine("[Action] User dismissed update modal with (X)...");
             vm.UpdateModal.Dismiss();
 
-            if (vm.UpdateModal.IsOpen || !vm.UpdateModal.IsCornerBadgeVisible)
+            if (vm.UpdateModal.IsOpen)
             {
-                throw new Exception("Upon modal dismissal, UpdateModal.IsOpen must be False and IsCornerBadgeVisible MUST be True!");
+                throw new Exception("Upon modal dismissal, UpdateModal.IsOpen must be False!");
             }
-            Console.WriteLine("[Success] Modal closed; Corner 'Get Updates' box is now active and visible!");
+            if (!vm.UpdateModal.IsUpdateAvailable)
+            {
+                throw new Exception("Update must still be available in status bar after modal dismissal!");
+            }
+            Console.WriteLine("[Success] Modal closed; Bottom-left status bar 'Get Update' button remains active!");
 
-            // Simulate user clicking on corner "Get Updates" box anytime later
-            Console.WriteLine("[Action] User clicked on corner 'Get Updates' box...");
+            // Simulate user opening update modal again
+            Console.WriteLine("[Action] User opened update modal...");
             vm.OpenUpdateModalCommand.Execute(null);
 
-            if (!vm.UpdateModal.IsOpen || vm.UpdateModal.IsCornerBadgeVisible)
+            if (!vm.UpdateModal.IsOpen)
             {
-                throw new Exception("Re-opening from corner box must show UpdateModal and hide the corner badge!");
+                throw new Exception("Re-opening must set UpdateModal.IsOpen to True!");
             }
-            Console.WriteLine("[Success] Update modal successfully re-opened from corner 'Get Updates' box!");
+            Console.WriteLine("[Success] Update modal successfully re-opened!");
 
             // Reset state
             vm.UpdateModal.Dismiss();

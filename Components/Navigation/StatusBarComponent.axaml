@@ -70,25 +70,7 @@
 
             <!-- Right: Document & Server Metadata + Corner Update Badge -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
-                
-                <!-- Corner "Get Updates" Pill Button in Status Bar -->
-                <Button Classes="classic-tool-btn"
-                        IsVisible="{Binding UpdateModal.IsCornerBadgeVisible}"
-                        Command="{Binding OpenUpdateModalCommand}"
-                        Padding="6,2"
-                        Height="20"
-                        CornerRadius="4"
-                        Background="{DynamicResource AppSurfaceMutedBrush}"
-                        BorderBrush="{DynamicResource AppAccentBrush}"
-                        BorderThickness="1"
-                        Cursor="Hand"
-                        ToolTip.Tip="A new version of Quell Studio is ready. Click to view release details.">
-                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-                        <Ellipse Width="6" Height="6" Fill="#10B981" VerticalAlignment="Center"/>
-                        <TextBlock Text="Get Updates" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding UpdateModal.LatestVersion}" FontSize="9.5" Foreground="{DynamicResource AppAccentBrush}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
+
 
                 <TextBlock Text="Ln 1, Col 1" 
                            Foreground="{DynamicResource AppTextMutedBrush}" 
