@@ -141,7 +141,7 @@
                         <Grid ColumnDefinitions="Auto, *">
                             <ui:FASymbolIcon Grid.Column="0" Symbol="Help" FontSize="13" Foreground="{DynamicResource AppAccentBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/>
                             <TextBlock Grid.Column="1" 
-                                       Text="Updating is optional. You can download the new version now or continue working and update at any time from 'Get Updates'." 
+                                       Text="Updating is optional. You can download the new version now or continue working and update at any time from 'Get Update' in the status bar." 
                                        FontSize="10.5" 
                                        Foreground="{DynamicResource AppTextSecondaryBrush}" 
                                        TextWrapping="Wrap" 

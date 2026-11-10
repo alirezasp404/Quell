@@ -248,6 +248,36 @@ sealed class Program
             }
             Console.WriteLine("[Success] Hamburger menu animation, navbar item expansion, GPU pipeline and shortcuts verified!");
 
+            // 5c. Test Navbar Responsive Layout Adaptation & Non-Clipping Window Controls
+            Console.WriteLine("\n[Action] Verifying Navbar Responsive Adaptive Layout...");
+            navbarComp.UpdateResponsiveLayout(1400);
+            if (navbarComp.Classes.Contains("responsive-medium") || navbarComp.Classes.Contains("responsive-compact") || navbarComp.Classes.Contains("responsive-minimal"))
+            {
+                throw new Exception("Navbar at 1400px should not have responsive compact classes!");
+            }
+
+            navbarComp.UpdateResponsiveLayout(1050);
+            if (!navbarComp.Classes.Contains("responsive-medium"))
+            {
+                throw new Exception("Navbar at 1050px should have responsive-medium class!");
+            }
+
+            navbarComp.UpdateResponsiveLayout(900);
+            if (!navbarComp.Classes.Contains("responsive-compact"))
+            {
+                throw new Exception("Navbar at 900px should have responsive-compact class!");
+            }
+
+            navbarComp.UpdateResponsiveLayout(700);
+            if (!navbarComp.Classes.Contains("responsive-minimal"))
+            {
+                throw new Exception("Navbar at 700px should have responsive-minimal class!");
+            }
+
+            // Restore normal width layout
+            navbarComp.UpdateResponsiveLayout(1300);
+            Console.WriteLine("[Success] Navbar responsive adaptive breakpoints and pinned window controls verified!");
+
             // Test Disconnect Command triggering ConfirmModal
             vm.DisconnectCommand.Execute(null);
             Console.WriteLine($"ConfirmModal opened by Disconnect: {vm.ConfirmModal.IsOpen}, Target = {vm.ConfirmModal.TargetName}");
@@ -1895,6 +1925,42 @@ sealed class Program
             if (v1 <= Quell.Services.AppUpdateService.CurrentVersion) throw new Exception("SemVer comparison failed: v1.2.0 should be greater than current version!");
             Console.WriteLine($"[Success] Semantic version parsing & comparison verified (Current: {Quell.Services.AppUpdateService.CurrentVersionString})!");
 
+            // 23.1b Test GitHub Release JSON Parsing: No false positives on same/older version (e.g. current 1.0.0 on GitHub)
+            string currentGitHubJson = @"{
+                ""tag_name"": ""latest"",
+                ""name"": ""Quell Continuous Build"",
+                ""assets"": [
+                    { ""name"": ""Quell-1.0.0-win-x64-portable.zip"" },
+                    { ""name"": ""Quell-Setup-win-x64.exe"" }
+                ]
+            }";
+            using (var currentDoc = System.Text.Json.JsonDocument.Parse(currentGitHubJson))
+            {
+                var parsedCurrent = Quell.Services.AppUpdateService.Instance.ParseReleaseElement(currentDoc.RootElement);
+                if (parsedCurrent == null || parsedCurrent.IsNewer)
+                {
+                    throw new Exception("GitHub continuous release with 1.0.0 assets should NOT be marked as newer than 1.0.0!");
+                }
+            }
+            Console.WriteLine("[Success] Verified zero false-positive on current 1.0.0 GitHub release!");
+
+            string newerGitHubJson = @"{
+                ""tag_name"": ""v1.1.0"",
+                ""name"": ""Quell Studio 1.1.0 Release"",
+                ""assets"": [
+                    { ""name"": ""Quell-1.1.0-win-x64-portable.zip"" }
+                ]
+            }";
+            using (var newerDoc = System.Text.Json.JsonDocument.Parse(newerGitHubJson))
+            {
+                var parsedNewer = Quell.Services.AppUpdateService.Instance.ParseReleaseElement(newerDoc.RootElement);
+                if (parsedNewer == null || !parsedNewer.IsNewer)
+                {
+                    throw new Exception("GitHub release with v1.1.0 should be marked as newer!");
+                }
+            }
+            Console.WriteLine("[Success] Verified newer release detection on v1.1.0!");
+
             // 23.2 Test Update Modal & Corner "Get Updates" Box Lifecycle
             vm.UpdateModal.IsOpen = false;
             vm.UpdateModal.IsCornerBadgeVisible = false;
@@ -1918,25 +1984,45 @@ sealed class Program
             }
             Console.WriteLine($"[Success] New update modal auto-opened: Version={vm.UpdateModal.LatestVersion}, Title='{vm.UpdateModal.ReleaseTitle}'!");
 
+            // Verify Bottom-Left Status Bar "Get Update" and GitHub Release Action
+            Console.WriteLine("[Action] Verifying Update Status Bar Command & Release URL Link...");
+            if (vm.UpdateModal.OpenReleaseUrlCommand == null)
+            {
+                throw new Exception("UpdateModal.OpenReleaseUrlCommand must not be null!");
+            }
+            if (!vm.UpdateModal.IsUpdateAvailable)
+            {
+                throw new Exception("vm.UpdateModal.IsUpdateAvailable must be True when update is detected!");
+            }
+            if (string.IsNullOrEmpty(vm.UpdateModal.ReleaseUrl) || !vm.UpdateModal.ReleaseUrl.Contains("github.com"))
+            {
+                throw new Exception($"ReleaseUrl '{vm.UpdateModal.ReleaseUrl}' must be a valid GitHub Releases URL!");
+            }
+            Console.WriteLine($"[Success] Status bar 'Get Update' command verified with target URL: '{vm.UpdateModal.ReleaseUrl}'!");
+
             // Simulate user dismissing / clicking (X) on the modal
             Console.WriteLine("[Action] User dismissed update modal with (X)...");
             vm.UpdateModal.Dismiss();
 
-            if (vm.UpdateModal.IsOpen || !vm.UpdateModal.IsCornerBadgeVisible)
+            if (vm.UpdateModal.IsOpen)
             {
-                throw new Exception("Upon modal dismissal, UpdateModal.IsOpen must be False and IsCornerBadgeVisible MUST be True!");
+                throw new Exception("Upon modal dismissal, UpdateModal.IsOpen must be False!");
             }
-            Console.WriteLine("[Success] Modal closed; Corner 'Get Updates' box is now active and visible!");
+            if (!vm.UpdateModal.IsUpdateAvailable)
+            {
+                throw new Exception("Update must still be available in status bar after modal dismissal!");
+            }
+            Console.WriteLine("[Success] Modal closed; Bottom-left status bar 'Get Update' button remains active!");
 
-            // Simulate user clicking on corner "Get Updates" box anytime later
-            Console.WriteLine("[Action] User clicked on corner 'Get Updates' box...");
+            // Simulate user opening update modal again
+            Console.WriteLine("[Action] User opened update modal...");
             vm.OpenUpdateModalCommand.Execute(null);
 
-            if (!vm.UpdateModal.IsOpen || vm.UpdateModal.IsCornerBadgeVisible)
+            if (!vm.UpdateModal.IsOpen)
             {
-                throw new Exception("Re-opening from corner box must show UpdateModal and hide the corner badge!");
+                throw new Exception("Re-opening must set UpdateModal.IsOpen to True!");
             }
-            Console.WriteLine("[Success] Update modal successfully re-opened from corner 'Get Updates' box!");
+            Console.WriteLine("[Success] Update modal successfully re-opened!");
 
             // Reset state
             vm.UpdateModal.Dismiss();

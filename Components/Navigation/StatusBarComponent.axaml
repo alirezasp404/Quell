@@ -1,11 +1,26 @@
-﻿<UserControl xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Quell.ViewModels"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="24"
              x:Class="Quell.Components.StatusBarComponent"
              x:DataType="vm:MainViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="Button.get-update-status-btn">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="4,1"/>
+            <Setter Property="Height" Value="20"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusAdorner" Value="{x:Null}"/>
+        </Style>
+        <Style Selector="Button.get-update-status-btn:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+        </Style>
+    </UserControl.Styles>
 
     <!-- Reusable Desktop Status Bar Component -->
     <Border Background="{DynamicResource AppSurfaceBrush}" 
@@ -14,36 +29,48 @@
             Height="24" 
             Padding="10,0">
         <Grid ColumnDefinitions="Auto, *, Auto">
-            <!-- Left: Engine Status -->
-            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                <Ellipse Width="7" Height="7" Fill="#10B981" VerticalAlignment="Center"/>
-                <TextBlock Text="Ready" 
-                           Foreground="{DynamicResource AppTextSecondaryBrush}" 
-                           FontSize="11" 
-                           VerticalAlignment="Center"/>
-            </StackPanel>
+            
+            <!-- Left: Engine Status OR "Get Update" GitHub Release Action Button -->
+            <Panel Grid.Column="0" VerticalAlignment="Center">
+                
+                <!-- Standard Ready State (Visible when NO update is pending) -->
+                <StackPanel x:Name="ReadyStatusPanel" 
+                            Orientation="Horizontal" 
+                            Spacing="6" 
+                            VerticalAlignment="Center"
+                            IsVisible="{Binding !UpdateModal.IsUpdateAvailable}">
+                    <Ellipse Width="7" Height="7" Fill="#10B981" VerticalAlignment="Center"/>
+                    <TextBlock Text="Ready" 
+                               Foreground="{DynamicResource AppTextSecondaryBrush}" 
+                               FontSize="11" 
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- "Get Update" Action Button (Visible when GitHub release update is available) -->
+                <Button x:Name="GetUpdateStatusButton"
+                        Classes="get-update-status-btn"
+                        IsVisible="{Binding UpdateModal.IsUpdateAvailable}"
+                        Command="{Binding UpdateModal.OpenReleaseUrlCommand}"
+                        ToolTip.Tip="New version of Quell Studio is ready on GitHub! Click to open release download page.">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Border Background="{DynamicResource AppAccentBrush}" CornerRadius="3" Padding="4,1" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                <ui:FASymbolIcon Symbol="Download" FontSize="9" Foreground="White" VerticalAlignment="Center"/>
+                                <TextBlock Text="Get Update" FontSize="10" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Text="{Binding UpdateModal.LatestVersion}" 
+                                   Foreground="{DynamicResource AppAccentBrush}" 
+                                   FontWeight="SemiBold" 
+                                   FontSize="11" 
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </Panel>
 
             <!-- Right: Document & Server Metadata + Corner Update Badge -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
-                
-                <!-- Corner "Get Updates" Pill Button in Status Bar -->
-                <Button Classes="classic-tool-btn"
-                        IsVisible="{Binding UpdateModal.IsCornerBadgeVisible}"
-                        Command="{Binding OpenUpdateModalCommand}"
-                        Padding="6,2"
-                        Height="20"
-                        CornerRadius="4"
-                        Background="{DynamicResource AppSurfaceMutedBrush}"
-                        BorderBrush="{DynamicResource AppAccentBrush}"
-                        BorderThickness="1"
-                        Cursor="Hand"
-                        ToolTip.Tip="A new version of Quell Studio is ready. Click to update.">
-                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-                        <Ellipse Width="6" Height="6" Fill="#10B981" VerticalAlignment="Center"/>
-                        <TextBlock Text="Get Updates" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding UpdateModal.LatestVersion}" FontSize="9.5" Foreground="{DynamicResource AppAccentBrush}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
+
 
                 <TextBlock Text="Ln 1, Col 1" 
                            Foreground="{DynamicResource AppTextMutedBrush}" 

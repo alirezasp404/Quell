@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
+using Quell.Services;
 using Quell.ViewModels;
 using Quell.Views;
 
@@ -25,11 +26,12 @@ public partial class App : Application
         {
             if (DisableSplash || desktop.Args?.Contains("--no-splash") == true)
             {
-                Services.DatabaseStorageService.Instance.PreloadStartupDataAsync().GetAwaiter().GetResult();
+                DatabaseStorageService.Instance.PreloadStartupDataAsync().GetAwaiter().GetResult();
 
+                var vm = new MainViewModel();
                 desktop.MainWindow = new MainWindow
                 {
-                    DataContext = new MainViewModel(),
+                    DataContext = vm,
                 };
             }
             else
@@ -42,7 +44,7 @@ public partial class App : Application
                 {
                     try
                     {
-                        // 1. Real Phase: Storage, schema, graphics, appearance, shortcuts & keywords (0% -> 88%)
+                        // 1. Real Phase: Storage, schema, graphics, appearance, shortcuts & keywords + GitHub updates check
                         await splash.RunStartupSequenceAsync(completeTo100: false);
 
                         // 2. Real Phase: Constructing Studio Workspace (89% -> 94%)
@@ -70,6 +72,13 @@ public partial class App : Application
                                 desktop.MainWindow = mainWindow;
                                 mainWindow.Show();
                                 splash.Close();
+
+                                // If a GitHub release update was detected during Splash Screen, open the update modal!
+                                if (AppUpdateService.Instance.IsUpdateAvailable && AppUpdateService.Instance.LatestRelease != null)
+                                {
+                                    vm.UpdateModal.ApplyRelease(AppUpdateService.Instance.LatestRelease);
+                                    vm.UpdateModal.Open();
+                                }
                             }
                             catch (Exception uiEx)
                             {
@@ -89,7 +98,7 @@ public partial class App : Application
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
         {
-            Services.DatabaseStorageService.Instance.PreloadStartupDataAsync().GetAwaiter().GetResult();
+            DatabaseStorageService.Instance.PreloadStartupDataAsync().GetAwaiter().GetResult();
 
             singleView.MainView = new MainView
             {
