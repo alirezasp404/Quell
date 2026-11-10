@@ -1,8 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -11,7 +12,7 @@ using Quell.Models;
 namespace Quell.Services;
 
 /// <summary>
-/// Service responsible for GitHub release versioning checks, semantic version comparisons,
+/// Singleton service managing GitHub Releases checks, semantic version comparisons,
 /// and update notifications across Quell Studio.
 /// </summary>
 public class AppUpdateService
@@ -21,8 +22,6 @@ public class AppUpdateService
 
     public static readonly Version CurrentVersion = new(1, 0, 0);
     public static string CurrentVersionString => $"v{CurrentVersion.Major}.{CurrentVersion.Minor}.{CurrentVersion.Build}";
-
-    public static readonly DateTime AppBuildDate = new(2026, 11, 1, 0, 0, 0, DateTimeKind.Utc);
 
     public const string GitHubRepo = "cipherunits/Quell";
     public const string ReleasesApiUrl = $"https://api.github.com/repos/{GitHubRepo}/releases/latest";
@@ -52,6 +51,7 @@ public class AppUpdateService
     /// <summary>
     /// Checks GitHub repository releases for a newer version than CurrentVersion.
     /// Runs asynchronously and fails gracefully on network errors or timeouts.
+    /// Only returns a release if a strictly newer version (> CurrentVersion) is found.
     /// </summary>
     public async Task<UpdateReleaseModel?> CheckForUpdatesAsync(bool isManualCheck = false)
     {
@@ -109,53 +109,58 @@ public class AppUpdateService
             Console.WriteLine($"[AppUpdateService] CheckForUpdates error: {ex.Message}");
         }
 
+        // No newer release found on GitHub; ensure update state is clean
+        IsUpdateAvailable = false;
+        LatestRelease = null;
         return null;
     }
 
     /// <summary>
     /// Parses a GitHub Release JSON element into an UpdateReleaseModel.
+    /// Resolves the actual semantic version from tag_name, title, body, or asset filenames.
+    /// IsNewer is only true if the resolved version is strictly greater than CurrentVersion.
     /// </summary>
-    private UpdateReleaseModel? ParseReleaseElement(JsonElement root)
+    public UpdateReleaseModel? ParseReleaseElement(JsonElement root)
     {
         string tagName = root.TryGetProperty("tag_name", out var tagElem) ? tagElem.GetString() ?? "" : "";
         string name = root.TryGetProperty("name", out var nameElem) ? nameElem.GetString() ?? tagName : tagName;
         string body = root.TryGetProperty("body", out var bodyElem) ? bodyElem.GetString() ?? "" : "";
         string htmlUrl = root.TryGetProperty("html_url", out var urlElem) ? urlElem.GetString() ?? "" : DefaultReleasesPageUrl;
         string publishedAt = root.TryGetProperty("published_at", out var pubElem) ? pubElem.GetString() ?? "" : "";
-        string updatedAt = root.TryGetProperty("updated_at", out var upElem) ? upElem.GetString() ?? "" : publishedAt;
 
         Version? remoteVer = null;
         bool hasVersion = TryParseVersion(tagName, out remoteVer) || 
                           TryParseVersionFromNameOrBody(name, out remoteVer) ||
                           TryParseVersionFromNameOrBody(body, out remoteVer);
 
-        bool isNewer = false;
-        if (hasVersion && remoteVer != null)
+        // If not found in tag, name or body, check asset names (e.g., Quell-1.0.0-win-x64-portable.zip)
+        if (!hasVersion && root.TryGetProperty("assets", out var assetsElem) && assetsElem.ValueKind == JsonValueKind.Array)
         {
-            isNewer = remoteVer > CurrentVersion;
-        }
-        else if (string.Equals(tagName, "latest", StringComparison.OrdinalIgnoreCase))
-        {
-            // If the repository uses continuous delivery tagged 'latest', compare release date to AppBuildDate
-            if (DateTime.TryParse(updatedAt, out var dt) && dt > AppBuildDate)
+            foreach (var asset in assetsElem.EnumerateArray())
             {
-                isNewer = true;
-                remoteVer = new Version(1, 0, 1);
-                if (string.IsNullOrWhiteSpace(name) || name == "latest")
+                if (asset.TryGetProperty("name", out var assetNameElem))
                 {
-                    name = $"Quell Continuous Update ({dt:yyyy-MM-dd})";
+                    string assetName = assetNameElem.GetString() ?? "";
+                    if (TryParseVersionFromNameOrBody(assetName, out remoteVer))
+                    {
+                        hasVersion = true;
+                        break;
+                    }
                 }
             }
         }
 
+        // Only mark as newer if a valid version was resolved AND it strictly exceeds CurrentVersion
+        bool isNewer = hasVersion && remoteVer != null && remoteVer > CurrentVersion;
+
         return new UpdateReleaseModel
         {
-            TagName = string.IsNullOrWhiteSpace(tagName) ? "v1.0.1" : tagName,
+            TagName = string.IsNullOrWhiteSpace(tagName) ? (remoteVer != null ? $"v{remoteVer}" : CurrentVersionString) : tagName,
             Name = string.IsNullOrWhiteSpace(name) ? "Quell Studio Update" : name,
             Body = body,
             HtmlUrl = htmlUrl,
             PublishedAt = publishedAt,
-            ParsedVersion = remoteVer ?? new Version(1, 0, 1),
+            ParsedVersion = remoteVer ?? CurrentVersion,
             IsNewer = isNewer
         };
     }
@@ -180,7 +185,7 @@ public class AppUpdateService
         return Version.TryParse(clean, out version);
     }
 
-    private static bool TryParseVersionFromNameOrBody(string? text, out Version? version)
+    public static bool TryParseVersionFromNameOrBody(string? text, out Version? version)
     {
         version = null;
         if (string.IsNullOrWhiteSpace(text)) return false;

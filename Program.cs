@@ -1925,6 +1925,42 @@ sealed class Program
             if (v1 <= Quell.Services.AppUpdateService.CurrentVersion) throw new Exception("SemVer comparison failed: v1.2.0 should be greater than current version!");
             Console.WriteLine($"[Success] Semantic version parsing & comparison verified (Current: {Quell.Services.AppUpdateService.CurrentVersionString})!");
 
+            // 23.1b Test GitHub Release JSON Parsing: No false positives on same/older version (e.g. current 1.0.0 on GitHub)
+            string currentGitHubJson = @"{
+                ""tag_name"": ""latest"",
+                ""name"": ""Quell Continuous Build"",
+                ""assets"": [
+                    { ""name"": ""Quell-1.0.0-win-x64-portable.zip"" },
+                    { ""name"": ""Quell-Setup-win-x64.exe"" }
+                ]
+            }";
+            using (var currentDoc = System.Text.Json.JsonDocument.Parse(currentGitHubJson))
+            {
+                var parsedCurrent = Quell.Services.AppUpdateService.Instance.ParseReleaseElement(currentDoc.RootElement);
+                if (parsedCurrent == null || parsedCurrent.IsNewer)
+                {
+                    throw new Exception("GitHub continuous release with 1.0.0 assets should NOT be marked as newer than 1.0.0!");
+                }
+            }
+            Console.WriteLine("[Success] Verified zero false-positive on current 1.0.0 GitHub release!");
+
+            string newerGitHubJson = @"{
+                ""tag_name"": ""v1.1.0"",
+                ""name"": ""Quell Studio 1.1.0 Release"",
+                ""assets"": [
+                    { ""name"": ""Quell-1.1.0-win-x64-portable.zip"" }
+                ]
+            }";
+            using (var newerDoc = System.Text.Json.JsonDocument.Parse(newerGitHubJson))
+            {
+                var parsedNewer = Quell.Services.AppUpdateService.Instance.ParseReleaseElement(newerDoc.RootElement);
+                if (parsedNewer == null || !parsedNewer.IsNewer)
+                {
+                    throw new Exception("GitHub release with v1.1.0 should be marked as newer!");
+                }
+            }
+            Console.WriteLine("[Success] Verified newer release detection on v1.1.0!");
+
             // 23.2 Test Update Modal & Corner "Get Updates" Box Lifecycle
             vm.UpdateModal.IsOpen = false;
             vm.UpdateModal.IsCornerBadgeVisible = false;
