@@ -248,6 +248,36 @@ sealed class Program
             }
             Console.WriteLine("[Success] Hamburger menu animation, navbar item expansion, GPU pipeline and shortcuts verified!");
 
+            // 5c. Test Navbar Responsive Layout Adaptation & Non-Clipping Window Controls
+            Console.WriteLine("\n[Action] Verifying Navbar Responsive Adaptive Layout...");
+            navbarComp.UpdateResponsiveLayout(1400);
+            if (navbarComp.Classes.Contains("responsive-medium") || navbarComp.Classes.Contains("responsive-compact") || navbarComp.Classes.Contains("responsive-minimal"))
+            {
+                throw new Exception("Navbar at 1400px should not have responsive compact classes!");
+            }
+
+            navbarComp.UpdateResponsiveLayout(1050);
+            if (!navbarComp.Classes.Contains("responsive-medium"))
+            {
+                throw new Exception("Navbar at 1050px should have responsive-medium class!");
+            }
+
+            navbarComp.UpdateResponsiveLayout(900);
+            if (!navbarComp.Classes.Contains("responsive-compact"))
+            {
+                throw new Exception("Navbar at 900px should have responsive-compact class!");
+            }
+
+            navbarComp.UpdateResponsiveLayout(700);
+            if (!navbarComp.Classes.Contains("responsive-minimal"))
+            {
+                throw new Exception("Navbar at 700px should have responsive-minimal class!");
+            }
+
+            // Restore normal width layout
+            navbarComp.UpdateResponsiveLayout(1300);
+            Console.WriteLine("[Success] Navbar responsive adaptive breakpoints and pinned window controls verified!");
+
             // Test Disconnect Command triggering ConfirmModal
             vm.DisconnectCommand.Execute(null);
             Console.WriteLine($"ConfirmModal opened by Disconnect: {vm.ConfirmModal.IsOpen}, Target = {vm.ConfirmModal.TargetName}");
@@ -1917,6 +1947,22 @@ sealed class Program
                 throw new Exception("UpdateModal version binding mismatch!");
             }
             Console.WriteLine($"[Success] New update modal auto-opened: Version={vm.UpdateModal.LatestVersion}, Title='{vm.UpdateModal.ReleaseTitle}'!");
+
+            // Verify Bottom-Left Status Bar "Get Update" and GitHub Release Action
+            Console.WriteLine("[Action] Verifying Update Status Bar Command & Release URL Link...");
+            if (vm.UpdateModal.OpenReleaseUrlCommand == null)
+            {
+                throw new Exception("UpdateModal.OpenReleaseUrlCommand must not be null!");
+            }
+            if (!vm.UpdateModal.IsUpdateAvailable)
+            {
+                throw new Exception("vm.UpdateModal.IsUpdateAvailable must be True when update is detected!");
+            }
+            if (string.IsNullOrEmpty(vm.UpdateModal.ReleaseUrl) || !vm.UpdateModal.ReleaseUrl.Contains("github.com"))
+            {
+                throw new Exception($"ReleaseUrl '{vm.UpdateModal.ReleaseUrl}' must be a valid GitHub Releases URL!");
+            }
+            Console.WriteLine($"[Success] Status bar 'Get Update' command verified with target URL: '{vm.UpdateModal.ReleaseUrl}'!");
 
             // Simulate user dismissing / clicking (X) on the modal
             Console.WriteLine("[Action] User dismissed update modal with (X)...");

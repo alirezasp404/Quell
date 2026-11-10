@@ -46,6 +46,28 @@ public partial class NavbarComponent : UserControl
         }
     }
 
+    protected override void OnSizeChanged(SizeChangedEventArgs e)
+    {
+        base.OnSizeChanged(e);
+        UpdateResponsiveLayout(e.NewSize.Width);
+    }
+
+    public void UpdateResponsiveLayout(double width)
+    {
+        if (width <= 0) return;
+
+        bool isMenuOpen = _viewModel?.IsNavMenuOpen ?? _isNavMenuOpen;
+
+        // When the menu is expanded into the navbar, items take ~350px, so we engage compact modes earlier
+        double thresholdMedium = isMenuOpen ? 1280 : 1150;
+        double thresholdCompact = isMenuOpen ? 1040 : 960;
+        double thresholdMinimal = isMenuOpen ? 840 : 780;
+
+        Classes.Set("responsive-medium", width < thresholdMedium);
+        Classes.Set("responsive-compact", width < thresholdCompact);
+        Classes.Set("responsive-minimal", width < thresholdMinimal);
+    }
+
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
         if (_viewModel != null)
@@ -68,6 +90,8 @@ public partial class NavbarComponent : UserControl
         }
     }
 
+    private bool _isNavMenuOpen;
+
     public void OnHamburgerClicked(object? sender, RoutedEventArgs e)
     {
         if (_viewModel != null)
@@ -84,6 +108,7 @@ public partial class NavbarComponent : UserControl
 
     public async void ApplyNavMenuVisualState(bool isOpen)
     {
+        _isNavMenuOpen = isOpen;
         _cascadeCts?.Cancel();
         _cascadeCts = new CancellationTokenSource();
         var token = _cascadeCts.Token;
@@ -155,6 +180,9 @@ public partial class NavbarComponent : UserControl
                 }
             }
         }
+
+        // Re-evaluate responsive layout with new menu state
+        UpdateResponsiveLayout(Bounds.Width);
     }
 
     private List<MenuItem> GetTopLevelMenuItems(Menu menuBar)
@@ -176,6 +204,7 @@ public partial class NavbarComponent : UserControl
     {
         base.OnAttachedToVisualTree(e);
         UpdateGpuModeClass();
+        UpdateResponsiveLayout(Bounds.Width);
         if (TopLevel.GetTopLevel(this) is Window win)
         {
             _hostWindow = win;

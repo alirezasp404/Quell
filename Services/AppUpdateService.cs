@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Quell.Models;
 
@@ -21,8 +22,11 @@ public class AppUpdateService
     public static readonly Version CurrentVersion = new(1, 0, 0);
     public static string CurrentVersionString => $"v{CurrentVersion.Major}.{CurrentVersion.Minor}.{CurrentVersion.Build}";
 
+    public static readonly DateTime AppBuildDate = new(2026, 11, 1, 0, 0, 0, DateTimeKind.Utc);
+
     public const string GitHubRepo = "cipherunits/Quell";
     public const string ReleasesApiUrl = $"https://api.github.com/repos/{GitHubRepo}/releases/latest";
+    public const string AllReleasesApiUrl = $"https://api.github.com/repos/{GitHubRepo}/releases";
     public const string DefaultReleasesPageUrl = $"https://github.com/{GitHubRepo}/releases";
 
     private readonly HttpClient _httpClient;
@@ -37,7 +41,7 @@ public class AppUpdateService
     {
         _httpClient = client ?? new HttpClient
         {
-            Timeout = TimeSpan.FromSeconds(4)
+            Timeout = TimeSpan.FromSeconds(5)
         };
         if (!_httpClient.DefaultRequestHeaders.Contains("User-Agent"))
         {
@@ -53,44 +57,51 @@ public class AppUpdateService
     {
         try
         {
+            // 1. First attempt: Query releases/latest
             using var response = await _httpClient.GetAsync(ReleasesApiUrl).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode)
             {
-                return null;
-            }
-
-            var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-
-            string tagName = root.TryGetProperty("tag_name", out var tagElem) ? tagElem.GetString() ?? "" : "";
-            string name = root.TryGetProperty("name", out var nameElem) ? nameElem.GetString() ?? tagName : tagName;
-            string body = root.TryGetProperty("body", out var bodyElem) ? bodyElem.GetString() ?? "" : "";
-            string htmlUrl = root.TryGetProperty("html_url", out var urlElem) ? urlElem.GetString() ?? "" : DefaultReleasesPageUrl;
-            string publishedAt = root.TryGetProperty("published_at", out var pubElem) ? pubElem.GetString() ?? "" : "";
-
-            if (TryParseVersion(tagName, out var remoteVer) && remoteVer != null)
-            {
-                bool isNewer = remoteVer > CurrentVersion;
-                var release = new UpdateReleaseModel
-                {
-                    TagName = tagName,
-                    Name = string.IsNullOrWhiteSpace(name) ? tagName : name,
-                    Body = body,
-                    HtmlUrl = htmlUrl,
-                    PublishedAt = publishedAt,
-                    ParsedVersion = remoteVer,
-                    IsNewer = isNewer
-                };
-
-                if (isNewer)
+                var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                using var doc = JsonDocument.Parse(json);
+                var release = ParseReleaseElement(doc.RootElement);
+                if (release != null && release.IsNewer)
                 {
                     LatestRelease = release;
                     IsUpdateAvailable = true;
                     UpdateAvailable?.Invoke(this, release);
+                    return release;
                 }
+            }
 
-                return release;
+            // 2. Second attempt: Query full releases list to find any newer version tag
+            using var allResponse = await _httpClient.GetAsync(AllReleasesApiUrl).ConfigureAwait(false);
+            if (allResponse.IsSuccessStatusCode)
+            {
+                var allJson = await allResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+                using var allDoc = JsonDocument.Parse(allJson);
+                if (allDoc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    UpdateReleaseModel? bestCandidate = null;
+                    foreach (var elem in allDoc.RootElement.EnumerateArray())
+                    {
+                        var candidate = ParseReleaseElement(elem);
+                        if (candidate != null && candidate.IsNewer)
+                        {
+                            if (bestCandidate == null || candidate.ParsedVersion > bestCandidate.ParsedVersion)
+                            {
+                                bestCandidate = candidate;
+                            }
+                        }
+                    }
+
+                    if (bestCandidate != null)
+                    {
+                        LatestRelease = bestCandidate;
+                        IsUpdateAvailable = true;
+                        UpdateAvailable?.Invoke(this, bestCandidate);
+                        return bestCandidate;
+                    }
+                }
             }
         }
         catch (Exception ex)
@@ -99,6 +110,54 @@ public class AppUpdateService
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Parses a GitHub Release JSON element into an UpdateReleaseModel.
+    /// </summary>
+    private UpdateReleaseModel? ParseReleaseElement(JsonElement root)
+    {
+        string tagName = root.TryGetProperty("tag_name", out var tagElem) ? tagElem.GetString() ?? "" : "";
+        string name = root.TryGetProperty("name", out var nameElem) ? nameElem.GetString() ?? tagName : tagName;
+        string body = root.TryGetProperty("body", out var bodyElem) ? bodyElem.GetString() ?? "" : "";
+        string htmlUrl = root.TryGetProperty("html_url", out var urlElem) ? urlElem.GetString() ?? "" : DefaultReleasesPageUrl;
+        string publishedAt = root.TryGetProperty("published_at", out var pubElem) ? pubElem.GetString() ?? "" : "";
+        string updatedAt = root.TryGetProperty("updated_at", out var upElem) ? upElem.GetString() ?? "" : publishedAt;
+
+        Version? remoteVer = null;
+        bool hasVersion = TryParseVersion(tagName, out remoteVer) || 
+                          TryParseVersionFromNameOrBody(name, out remoteVer) ||
+                          TryParseVersionFromNameOrBody(body, out remoteVer);
+
+        bool isNewer = false;
+        if (hasVersion && remoteVer != null)
+        {
+            isNewer = remoteVer > CurrentVersion;
+        }
+        else if (string.Equals(tagName, "latest", StringComparison.OrdinalIgnoreCase))
+        {
+            // If the repository uses continuous delivery tagged 'latest', compare release date to AppBuildDate
+            if (DateTime.TryParse(updatedAt, out var dt) && dt > AppBuildDate)
+            {
+                isNewer = true;
+                remoteVer = new Version(1, 0, 1);
+                if (string.IsNullOrWhiteSpace(name) || name == "latest")
+                {
+                    name = $"Quell Continuous Update ({dt:yyyy-MM-dd})";
+                }
+            }
+        }
+
+        return new UpdateReleaseModel
+        {
+            TagName = string.IsNullOrWhiteSpace(tagName) ? "v1.0.1" : tagName,
+            Name = string.IsNullOrWhiteSpace(name) ? "Quell Studio Update" : name,
+            Body = body,
+            HtmlUrl = htmlUrl,
+            PublishedAt = publishedAt,
+            ParsedVersion = remoteVer ?? new Version(1, 0, 1),
+            IsNewer = isNewer
+        };
     }
 
     /// <summary>
@@ -119,6 +178,19 @@ public class AppUpdateService
         else if (dotCount == 1) clean += ".0";
 
         return Version.TryParse(clean, out version);
+    }
+
+    private static bool TryParseVersionFromNameOrBody(string? text, out Version? version)
+    {
+        version = null;
+        if (string.IsNullOrWhiteSpace(text)) return false;
+
+        var match = Regex.Match(text, @"\bv?(\d+\.\d+(\.\d+)?)\b", RegexOptions.IgnoreCase);
+        if (match.Success)
+        {
+            return TryParseVersion(match.Groups[1].Value, out version);
+        }
+        return false;
     }
 
     /// <summary>

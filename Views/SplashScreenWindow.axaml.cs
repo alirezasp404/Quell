@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -82,8 +82,27 @@ public partial class SplashScreenWindow : Window
         {
             UpdateProgress(progress, status, subStatus);
             // Brief micro-delay so the UI thread renders this real step's progress and the user can see it
-            await Task.Delay(40).ConfigureAwait(false);
+            await Task.Delay(35).ConfigureAwait(false);
         }).ConfigureAwait(false);
+
+        // Check for updates from GitHub releases directly during Splash Screen
+        UpdateProgress(78, "Checking for Updates...", "Connecting to GitHub releases...");
+        try
+        {
+            var updateRelease = await AppUpdateService.Instance.CheckForUpdatesAsync().ConfigureAwait(false);
+            if (updateRelease != null && updateRelease.IsNewer)
+            {
+                UpdateProgress(85, $"Update Available: {updateRelease.TagName}", "New version ready on GitHub.");
+            }
+            else
+            {
+                UpdateProgress(85, "Version Check Complete", "Quell is up to date.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SplashScreen] Update check error: {ex.Message}");
+        }
 
         _isDatabaseReady = true;
 

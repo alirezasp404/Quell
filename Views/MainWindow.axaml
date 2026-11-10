@@ -72,7 +72,7 @@
         </Grid>
 
         <!-- 3. FIXED BOTTOM STATUS BAR -->
-        <components:StatusBarComponent Grid.Row="2" />
+        <components:StatusBarComponent x:Name="MainStatusBar" Grid.Row="2" />
 
         <!-- FLOATING CORNER "GET UPDATES" BADGE BOX (Shown when modal is dismissed) -->
         <Border Grid.Row="1" 

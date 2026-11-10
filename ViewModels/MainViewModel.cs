@@ -223,11 +223,24 @@ public partial class MainViewModel : ViewModelBase
         await RefreshAvailableDatabasesAsync();
         await Sidebar.RefreshAsync();
 
-        // Check for updates asynchronously from GitHub releases (non-blocking)
+        // If an update was discovered during splash screen, surface the modal
+        if (AppUpdateService.Instance.IsUpdateAvailable && AppUpdateService.Instance.LatestRelease != null)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                UpdateModal.ApplyRelease(AppUpdateService.Instance.LatestRelease);
+                UpdateModal.Open();
+            });
+        }
+
+        // Secondary non-blocking background check in case network was slow at launch
         _ = Task.Run(async () =>
         {
-            await Task.Delay(2500).ConfigureAwait(false);
-            await AppUpdateService.Instance.CheckForUpdatesAsync().ConfigureAwait(false);
+            await Task.Delay(2000).ConfigureAwait(false);
+            if (!AppUpdateService.Instance.IsUpdateAvailable)
+            {
+                await AppUpdateService.Instance.CheckForUpdatesAsync().ConfigureAwait(false);
+            }
         });
     }
 
