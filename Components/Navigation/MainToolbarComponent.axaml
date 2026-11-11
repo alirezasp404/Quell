@@ -1,17 +1,20 @@
-﻿<UserControl xmlns="https://github.com/avaloniaui"
-              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-              xmlns:vm="using:Quell.ViewModels"
-              xmlns:ic="using:FluentIcons.Avalonia"
-              xmlns:ui="using:FluentAvalonia.UI.Controls"
-              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="28"
-              x:Class="Quell.Components.MainToolbarComponent"
-              x:DataType="vm:NavbarViewModel">
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Quell.ViewModels"
+             xmlns:ic="using:FluentIcons.Avalonia"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:i="using:Avalonia.Xaml.Interactivity"
+             xmlns:b="using:Quell.Behaviors"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="28"
+             x:Class="Quell.Components.MainToolbarComponent"
+             x:DataType="vm:NavbarViewModel">
 
     <!-- Standard Application Action Toolbar (Run Query, New Tab, Save, Connect, Disconnect) -->
     <Border Background="{DynamicResource AppSurfaceBrush}" Height="28" Padding="6,2">
         <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+            <!-- Primary Action: Run Query Button with GPU Spring Compression Behavior -->
             <Button Background="{DynamicResource AppAccentBrush}" 
                     Foreground="White" 
                     FontWeight="SemiBold" 
@@ -20,24 +23,35 @@
                     Padding="10,4"
                     Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ExecuteQueryCommand}"
                     ToolTip.Tip="Execute active SQL query (F5)">
+                <i:Interaction.Behaviors>
+                    <b:GpuButtonPressBehavior PressScale="0.92"/>
+                </i:Interaction.Behaviors>
                 <StackPanel Orientation="Horizontal" Spacing="5">
                     <ui:FASymbolIcon Symbol="Play" FontSize="11" VerticalAlignment="Center"/>
                     <TextBlock Text="Run (F5)" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
 
+            <!-- New Query Tab Button with GPU Press Behavior -->
             <Button Classes="classic-tool-btn"
                     Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).Editor.AddTabCommand}"
                     ToolTip.Tip="Open New Query Tab (Ctrl+N)">
+                <i:Interaction.Behaviors>
+                    <b:GpuButtonPressBehavior/>
+                </i:Interaction.Behaviors>
                 <StackPanel Orientation="Horizontal" Spacing="5">
                     <ui:FASymbolIcon Symbol="Add" FontSize="11" VerticalAlignment="Center"/>
                     <TextBlock Text="New Query" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
 
+            <!-- Save Query Button with GPU Press Behavior -->
             <Button Classes="classic-tool-btn"
                     Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).SaveQueryCommand}"
                     ToolTip.Tip="Save Query to SQLite Storage (Ctrl+S)">
+                <i:Interaction.Behaviors>
+                    <b:GpuButtonPressBehavior/>
+                </i:Interaction.Behaviors>
                 <StackPanel Orientation="Horizontal" Spacing="5">
                     <ui:FASymbolIcon Symbol="Save" FontSize="11" VerticalAlignment="Center"/>
                     <TextBlock Text="Save" VerticalAlignment="Center"/>
@@ -47,18 +61,26 @@
             <!-- Separator -->
             <Border Width="1" Height="16" Background="{DynamicResource AppBorderBrush}" Margin="4,0"/>
 
+            <!-- Connect to Database Button with GPU Press Behavior -->
             <Button x:Name="ConnectButton"
                     Classes="classic-tool-btn" 
                     Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ConnectModal.OpenCommand}">
+                <i:Interaction.Behaviors>
+                    <b:GpuButtonPressBehavior PressScale="0.94"/>
+                </i:Interaction.Behaviors>
                 <StackPanel Orientation="Horizontal" Spacing="5">
                     <ic:SymbolIcon Symbol="DatabasePlugConnected" FontSize="11" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
                     <TextBlock Text="Connect..." VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
 
+            <!-- Disconnect Button with GPU Press Behavior -->
             <Button Classes="classic-tool-btn"
                     Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).DisconnectCommand}"
                     ToolTip.Tip="Disconnect from active database session">
+                <i:Interaction.Behaviors>
+                    <b:GpuButtonPressBehavior/>
+                </i:Interaction.Behaviors>
                 <StackPanel Orientation="Horizontal" Spacing="5">
                     <ui:FASymbolIcon Symbol="Dismiss" FontSize="10" VerticalAlignment="Center"/>
                     <TextBlock Text="Disconnect" VerticalAlignment="Center"/>
@@ -68,9 +90,13 @@
             <!-- Separator -->
             <Border Width="1" Height="16" Background="{DynamicResource AppBorderBrush}" Margin="4,0"/>
 
+            <!-- Terminal Toggle Button with GPU Press Behavior -->
             <Button Classes="classic-tool-btn"
                     Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ToggleTerminalCommand}"
                     ToolTip.Tip="Toggle Integrated Terminal (Ctrl+`)">
+                <i:Interaction.Behaviors>
+                    <b:GpuButtonPressBehavior/>
+                </i:Interaction.Behaviors>
                 <StackPanel Orientation="Horizontal" Spacing="5">
                     <ui:FASymbolIcon Symbol="Play" FontSize="11" VerticalAlignment="Center"/>
                     <TextBlock Text="Terminal" VerticalAlignment="Center"/>

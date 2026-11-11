@@ -4,6 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Quell.ViewModels"
              xmlns:components="using:Quell.Components"
+             xmlns:i="using:Avalonia.Xaml.Interactivity"
+             xmlns:b="using:Quell.Behaviors"
              xmlns:ic="using:FluentIcons.Avalonia"
               xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="1150" d:DesignHeight="820"
@@ -61,6 +63,9 @@
                 Height="740" MaxHeight="960"
                 HorizontalAlignment="Center" 
                 VerticalAlignment="Center">
+            <i:Interaction.Behaviors>
+                <b:GpuModalEntranceBehavior StartScale="0.94" DurationMs="220" />
+            </i:Interaction.Behaviors>
             
             <Grid RowDefinitions="Auto, Auto, *, Auto">
                 
@@ -462,6 +467,9 @@
                                     <Border Canvas.Left="50" Canvas.Top="40"
                                             Classes="canvas-card"
                                             Width="320">
+                                        <i:Interaction.Behaviors>
+                                            <b:GpuCardHoverBehavior HoverScale="1.015" HoverOffsetY="-2.0" />
+                                        </i:Interaction.Behaviors>
                                         <Grid RowDefinitions="Auto, *">
                                             <!-- Card Header -->
                                             <Border Grid.Row="0" 
@@ -536,6 +544,9 @@
                                     <Border Canvas.Left="640" Canvas.Top="40"
                                             Classes="canvas-card"
                                             Width="360">
+                                        <i:Interaction.Behaviors>
+                                            <b:GpuCardHoverBehavior HoverScale="1.015" HoverOffsetY="-2.0" />
+                                        </i:Interaction.Behaviors>
                                         <Grid RowDefinitions="Auto, *">
                                             <!-- Card Header -->
                                             <Border Grid.Row="0" 

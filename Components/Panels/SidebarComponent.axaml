@@ -5,7 +5,9 @@
               xmlns:vm="using:Quell.ViewModels"
               xmlns:components="using:Quell.Components"
               xmlns:ui="using:FluentAvalonia.UI.Controls"
-              xmlns:ic="using:FluentIcons.Avalonia"
+              xmlns:i="using:Avalonia.Xaml.Interactivity"
+             xmlns:b="using:Quell.Behaviors"
+             xmlns:ic="using:FluentIcons.Avalonia"
               mc:Ignorable="d" d:DesignWidth="260" d:DesignHeight="600"
               x:Class="Quell.Components.SidebarComponent"
               x:DataType="vm:SidebarViewModel"
@@ -159,7 +161,11 @@
                         <!-- Active Database Banner Pill with 'Active Only' Filter Toggle -->
                         <Grid ColumnDefinitions="*, Auto" IsVisible="{Binding IsConnected}">
                             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                                <Border Width="6" Height="6" CornerRadius="3" Background="#10B981" VerticalAlignment="Center"/>
+                                <Border Width="6" Height="6" CornerRadius="3" Background="#10B981" VerticalAlignment="Center">
+                                    <i:Interaction.Behaviors>
+                                        <b:GpuPulseAttentionBehavior MinOpacity="0.4" CycleDurationMs="2000" />
+                                    </i:Interaction.Behaviors>
+                                </Border>
                                 <ic:SymbolIcon Symbol="Database" FontSize="10" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
                                 <TextBlock Text="Active:" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}" VerticalAlignment="Center"/>
                                 <TextBlock Text="{Binding DatabaseName}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="110"/>

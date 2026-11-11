@@ -3,6 +3,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Quell.ViewModels"
+             xmlns:i="using:Avalonia.Xaml.Interactivity"
+             xmlns:b="using:Quell.Behaviors"
              xmlns:ic="using:FluentIcons.Avalonia"
               xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
@@ -27,6 +29,9 @@
                 Width="480"
                 HorizontalAlignment="Center" 
                 VerticalAlignment="Center">
+            <i:Interaction.Behaviors>
+                <b:GpuModalEntranceBehavior StartScale="0.93" DurationMs="220" />
+            </i:Interaction.Behaviors>
             
             <Grid RowDefinitions="Auto, *, Auto">
                 

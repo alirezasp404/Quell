@@ -3,6 +3,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Quell.ViewModels"
+             xmlns:i="using:Avalonia.Xaml.Interactivity"
+             xmlns:b="using:Quell.Behaviors"
              xmlns:ic="using:FluentIcons.Avalonia"
               xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="24"
@@ -40,7 +42,11 @@
                             Spacing="6" 
                             VerticalAlignment="Center"
                             IsVisible="{Binding !UpdateModal.IsUpdateAvailable}">
-                    <Ellipse Width="7" Height="7" Fill="#10B981" VerticalAlignment="Center"/>
+                    <Ellipse Width="7" Height="7" Fill="#10B981" VerticalAlignment="Center">
+                        <i:Interaction.Behaviors>
+                            <b:GpuPulseAttentionBehavior MinOpacity="0.45" CycleDurationMs="1800" />
+                        </i:Interaction.Behaviors>
+                    </Ellipse>
                     <TextBlock Text="Ready" 
                                Foreground="{DynamicResource AppTextSecondaryBrush}" 
                                FontSize="11" 
