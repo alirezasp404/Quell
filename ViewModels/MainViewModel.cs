@@ -847,6 +847,18 @@ public partial class MainViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    public void ShowSchemaPropertiesFooter()
+    {
+        Footer.IsVisible = true;
+        if (!Footer.Tabs.Contains("Schema"))
+        {
+            int idx = Footer.Tabs.IndexOf("Results");
+            Footer.Tabs.Insert(idx >= 0 ? idx + 1 : 0, "Schema");
+        }
+        Footer.SelectedTab = "Schema";
+    }
+
+    [RelayCommand]
     public void RestoreFooterTab(string tabName)
     {
         Footer.IsVisible = true;
@@ -1173,23 +1185,79 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     public async Task ShowTableProperties()
     {
-        string target = Sidebar.SelectedTable?.FullName ?? SampleQueryResult.CurrentTableName ?? "Users";
+        string? target = Sidebar.SelectedTable?.FullName ?? Sidebar.SelectedTable?.TableName;
+        if (string.IsNullOrWhiteSpace(target))
+        {
+            var cached = DatabaseSessionService.Instance.GetActiveCachedTables();
+            var activeDb = Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsActive) ?? Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsConnected);
+            if (cached.Count == 0 && activeDb != null)
+            {
+                cached = activeDb.AllTableNodes.Select(t => t.Table).ToList();
+            }
+            target = cached.FirstOrDefault()?.FullName ?? SampleQueryResult.CurrentTableName ?? "Users";
+        }
         await LoadTablePropertiesAsync(target);
+        ShowSchemaPropertiesFooter();
     }
 
     [RelayCommand]
     public async Task OptimizeDatabase()
     {
-        string key = SelectedTargetDatabase?.Key ?? DatabaseSessionService.Instance.ActiveSession?.Key ?? string.Empty;
-        string dbType = SelectedTargetDatabase?.DatabaseType ?? "SQLite";
-        string sql = dbType.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase) || dbType.Equals("SQLite", StringComparison.OrdinalIgnoreCase)
-            ? "VACUUM;"
-            : (dbType.Equals("MySQL", StringComparison.OrdinalIgnoreCase) ? "OPTIMIZE TABLE Users;" : "CHECKPOINT;");
+        var activeSession = DatabaseSessionService.Instance.ActiveSession;
+        var activeNode = Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsActive) ?? Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsConnected);
 
-        var res = await DatabaseSessionService.Instance.ExecuteQueryAsync(sql, key);
-        SampleQueryResult.LastQueryMessage = $"Database optimization executed ({res.ExecutionTime})";
+        string key = SelectedTargetDatabase?.Key ?? activeSession?.Key ?? activeNode?.ConnectionKey ?? string.Empty;
+        string dbType = SelectedTargetDatabase?.DatabaseType ?? activeSession?.DatabaseType ?? activeNode?.DatabaseType ?? "SQLite";
+        string dbName = SelectedTargetDatabase?.DisplayName ?? activeSession?.DisplayName ?? activeNode?.DatabaseName ?? "Active Database";
+
+        if (string.IsNullOrEmpty(key) && DatabaseSessionService.Instance.ActiveSession == null)
+        {
+            SampleQueryResult.LastQueryMessage = "Please connect to a database before optimizing.";
+            SampleQueryResult.HasLastQueryMessage = true;
+            ShowQueryResultFooter();
+            return;
+        }
+
+        if (string.IsNullOrEmpty(key) && DatabaseSessionService.Instance.ActiveSession != null)
+        {
+            key = DatabaseSessionService.Instance.ActiveSession.Key;
+            dbType = DatabaseSessionService.Instance.ActiveSession.DatabaseType;
+        }
+
+        string sql;
+        if (dbType.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
+        {
+            sql = "VACUUM;";
+        }
+        else if (dbType.Equals("SQLite", StringComparison.OrdinalIgnoreCase))
+        {
+            sql = "VACUUM;";
+        }
+        else if (dbType.Equals("MySQL", StringComparison.OrdinalIgnoreCase))
+        {
+            var cached = DatabaseSessionService.Instance.GetActiveCachedTables();
+            string tableTarget = Sidebar.SelectedTable?.TableName ?? cached.FirstOrDefault()?.TableName ?? "Users";
+            sql = $"OPTIMIZE TABLE {tableTarget};";
+        }
+        else
+        {
+            sql = "CHECKPOINT;";
+        }
+
+        SampleQueryResult.LastQueryMessage = $"Executing {sql} on {dbName}...";
         SampleQueryResult.HasLastQueryMessage = true;
         ShowQueryResultFooter();
+
+        var res = await DatabaseSessionService.Instance.ExecuteQueryAsync(sql, key);
+        if (res.Success)
+        {
+            SampleQueryResult.LastQueryMessage = $"Database optimization ({sql.Trim(';')}) completed successfully for '{dbName}' ({res.ExecutionTime})";
+        }
+        else
+        {
+            SampleQueryResult.LastQueryMessage = $"Optimization notice: {res.Message}";
+        }
+        SampleQueryResult.HasLastQueryMessage = true;
     }
 
     [RelayCommand]
@@ -1490,6 +1558,7 @@ public partial class MainViewModel : ViewModelBase
     private async Task LoadTablePropertiesAsync(string tableName)
     {
         string clean = tableName.Trim('[', ']', '"');
+        SampleSchema.TableName = clean;
         var cols = await DatabaseSessionService.Instance.GetColumnsAsync(clean);
         var pks = await DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(clean);
         var fks = await DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(clean);
@@ -1515,8 +1584,13 @@ public partial class MainViewModel : ViewModelBase
                 });
             }
         }
+        else if (SampleSchema.Columns.Count == 0)
+        {
+            SampleSchema.LoadDefaultSampleColumns(clean);
+        }
 
-        ShowQueryResultFooter();
+        SampleQueryResult.LastQueryMessage = $"Table schema & properties loaded for '{clean}' ({SampleSchema.Columns.Count} columns)";
+        SampleQueryResult.HasLastQueryMessage = true;
     }
 
     private List<DiagramTableItem> GetSampleDiagramTables()

@@ -1,4 +1,4 @@
-﻿<UserControl xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -147,6 +147,13 @@
                                                   VerticalAlignment="Center"
                                                   IsVisible="{Binding IsResults}"/>
 
+                                        <!-- Icon: Table Schema & Properties -->
+                                        <ui:FASymbolIcon Classes="tab-icon"
+                                                         Symbol="Tag"
+                                                         FontSize="10"
+                                                         VerticalAlignment="Center"
+                                                         IsVisible="{Binding IsSchema}"/>
+
                                         <!-- Icon: Terminal Console -->
                                         <ui:FASymbolIcon Classes="tab-icon"
                                                          Symbol="Play"
@@ -194,7 +201,12 @@
                         <components:QueryResultTableComponent DataContext="{Binding $parent[Window].((vm:MainViewModel)DataContext).SampleQueryResult}" />
                     </Border>
 
-                    <!-- 3b. Integrated Terminal View -->
+                    <!-- 3b. Table Schema & Properties View -->
+                    <Border IsVisible="{Binding IsSchemaTabSelected}">
+                        <components:SchemaPropertiesTableComponent DataContext="{Binding $parent[Window].((vm:MainViewModel)DataContext).SampleSchema}" />
+                    </Border>
+
+                    <!-- 3c. Integrated Terminal View -->
                     <Border IsVisible="{Binding IsTerminalTabSelected}">
                         <components:TerminalComponent DataContext="{Binding $parent[Window].((vm:MainViewModel)DataContext).Terminal}" />
                     </Border>

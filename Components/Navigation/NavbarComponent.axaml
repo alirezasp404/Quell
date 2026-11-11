@@ -544,6 +544,9 @@
                                 <MenuItem Header="Results" 
                                           Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreFooterTabCommand}" 
                                           CommandParameter="Results" />
+                                <MenuItem Header="Schema" 
+                                          Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreFooterTabCommand}" 
+                                          CommandParameter="Schema" />
                                 <MenuItem Header="Terminal" 
                                           Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreFooterTabCommand}" 
                                           CommandParameter="Terminal" />

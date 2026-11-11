@@ -1221,10 +1221,22 @@ sealed class Program
                 throw new Exception("GenerateTableDdl failed to create DDL script!");
             }
 
+            // D2. View Table Schema & Properties
+            await vm.ShowTableProperties();
+            if (vm.SampleSchema.Columns.Count == 0 || !vm.Footer.Tabs.Contains("Schema") || vm.Footer.SelectedTab != "Schema")
+            {
+                throw new Exception("ShowTableProperties failed to populate schema columns and activate Schema tab!");
+            }
+            Console.WriteLine($"[Success] Table Schema & Properties verified: {vm.SampleSchema.Columns.Count} columns for '{vm.SampleSchema.TableName}', Schema tab active={vm.Footer.IsSchemaTabSelected}!");
+
             // E. Database Optimization & Vacuum
             await vm.OptimizeDatabase();
             Console.WriteLine($"Optimize Status: {vm.SampleQueryResult.LastQueryMessage}");
-            Console.WriteLine("[Success] Dedicated database tools (Excel, Backup, Diagram, DDL, Optimize) verified!");
+            if (!vm.SampleQueryResult.HasLastQueryMessage)
+            {
+                throw new Exception("OptimizeDatabase failed to update LastQueryMessage!");
+            }
+            Console.WriteLine("[Success] Dedicated database tools (Excel, Backup, Diagram, DDL, Optimize, Schema) verified!");
 
             // 15. Test Saving Connections in Connect Modal and SQLite Persistence
             Console.WriteLine("\n[Action] Verifying Connection Persistence in SQLite...");

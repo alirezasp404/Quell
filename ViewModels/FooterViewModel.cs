@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -11,7 +11,8 @@ public partial class FooterTabItem : ObservableObject
     public string Name { get; set; } = string.Empty;
     public string Icon { get; set; } = "Document";
     public bool IsResults => string.Equals(Name, "Results", StringComparison.OrdinalIgnoreCase);
-    public bool IsTerminal => string.Equals(Name, "Terminal", StringComparison.OrdinalIgnoreCase);
+public bool IsTerminal => string.Equals(Name, "Terminal", StringComparison.OrdinalIgnoreCase);
+    public bool IsSchema => string.Equals(Name, "Schema", StringComparison.OrdinalIgnoreCase);
 
     [ObservableProperty]
     private bool _isActive;
@@ -28,10 +29,12 @@ public partial class FooterViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsResultsTabSelected))]
     [NotifyPropertyChangedFor(nameof(IsTerminalTabSelected))]
+    [NotifyPropertyChangedFor(nameof(IsSchemaTabSelected))]
     private string _selectedTab = "Results";
 
     public bool IsResultsTabSelected => string.Equals(SelectedTab, "Results", StringComparison.OrdinalIgnoreCase);
     public bool IsTerminalTabSelected => string.Equals(SelectedTab, "Terminal", StringComparison.OrdinalIgnoreCase);
+    public bool IsSchemaTabSelected => string.Equals(SelectedTab, "Schema", StringComparison.OrdinalIgnoreCase);
 
     public ObservableCollection<string> Tabs { get; } = new()
     {
@@ -82,6 +85,7 @@ public partial class FooterViewModel : ViewModelBase
         return tabName.ToLowerInvariant() switch
         {
             "terminal" => "Play",
+            "schema" => "Tag",
             "results" => "Document",
             _ => "Document"
         };
