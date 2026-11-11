@@ -166,9 +166,9 @@ sealed class Program
             var dataGrid = tableComp.FindControl<Avalonia.Controls.DataGrid>("ResultsDataGrid");
             Console.WriteLine($"DataGrid Columns Count: {dataGrid?.Columns.Count ?? 0}");
             Console.WriteLine($"DataGrid RowHeight: {dataGrid?.RowHeight}px (Compact height)");
-            if (dataGrid?.RowHeight != 25)
+            if (dataGrid?.RowHeight != 20)
             {
-                throw new Exception($"Expected compact DataGrid RowHeight=25, but got {dataGrid?.RowHeight}");
+                throw new Exception($"Expected compact DataGrid RowHeight=20, but got {dataGrid?.RowHeight}");
             }
             var testRow = new Quell.ViewModels.QueryResultRow { RowIndex = 1, Id = 101, Name = "Alice Johnson" };
             var col0 = dataGrid?.Columns[0] as Avalonia.Controls.DataGridTemplateColumn;
@@ -567,7 +567,7 @@ sealed class Program
 
             var resetTableCustom = await Quell.Services.DatabaseStorageService.Instance.GetTableCustomizationAsync();
             Console.WriteLine($"SQLite Restored Table Customization: RowHeight={resetTableCustom.RowHeight}, FontSize={resetTableCustom.FontSize}, TableBg={resetTableCustom.TableBackground}");
-            if (resetTableCustom.RowHeight != 25.0 || resetTableCustom.FontSize != 11.0 || resetTableCustom.TableBackground != "Default")
+            if (resetTableCustom.RowHeight != 20.0 || resetTableCustom.FontSize != 11.0 || resetTableCustom.TableBackground != "Default")
             {
                 throw new Exception("Reset table customization failed to restore defaults!");
             }

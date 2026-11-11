@@ -1,4 +1,4 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- Quell: SQLite Database Startup & Dialect Keywords Initialization Script
 -- ============================================================================
 
@@ -85,7 +85,7 @@ INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('SidebarBackgr
 INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableBackground', 'Default', datetime('now'));
 INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('EditorFontSize', '13', datetime('now'));
 INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('EditorShowLineNumbers', 'true', datetime('now'));
-INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableRowHeight', '25', datetime('now'));
+INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableRowHeight', '20', datetime('now'));
 INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableHeaderHeight', '26', datetime('now'));
 INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableGutterWidth', '56', datetime('now'));
 INSERT OR IGNORE INTO AppSettings (Key, Value, UpdatedAt) VALUES ('TableCellFontSize', '11', datetime('now'));

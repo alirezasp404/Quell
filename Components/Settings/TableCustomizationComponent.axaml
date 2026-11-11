@@ -1,4 +1,4 @@
-﻿<UserControl xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
               xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
               xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -146,8 +146,8 @@
                     </StackPanel>
 
                     <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Classes="size-chip-btn" Content="Compact (22px)" Command="{Binding SetTableRowHeightCommand}" Margin="0,0,6,4">
-                            <Button.CommandParameter><x:Double>22.0</x:Double></Button.CommandParameter>
+                        <Button Classes="size-chip-btn" Content="Compact (20px)" Command="{Binding SetTableRowHeightCommand}" Margin="0,0,6,4">
+                            <Button.CommandParameter><x:Double>20.0</x:Double></Button.CommandParameter>
                         </Button>
                         <Button Classes="size-chip-btn" Content="Standard (25px)" Command="{Binding SetTableRowHeightCommand}" Margin="0,0,6,4">
                             <Button.CommandParameter><x:Double>25.0</x:Double></Button.CommandParameter>

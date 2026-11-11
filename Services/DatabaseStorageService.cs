@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -127,7 +127,7 @@ public class PanelCustomizationRecord
 
 public class TableCustomizationRecord
 {
-    public double RowHeight { get; set; } = 25.0;
+    public double RowHeight { get; set; } = 20.0;
     public double HeaderHeight { get; set; } = 26.0;
     public double GutterWidth { get; set; } = 56.0;
     public double FontSize { get; set; } = 11.0;
@@ -1366,7 +1366,7 @@ public class DatabaseStorageService
         var record = new TableCustomizationRecord();
         try
         {
-            string rhStr = await GetSettingAsync("TableRowHeight", "25");
+            string rhStr = await GetSettingAsync("TableRowHeight", "20");
             if (double.TryParse(rhStr, System.Globalization.CultureInfo.InvariantCulture, out double rh))
             {
                 record.RowHeight = rh;

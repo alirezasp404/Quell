@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -371,7 +371,7 @@ public partial class SettingsModalViewModel : ObservableObject
     #region Query Results Table Customization Properties
 
     [ObservableProperty]
-    private double _tableRowHeight = 25.0;
+    private double _tableRowHeight = 20.0;
 
     [ObservableProperty]
     private double _tableHeaderHeight = 26.0;
@@ -1374,7 +1374,7 @@ public partial class SettingsModalViewModel : ObservableObject
                 TableShowAlternatingRowColors = true;
                 break;
             case "compact":
-                TableRowHeight = 22.0;
+                TableRowHeight = 20.0;
                 TableHeaderHeight = 24.0;
                 TableGutterWidth = 44.0;
                 TableCellFontSize = 10.0;
@@ -1415,7 +1415,7 @@ public partial class SettingsModalViewModel : ObservableObject
     [RelayCommand]
     public void ResetTableCustomization()
     {
-        TableRowHeight = 25.0;
+        TableRowHeight = 20.0;
         TableHeaderHeight = 26.0;
         TableGutterWidth = 56.0;
         TableCellFontSize = 11.0;
