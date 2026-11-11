@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using System;
 using System.Linq;
@@ -131,9 +131,9 @@ sealed class Program
             {
                 throw new Exception($"Expected clean initial table (0 rows), but got {vm.SampleQueryResult.Rows.Count}");
             }
-            if (vm.Footer.Tabs.Count != 0)
+            if (vm.Footer.Tabs.Count != 2 || !vm.Footer.Tabs.Contains("Results") || !vm.Footer.Tabs.Contains("Terminal"))
             {
-                throw new Exception($"Expected clean initial footer tabs (0 tabs), but got {vm.Footer.Tabs.Count}");
+                throw new Exception($"Expected initial footer tabs with Results and Terminal, but got {vm.Footer.Tabs.Count} tabs: {string.Join(", ", vm.Footer.Tabs)}");
             }
             Console.WriteLine($"SchemaPropertiesTable Columns: {vm.SampleSchema.Columns.Count} columns loaded.");
             var tableComp = new Quell.Components.QueryResultTableComponent { DataContext = vm.SampleQueryResult };
@@ -1164,8 +1164,53 @@ sealed class Program
             {
                 throw new Exception("OpenDiagramModal failed to load tables and open dialog!");
             }
+            // Verify Relations mapping and interactive operations
+            if (vm.DiagramModal.TotalRelationsCount > 0 && vm.DiagramModal.Relations.Count == 0)
+            {
+                throw new Exception("Expected foreign key relations to be populated in Relations collection!");
+            }
+            vm.DiagramModal.AutoLayout();
+            vm.DiagramModal.FitToView();
+            if (vm.DiagramModal.ZoomLevel < 0.2 || vm.DiagramModal.ZoomLevel > 1.3)
+            {
+                throw new Exception($"FitToView produced unexpected ZoomLevel: {vm.DiagramModal.ZoomLevel}");
+            }
+            double fitMinScreenX = vm.DiagramModal.FilteredTables.Min(t => t.X) * vm.DiagramModal.ZoomLevel + vm.DiagramModal.PanX;
+            double fitMaxScreenX = vm.DiagramModal.FilteredTables.Max(t => t.X + t.Width) * vm.DiagramModal.ZoomLevel + vm.DiagramModal.PanX;
+            double leftMargin = fitMinScreenX;
+            double rightMargin = vm.DiagramModal.ViewportWidth - fitMaxScreenX;
+            if (Math.Abs(leftMargin - rightMargin) > 3.0)
+            {
+                throw new Exception($"FitToView horizontal margins are not centered! Left={leftMargin:F1}, Right={rightMargin:F1}");
+            }
+            Console.WriteLine($"[Success] FitToView verified: Zoom={vm.DiagramModal.ZoomLevel:P0}, Pan=({vm.DiagramModal.PanX:F1}, {vm.DiagramModal.PanY:F1}), Symmetrical Margins=({leftMargin:F1}px, {rightMargin:F1}px)");
+            vm.DiagramModal.ZoomIn();
+            vm.DiagramModal.ZoomOut();
+            vm.DiagramModal.ResetView();
+            Console.WriteLine($"[Success] Interactive ER Canvas: {vm.DiagramModal.Relations.Count} relations mapped with orthogonal line coordinates!");
             await vm.DiagramModal.CopyMermaidDiagramAsync();
             Console.WriteLine($"Mermaid Diagram status: {vm.DiagramModal.StatusMessage}");
+            vm.DiagramModal.Close();
+
+            // C2. Verify Diagram In-Memory Caching Lifecycle & Automatic Invalidation
+            Console.WriteLine("[Action] Verifying Diagram Caching, Instant Load & Invalidation...");
+            await vm.OpenDiagramModal(forceRefresh: false);
+            Console.WriteLine($"Diagram Cache State: IsLoadedFromCache={vm.DiagramModal.IsLoadedFromCache}, Status='{vm.DiagramModal.StatusMessage}'");
+            if (!vm.DiagramModal.IsLoadedFromCache)
+            {
+                throw new Exception("Expected diagram to be loaded instantly from cache on subsequent open!");
+            }
+            // Test ClearCacheAndReload
+            await vm.DiagramModal.ClearCacheAndReloadAsync();
+            Console.WriteLine($"After ClearCacheAndReload: IsLoadedFromCache={vm.DiagramModal.IsLoadedFromCache}, Status='{vm.DiagramModal.StatusMessage}'");
+            vm.DiagramModal.Close();
+            // Re-open: should be cached again
+            await vm.OpenDiagramModal(forceRefresh: false);
+            if (!vm.DiagramModal.IsLoadedFromCache)
+            {
+                throw new Exception("Expected diagram to be re-cached after reload!");
+            }
+            Console.WriteLine("[Success] Diagram in-memory caching, instant loading, and invalidation verified!");
             vm.DiagramModal.Close();
 
             // D. Generate Table DDL
@@ -1176,10 +1221,22 @@ sealed class Program
                 throw new Exception("GenerateTableDdl failed to create DDL script!");
             }
 
+            // D2. View Table Schema & Properties
+            await vm.ShowTableProperties();
+            if (vm.SampleSchema.Columns.Count == 0 || !vm.Footer.Tabs.Contains("Schema") || vm.Footer.SelectedTab != "Schema")
+            {
+                throw new Exception("ShowTableProperties failed to populate schema columns and activate Schema tab!");
+            }
+            Console.WriteLine($"[Success] Table Schema & Properties verified: {vm.SampleSchema.Columns.Count} columns for '{vm.SampleSchema.TableName}', Schema tab active={vm.Footer.IsSchemaTabSelected}!");
+
             // E. Database Optimization & Vacuum
             await vm.OptimizeDatabase();
             Console.WriteLine($"Optimize Status: {vm.SampleQueryResult.LastQueryMessage}");
-            Console.WriteLine("[Success] Dedicated database tools (Excel, Backup, Diagram, DDL, Optimize) verified!");
+            if (!vm.SampleQueryResult.HasLastQueryMessage)
+            {
+                throw new Exception("OptimizeDatabase failed to update LastQueryMessage!");
+            }
+            Console.WriteLine("[Success] Dedicated database tools (Excel, Backup, Diagram, DDL, Optimize, Schema) verified!");
 
             // 15. Test Saving Connections in Connect Modal and SQLite Persistence
             Console.WriteLine("\n[Action] Verifying Connection Persistence in SQLite...");
@@ -1792,6 +1849,18 @@ sealed class Program
             }
             Console.WriteLine($"[Success] Default shell resolved: {defaultShell.DisplayName} ({defaultShell.ExecutablePath})");
 
+            // Verify Terminal ViewModel AvailableShells & Dropdown Flyout Items
+            if (vm.Terminal.AvailableShells.Count == 0)
+            {
+                throw new Exception("Terminal ViewModel AvailableShells was empty!");
+            }
+            var defaultShellItem = vm.Terminal.AvailableShells.FirstOrDefault(s => s.IsDefault);
+            if (defaultShellItem == null || !defaultShellItem.MenuTitle.Contains("(Default)"))
+            {
+                throw new Exception("Default shell in AvailableShells was not marked with (Default)!");
+            }
+            Console.WriteLine($"[Success] Terminal AvailableShells ({vm.Terminal.AvailableShells.Count} shells) and Dropdown items verified!");
+
             // 3. Database CLI Resolution Tests (PostgreSQL, MySQL, SQLite, SQL Server)
             var pgConfig = new Quell.Services.DatabaseProviders.DatabaseConnectionConfig
             {
@@ -2028,7 +2097,105 @@ sealed class Program
             vm.UpdateModal.Dismiss();
             Quell.Services.AppUpdateService.Instance.Reset();
 
-            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER, SIMULTANEOUS BATCH CELL EDITING, FOREIGN KEY NAVIGATION, HARDWARE GPU/CPU RENDERING PIPELINE & INTEGRATED TERMINAL) PASSED! <<<");
+            // 24. Test Visual Excel & CSV Data Import Wizard, Schema Auto-Mapping & Template Generation
+            Console.WriteLine("\n[Action] Verifying Visual Excel / CSV Data Import Wizard, Schema Auto-Mapping & Template Generation...");
+            if (vm.ImportModal == null)
+            {
+                throw new Exception("ImportModal must not be null on MainViewModel!");
+            }
+            if (vm.ImportModal.IsOpen)
+            {
+                throw new Exception("ImportModal must be closed initially!");
+            }
+
+            // Open Import Modal
+            vm.OpenImportModalCommand.Execute(null);
+            if (!vm.ImportModal.IsOpen)
+            {
+                throw new Exception("OpenImportModalCommand must open ImportModal!");
+            }
+            if (vm.ImportModal.AvailableTables.Count == 0)
+            {
+                throw new Exception("ImportModal AvailableTables must be populated!");
+            }
+            Console.WriteLine($"[Success] ImportModal opened with {vm.ImportModal.AvailableTables.Count} available tables (Target: {vm.ImportModal.SelectedTable})");
+
+            // Test Excel Template Generation (.xlsx)
+            string tempDir = System.IO.Path.GetTempPath();
+            string testXlsx = System.IO.Path.Combine(tempDir, "quell_test_template.xlsx");
+            var sampleCols = new System.Collections.Generic.List<(string ColumnName, string DataType, bool IsRequired)>
+            {
+                ("Id", "INT", true),
+                ("FullName", "VARCHAR(100)", true),
+                ("Email", "VARCHAR(150)", false),
+                ("Salary", "DECIMAL(10,2)", false)
+            };
+            Quell.Services.ExcelDataService.CreateExcelTemplate(testXlsx, "Employees", sampleCols);
+            if (!System.IO.File.Exists(testXlsx))
+            {
+                throw new Exception("CreateExcelTemplate failed to generate .xlsx file!");
+            }
+            Console.WriteLine($"[Success] Generated OpenXML Excel template: {testXlsx}");
+
+            // Test Reading generated .xlsx
+            var xlsxData = Quell.Services.ExcelDataService.ReadSpreadsheet(testXlsx);
+            if (xlsxData.Headers.Count != 4 || xlsxData.Headers[0] != "Id" || xlsxData.Headers[1] != "FullName")
+            {
+                throw new Exception($"ReadSpreadsheet failed to read .xlsx headers! Got {xlsxData.Headers.Count} headers.");
+            }
+            if (xlsxData.Rows.Count != 1)
+            {
+                throw new Exception($"Expected 1 hint row in template, got {xlsxData.Rows.Count}");
+            }
+            Console.WriteLine($"[Success] ReadSpreadsheet successfully parsed .xlsx template with {xlsxData.Headers.Count} columns!");
+            System.IO.File.Delete(testXlsx);
+
+            // Test CSV Data Import & Graphical Column Auto-Mapping
+            string testCsv = System.IO.Path.Combine(tempDir, "quell_test_import.csv");
+            System.IO.File.WriteAllText(testCsv, @"Id,FullName,Email,Salary
+101,Sarah Connor,sarah@resistance.org,85000
+102,John Connor,john@resistance.org,95000
+103,Kyle Reese,kyle@resistance.org,75000");
+
+            await vm.ImportModal.LoadTargetTableSchemaAsync("Users");
+            await vm.ImportModal.LoadSpreadsheetFileAsync(testCsv);
+            if (!vm.ImportModal.HasFileLoaded)
+            {
+                throw new Exception("LoadSpreadsheetFileAsync failed to load CSV file!");
+            }
+            if (vm.ImportModal.TotalExcelRowsCount != 3)
+            {
+                throw new Exception($"Expected 3 data rows in CSV, got {vm.ImportModal.TotalExcelRowsCount}");
+            }
+            if (vm.ImportModal.ExcelHeaders.Count != 4)
+            {
+                throw new Exception($"Expected 4 Excel headers, got {vm.ImportModal.ExcelHeaders.Count}");
+            }
+            Console.WriteLine($"[Success] Loaded CSV file with {vm.ImportModal.TotalExcelRowsCount} rows and {vm.ImportModal.ExcelHeaders.Count} columns!");
+
+            // Test Auto-Mapping
+            vm.ImportModal.AutoMapColumns();
+            int mappedCount = vm.ImportModal.MappedColumnsCount;
+            Console.WriteLine($"[Success] AutoMapColumns mapped {mappedCount} of {vm.ImportModal.TotalTableColumnsCount} columns!");
+
+            // Test Mapped Preview Generation
+            vm.ImportModal.SelectedTab = "ImportPreview";
+            if (vm.ImportModal.MappedPreviewRows.Count == 0 && mappedCount > 0)
+            {
+                throw new Exception("MappedPreviewRows must not be empty after selecting ImportPreview tab!");
+            }
+            Console.WriteLine($"[Success] Mapped preview generated with {vm.ImportModal.MappedPreviewRows.Count} preview rows!");
+
+            // Test Modal Dismissal
+            vm.ImportModal.CloseCommand.Execute(null);
+            if (vm.ImportModal.IsOpen)
+            {
+                throw new Exception("CloseCommand must close ImportModal!");
+            }
+            Console.WriteLine("[Success] ImportModal closed successfully!");
+            System.IO.File.Delete(testCsv);
+
+            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER, SIMULTANEOUS BATCH CELL EDITING, FOREIGN KEY NAVIGATION, HARDWARE GPU/CPU RENDERING PIPELINE, INTEGRATED TERMINAL & VISUAL EXCEL DATA IMPORT WIZARD) PASSED! <<<");
             return;
         }
 

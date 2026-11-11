@@ -143,6 +143,12 @@
                                         Padding="4,2">
                                     <ui:FASymbolIcon Symbol="Refresh" FontSize="11" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
                                 </Button>
+                                <Button Classes="classic-menu-btn"
+                                        Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).OpenDiagramModalCommand}"
+                                        ToolTip.Tip="ER Diagram &amp; Schema Relations"
+                                        Padding="4,2">
+                                    <ui:FASymbolIcon Symbol="Preview" FontSize="11" Foreground="{DynamicResource AppAccentBrush}"/>
+                                </Button>
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -277,6 +283,20 @@
                                                               IsVisible="{Binding IsConnected}">
                                                         <MenuItem.Icon>
                                                             <ui:FASymbolIcon Symbol="Refresh" FontSize="11" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                                                        </MenuItem.Icon>
+                                                    </MenuItem>
+                                                    <MenuItem Header="ER Diagram &amp; Schema Relations..."
+                                                              Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).OpenDiagramModalCommand}"
+                                                              IsVisible="{Binding IsConnected}">
+                                                        <MenuItem.Icon>
+                                                            <ui:FASymbolIcon Symbol="Preview" FontSize="11" Foreground="{DynamicResource AppAccentBrush}"/>
+                                                        </MenuItem.Icon>
+                                                    </MenuItem>
+                                                    <MenuItem Header="Optimize &amp; Vacuum Database"
+                                                              Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).OptimizeDatabaseCommand}"
+                                                              IsVisible="{Binding IsConnected}">
+                                                        <MenuItem.Icon>
+                                                            <ui:FASymbolIcon Symbol="Settings" FontSize="11" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
                                                         </MenuItem.Icon>
                                                     </MenuItem>
                                                     <MenuItem Header="Open in Terminal (CLI)" 
@@ -466,6 +486,19 @@
                                                               Command="{Binding CopyTableNameCommand}">
                                                         <MenuItem.Icon>
                                                             <ui:FASymbolIcon Symbol="Copy" FontSize="11" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                                                        </MenuItem.Icon>
+                                                    </MenuItem>
+                                                    <Separator />
+                                                    <MenuItem Header="View Table Schema &amp; Properties"
+                                                              Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ShowTablePropertiesCommand}">
+                                                        <MenuItem.Icon>
+                                                            <ui:FASymbolIcon Symbol="Tag" FontSize="11" Foreground="{DynamicResource AppAccentBrush}"/>
+                                                        </MenuItem.Icon>
+                                                    </MenuItem>
+                                                    <MenuItem Header="Generate DDL Script (CREATE TABLE)"
+                                                              Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).GenerateTableDdlCommand}">
+                                                        <MenuItem.Icon>
+                                                            <ui:FASymbolIcon Symbol="Code" FontSize="11" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
                                                         </MenuItem.Icon>
                                                     </MenuItem>
                                                 </ContextMenu>

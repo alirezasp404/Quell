@@ -95,8 +95,17 @@
                     Padding="6,4">
                 <Grid ColumnDefinitions="Auto, *, Auto">
                     <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                        <TextBox Width="180" 
-                                 Height="26" 
+                        <Border Background="{DynamicResource AppAccentBrush}" CornerRadius="3" Padding="6,2" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <ui:FASymbolIcon Symbol="Tag" FontSize="9" Foreground="White" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding TableName, StringFormat='Table: {0}'}" FontSize="10" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Background="{DynamicResource AppSurfaceBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="3" Padding="5,1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Columns.Count, StringFormat='{}{0} columns'}" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBox Width="150" 
+                                 Height="25" 
                                  FontSize="11" 
                                  Padding="6,3" 
                                  CornerRadius="4" 
@@ -105,13 +114,13 @@
                     </StackPanel>
 
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                        <Button Classes="classic-tool-btn">
+                        <Button Classes="classic-tool-btn" Command="{Binding CopyColumnNamesCommand}" ToolTip.Tip="Copy all column names to clipboard">
                             <StackPanel Orientation="Horizontal" Spacing="5">
                                 <ui:FASymbolIcon Symbol="Copy" FontSize="11" VerticalAlignment="Center"/>
                                 <TextBlock Text="Copy Column Names" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
-                        <Button Classes="classic-tool-btn">
+                        <Button Classes="classic-tool-btn" Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).GenerateTableDdlCommand}" ToolTip.Tip="Generate CREATE TABLE DDL script in Editor">
                             <StackPanel Orientation="Horizontal" Spacing="5">
                                 <ui:FASymbolIcon Symbol="Code" FontSize="11" VerticalAlignment="Center"/>
                                 <TextBlock Text="Generate DDL" VerticalAlignment="Center"/>

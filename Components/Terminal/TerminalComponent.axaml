@@ -67,6 +67,24 @@
             <Setter Property="Background" Value="{DynamicResource AppTabHoverBackgroundBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
         </Style>
+        <!-- Slim Scrollbar for Terminal Tabs Strip -->
+        <Style Selector="ScrollViewer.terminal-tabs-scroller ScrollBar:horizontal">
+            <Setter Property="Height" Value="4"/>
+            <Setter Property="MinHeight" Value="4"/>
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="ScrollViewer.terminal-tabs-scroller ScrollBar:horizontal /template/ Thumb">
+            <Setter Property="Background" Value="{DynamicResource AppBorderDarkBrush}"/>
+            <Setter Property="CornerRadius" Value="2"/>
+            <Setter Property="Opacity" Value="0.5"/>
+        </Style>
+        <Style Selector="ScrollViewer.terminal-tabs-scroller ScrollBar:horizontal /template/ Thumb:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppAccentBrush}"/>
+            <Setter Property="Opacity" Value="0.9"/>
+        </Style>
+        <Style Selector="ScrollViewer.terminal-tabs-scroller ScrollBar:horizontal /template/ RepeatButton">
+            <Setter Property="IsVisible" Value="False"/>
+        </Style>
     </UserControl.Styles>
 
     <Grid RowDefinitions="Auto, *">
@@ -77,10 +95,18 @@
                 BorderThickness="0,0,0,1"
                 Padding="8,4"
                 MinHeight="36">
-            <Grid ColumnDefinitions="Auto, *, Auto">
+            <Grid ColumnDefinitions="*, Auto">
                 
-                <!-- Left: Sessions Tab Strip & Add Button -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                <!-- Left: Scrollable Sessions Tab Strip & Add Button -->
+                <ScrollViewer x:Name="TabsScrollViewer"
+                              Classes="terminal-tabs-scroller"
+                              Grid.Column="0"
+                              HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Disabled"
+                              HorizontalContentAlignment="Left"
+                              VerticalContentAlignment="Center"
+                              Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
                     <ItemsControl ItemsSource="{Binding Sessions}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -171,22 +197,25 @@
                                     Background="Transparent"
                                     ToolTip.Tip="Select Terminal Shell">
                                 <Button.Flyout>
-                                    <MenuFlyout Placement="BottomEdgeAlignedLeft">
-                                        <MenuItem Header="Default Shell" Command="{Binding NewSessionCommand}" CommandParameter="{x:Null}">
-                                            <MenuItem.Icon>
-                                                <ui:FASymbolIcon Symbol="Play" FontSize="11" Foreground="{DynamicResource AppAccentBrush}" />
-                                            </MenuItem.Icon>
-                                        </MenuItem>
+                                    <MenuFlyout Placement="BottomEdgeAlignedLeft" ItemsSource="{Binding AvailableShells}">
+                                        <MenuFlyout.ItemContainerTheme>
+                                            <ControlTheme TargetType="MenuItem" x:DataType="models:ShellProfile" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                                <Setter Property="Header" Value="{Binding MenuTitle}" />
+                                                <Setter Property="Command" Value="{Binding $parent[UserControl].((vm:TerminalViewModel)DataContext).NewSessionCommand}" />
+                                                <Setter Property="CommandParameter" Value="{Binding}" />
+                                            </ControlTheme>
+                                        </MenuFlyout.ItemContainerTheme>
                                     </MenuFlyout>
                                 </Button.Flyout>
                                 <ui:FASymbolIcon Symbol="ChevronDown" FontSize="8" Foreground="{DynamicResource AppTextSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Button>
                         </StackPanel>
                     </Border>
-                </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
 
                 <!-- Right: Action Toolbar (Theme-Aware Unified Styling) -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                     <!-- Quick DB CLI Launcher Badge -->
                     <Button Classes="classic-accent-btn"
                             Height="26"

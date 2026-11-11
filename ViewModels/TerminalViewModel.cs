@@ -43,25 +43,32 @@ public partial class TerminalViewModel : ViewModelBase
     public TerminalViewModel()
     {
         InitializeShells();
-        _settingsService.SettingsChanged += (_, s) => Settings = s;
+        _settingsService.SettingsChanged += (_, s) =>
+        {
+            Settings = s;
+            InitializeShells();
+        };
         _ = LoadSettingsAsync();
     }
 
     private async Task LoadSettingsAsync()
     {
         Settings = await _settingsService.LoadSettingsAsync();
+        InitializeShells();
     }
 
     public void InitializeShells()
     {
         AvailableShells.Clear();
-        foreach (var shell in _shellDetector.GetAvailableShells())
-        {
-            AvailableShells.Add(shell);
-        }
-
         var defaultShell = _shellDetector.GetDefaultShell(Settings.DefaultShellId);
         SelectedShellProfile = defaultShell;
+
+        var detected = _shellDetector.GetAvailableShells();
+        foreach (var shell in detected)
+        {
+            shell.IsDefault = (shell.Id == defaultShell.Id);
+            AvailableShells.Add(shell);
+        }
     }
 
     public void UpdateConnectionContext(DatabaseConnectionConfig? config)

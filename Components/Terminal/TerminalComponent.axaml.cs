@@ -82,6 +82,14 @@ public partial class TerminalComponent : UserControl
                 {
                     AddSessionView(session);
                 }
+
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    if (TabsScrollViewer != null)
+                    {
+                        TabsScrollViewer.Offset = new Avalonia.Vector(double.MaxValue, TabsScrollViewer.Offset.Y);
+                    }
+                });
             }
         }
 

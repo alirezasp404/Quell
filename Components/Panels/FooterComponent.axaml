@@ -1,4 +1,4 @@
-﻿<UserControl xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -35,6 +35,14 @@
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
         </Style>
         <Style Selector="Button.footer-tab-btn.active /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppTabActiveBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+        </Style>
+        <Style Selector="Button.footer-tab-btn.active:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppTabActiveBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+        </Style>
+        <Style Selector="Button.footer-tab-btn.active:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppTabActiveBackgroundBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
         </Style>
@@ -113,6 +121,8 @@
                                         <MenuItem Header="Close Other Tabs" 
                                                   Command="{Binding $parent[UserControl].((vm:FooterViewModel)DataContext).CloseOtherTabsCommand}" 
                                                   CommandParameter="{Binding Name}" />
+                                        <MenuItem Header="Reset All Tabs (Results &amp; Terminal)" 
+                                                  Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ResetFooterTabsCommand}" />
                                         <Separator />
                                         <MenuItem Header="Close Footer Panel" 
                                                   Command="{Binding $parent[UserControl].((vm:FooterViewModel)DataContext).ClosePanelCommand}" />
@@ -136,6 +146,13 @@
                                                   Width="11" Height="11"
                                                   VerticalAlignment="Center"
                                                   IsVisible="{Binding IsResults}"/>
+
+                                        <!-- Icon: Table Schema & Properties -->
+                                        <ui:FASymbolIcon Classes="tab-icon"
+                                                         Symbol="Tag"
+                                                         FontSize="10"
+                                                         VerticalAlignment="Center"
+                                                         IsVisible="{Binding IsSchema}"/>
 
                                         <!-- Icon: Terminal Console -->
                                         <ui:FASymbolIcon Classes="tab-icon"
@@ -184,7 +201,12 @@
                         <components:QueryResultTableComponent DataContext="{Binding $parent[Window].((vm:MainViewModel)DataContext).SampleQueryResult}" />
                     </Border>
 
-                    <!-- 3b. Integrated Terminal View -->
+                    <!-- 3b. Table Schema & Properties View -->
+                    <Border IsVisible="{Binding IsSchemaTabSelected}">
+                        <components:SchemaPropertiesTableComponent DataContext="{Binding $parent[Window].((vm:MainViewModel)DataContext).SampleSchema}" />
+                    </Border>
+
+                    <!-- 3c. Integrated Terminal View -->
                     <Border IsVisible="{Binding IsTerminalTabSelected}">
                         <components:TerminalComponent DataContext="{Binding $parent[Window].((vm:MainViewModel)DataContext).Terminal}" />
                     </Border>
