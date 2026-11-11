@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -290,6 +290,14 @@ public partial class ImportDataModalViewModel : ViewModelBase
 
     [ObservableProperty]
     private string _filterMode = "All"; // "All", "Mapped", "Unmapped", "Required"
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsAutoMapStrategy))]
+    [NotifyPropertyChangedFor(nameof(IsPositionStrategy))]
+    private string _activeMappingStrategy = "Auto-Map";
+
+    public bool IsAutoMapStrategy => ActiveMappingStrategy == "Auto-Map";
+    public bool IsPositionStrategy => ActiveMappingStrategy == "1:1 Position";
 
     // Pan & Zoom Canvas State
     [ObservableProperty]
@@ -762,6 +770,7 @@ public partial class ImportDataModalViewModel : ViewModelBase
     public void AutoMapColumns()
     {
         if (!HasFileLoaded || ColumnMappings.Count == 0 || ExcelHeaders.Count == 0) return;
+        ActiveMappingStrategy = "Auto-Map";
 
         // Collect all scored candidate pairs between target columns and Excel headers
         var candidates = new List<(ImportColumnMappingItem Target, int ExcelIndex, int Score, string MatchType)>();
@@ -823,6 +832,7 @@ public partial class ImportDataModalViewModel : ViewModelBase
     public void MapByPosition()
     {
         if (!HasFileLoaded || ColumnMappings.Count == 0 || ExcelHeaders.Count == 0) return;
+        ActiveMappingStrategy = "1:1 Position";
 
         for (int i = 0; i < ColumnMappings.Count; i++)
         {
