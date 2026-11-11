@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
@@ -291,6 +291,7 @@ public partial class DatabaseDiagramModalComponent : UserControl
         if (_draggedTable != null)
         {
             _draggedTable = null;
+            _viewModel?.SyncPositionsToCache();
             e.Pointer.Capture(null);
             e.Handled = true;
         }

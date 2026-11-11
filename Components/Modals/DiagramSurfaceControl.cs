@@ -84,10 +84,9 @@ public class DiagramSurfaceControl : Control
             var pen = isHigh ? highlightPen : normalPen;
             var anchor = isHigh ? highlightAnchorBrush : anchorBrush;
 
-            bool goingRight = end.X >= start.X;
-            double d1 = goingRight ? 32.0 : -32.0;
-            double d2 = goingRight ? -32.0 : 32.0;
-            double midX = (start.X + d1 + end.X + d2) / 2.0;
+            double midX = rel.MidX != 0 ? rel.MidX : (start.X + end.X) / 2.0;
+            int startDir = rel.StartDirection != 0 ? rel.StartDirection : 1;
+            int endDir = rel.EndDirection != 0 ? rel.EndDirection : 1;
 
             // Build Orthogonal Stepped Path with Rounded Corners
             var geom = new StreamGeometry();
@@ -95,40 +94,59 @@ public class DiagramSurfaceControl : Control
             {
                 ctx.BeginFigure(start, false);
 
-                if (Math.Abs(start.Y - end.Y) < 6)
+                if (startDir == endDir)
                 {
-                    // Nearly horizontal
-                    ctx.LineTo(end);
+                    // Inter-column stepped routing (left-to-right or right-to-left)
+                    if (Math.Abs(start.Y - end.Y) < 4.0)
+                    {
+                        // Straight horizontal line
+                        ctx.LineTo(end);
+                    }
+                    else
+                    {
+                        double dy = end.Y - start.Y;
+                        double signY = Math.Sign(dy);
+                        if (signY == 0) signY = 1;
+                        double signX = startDir; // +1 or -1
+                        double r = Math.Min(8.0, Math.Min(Math.Abs(dy) / 2.0, Math.Abs(midX - start.X) / 2.0));
+
+                        // 1. Horizontal out from source card
+                        ctx.LineTo(new Point(midX - signX * r, start.Y));
+
+                        // 2. Corner 1: turn toward midX and vertical
+                        ctx.QuadraticBezierTo(new Point(midX, start.Y), new Point(midX, start.Y + signY * r));
+
+                        // 3. Vertical segment along midX
+                        ctx.LineTo(new Point(midX, end.Y - signY * r));
+
+                        // 4. Corner 2: turn from vertical into horizontal toward end
+                        ctx.QuadraticBezierTo(new Point(midX, end.Y), new Point(midX + signX * r, end.Y));
+
+                        // 5. Horizontal into target card
+                        ctx.LineTo(end);
+                    }
                 }
                 else
                 {
-                    double r = 8.0; // corner curve radius
+                    // Gutter loop routing around table cards (same column or overlapping)
                     double dy = end.Y - start.Y;
                     double signY = Math.Sign(dy);
-                    double signX1 = Math.Sign(midX - (start.X + d1));
-                    double signX2 = Math.Sign(end.X - midX);
+                    if (signY == 0) signY = 1;
+                    double r = Math.Min(8.0, Math.Min(Math.Max(Math.Abs(dy) / 2.0, 4.0), Math.Abs(midX - start.X) / 2.0));
 
-                    // 1. Horizontal out from source table
-                    Point p1 = new Point(start.X + d1, start.Y);
-                    ctx.LineTo(p1);
+                    // 1. Horizontal out to gutter
+                    ctx.LineTo(new Point(midX - r, start.Y));
 
-                    // 2. Corner 1: turn toward midX and vertical
-                    Point pCorner1Start = new Point(midX - signX1 * r, start.Y);
-                    Point pCorner1Mid = new Point(midX, start.Y);
-                    Point pCorner1End = new Point(midX, start.Y + signY * r);
+                    // 2. Corner 1: turn from moving right (+X) to vertical along midX
+                    ctx.QuadraticBezierTo(new Point(midX, start.Y), new Point(midX, start.Y + signY * r));
 
-                    ctx.LineTo(pCorner1Start);
-                    ctx.QuadraticBezierTo(pCorner1Mid, pCorner1End);
+                    // 3. Vertical segment in gutter along midX
+                    ctx.LineTo(new Point(midX, end.Y - signY * r));
 
-                    // 3. Vertical segment to Corner 2
-                    Point pCorner2Start = new Point(midX, end.Y - signY * r);
-                    Point pCorner2Mid = new Point(midX, end.Y);
-                    Point pCorner2End = new Point(midX + signX2 * r, end.Y);
+                    // 4. Corner 2: turn from vertical to moving left (-X) toward target card
+                    ctx.QuadraticBezierTo(new Point(midX, end.Y), new Point(midX - r, end.Y));
 
-                    ctx.LineTo(pCorner2Start);
-                    ctx.QuadraticBezierTo(pCorner2Mid, pCorner2End);
-
-                    // 4. Horizontal into target table
+                    // 5. Horizontal left into target card
                     ctx.LineTo(end);
                 }
             }
@@ -139,15 +157,23 @@ public class DiagramSurfaceControl : Control
             // Draw anchor circle on Source FK Column
             context.DrawEllipse(anchor, null, start, 3.5, 3.5);
 
-            // Draw Arrowhead on Target PK Column
-            DrawArrowhead(context, anchor, end, goingRight);
+            // Draw Arrowhead pointing directly into Target Card
+            bool pointingRight = (endDir == 1);
+            DrawArrowhead(context, anchor, end, pointingRight);
 
-            // Draw Relation Badge at midpoint
-            if (!string.IsNullOrWhiteSpace(rel.RelationText))
+            // Draw Relation Badge
+            string badgeText = !string.IsNullOrWhiteSpace(rel.ShortRelationText)
+                ? rel.ShortRelationText
+                : rel.RelationText;
+
+            if (!string.IsNullOrWhiteSpace(badgeText))
             {
                 double labelX = midX;
-                double labelY = (start.Y + end.Y) / 2.0;
-                DrawRelationBadge(context, rel.RelationText, new Point(labelX, labelY), badgeBgBrush, badgeBorderPen, badgeTextBrush, isHigh);
+                double t = (startDir == endDir)
+                    ? (0.35 + (rel.RelationIndex % 3) * 0.15)
+                    : 0.5;
+                double labelY = start.Y + (end.Y - start.Y) * t;
+                DrawRelationBadge(context, badgeText, new Point(labelX, labelY), badgeBgBrush, badgeBorderPen, badgeTextBrush, isHigh);
             }
         }
     }

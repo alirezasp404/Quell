@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -111,6 +111,15 @@ public partial class DiagramRelationItem : ObservableObject
 
     [ObservableProperty]
     private bool _isHighlighted;
+
+    public int StartDirection { get; set; } = 1; // +1 = right, -1 = left
+    public int EndDirection { get; set; } = 1;   // +1 = right, -1 = left
+    public double MidX { get; set; }
+    public int RelationIndex { get; set; }
+
+    public string ShortRelationText => string.IsNullOrWhiteSpace(SourceColumn)
+        ? $"{SourceTable?.TableName} -> {TargetTable?.TableName}"
+        : $"{SourceColumn} -> {TargetColumn}";
 }
 
 public partial class DatabaseDiagramModalViewModel : ViewModelBase
@@ -330,40 +339,134 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
         if (FilteredTables.Count == 0) return;
 
         int count = FilteredTables.Count;
-        int cols = Math.Max(2, Math.Min(4, (int)Math.Ceiling(Math.Sqrt(count))));
+        var tableList = FilteredTables.ToList();
 
-        double startX = 60;
-        double startY = 60;
-        double colWidth = 260;
-        double xSpacing = 140; // generous space for connection lines
-        double ySpacing = 40;
+        // 1. Calculate dependency layer for each table
+        // Parent tables (referenced by others, 0 outgoing foreign keys) -> Layer 0
+        // Dependent tables -> 1 + Max(parent layers)
+        var layers = new Dictionary<DiagramTableItem, int>();
+        var tableByName = tableList.ToDictionary(t => t.TableName, StringComparer.OrdinalIgnoreCase);
 
-        double[] colHeights = new double[cols];
-        for (int i = 0; i < cols; i++) colHeights[i] = startY;
-
-        for (int i = 0; i < count; i++)
+        List<DiagramTableItem> GetParents(DiagramTableItem t)
         {
-            var table = FilteredTables[i];
-
-            int bestCol = 0;
-            double minH = colHeights[0];
-            for (int c = 1; c < cols; c++)
+            var parents = new List<DiagramTableItem>();
+            foreach (var col in t.Columns)
             {
-                if (colHeights[c] < minH)
+                if (col.IsForeignKey && !string.IsNullOrWhiteSpace(col.ReferencedTable) &&
+                    tableByName.TryGetValue(col.ReferencedTable, out var parent) && parent != t)
                 {
-                    minH = colHeights[c];
-                    bestCol = c;
+                    if (!parents.Contains(parent)) parents.Add(parent);
                 }
             }
+            foreach (var relStr in t.OutgoingRelations)
+            {
+                var parts = relStr.Split(new[] { "->" }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length == 2)
+                {
+                    var tgtName = parts[1].Trim().Split('.')[0].Trim();
+                    if (tableByName.TryGetValue(tgtName, out var parent) && parent != t)
+                    {
+                        if (!parents.Contains(parent)) parents.Add(parent);
+                    }
+                }
+            }
+            return parents;
+        }
 
-            double estimatedHeight = 36 + 10 + Math.Min(table.Columns.Count, 12) * 24 + (table.OutgoingRelations.Count > 0 ? 28 : 0);
+        int ComputeLayer(DiagramTableItem t, HashSet<DiagramTableItem> visited)
+        {
+            if (layers.TryGetValue(t, out int cached)) return cached;
+            if (visited.Contains(t)) return 0; // Break circular dependency cycle
 
-            table.X = startX + bestCol * (colWidth + xSpacing);
-            table.Y = colHeights[bestCol];
-            table.Width = colWidth;
-            table.Height = estimatedHeight;
+            visited.Add(t);
+            var parents = GetParents(t);
+            int layer = 0;
+            if (parents.Count > 0)
+            {
+                int maxParent = 0;
+                foreach (var p in parents)
+                {
+                    maxParent = Math.Max(maxParent, ComputeLayer(p, visited));
+                }
+                layer = maxParent + 1;
+            }
+            visited.Remove(t);
+            layers[t] = layer;
+            return layer;
+        }
 
-            colHeights[bestCol] += estimatedHeight + ySpacing;
+        foreach (var t in tableList)
+        {
+            ComputeLayer(t, new HashSet<DiagramTableItem>());
+        }
+
+        // 2. Group tables by dependency layer
+        var layerGroups = tableList
+            .GroupBy(t => layers.GetValueOrDefault(t, 0))
+            .OrderBy(g => g.Key)
+            .Select(g => g.OrderBy(t => t.TableName).ToList())
+            .ToList();
+
+        // 3. Balance columns so no column becomes excessively tall
+        var finalColumns = new List<List<DiagramTableItem>>();
+        int maxPerCol = Math.Max(3, (int)Math.Ceiling((double)count / 4.0));
+
+        foreach (var group in layerGroups)
+        {
+            if (group.Count <= maxPerCol)
+            {
+                finalColumns.Add(group);
+            }
+            else
+            {
+                for (int i = 0; i < group.Count; i += maxPerCol)
+                {
+                    finalColumns.Add(group.Skip(i).Take(maxPerCol).ToList());
+                }
+            }
+        }
+
+        // If there are too many columns (> 5), merge sparse adjacent columns
+        while (finalColumns.Count > 5)
+        {
+            int minSum = int.MaxValue;
+            int mergeIdx = 0;
+            for (int i = 0; i < finalColumns.Count - 1; i++)
+            {
+                int sum = finalColumns[i].Count + finalColumns[i + 1].Count;
+                if (sum < minSum)
+                {
+                    minSum = sum;
+                    mergeIdx = i;
+                }
+            }
+            finalColumns[mergeIdx].AddRange(finalColumns[mergeIdx + 1]);
+            finalColumns.RemoveAt(mergeIdx + 1);
+        }
+
+        // 4. Arrange tables by column with generous margins and padding
+        double startX = 60.0;
+        double startY = 60.0;
+        double colWidth = 260.0;
+        double xSpacing = 160.0; // Ample gutter for connection lines & badges
+        double ySpacing = 36.0;
+
+        for (int c = 0; c < finalColumns.Count; c++)
+        {
+            double curY = startY;
+            double curX = startX + c * (colWidth + xSpacing);
+
+            foreach (var table in finalColumns[c])
+            {
+                double estimatedHeight = 38.0 + 8.0 + Math.Min(table.Columns.Count, 11) * 20.0 + (table.OutgoingRelations.Count > 0 ? 28.0 : 0.0);
+
+                table.X = curX;
+                table.Y = curY;
+                table.Width = colWidth;
+                table.Height = estimatedHeight;
+
+                curY += estimatedHeight + ySpacing;
+            }
         }
 
         RecalculateRelationPoints();
@@ -509,49 +612,72 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
 
     public void RecalculateRelationPoints()
     {
-        foreach (var rel in Relations)
+        for (int i = 0; i < Relations.Count; i++)
         {
+            var rel = Relations[i];
             var src = rel.SourceTable;
             var tgt = rel.TargetTable;
+            rel.RelationIndex = i;
 
-            // Compute Y position at specific column or center of card
+            // 1. Accurately compute anchor Y on specific column row
+            // Table Card Header = ~38px, top padding/margin = ~6px.
+            // First column center is at Y + 54. Each subsequent column row is ~20px.
+            // Clamped to 10 to stay within card ScrollViewer viewport.
             int srcColIdx = src.Columns.ToList().FindIndex(c => c.ColumnName.Equals(rel.SourceColumn, StringComparison.OrdinalIgnoreCase));
-            double srcY = src.Y + 36 + 4 + (srcColIdx >= 0 ? srcColIdx * 24 + 12 : src.Height / 2);
+            double srcY = srcColIdx >= 0 
+                ? (src.Y + 54.0 + Math.Min(srcColIdx, 10) * 20.0) 
+                : (src.Y + (src.Height > 0 ? src.Height / 2.0 : 80.0));
 
             int tgtColIdx = tgt.Columns.ToList().FindIndex(c => c.ColumnName.Equals(rel.TargetColumn, StringComparison.OrdinalIgnoreCase));
-            double tgtY = tgt.Y + 36 + 4 + (tgtColIdx >= 0 ? tgtColIdx * 24 + 12 : tgt.Height / 2);
+            double tgtY = tgtColIdx >= 0 
+                ? (tgt.Y + 54.0 + Math.Min(tgtColIdx, 10) * 20.0) 
+                : (tgt.Y + (tgt.Height > 0 ? tgt.Height / 2.0 : 80.0));
 
-            // Compute X connection point (Right/Left edges)
+            double srcRight = src.X + src.Width;
+            double tgtRight = tgt.X + tgt.Width;
+
             double srcX, tgtX;
-            if (src.X + src.Width <= tgt.X)
+            int startDir, endDir;
+            double midX;
+
+            // Determine routing topology:
+            if (srcRight + 24.0 <= tgt.X)
             {
-                // Source is left of Target -> exit from right of Source, enter from left of Target
-                srcX = src.X + src.Width;
+                // Source is completely left of Target
+                // Exit right (+1), enter target's left edge moving right (+1)
+                srcX = srcRight;
                 tgtX = tgt.X;
+                startDir = 1;
+                endDir = 1;
+                midX = (srcX + tgtX) / 2.0;
             }
-            else if (tgt.X + tgt.Width <= src.X)
+            else if (tgtRight + 24.0 <= src.X)
             {
-                // Target is left of Source -> exit from left of Source, enter from right of Target
+                // Target is completely left of Source
+                // Exit left (-1), enter target's right edge moving left (-1)
                 srcX = src.X;
-                tgtX = tgt.X + tgt.Width;
+                tgtX = tgtRight;
+                startDir = -1;
+                endDir = -1;
+                midX = (srcX + tgtX) / 2.0;
             }
             else
             {
-                // Overlapping horizontally -> connect between outer edges
-                if (src.X < tgt.X)
-                {
-                    srcX = src.X + src.Width;
-                    tgtX = tgt.X + tgt.Width;
-                }
-                else
-                {
-                    srcX = src.X;
-                    tgtX = tgt.X;
-                }
+                // Horizontally overlapping (same column, or partially overlapping cards)
+                // Route along the right clearance gutter so the line loops cleanly around the outside
+                srcX = srcRight;
+                tgtX = tgtRight;
+                startDir = 1;  // exit right into gutter
+                endDir = -1;  // enter target right edge from gutter heading left
+                double maxRight = Math.Max(srcRight, tgtRight);
+                midX = maxRight + 36.0 + (i % 4) * 14.0;
             }
 
             rel.StartPoint = new Point(srcX, srcY);
             rel.EndPoint = new Point(tgtX, tgtY);
+            rel.StartDirection = startDir;
+            rel.EndDirection = endDir;
+            rel.MidX = midX;
         }
 
         RequestCanvasUpdate?.Invoke();
@@ -647,18 +773,8 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
 
         try
         {
-            if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
-            {
-                var clipboard = desktop.MainWindow?.Clipboard;
-                if (clipboard != null)
-                {
-                    await clipboard.SetTextAsync(mermaid);
-                    StatusMessage = "Mermaid ER Diagram copied to clipboard!";
-                    HasStatusMessage = true;
-                    return;
-                }
-            }
-            StatusMessage = "Mermaid ER Diagram generated!";
+            await ClipboardService.CopyTextAsync(mermaid);
+            StatusMessage = "Mermaid ER Diagram copied to clipboard!";
             HasStatusMessage = true;
         }
         catch
