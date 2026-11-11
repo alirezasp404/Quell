@@ -2212,6 +2212,43 @@ sealed class Program
             }
             Console.WriteLine($"[Success] Mapped preview generated with {vm.ImportModal.MappedPreviewRows.Count} preview rows!");
 
+            // Test Filtering & Graphical Status
+            vm.ImportModal.SetFilter("Mapped");
+            if (vm.ImportModal.FilteredColumnMappings.Count != mappedCount)
+            {
+                throw new Exception($"Expected {mappedCount} filtered mapped items, got {vm.ImportModal.FilteredColumnMappings.Count}");
+            }
+            Console.WriteLine($"[Success] Filter 'Mapped' verified with {vm.ImportModal.FilteredColumnMappings.Count} items!");
+
+            // Test Unlink
+            var firstMapped = vm.ImportModal.ColumnMappings.First(m => m.IsMapped);
+            firstMapped.Unlink();
+            if (firstMapped.IsMapped)
+            {
+                throw new Exception("Unlink failed to disconnect column!");
+            }
+            Console.WriteLine("[Success] Graphical Unlink action verified!");
+
+            // Test Map by Position (1:1)
+            vm.ImportModal.MapByPosition();
+            if (vm.ImportModal.MappedColumnsCount != 4)
+            {
+                throw new Exception($"MapByPosition expected 4 mapped columns, got {vm.ImportModal.MappedColumnsCount}");
+            }
+            Console.WriteLine("[Success] MapByPosition (1:1) successfully mapped 4 of 4 columns!");
+
+            // Test Smart Auto-Mapping with Persian Headers
+            string persianCsv = System.IO.Path.Combine(tempDir, "quell_persian_test.csv");
+            System.IO.File.WriteAllText(persianCsv, "شناسه,نام,ایمیل,حقوق\n201,کوروش,cyrus@persia.ir,99000", System.Text.Encoding.UTF8);
+            await vm.ImportModal.LoadSpreadsheetFileAsync(persianCsv);
+            vm.ImportModal.AutoMapColumns();
+            Console.WriteLine($"[Success] Persian Smart Auto-Map mapped {vm.ImportModal.MappedColumnsCount} of {vm.ImportModal.TotalTableColumnsCount} columns!");
+            if (vm.ImportModal.MappedColumnsCount < 3)
+            {
+                throw new Exception($"Persian AutoMap expected at least 3 mapped columns, got {vm.ImportModal.MappedColumnsCount}");
+            }
+            System.IO.File.Delete(persianCsv);
+
             // Test Modal Dismissal
             vm.ImportModal.CloseCommand.Execute(null);
             if (vm.ImportModal.IsOpen)

@@ -1,10 +1,10 @@
-﻿<UserControl xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Quell.ViewModels"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
-             mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="750"
+             mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="800"
              x:Class="Quell.Components.ImportDataModalComponent"
              x:DataType="vm:ImportDataModalViewModel"
              IsVisible="{Binding IsOpen}">
@@ -28,9 +28,9 @@
                 ClipToBounds="True"
                 Focusable="False" 
                 FocusAdorner="{x:Null}" 
-                BoxShadow="0 12 32 0 #40000000"
-                Width="880"
-                MaxHeight="680"
+                BoxShadow="0 16 40 0 #50000000"
+                Width="980"
+                MaxHeight="720"
                 HorizontalAlignment="Center" 
                 VerticalAlignment="Center">
             
@@ -47,24 +47,24 @@
                         <Border Grid.Column="0" 
                                 Background="#10B981" 
                                 CornerRadius="6" 
-                                Width="30" 
-                                Height="30" 
+                                Width="32" 
+                                Height="32" 
                                 Margin="0,0,12,0"
                                 VerticalAlignment="Center">
-                            <ui:FASymbolIcon Symbol="Download" FontSize="14" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <ui:FASymbolIcon Symbol="Download" FontSize="15" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
 
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <TextBlock Text="Import Data from Excel / CSV" 
                                            Foreground="{DynamicResource AppTextPrimaryBrush}" 
-                                           FontSize="14" 
+                                           FontSize="15" 
                                            FontWeight="Bold"/>
-                                <Border Background="#1510B981" BorderBrush="#3010B981" BorderThickness="1" CornerRadius="4" Padding="6,1" VerticalAlignment="Center">
-                                    <TextBlock Text="Visual Schema Mapper" FontSize="9" FontWeight="Bold" Foreground="#10B981"/>
+                                <Border Background="#1510B981" BorderBrush="#3510B981" BorderThickness="1" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                    <TextBlock Text="Graphical Pipeline &amp; Auto-Mapper" FontSize="9" FontWeight="Bold" Foreground="#10B981"/>
                                 </Border>
                             </StackPanel>
-                            <TextBlock Text="Connect spreadsheet columns graphically to table fields and bulk insert data" 
+                            <TextBlock Text="Visually connect spreadsheet columns to database table fields with live sample preview" 
                                        Foreground="{DynamicResource AppTextMutedBrush}" 
                                        FontSize="11" 
                                        Margin="0,2,0,0"/>
@@ -73,8 +73,8 @@
                         <Button Grid.Column="2" 
                                 Classes="classic-menu-btn" 
                                 Command="{Binding CloseCommand}"
-                                Padding="6,2" 
-                                MinHeight="24"
+                                Padding="8,4" 
+                                MinHeight="26"
                                 ToolTip.Tip="Close (Esc)">
                             <ui:FASymbolIcon Symbol="Dismiss" FontSize="11"/>
                         </Button>
@@ -115,23 +115,23 @@
                                     ToolTip.Tip="Generate and download empty Excel template matching this table for clients to fill">
                                 <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                     <ui:FASymbolIcon Symbol="Document" FontSize="11" Foreground="#10B981"/>
-                                    <TextBlock Text="Download Table Template" FontSize="11" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Download Template" FontSize="11" FontWeight="SemiBold"/>
                                 </StackPanel>
                             </Button>
 
-                            <!-- Refresh Table Columns -->
+                            <!-- Refresh / Auto-Map Action -->
                             <Button Grid.Column="3" 
                                     Classes="classic-tool-btn" 
                                     Height="30" 
                                     Padding="8,2"
                                     Command="{Binding AutoMapColumnsCommand}"
                                     ToolTip.Tip="Re-map columns automatically">
-                                <ui:FASymbolIcon Symbol="Sync" FontSize="11"/>
+                                <ui:FASymbolIcon Symbol="Sync" FontSize="11" Foreground="#38BDF8"/>
                             </Button>
                         </Grid>
 
-                        <!-- Row 2: File Browser & File Status -->
-                        <Grid Grid.Row="1" ColumnDefinitions="Auto, *, Auto" ColumnSpacing="10" VerticalAlignment="Center">
+                        <!-- Row 2: File Browser & Sheet Selector -->
+                        <Grid Grid.Row="1" ColumnDefinitions="Auto, *, Auto, Auto" ColumnSpacing="10" VerticalAlignment="Center">
                             <TextBlock Grid.Column="0" 
                                        Text="Spreadsheet:" 
                                        FontWeight="SemiBold" 
@@ -141,14 +141,24 @@
 
                             <TextBox Grid.Column="1" 
                                      Text="{Binding FilePath}" 
-                                     PlaceholderText="Select Excel (.xlsx) or CSV (.csv) file..." 
+                                     PlaceholderText="Select Excel (.xlsx) or CSV (.csv) file from disk..." 
                                      Height="30" 
                                      FontSize="11" 
                                      CornerRadius="4" 
                                      Padding="8,4" 
                                      IsReadOnly="True"/>
 
-                            <Button Grid.Column="2" 
+                            <!-- Sheet Selector if multiple sheets -->
+                            <ComboBox Grid.Column="2" 
+                                      ItemsSource="{Binding AvailableSheets}" 
+                                      SelectedItem="{Binding SelectedSheet}" 
+                                      Height="30" 
+                                      FontSize="11" 
+                                      CornerRadius="4" 
+                                      IsVisible="{Binding AvailableSheets.Count}"
+                                      ToolTip.Tip="Active Excel Sheet"/>
+
+                            <Button Grid.Column="3" 
                                     Classes="classic-tool-btn" 
                                     Height="30" 
                                     Padding="12,2"
@@ -180,9 +190,9 @@
                                         Command="{Binding SetTabCommand}" 
                                         CommandParameter="Mapping">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <ui:FASymbolIcon Symbol="Link" FontSize="10" Foreground="{DynamicResource AppAccentBrush}"/>
+                                        <ui:FASymbolIcon Symbol="Link" FontSize="11" Foreground="{DynamicResource AppAccentBrush}"/>
                                         <TextBlock Text="Visual Column Mapping" FontSize="11" FontWeight="SemiBold"/>
-                                        <Border Background="{DynamicResource AppBackgroundBrush}" CornerRadius="10" Padding="5,0" Margin="2,0,0,0">
+                                        <Border Background="{DynamicResource AppBackgroundBrush}" CornerRadius="10" Padding="6,1" Margin="2,0,0,0">
                                             <TextBlock Text="{Binding MappedColumnsCount, StringFormat='{}{0}'}" FontSize="10" FontWeight="Bold" Foreground="#10B981"/>
                                         </Border>
                                     </StackPanel>
@@ -195,9 +205,9 @@
                                         CommandParameter="ExcelPreview"
                                         IsEnabled="{Binding HasFileLoaded}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <ui:FASymbolIcon Symbol="Preview" FontSize="10"/>
+                                        <ui:FASymbolIcon Symbol="Preview" FontSize="11"/>
                                         <TextBlock Text="Excel Data Preview" FontSize="11"/>
-                                        <Border Background="{DynamicResource AppBackgroundBrush}" CornerRadius="10" Padding="5,0" Margin="2,0,0,0" IsVisible="{Binding HasFileLoaded}">
+                                        <Border Background="{DynamicResource AppBackgroundBrush}" CornerRadius="10" Padding="6,1" Margin="2,0,0,0" IsVisible="{Binding HasFileLoaded}">
                                             <TextBlock Text="{Binding TotalExcelRowsCount, StringFormat='{}{0:N0} rows'}" FontSize="9" Foreground="{DynamicResource AppTextMutedBrush}"/>
                                         </Border>
                                     </StackPanel>
@@ -210,7 +220,7 @@
                                         CommandParameter="ImportPreview"
                                         IsEnabled="{Binding HasFileLoaded}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <ui:FASymbolIcon Symbol="Document" FontSize="10"/>
+                                        <ui:FASymbolIcon Symbol="Document" FontSize="11"/>
                                         <TextBlock Text="Mapped Import Preview" FontSize="11"/>
                                     </StackPanel>
                                 </Button>
@@ -222,10 +232,21 @@
                                         Height="24" 
                                         Padding="8,1" 
                                         Command="{Binding AutoMapColumnsCommand}"
-                                        ToolTip.Tip="Automatically connect columns with matching or similar names">
+                                        ToolTip.Tip="Smart match columns by English &amp; Persian names, synonyms, and types">
                                     <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                                         <ui:FASymbolIcon Symbol="Sync" FontSize="9" Foreground="#38BDF8"/>
-                                        <TextBlock Text="Auto-Map by Name" FontSize="10"/>
+                                        <TextBlock Text="Smart Auto-Map" FontSize="10" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Classes="classic-tool-btn" 
+                                        Height="24" 
+                                        Padding="8,1" 
+                                        Command="{Binding MapByPositionCommand}"
+                                        ToolTip.Tip="Connect columns 1:1 in sequential order (ideal for templates)">
+                                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                        <ui:FASymbolIcon Symbol="Forward" FontSize="9" Foreground="#10B981"/>
+                                        <TextBlock Text="Map by Position" FontSize="10"/>
                                     </StackPanel>
                                 </Button>
 
@@ -234,122 +255,266 @@
                                         Padding="8,1" 
                                         Command="{Binding ClearMappingsCommand}"
                                         ToolTip.Tip="Clear all column connections">
-                                    <TextBlock Text="Clear Mappings" FontSize="10"/>
+                                    <TextBlock Text="Clear All" FontSize="10"/>
                                 </Button>
                             </StackPanel>
                         </Grid>
                     </Border>
 
                     <!-- TAB 1: VISUAL COLUMN MAPPING -->
-                    <Grid Grid.Row="1" IsVisible="{Binding IsMappingTab}">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="16,10">
-                            <StackPanel Spacing="6">
-                                
-                                <!-- Column List Header -->
-                                <Border Background="{DynamicResource AppSurfaceBrush}" 
-                                        BorderBrush="{DynamicResource AppBorderBrush}" 
+                    <Grid Grid.Row="1" IsVisible="{Binding IsMappingTab}" Margin="16,10">
+                        <Grid RowDefinitions="Auto, Auto, *">
+                            
+                            <!-- 1. Top Graphic Pipeline Source & Destination Overview -->
+                            <Grid Grid.Row="0" ColumnDefinitions="*, Auto, *" Margin="0,0,0,10" ColumnSpacing="12">
+                                <!-- Left Card: Database Table -->
+                                <Border Grid.Column="0" 
+                                        Background="{DynamicResource AppSurfaceBrush}" 
+                                        BorderBrush="#3038BDF8" 
                                         BorderThickness="1" 
-                                        CornerRadius="4" 
-                                        Padding="12,6" 
-                                        Margin="0,0,0,4">
-                                    <Grid ColumnDefinitions="260, 40, *, 120">
-                                        <TextBlock Grid.Column="0" Text="Target Table Column" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AppTextMutedBrush}"/>
-                                        <TextBlock Grid.Column="1" Text="" FontSize="10" HorizontalAlignment="Center"/>
-                                        <TextBlock Grid.Column="2" Text="Source Excel / CSV Column" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AppTextMutedBrush}"/>
-                                        <TextBlock Grid.Column="3" Text="Status" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AppTextMutedBrush}" HorizontalAlignment="Right"/>
+                                        CornerRadius="8" 
+                                        Padding="12,8">
+                                    <Grid ColumnDefinitions="Auto, *">
+                                        <Border Grid.Column="0" Background="#2038BDF8" CornerRadius="6" Width="32" Height="32" Margin="0,0,10,0">
+                                            <ui:FASymbolIcon Symbol="Document" FontSize="14" Foreground="#38BDF8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                                            <TextBlock Text="TARGET DATABASE TABLE" FontSize="8" FontWeight="Bold" Foreground="#38BDF8"/>
+                                            <TextBlock Text="{Binding SelectedTable, FallbackValue='(No Table Selected)'}" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding TotalTableColumnsCount, StringFormat='{}{0} Target Columns'}" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                        </StackPanel>
                                     </Grid>
                                 </Border>
 
-                                <!-- Mapping Rows -->
-                                <ItemsControl ItemsSource="{Binding ColumnMappings}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="vm:ImportColumnMappingItem">
-                                            <Border Background="{DynamicResource AppSurfaceBrush}" 
-                                                    BorderBrush="{DynamicResource AppBorderBrush}" 
-                                                    BorderThickness="1" 
-                                                    CornerRadius="6" 
-                                                    Padding="12,8" 
-                                                    Margin="0,2">
-                                                <Grid ColumnDefinitions="260, 40, *, 120" VerticalAlignment="Center">
-                                                    
-                                                    <!-- Left: Target Table Column -->
-                                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                                        <!-- PK / Required Badge -->
-                                                        <Border Background="{Binding PkBadgeColor}" CornerRadius="3" Padding="4,1" Width="36" HorizontalAlignment="Center">
-                                                            <TextBlock Text="{Binding PkBadgeText}" FontSize="8" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
-                                                        </Border>
-
-                                                        <!-- Column Name & Data Type -->
-                                                        <StackPanel VerticalAlignment="Center" Spacing="1">
-                                                            <TextBlock Text="{Binding TargetColumnName}" 
-                                                                       FontSize="11" 
-                                                                       FontWeight="Bold" 
-                                                                       Foreground="{DynamicResource AppTextPrimaryBrush}"/>
-                                                            <TextBlock Text="{Binding DataType}" 
-                                                                       FontSize="9" 
-                                                                       Foreground="{DynamicResource AppTextMutedBrush}"/>
-                                                        </StackPanel>
-                                                    </StackPanel>
-
-                                                    <!-- Center: High-Tech Connector -->
-                                                    <Border Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                        <ui:FASymbolIcon Symbol="Forward" FontSize="10" Foreground="{Binding StatusForeground}"/>
-                                                    </Border>
-
-                                                    <!-- Right: Excel Column Selector -->
-                                                    <Grid Grid.Column="2" ColumnDefinitions="*, Auto" ColumnSpacing="6" VerticalAlignment="Center">
-                                                        <ComboBox Grid.Column="0" 
-                                                                  ItemsSource="{Binding AvailableExcelColumns}" 
-                                                                  SelectedItem="{Binding SelectedExcelColumn}" 
-                                                                  HorizontalAlignment="Stretch" 
-                                                                  Height="28" 
-                                                                  FontSize="11" 
-                                                                  CornerRadius="4"/>
-
-                                                        <!-- Constant Value Input (Visible when selected option is Constant) -->
-                                                        <TextBox Grid.Column="1" 
-                                                                 Width="120" 
-                                                                 Height="28" 
-                                                                 FontSize="11" 
-                                                                 CornerRadius="4" 
-                                                                 PlaceholderText="Value..." 
-                                                                 Text="{Binding ConstantValue}" 
-                                                                 IsVisible="{Binding IsConstant}"/>
-                                                    </Grid>
-
-                                                    <!-- Status Badge -->
-                                                    <Border Grid.Column="3" 
-                                                            Background="{Binding StatusBackground}" 
-                                                            CornerRadius="4" 
-                                                            Padding="6,2" 
-                                                            HorizontalAlignment="Right" 
-                                                            VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding StatusBadge}" 
-                                                                   FontSize="10" 
-                                                                   FontWeight="SemiBold" 
-                                                                   Foreground="{Binding StatusForeground}"/>
-                                                    </Border>
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-
-                                <!-- Empty State when no table selected -->
-                                <Border Background="{DynamicResource AppSurfaceBrush}" 
-                                        BorderBrush="{DynamicResource AppBorderBrush}" 
-                                        BorderThickness="1" 
-                                        CornerRadius="6" 
-                                        Padding="30" 
-                                        IsVisible="{Binding !ColumnMappings.Count}">
-                                    <StackPanel HorizontalAlignment="Center" Spacing="6">
-                                        <ui:FASymbolIcon Symbol="Document" FontSize="24" Foreground="{DynamicResource AppTextMutedBrush}" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="No table schema loaded" FontWeight="Bold" FontSize="12" HorizontalAlignment="Center" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                                        <TextBlock Text="Please choose a target table from the dropdown above" FontSize="11" HorizontalAlignment="Center" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                <!-- Center Flow Bridge Pill -->
+                                <Border Grid.Column="1" VerticalAlignment="Center" Padding="10,6" Background="{DynamicResource AppSurfaceBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="20">
+                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                        <ui:FASymbolIcon Symbol="Link" FontSize="12" Foreground="#10B981"/>
+                                        <TextBlock Text="{Binding MappedColumnsCount, StringFormat='{}{0}'}" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
+                                        <TextBlock Text="of" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                        <TextBlock Text="{Binding TotalTableColumnsCount, StringFormat='{}{0} Connected'}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                                        <Border Background="#2010B981" CornerRadius="8" Padding="6,1" Margin="4,0,0,0">
+                                            <TextBlock Text="{Binding MappedPercentage, StringFormat='{}{0}%'}" FontSize="9" FontWeight="Bold" Foreground="#10B981"/>
+                                        </Border>
                                     </StackPanel>
                                 </Border>
-                            </StackPanel>
-                        </ScrollViewer>
+
+                                <!-- Right Card: Excel Source -->
+                                <Border Grid.Column="2" 
+                                        Background="{DynamicResource AppSurfaceBrush}" 
+                                        BorderBrush="#3010B981" 
+                                        BorderThickness="1" 
+                                        CornerRadius="8" 
+                                        Padding="12,8">
+                                    <Grid ColumnDefinitions="Auto, *">
+                                        <Border Grid.Column="0" Background="#2010B981" CornerRadius="6" Width="32" Height="32" Margin="0,0,10,0">
+                                            <ui:FASymbolIcon Symbol="Download" FontSize="14" Foreground="#10B981" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                                            <TextBlock Text="SPREADSHEET SOURCE" FontSize="8" FontWeight="Bold" Foreground="#10B981"/>
+                                            <TextBlock Text="{Binding FileName, FallbackValue='(No File Selected)'}" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding TotalExcelRowsCount, StringFormat='{}{0:N0} Data Rows Available'}" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+
+                            <!-- 2. Filter Bar & Quick Counters -->
+                            <Grid Grid.Row="1" ColumnDefinitions="Auto, *, Auto" Margin="0,0,0,8" VerticalAlignment="Center">
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6">
+                                    <Button Classes="classic-tab-btn" Height="24" Padding="8,1" Command="{Binding SetFilterCommand}" CommandParameter="All">
+                                        <TextBlock Text="{Binding TotalTableColumnsCount, StringFormat='All ({0})'}" FontSize="10" FontWeight="SemiBold"/>
+                                    </Button>
+                                    <Button Classes="classic-tab-btn" Height="24" Padding="8,1" Command="{Binding SetFilterCommand}" CommandParameter="Mapped">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <Border Background="#10B981" Width="6" Height="6" CornerRadius="3"/>
+                                            <TextBlock Text="{Binding MappedColumnsCount, StringFormat='Connected ({0})'}" FontSize="10" FontWeight="SemiBold" Foreground="#10B981"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Classes="classic-tab-btn" Height="24" Padding="8,1" Command="{Binding SetFilterCommand}" CommandParameter="Unmapped">
+                                        <TextBlock Text="{Binding UnmappedColumnsCount, StringFormat='Unmapped ({0})'}" FontSize="10" FontWeight="SemiBold"/>
+                                    </Button>
+                                    <Button Classes="classic-tab-btn" Height="24" Padding="8,1" Command="{Binding SetFilterCommand}" CommandParameter="Required">
+                                        <TextBlock Text="{Binding RequiredColumnsCount, StringFormat='Required ({0})'}" FontSize="10" FontWeight="SemiBold" Foreground="#F59E0B"/>
+                                    </Button>
+                                </StackPanel>
+
+                                <!-- Column Headers Summary -->
+                                <Grid Grid.Column="2" ColumnDefinitions="Auto, Auto, Auto" ColumnSpacing="16" VerticalAlignment="Center">
+                                    <TextBlock Text="Target Field" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                    <TextBlock Grid.Column="1" Text="Pipeline Link" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                    <TextBlock Grid.Column="2" Text="Source Column &amp; Sample" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                </Grid>
+                            </Grid>
+
+                            <!-- 3. Mapping Cards Scroll Area -->
+                            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Spacing="6">
+                                    
+                                    <ItemsControl ItemsSource="{Binding FilteredColumnMappings}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="vm:ImportColumnMappingItem">
+                                                <!-- Graphical 3-Part Mapping Card -->
+                                                <Border Background="{DynamicResource AppSurfaceBrush}" 
+                                                        BorderBrush="{Binding CardBorderBrush}" 
+                                                        BorderThickness="1.5" 
+                                                        CornerRadius="8" 
+                                                        Padding="12,8" 
+                                                        Margin="0,2"
+                                                        BoxShadow="0 2 6 0 #10000000">
+                                                    <Grid ColumnDefinitions="300, 130, *" VerticalAlignment="Center">
+                                                        
+                                                        <!-- 1. Left Box: Target Database Column -->
+                                                        <Border Grid.Column="0" 
+                                                                Background="{DynamicResource AppBackgroundBrush}" 
+                                                                BorderBrush="{DynamicResource AppBorderBrush}" 
+                                                                BorderThickness="1" 
+                                                                CornerRadius="6" 
+                                                                Padding="10,6">
+                                                            <Grid ColumnDefinitions="Auto, *, Auto" VerticalAlignment="Center">
+                                                                <!-- PK / Required Badge -->
+                                                                <Border Grid.Column="0" Background="{Binding PkBadgeColor}" CornerRadius="4" Padding="5,2" Margin="0,0,8,0" VerticalAlignment="Center">
+                                                                    <TextBlock Text="{Binding PkBadgeText}" FontSize="8" FontWeight="Bold" Foreground="White"/>
+                                                                </Border>
+
+                                                                <!-- Column Name and Data Type -->
+                                                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                                                                    <TextBlock Text="{Binding TargetColumnName}" 
+                                                                               FontSize="12" 
+                                                                               FontWeight="Bold" 
+                                                                               Foreground="{DynamicResource AppTextPrimaryBrush}"
+                                                                               TextTrimming="CharacterEllipsis"/>
+                                                                    <Border Background="{Binding DataTypeBadgeColor}" CornerRadius="3" Padding="4,0" HorizontalAlignment="Left" Margin="0,2,0,0">
+                                                                        <TextBlock Text="{Binding DataType}" FontSize="8" FontWeight="Bold" Foreground="White"/>
+                                                                    </Border>
+                                                                </StackPanel>
+
+                                                                <!-- Visual Node Port (Right edge) -->
+                                                                <Ellipse Grid.Column="2" 
+                                                                         Width="12" 
+                                                                         Height="12" 
+                                                                         Fill="{Binding NodeColor}" 
+                                                                         Stroke="{DynamicResource AppBorderBrush}" 
+                                                                         StrokeThickness="1.5"
+                                                                         Margin="6,0,0,0"
+                                                                         VerticalAlignment="Center"/>
+                                                            </Grid>
+                                                        </Border>
+
+                                                        <!-- 2. Center Box: Glowing Connection Wire & Status -->
+                                                        <Grid Grid.Column="1" VerticalAlignment="Center" Margin="6,0">
+                                                            <!-- Wire Line -->
+                                                            <Rectangle Height="2" Fill="{Binding NodeColor}" VerticalAlignment="Center" HorizontalAlignment="Stretch"/>
+
+                                                            <!-- Connection Badge Pill & Action -->
+                                                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                                                                <Border Background="{Binding StatusBackground}" 
+                                                                        BorderBrush="{Binding StatusForeground}" 
+                                                                        BorderThickness="1" 
+                                                                        CornerRadius="10" 
+                                                                        Padding="6,1"
+                                                                        HorizontalAlignment="Center">
+                                                                    <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
+                                                                        <ui:FASymbolIcon Symbol="Forward" FontSize="7" Foreground="{Binding StatusForeground}"/>
+                                                                        <TextBlock Text="{Binding StatusBadge}" FontSize="8" FontWeight="Bold" Foreground="{Binding StatusForeground}"/>
+                                                                    </StackPanel>
+                                                                </Border>
+
+                                                                <!-- Disconnect / Unlink button -->
+                                                                <Button Classes="classic-menu-btn" 
+                                                                        Command="{Binding UnlinkCommand}"
+                                                                        Height="18" 
+                                                                        Padding="4,0" 
+                                                                        HorizontalAlignment="Center"
+                                                                        IsVisible="{Binding IsMapped}"
+                                                                        ToolTip.Tip="Disconnect this mapping">
+                                                                    <ui:FASymbolIcon Symbol="Dismiss" FontSize="8" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                                                </Button>
+                                                            </StackPanel>
+                                                        </Grid>
+
+                                                        <!-- 3. Right Box: Excel Source Column & Live Sample Value -->
+                                                        <Border Grid.Column="2" 
+                                                                Background="{DynamicResource AppBackgroundBrush}" 
+                                                                BorderBrush="{DynamicResource AppBorderBrush}" 
+                                                                BorderThickness="1" 
+                                                                CornerRadius="6" 
+                                                                Padding="10,6">
+                                                            <Grid ColumnDefinitions="Auto, *" VerticalAlignment="Center">
+                                                                <!-- Visual Node Port (Left edge) -->
+                                                                <Ellipse Grid.Column="0" 
+                                                                         Width="12" 
+                                                                         Height="12" 
+                                                                         Fill="{Binding NodeColor}" 
+                                                                         Stroke="{DynamicResource AppBorderBrush}" 
+                                                                         StrokeThickness="1.5"
+                                                                         Margin="0,0,8,0"
+                                                                         VerticalAlignment="Center"/>
+
+                                                                <!-- Dropdown & Live Sample Preview -->
+                                                                <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                                                                    <Grid ColumnDefinitions="*, Auto" ColumnSpacing="6">
+                                                                        <!-- Column Selector ComboBox -->
+                                                                        <ComboBox Grid.Column="0" 
+                                                                                  ItemsSource="{Binding AvailableExcelColumns}" 
+                                                                                  SelectedItem="{Binding SelectedExcelColumn}" 
+                                                                                  HorizontalAlignment="Stretch" 
+                                                                                  Height="28" 
+                                                                                  FontSize="11" 
+                                                                                  CornerRadius="4"/>
+
+                                                                        <!-- Constant Value input if Constant option is chosen -->
+                                                                        <TextBox Grid.Column="1" 
+                                                                                 Width="120" 
+                                                                                 Height="28" 
+                                                                                 FontSize="11" 
+                                                                                 CornerRadius="4" 
+                                                                                 PlaceholderText="Constant value..." 
+                                                                                 Text="{Binding ConstantValue}" 
+                                                                                 IsVisible="{Binding IsConstant}"/>
+                                                                    </Grid>
+
+                                                                    <!-- Live Sample Value Preview Pill -->
+                                                                    <Border Background="{DynamicResource AppSurfaceBrush}" 
+                                                                            BorderBrush="{DynamicResource AppBorderBrush}" 
+                                                                            BorderThickness="1" 
+                                                                            CornerRadius="4" 
+                                                                            Padding="6,2">
+                                                                        <Grid ColumnDefinitions="Auto, *">
+                                                                            <ui:FASymbolIcon Grid.Column="0" Symbol="Preview" FontSize="9" Foreground="#10B981" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                                            <TextBlock Grid.Column="1" 
+                                                                                       Text="{Binding SamplePreviewValue}" 
+                                                                                       FontSize="9" 
+                                                                                       Foreground="{DynamicResource AppTextPrimaryBrush}" 
+                                                                                       TextTrimming="CharacterEllipsis" 
+                                                                                       VerticalAlignment="Center"/>
+                                                                        </Grid>
+                                                                    </Border>
+                                                                </StackPanel>
+                                                            </Grid>
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <!-- Empty State when no table is selected -->
+                                    <Border Background="{DynamicResource AppSurfaceBrush}" 
+                                            BorderBrush="{DynamicResource AppBorderBrush}" 
+                                            BorderThickness="1" 
+                                            CornerRadius="6" 
+                                            Padding="36" 
+                                            IsVisible="{Binding !FilteredColumnMappings.Count}">
+                                        <StackPanel HorizontalAlignment="Center" Spacing="8">
+                                            <ui:FASymbolIcon Symbol="Document" FontSize="28" Foreground="{DynamicResource AppTextMutedBrush}" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="No columns match the current filter" FontWeight="Bold" FontSize="13" HorizontalAlignment="Center" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                                            <TextBlock Text="Select a target table or choose 'All' from the filter chips above" FontSize="11" HorizontalAlignment="Center" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
                     </Grid>
 
                     <!-- TAB 2: EXCEL DATA PREVIEW -->
