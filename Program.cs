@@ -2433,6 +2433,42 @@ sealed class Program
             }
             Console.WriteLine("[Success] SampleQueryResult footer table verified to reflect newly imported rows!");
 
+            // 8. Test Overwrite (Upsert / Update Existing) mode:
+            // Prepare an updated CSV file with updated values (higher salary for id=1 and a brand new 4th employee)
+            string overwriteCsvPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "test_employees_overwrite.csv");
+            System.IO.File.WriteAllText(overwriteCsvPath, "id,full_name,email,salary\n1,Ehsan Nazari,ehsan@quell.app,200000\n4,Ali Moradi,ali@quell.app,180000\n", System.Text.Encoding.UTF8);
+
+            vm.OpenImportModalForTable("Import_Employees");
+            await vm.ImportModal.LoadSpreadsheetFileAsync(overwriteCsvPath);
+            vm.ImportModal.AutoMapColumns();
+            vm.ImportModal.SelectedImportMode = "Overwrite (Update Existing)";
+            vm.ImportModal.SelectedKeyColumn = "id";
+
+            if (!vm.ImportModal.IsOverwriteMode)
+            {
+                throw new Exception("IsOverwriteMode failed to return true for 'Overwrite (Update Existing)'!");
+            }
+
+            await vm.ImportModal.ExecuteImportCommand.ExecuteAsync(null);
+            if (!vm.ImportModal.IsSuccess)
+            {
+                throw new Exception($"ExecuteImportCommand in Overwrite mode failed! Status: '{vm.ImportModal.StatusMessage}'");
+            }
+
+            var queryOverwritten = await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.ExecuteQueryAsync("SELECT id, full_name, email, salary FROM Import_Employees ORDER BY id;");
+            if (!queryOverwritten.Success || queryOverwritten.Rows.Count != 4)
+            {
+                throw new Exception($"Overwrite verification failed! Expected 4 total rows in Import_Employees table, but got {queryOverwritten.Rows.Count} (Success: {queryOverwritten.Success}, Msg: {queryOverwritten.Message})");
+            }
+
+            double sal1 = Convert.ToDouble(queryOverwritten.Rows[0]["salary"]);
+            if (Math.Abs(sal1 - 200000) > 0.01)
+            {
+                throw new Exception($"Overwrite failed! Expected salary 200000 for id=1, but got {sal1}");
+            }
+            Console.WriteLine($"[Success] Overwrite / Update Existing verified! Row 1 updated to salary {sal1:N0}, Row 4 inserted!");
+            System.IO.File.Delete(overwriteCsvPath);
+
             // Cleanup
             System.IO.File.Delete(importCsvPath);
             await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.DisconnectAsync(importDbConfig.ConnectionKey);

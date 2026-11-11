@@ -375,9 +375,39 @@ public partial class ImportDataModalViewModel : ViewModelBase
 
     public string StatusColor => IsSuccess ? "#10B981" : "#EF4444";
 
+    public List<string> ImportModes { get; } = new()
+    {
+        "Append (New Records)",
+        "Overwrite (Update Existing)",
+        "Truncate & Replace"
+    };
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsOverwriteMode))]
+    [NotifyPropertyChangedFor(nameof(IsTruncateMode))]
+    [NotifyPropertyChangedFor(nameof(ImportButtonText))]
+    private string _selectedImportMode = "Append (New Records)";
+
+    public bool IsOverwriteMode => SelectedImportMode.StartsWith("Overwrite", StringComparison.OrdinalIgnoreCase);
+    public bool IsTruncateMode => SelectedImportMode.StartsWith("Truncate", StringComparison.OrdinalIgnoreCase);
+
+    public string ImportButtonText => IsOverwriteMode 
+        ? "Overwrite / Update Table" 
+        : (IsTruncateMode ? "Truncate & Import" : "Import Data into Table");
+
+    public ObservableCollection<string> AvailableKeyColumns { get; } = new();
+
+    [ObservableProperty]
+    private string _selectedKeyColumn = string.Empty;
+
+    partial void OnSelectedImportModeChanged(string value)
+    {
+        TruncateBeforeImport = IsTruncateMode;
+    }
+
     // Callbacks provided by MainViewModel
     public Func<string, Task<List<(string ColumnName, string DataType, bool IsPk, bool IsRequired)>>>? LoadTableColumnsCallback { get; set; }
-    public Func<string, List<ImportColumnMappingItem>, List<List<string>>, bool, bool, int, Action<int, int>, Task<(bool Success, string Message, int RowsImported)>>? PerformImportCallback { get; set; }
+    public Func<string, List<ImportColumnMappingItem>, List<List<string>>, string, string, bool, int, Action<int, int>, Task<(bool Success, string Message, int RowsImported)>>? PerformImportCallback { get; set; }
 
     public ImportDataModalViewModel()
     {
@@ -555,10 +585,18 @@ public partial class ImportDataModalViewModel : ViewModelBase
         {
             var cols = await LoadTableColumnsCallback(tableName);
             ColumnMappings.Clear();
+            AvailableKeyColumns.Clear();
+            string? defaultKey = null;
 
             for (int i = 0; i < cols.Count; i++)
             {
                 var col = cols[i];
+                AvailableKeyColumns.Add(col.ColumnName);
+                if (col.IsPk && defaultKey == null)
+                {
+                    defaultKey = col.ColumnName;
+                }
+
                 var item = new ImportColumnMappingItem
                 {
                     TargetColumnName = col.ColumnName,
@@ -581,6 +619,18 @@ public partial class ImportDataModalViewModel : ViewModelBase
                 PopulateColumnDropdown(item);
                 ColumnMappings.Add(item);
             }
+
+            if (defaultKey == null)
+            {
+                defaultKey = AvailableKeyColumns.FirstOrDefault(c => 
+                    c.Equals("id", StringComparison.OrdinalIgnoreCase) || 
+                    c.EndsWith("_id", StringComparison.OrdinalIgnoreCase) ||
+                    c.Contains("code", StringComparison.OrdinalIgnoreCase) ||
+                    c.Contains("date", StringComparison.OrdinalIgnoreCase)) 
+                    ?? AvailableKeyColumns.FirstOrDefault() 
+                    ?? string.Empty;
+            }
+            SelectedKeyColumn = defaultKey ?? string.Empty;
 
             TotalTableColumnsCount = ColumnMappings.Count;
 
@@ -1022,10 +1072,30 @@ public partial class ImportDataModalViewModel : ViewModelBase
             return;
         }
 
+        if (IsOverwriteMode)
+        {
+            if (string.IsNullOrWhiteSpace(SelectedKeyColumn))
+            {
+                StatusMessage = "Please select a Key / Match column for Overwrite mode.";
+                HasStatusMessage = true;
+                IsSuccess = false;
+                return;
+            }
+
+            var keyMapping = mappedCols.FirstOrDefault(m => m.TargetColumnName.Equals(SelectedKeyColumn, StringComparison.OrdinalIgnoreCase));
+            if (keyMapping == null)
+            {
+                StatusMessage = $"Match column '{SelectedKeyColumn}' must be mapped to an Excel column for Overwrite mode.";
+                HasStatusMessage = true;
+                IsSuccess = false;
+                return;
+            }
+        }
+
         IsImporting = true;
         ImportProgress = 0.0;
-        ImportProgressText = "Preparing bulk insert statements...";
-        StatusMessage = "Importing data into database...";
+        ImportProgressText = IsOverwriteMode ? "Preparing bulk upsert (overwrite) statements..." : "Preparing bulk insert statements...";
+        StatusMessage = IsOverwriteMode ? "Overwriting/updating data in database..." : "Importing data into database...";
         HasStatusMessage = true;
 
         try
@@ -1036,14 +1106,15 @@ public partial class ImportDataModalViewModel : ViewModelBase
                     SelectedTable,
                     mappedCols,
                     AllRawRows,
-                    TruncateBeforeImport,
+                    SelectedImportMode,
+                    SelectedKeyColumn,
                     SkipErrors,
                     BatchSize,
                     (imported, total) =>
                     {
                         double p = total > 0 ? (double)imported / total * 100.0 : 0;
                         ImportProgress = p;
-                        ImportProgressText = $"Imported {imported:N0} of {total:N0} rows ({p:F0}%)...";
+                        ImportProgressText = $"Processed {imported:N0} of {total:N0} rows ({p:F0}%)...";
                     });
 
                 IsImporting = false;

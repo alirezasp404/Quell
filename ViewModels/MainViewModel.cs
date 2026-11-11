@@ -82,9 +82,9 @@ public partial class MainViewModel : ViewModelBase
         {
             return await ExecuteDataExportAsync(source, tableName, includeHeaders, filePath);
         };
-        _importModal.PerformImportCallback = async (tableName, mappedCols, rawRows, truncateBefore, skipErrors, batchSize, progress) =>
+        _importModal.PerformImportCallback = async (tableName, mappedCols, rawRows, importMode, keyColumn, skipErrors, batchSize, progress) =>
         {
-            return await ExecuteDataImportAsync(tableName, mappedCols, rawRows, truncateBefore, skipErrors, batchSize, progress);
+            return await ExecuteDataImportAsync(tableName, mappedCols, rawRows, importMode, keyColumn, skipErrors, batchSize, progress);
         };
 
         _importModal.LoadTableColumnsCallback = async tableName =>
@@ -1589,7 +1589,8 @@ public partial class MainViewModel : ViewModelBase
         string tableName,
         List<ImportColumnMappingItem> mappedCols,
         List<List<string>> rawRows,
-        bool truncateBefore,
+        string importMode,
+        string keyColumn,
         bool skipErrors,
         int batchSize,
         Action<int, int> progressCallback)
@@ -1650,9 +1651,12 @@ public partial class MainViewModel : ViewModelBase
 
         string quotedTarget = QuoteTable(tableName);
 
+        bool isTruncate = importMode.StartsWith("Truncate", StringComparison.OrdinalIgnoreCase);
+        bool isOverwrite = importMode.StartsWith("Overwrite", StringComparison.OrdinalIgnoreCase);
+
         try
         {
-            if (truncateBefore)
+            if (isTruncate)
             {
                 string deleteSql = dbType.ToUpperInvariant() is "SQLITE"
                     ? $"DELETE FROM {quotedTarget};"
@@ -1668,95 +1672,116 @@ public partial class MainViewModel : ViewModelBase
             var targetColsList = mappedCols.Select(m => QuoteCol(m.TargetColumnName)).ToList();
             string colsSql = string.Join(", ", targetColsList);
 
+            var keyMapping = mappedCols.FirstOrDefault(m => m.TargetColumnName.Equals(keyColumn, StringComparison.OrdinalIgnoreCase))
+                ?? mappedCols.FirstOrDefault(m => m.IsPrimaryKey)
+                ?? mappedCols.First();
+            string quotedKey = QuoteCol(keyMapping.TargetColumnName);
+            int keyColIndex = mappedCols.IndexOf(keyMapping);
+
             int totalRows = rawRows.Count;
             int importedRows = 0;
             int errorRows = 0;
 
-            int effectiveBatchSize = Math.Max(10, Math.Min(500, batchSize));
+            int effectiveBatchSize = isOverwrite ? Math.Max(5, Math.Min(50, batchSize)) : Math.Max(10, Math.Min(500, batchSize));
 
             for (int i = 0; i < totalRows; i += effectiveBatchSize)
             {
                 var chunk = rawRows.Skip(i).Take(effectiveBatchSize).ToList();
-                var batchValues = new List<string>();
 
-                foreach (var row in chunk)
+                if (isOverwrite)
                 {
-                    var rowVals = new List<string>();
-                    foreach (var mapping in mappedCols)
+                    var batchStatements = new List<string>();
+                    foreach (var row in chunk)
                     {
-                        string rawVal = string.Empty;
-                        if (mapping.IsConstant)
+                        var rowVals = ExtractRowValues(row, mappedCols, dbType);
+                        string keyVal = rowVals[keyColIndex];
+
+                        if (keyVal == "NULL")
                         {
-                            rawVal = mapping.ConstantValue;
-                        }
-                        else
-                        {
-                            int excelIdx = ExtractExcelColumnIndex(mapping.SelectedExcelColumn);
-                            if (excelIdx >= 0 && excelIdx < row.Count)
-                            {
-                                rawVal = row[excelIdx];
-                            }
+                            batchStatements.Add($"INSERT INTO {quotedTarget} ({colsSql}) VALUES ({string.Join(", ", rowVals)});");
+                            continue;
                         }
 
-                        if (string.IsNullOrWhiteSpace(rawVal) || rawVal.Trim().Equals("NULL", StringComparison.OrdinalIgnoreCase))
+                        var updateAssignments = new List<string>();
+                        for (int c = 0; c < mappedCols.Count; c++)
                         {
-                            rowVals.Add("NULL");
+                            if (c == keyColIndex) continue;
+                            updateAssignments.Add($"{QuoteCol(mappedCols[c].TargetColumnName)} = {rowVals[c]}");
+                        }
+
+                        if (updateAssignments.Count > 0)
+                        {
+                            string updateStmt = $"UPDATE {quotedTarget} SET {string.Join(", ", updateAssignments)} WHERE {quotedKey} = {keyVal};";
+                            string insertStmt = $"INSERT INTO {quotedTarget} ({colsSql}) SELECT {string.Join(", ", rowVals)} WHERE NOT EXISTS (SELECT 1 FROM {quotedTarget} WHERE {quotedKey} = {keyVal});";
+                            batchStatements.Add($"{updateStmt}\n{insertStmt}");
                         }
                         else
                         {
-                            rawVal = rawVal.Trim();
-                            string dt = (mapping.DataType ?? string.Empty).ToUpperInvariant();
-                            if ((dt.Contains("INT") || dt.Contains("DECIMAL") || dt.Contains("NUMERIC") || dt.Contains("FLOAT") || dt.Contains("DOUBLE") || dt.Contains("REAL"))
-                                && decimal.TryParse(rawVal, NumberStyles.Any, CultureInfo.InvariantCulture, out var numVal))
+                            string insertStmt = $"INSERT INTO {quotedTarget} ({colsSql}) SELECT {string.Join(", ", rowVals)} WHERE NOT EXISTS (SELECT 1 FROM {quotedTarget} WHERE {quotedKey} = {keyVal});";
+                            batchStatements.Add(insertStmt);
+                        }
+                    }
+
+                    if (batchStatements.Count > 0)
+                    {
+                        string batchSql = string.Join("\n", batchStatements);
+                        var res = await DatabaseSessionService.Instance.ExecuteQueryAsync(batchSql, sessionKey);
+                        if (res.Success)
+                        {
+                            importedRows += chunk.Count;
+                        }
+                        else
+                        {
+                            if (skipErrors)
                             {
-                                rowVals.Add(numVal.ToString(CultureInfo.InvariantCulture));
-                            }
-                            else if ((dt.Contains("BOOL") || dt.Contains("BIT")) && bool.TryParse(rawVal, out var bVal))
-                            {
-                                if (dbType.ToUpperInvariant() is "POSTGRESQL" or "POSTGRES")
+                                foreach (var singleStmt in batchStatements)
                                 {
-                                    rowVals.Add(bVal ? "TRUE" : "FALSE");
-                                }
-                                else
-                                {
-                                    rowVals.Add(bVal ? "1" : "0");
+                                    var sRes = await DatabaseSessionService.Instance.ExecuteQueryAsync(singleStmt, sessionKey);
+                                    if (sRes.Success) importedRows++;
+                                    else errorRows++;
                                 }
                             }
                             else
                             {
-                                string escaped = rawVal.Replace("'", "''");
-                                rowVals.Add($"'{escaped}'");
+                                return (false, $"Overwrite failed at row {i + 1}: {res.Message}", importedRows);
                             }
                         }
                     }
-
-                    batchValues.Add($"({string.Join(", ", rowVals)})");
                 }
-
-                if (batchValues.Count > 0)
+                else
                 {
-                    string insertSql = $"INSERT INTO {quotedTarget} ({colsSql}) VALUES\n{string.Join(",\n", batchValues)};";
-                    var res = await DatabaseSessionService.Instance.ExecuteQueryAsync(insertSql, sessionKey);
-
-                    if (res.Success)
+                    var batchValues = new List<string>();
+                    foreach (var row in chunk)
                     {
-                        importedRows += chunk.Count;
+                        var rowVals = ExtractRowValues(row, mappedCols, dbType);
+                        batchValues.Add($"({string.Join(", ", rowVals)})");
                     }
-                    else
+
+                    if (batchValues.Count > 0)
                     {
-                        if (skipErrors)
+                        string insertSql = $"INSERT INTO {quotedTarget} ({colsSql}) VALUES\n{string.Join(",\n", batchValues)};";
+                        var res = await DatabaseSessionService.Instance.ExecuteQueryAsync(insertSql, sessionKey);
+
+                        if (res.Success)
                         {
-                            foreach (var singleRowSql in batchValues)
-                            {
-                                string singleInsert = $"INSERT INTO {quotedTarget} ({colsSql}) VALUES {singleRowSql};";
-                                var singleRes = await DatabaseSessionService.Instance.ExecuteQueryAsync(singleInsert, sessionKey);
-                                if (singleRes.Success) importedRows++;
-                                else errorRows++;
-                            }
+                            importedRows += chunk.Count;
                         }
                         else
                         {
-                            return (false, $"Import failed at row {i + 1}: {res.Message}", importedRows);
+                            if (skipErrors)
+                            {
+                                foreach (var singleRowVals in batchValues)
+                                {
+                                    string singleInsert = $"INSERT INTO {quotedTarget} ({colsSql}) VALUES {singleRowVals};";
+                                    var singleRes = await DatabaseSessionService.Instance.ExecuteQueryAsync(singleInsert, sessionKey);
+                                    if (singleRes.Success) importedRows++;
+                                    else errorRows++;
+                                }
+                            }
+                            else
+                            {
+                                return (false, $"Import failed at row {i + 1}: {res.Message}", importedRows);
+                            }
                         }
                     }
                 }
@@ -1814,6 +1839,59 @@ public partial class MainViewModel : ViewModelBase
         {
             return (false, $"Import error: {ex.Message}", 0);
         }
+    }
+
+    private static List<string> ExtractRowValues(List<string> row, List<ImportColumnMappingItem> mappedCols, string dbType)
+    {
+        var rowVals = new List<string>();
+        foreach (var mapping in mappedCols)
+        {
+            string rawVal = string.Empty;
+            if (mapping.IsConstant)
+            {
+                rawVal = mapping.ConstantValue;
+            }
+            else
+            {
+                int excelIdx = ExtractExcelColumnIndex(mapping.SelectedExcelColumn);
+                if (excelIdx >= 0 && excelIdx < row.Count)
+                {
+                    rawVal = row[excelIdx];
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(rawVal) || rawVal.Trim().Equals("NULL", StringComparison.OrdinalIgnoreCase))
+            {
+                rowVals.Add("NULL");
+            }
+            else
+            {
+                rawVal = rawVal.Trim();
+                string dt = (mapping.DataType ?? string.Empty).ToUpperInvariant();
+                if ((dt.Contains("INT") || dt.Contains("DECIMAL") || dt.Contains("NUMERIC") || dt.Contains("FLOAT") || dt.Contains("DOUBLE") || dt.Contains("REAL"))
+                    && decimal.TryParse(rawVal, NumberStyles.Any, CultureInfo.InvariantCulture, out var numVal))
+                {
+                    rowVals.Add(numVal.ToString(CultureInfo.InvariantCulture));
+                }
+                else if ((dt.Contains("BOOL") || dt.Contains("BIT")) && bool.TryParse(rawVal, out var bVal))
+                {
+                    if (dbType.ToUpperInvariant() is "POSTGRESQL" or "POSTGRES")
+                    {
+                        rowVals.Add(bVal ? "TRUE" : "FALSE");
+                    }
+                    else
+                    {
+                        rowVals.Add(bVal ? "1" : "0");
+                    }
+                }
+                else
+                {
+                    string escaped = rawVal.Replace("'", "''");
+                    rowVals.Add($"'{escaped}'");
+                }
+            }
+        }
+        return rowVals;
     }
 
     private static int ExtractExcelColumnIndex(string option)
