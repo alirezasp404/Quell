@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
@@ -33,9 +33,22 @@ public partial class DatabaseDiagramModalComponent : UserControl
 
         if (WorldCanvas != null)
         {
+            WorldCanvas.RenderTransformOrigin = new RelativePoint(0, 0, RelativeUnit.Relative);
             WorldCanvas.RenderTransform = new TransformGroup
             {
                 Children = { _canvasScale, _canvasTranslate }
+            };
+        }
+
+        if (ViewportContainer != null)
+        {
+            ViewportContainer.SizeChanged += (s, e) =>
+            {
+                if (_viewModel != null && e.NewSize.Width > 50 && e.NewSize.Height > 50)
+                {
+                    _viewModel.ViewportWidth = e.NewSize.Width;
+                    _viewModel.ViewportHeight = e.NewSize.Height;
+                }
             };
         }
 
@@ -63,13 +76,24 @@ public partial class DatabaseDiagramModalComponent : UserControl
 
     private void OnLoaded(object? sender, RoutedEventArgs e)
     {
-        if (WorldCanvas != null && WorldCanvas.RenderTransform is not TransformGroup)
+        if (WorldCanvas != null)
         {
-            WorldCanvas.RenderTransform = new TransformGroup
+            WorldCanvas.RenderTransformOrigin = new RelativePoint(0, 0, RelativeUnit.Relative);
+            if (WorldCanvas.RenderTransform is not TransformGroup)
             {
-                Children = { _canvasScale, _canvasTranslate }
-            };
+                WorldCanvas.RenderTransform = new TransformGroup
+                {
+                    Children = { _canvasScale, _canvasTranslate }
+                };
+            }
         }
+
+        if (ViewportContainer != null && _viewModel != null)
+        {
+            if (ViewportContainer.Bounds.Width > 50) _viewModel.ViewportWidth = ViewportContainer.Bounds.Width;
+            if (ViewportContainer.Bounds.Height > 50) _viewModel.ViewportHeight = ViewportContainer.Bounds.Height;
+        }
+
         UpdateCanvasTransform();
     }
 
@@ -85,6 +109,11 @@ public partial class DatabaseDiagramModalComponent : UserControl
         {
             if (_viewModel?.IsOpen == true)
             {
+                if (ViewportContainer != null && _viewModel != null)
+                {
+                    if (ViewportContainer.Bounds.Width > 50) _viewModel.ViewportWidth = ViewportContainer.Bounds.Width;
+                    if (ViewportContainer.Bounds.Height > 50) _viewModel.ViewportHeight = ViewportContainer.Bounds.Height;
+                }
                 UpdateCanvasTransform();
                 DiagramSurface?.InvalidateVisual();
             }
@@ -196,9 +225,19 @@ public partial class DatabaseDiagramModalComponent : UserControl
 
     private void OnCanvasDoubleTapped(object? sender, TappedEventArgs e)
     {
-        // Double tap on canvas resets/fits to view
+        // Don't fit if clicking on interactive buttons
+        if (e.Source is Button || (e.Source is Visual v && v.FindAncestorOfType<Button>() != null))
+        {
+            return;
+        }
+
         if (_viewModel != null)
         {
+            if (ViewportContainer != null && ViewportContainer.Bounds.Width > 50)
+            {
+                _viewModel.ViewportWidth = ViewportContainer.Bounds.Width;
+                _viewModel.ViewportHeight = ViewportContainer.Bounds.Height;
+            }
             _viewModel.FitToView();
             e.Handled = true;
         }

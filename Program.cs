@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using System;
 using System.Linq;
@@ -1171,6 +1171,19 @@ sealed class Program
             }
             vm.DiagramModal.AutoLayout();
             vm.DiagramModal.FitToView();
+            if (vm.DiagramModal.ZoomLevel < 0.2 || vm.DiagramModal.ZoomLevel > 1.3)
+            {
+                throw new Exception($"FitToView produced unexpected ZoomLevel: {vm.DiagramModal.ZoomLevel}");
+            }
+            double fitMinScreenX = vm.DiagramModal.FilteredTables.Min(t => t.X) * vm.DiagramModal.ZoomLevel + vm.DiagramModal.PanX;
+            double fitMaxScreenX = vm.DiagramModal.FilteredTables.Max(t => t.X + t.Width) * vm.DiagramModal.ZoomLevel + vm.DiagramModal.PanX;
+            double leftMargin = fitMinScreenX;
+            double rightMargin = vm.DiagramModal.ViewportWidth - fitMaxScreenX;
+            if (Math.Abs(leftMargin - rightMargin) > 3.0)
+            {
+                throw new Exception($"FitToView horizontal margins are not centered! Left={leftMargin:F1}, Right={rightMargin:F1}");
+            }
+            Console.WriteLine($"[Success] FitToView verified: Zoom={vm.DiagramModal.ZoomLevel:P0}, Pan=({vm.DiagramModal.PanX:F1}, {vm.DiagramModal.PanY:F1}), Symmetrical Margins=({leftMargin:F1}px, {rightMargin:F1}px)");
             vm.DiagramModal.ZoomIn();
             vm.DiagramModal.ZoomOut();
             vm.DiagramModal.ResetView();

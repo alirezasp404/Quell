@@ -1,4 +1,4 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -377,7 +377,8 @@
                         <Canvas x:Name="WorldCanvas"
                                 Width="5000" Height="4000"
                                 HorizontalAlignment="Left"
-                                VerticalAlignment="Top">
+                                VerticalAlignment="Top"
+                                RenderTransformOrigin="0%,0%">
 
                             <!-- 1. Background Grid & Connecting Lines Surface -->
                             <components:DiagramSurfaceControl x:Name="DiagramSurface"

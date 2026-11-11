@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -143,6 +143,12 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
     private double _panY = 40.0;
 
     [ObservableProperty]
+    private double _viewportWidth = 1000.0;
+
+    [ObservableProperty]
+    private double _viewportHeight = 550.0;
+
+    [ObservableProperty]
     private string _statusMessage = string.Empty;
 
     [ObservableProperty]
@@ -232,21 +238,37 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
     [RelayCommand]
     public void ZoomIn()
     {
-        ZoomLevel = Math.Min(2.5, Math.Round(ZoomLevel + 0.15, 2));
-        RequestCanvasUpdate?.Invoke();
+        ApplyZoomAroundCenter(Math.Min(2.5, Math.Round(ZoomLevel + 0.15, 2)));
     }
 
     [RelayCommand]
     public void ZoomOut()
     {
-        ZoomLevel = Math.Max(0.3, Math.Round(ZoomLevel - 0.15, 2));
-        RequestCanvasUpdate?.Invoke();
+        ApplyZoomAroundCenter(Math.Max(0.25, Math.Round(ZoomLevel - 0.15, 2)));
     }
 
     [RelayCommand]
     public void ResetZoom()
     {
-        ZoomLevel = 1.0;
+        ApplyZoomAroundCenter(1.0);
+    }
+
+    private void ApplyZoomAroundCenter(double newZoom)
+    {
+        if (Math.Abs(newZoom - ZoomLevel) < 0.001) return;
+
+        double viewW = ViewportWidth > 100.0 ? ViewportWidth : 1000.0;
+        double viewH = ViewportHeight > 100.0 ? ViewportHeight : 550.0;
+        double cx = viewW / 2.0;
+        double cy = viewH / 2.0;
+
+        double canvasCx = (cx - PanX) / ZoomLevel;
+        double canvasCy = (cy - PanY) / ZoomLevel;
+
+        ZoomLevel = newZoom;
+        PanX = Math.Round(cx - canvasCx * newZoom, 1);
+        PanY = Math.Round(cy - canvasCy * newZoom, 1);
+
         RequestCanvasUpdate?.Invoke();
     }
 
@@ -270,22 +292,34 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
 
         double minX = FilteredTables.Min(t => t.X);
         double minY = FilteredTables.Min(t => t.Y);
-        double maxX = FilteredTables.Max(t => t.X + t.Width);
-        double maxY = FilteredTables.Max(t => t.Y + t.Height);
+        double maxX = FilteredTables.Max(t => t.X + (t.Width > 0 ? t.Width : 260.0));
+        double maxY = FilteredTables.Max(t => t.Y + (t.Height > 0 ? t.Height : 200.0));
 
-        double totalW = Math.Max(100, maxX - minX);
-        double totalH = Math.Max(100, maxY - minY);
+        double totalW = Math.Max(100.0, maxX - minX);
+        double totalH = Math.Max(100.0, maxY - minY);
 
-        double viewW = 950.0;
-        double viewH = 520.0;
+        double viewW = ViewportWidth > 100.0 ? ViewportWidth : 1000.0;
+        double viewH = ViewportHeight > 100.0 ? ViewportHeight : 550.0;
 
-        double scaleX = viewW / (totalW + 100);
-        double scaleY = viewH / (totalH + 100);
-        double bestZoom = Math.Clamp(Math.Min(scaleX, scaleY), 0.35, 1.25);
+        // Symmetric padding around content
+        double padX = 60.0;
+        double padY = 50.0;
+
+        double availW = Math.Max(100.0, viewW - padX * 2.0);
+        double availH = Math.Max(100.0, viewH - padY * 2.0);
+
+        double scaleX = availW / totalW;
+        double scaleY = availH / totalH;
+        double bestZoom = Math.Clamp(Math.Min(scaleX, scaleY), 0.25, 1.25);
 
         ZoomLevel = Math.Round(bestZoom, 2);
-        PanX = 50.0 - minX * ZoomLevel;
-        PanY = 50.0 - minY * ZoomLevel;
+
+        // Center content perfectly within viewW and viewH
+        double contentScreenWidth = totalW * ZoomLevel;
+        double contentScreenHeight = totalH * ZoomLevel;
+
+        PanX = Math.Round((viewW - contentScreenWidth) / 2.0 - minX * ZoomLevel, 1);
+        PanY = Math.Round((viewH - contentScreenHeight) / 2.0 - minY * ZoomLevel, 1);
 
         RequestCanvasUpdate?.Invoke();
     }
@@ -334,7 +368,7 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
 
         RecalculateRelationPoints();
         SyncPositionsToCache();
-        RequestCanvasUpdate?.Invoke();
+        FitToView();
     }
 
     [RelayCommand]
