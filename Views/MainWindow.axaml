@@ -1,4 +1,4 @@
-<Window xmlns="https://github.com/avaloniaui"
+﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Quell.ViewModels"
         xmlns:components="using:Quell.Components"
@@ -82,5 +82,6 @@
         <components:EditCellModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="104" DataContext="{Binding SampleQueryResult.EditCellModal}" />
         <components:DatabaseDiagramModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="105" DataContext="{Binding DiagramModal}" />
         <components:UpdateModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="106" DataContext="{Binding UpdateModal}" />
+        <components:ImportDataModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="107" DataContext="{Binding ImportModal}" />
     </Grid>
 </Window>

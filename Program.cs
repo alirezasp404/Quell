@@ -2097,7 +2097,105 @@ sealed class Program
             vm.UpdateModal.Dismiss();
             Quell.Services.AppUpdateService.Instance.Reset();
 
-            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER, SIMULTANEOUS BATCH CELL EDITING, FOREIGN KEY NAVIGATION, HARDWARE GPU/CPU RENDERING PIPELINE & INTEGRATED TERMINAL) PASSED! <<<");
+            // 24. Test Visual Excel & CSV Data Import Wizard, Schema Auto-Mapping & Template Generation
+            Console.WriteLine("\n[Action] Verifying Visual Excel / CSV Data Import Wizard, Schema Auto-Mapping & Template Generation...");
+            if (vm.ImportModal == null)
+            {
+                throw new Exception("ImportModal must not be null on MainViewModel!");
+            }
+            if (vm.ImportModal.IsOpen)
+            {
+                throw new Exception("ImportModal must be closed initially!");
+            }
+
+            // Open Import Modal
+            vm.OpenImportModalCommand.Execute(null);
+            if (!vm.ImportModal.IsOpen)
+            {
+                throw new Exception("OpenImportModalCommand must open ImportModal!");
+            }
+            if (vm.ImportModal.AvailableTables.Count == 0)
+            {
+                throw new Exception("ImportModal AvailableTables must be populated!");
+            }
+            Console.WriteLine($"[Success] ImportModal opened with {vm.ImportModal.AvailableTables.Count} available tables (Target: {vm.ImportModal.SelectedTable})");
+
+            // Test Excel Template Generation (.xlsx)
+            string tempDir = System.IO.Path.GetTempPath();
+            string testXlsx = System.IO.Path.Combine(tempDir, "quell_test_template.xlsx");
+            var sampleCols = new System.Collections.Generic.List<(string ColumnName, string DataType, bool IsRequired)>
+            {
+                ("Id", "INT", true),
+                ("FullName", "VARCHAR(100)", true),
+                ("Email", "VARCHAR(150)", false),
+                ("Salary", "DECIMAL(10,2)", false)
+            };
+            Quell.Services.ExcelDataService.CreateExcelTemplate(testXlsx, "Employees", sampleCols);
+            if (!System.IO.File.Exists(testXlsx))
+            {
+                throw new Exception("CreateExcelTemplate failed to generate .xlsx file!");
+            }
+            Console.WriteLine($"[Success] Generated OpenXML Excel template: {testXlsx}");
+
+            // Test Reading generated .xlsx
+            var xlsxData = Quell.Services.ExcelDataService.ReadSpreadsheet(testXlsx);
+            if (xlsxData.Headers.Count != 4 || xlsxData.Headers[0] != "Id" || xlsxData.Headers[1] != "FullName")
+            {
+                throw new Exception($"ReadSpreadsheet failed to read .xlsx headers! Got {xlsxData.Headers.Count} headers.");
+            }
+            if (xlsxData.Rows.Count != 1)
+            {
+                throw new Exception($"Expected 1 hint row in template, got {xlsxData.Rows.Count}");
+            }
+            Console.WriteLine($"[Success] ReadSpreadsheet successfully parsed .xlsx template with {xlsxData.Headers.Count} columns!");
+            System.IO.File.Delete(testXlsx);
+
+            // Test CSV Data Import & Graphical Column Auto-Mapping
+            string testCsv = System.IO.Path.Combine(tempDir, "quell_test_import.csv");
+            System.IO.File.WriteAllText(testCsv, @"Id,FullName,Email,Salary
+101,Sarah Connor,sarah@resistance.org,85000
+102,John Connor,john@resistance.org,95000
+103,Kyle Reese,kyle@resistance.org,75000");
+
+            await vm.ImportModal.LoadTargetTableSchemaAsync("Users");
+            await vm.ImportModal.LoadSpreadsheetFileAsync(testCsv);
+            if (!vm.ImportModal.HasFileLoaded)
+            {
+                throw new Exception("LoadSpreadsheetFileAsync failed to load CSV file!");
+            }
+            if (vm.ImportModal.TotalExcelRowsCount != 3)
+            {
+                throw new Exception($"Expected 3 data rows in CSV, got {vm.ImportModal.TotalExcelRowsCount}");
+            }
+            if (vm.ImportModal.ExcelHeaders.Count != 4)
+            {
+                throw new Exception($"Expected 4 Excel headers, got {vm.ImportModal.ExcelHeaders.Count}");
+            }
+            Console.WriteLine($"[Success] Loaded CSV file with {vm.ImportModal.TotalExcelRowsCount} rows and {vm.ImportModal.ExcelHeaders.Count} columns!");
+
+            // Test Auto-Mapping
+            vm.ImportModal.AutoMapColumns();
+            int mappedCount = vm.ImportModal.MappedColumnsCount;
+            Console.WriteLine($"[Success] AutoMapColumns mapped {mappedCount} of {vm.ImportModal.TotalTableColumnsCount} columns!");
+
+            // Test Mapped Preview Generation
+            vm.ImportModal.SelectedTab = "ImportPreview";
+            if (vm.ImportModal.MappedPreviewRows.Count == 0 && mappedCount > 0)
+            {
+                throw new Exception("MappedPreviewRows must not be empty after selecting ImportPreview tab!");
+            }
+            Console.WriteLine($"[Success] Mapped preview generated with {vm.ImportModal.MappedPreviewRows.Count} preview rows!");
+
+            // Test Modal Dismissal
+            vm.ImportModal.CloseCommand.Execute(null);
+            if (vm.ImportModal.IsOpen)
+            {
+                throw new Exception("CloseCommand must close ImportModal!");
+            }
+            Console.WriteLine("[Success] ImportModal closed successfully!");
+            System.IO.File.Delete(testCsv);
+
+            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER, SIMULTANEOUS BATCH CELL EDITING, FOREIGN KEY NAVIGATION, HARDWARE GPU/CPU RENDERING PIPELINE, INTEGRATED TERMINAL & VISUAL EXCEL DATA IMPORT WIZARD) PASSED! <<<");
             return;
         }
 

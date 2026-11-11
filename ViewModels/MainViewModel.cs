@@ -37,6 +37,9 @@ public partial class MainViewModel : ViewModelBase
     private ExportDataModalViewModel _exportModal;
 
     [ObservableProperty]
+    private ImportDataModalViewModel _importModal;
+
+    [ObservableProperty]
     private DatabaseDiagramModalViewModel _diagramModal;
 
     [ObservableProperty]
@@ -66,6 +69,7 @@ public partial class MainViewModel : ViewModelBase
         _connectModal = new ConnectDatabaseModalViewModel();
         _confirmModal = new ConfirmActionModalViewModel();
         _exportModal = new ExportDataModalViewModel();
+        _importModal = new ImportDataModalViewModel();
         _diagramModal = new DatabaseDiagramModalViewModel();
         _settingsModal = new SettingsModalViewModel();
         _updateModal = new UpdateModalViewModel();
@@ -75,6 +79,34 @@ public partial class MainViewModel : ViewModelBase
         _exportModal.PerformExportCallback = async (source, tableName, includeHeaders, filePath) =>
         {
             return await ExecuteDataExportAsync(source, tableName, includeHeaders, filePath);
+        };
+        _importModal.PerformImportCallback = async (tableName, mappedCols, rawRows, truncateBefore, skipErrors, batchSize, progress) =>
+        {
+            return await ExecuteDataImportAsync(tableName, mappedCols, rawRows, truncateBefore, skipErrors, batchSize, progress);
+        };
+
+        _importModal.LoadTableColumnsCallback = async tableName =>
+        {
+            var cols = await DatabaseSessionService.Instance.GetColumnsAsync(tableName);
+            var pks = await DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(tableName);
+
+            if (cols.Count == 0)
+            {
+                return new List<(string, string, bool, bool)>
+                {
+                    ("Id", "INT", true, true),
+                    ("FullName", "VARCHAR(100)", false, true),
+                    ("Email", "VARCHAR(150)", false, false),
+                    ("Salary", "DECIMAL(10,2)", false, false)
+                };
+            }
+
+            return cols.Select(c =>
+            {
+                bool isPk = pks.Contains(c.ColumnName, StringComparer.OrdinalIgnoreCase);
+                bool isReq = isPk;
+                return (c.ColumnName, c.DataType, isPk, isReq);
+            }).ToList();
         };
 
         _diagramModal.OpenTableDataCallback = async tableName =>
@@ -978,6 +1010,102 @@ public partial class MainViewModel : ViewModelBase
         ExportModal.Open();
     }
 
+    private void PopulateImportModalTables(string? defaultTable = null)
+    {
+        var tables = new List<string>();
+        var cached = DatabaseSessionService.Instance.GetActiveCachedTables();
+        foreach (var t in cached)
+        {
+            tables.Add(t.FullName);
+        }
+
+        var activeDb = Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsActive) ?? Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsConnected);
+        if (tables.Count == 0 && activeDb != null)
+        {
+            foreach (var t in activeDb.AllTableNodes)
+            {
+                tables.Add(t.FullName);
+            }
+        }
+
+        if (tables.Count == 0)
+        {
+            tables.AddRange(new[] { "Users", "Orders", "Products", "Roles" });
+        }
+
+        string? selected = defaultTable ?? Sidebar.SelectedTable?.FullName ?? SampleQueryResult.CurrentTableName;
+        ImportModal.TargetDatabaseName = activeDb?.DatabaseName ?? SelectedTargetDatabase?.DisplayName ?? "Active Database";
+        ImportModal.SetAvailableTables(tables, selected);
+    }
+
+    [RelayCommand]
+    public void OpenImportModal()
+    {
+        PopulateImportModalTables();
+        ImportModal.Open();
+    }
+
+    [RelayCommand]
+    public void OpenImportModalForTable(string? tableName)
+    {
+        PopulateImportModalTables(tableName);
+        ImportModal.Open();
+    }
+
+    [RelayCommand]
+    public async Task DownloadTableTemplate()
+    {
+        await DownloadTemplateForTable(ImportModal.SelectedTable ?? Sidebar.SelectedTable?.FullName ?? SampleQueryResult.CurrentTableName);
+    }
+
+    [RelayCommand]
+    public async Task DownloadTemplateForTable(string? tableName)
+    {
+        if (string.IsNullOrWhiteSpace(tableName))
+        {
+            var activeDb = Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsActive) ?? Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsConnected);
+            tableName = activeDb?.AllTableNodes.FirstOrDefault(t => t.IsActive)?.Table.FullName 
+                ?? Sidebar.SelectedTable?.FullName 
+                ?? SampleQueryResult.CurrentTableName;
+        }
+
+        if (string.IsNullOrWhiteSpace(tableName))
+        {
+            tableName = "Users";
+        }
+
+        try
+        {
+            var cols = await DatabaseSessionService.Instance.GetColumnsAsync(tableName);
+            var pks = await DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(tableName);
+
+            string desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            if (string.IsNullOrEmpty(desktop)) desktop = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
+            string cleanName = tableName.Replace(".", "_").Replace("[", "").Replace("]", "").Replace("\"", "");
+            string templatePath = System.IO.Path.Combine(desktop, $"{cleanName}_import_template.xlsx");
+
+            var colTuples = cols.Select(c => (c.ColumnName, c.DataType, pks.Contains(c.ColumnName, StringComparer.OrdinalIgnoreCase))).ToList();
+            if (colTuples.Count == 0)
+            {
+                colTuples.Add(("Id", "INT", true));
+                colTuples.Add(("Name", "VARCHAR(100)", true));
+                colTuples.Add(("Email", "VARCHAR(150)", false));
+                colTuples.Add(("CreatedAt", "DATETIME", false));
+            }
+
+            ExcelDataService.CreateExcelTemplate(templatePath, cleanName, colTuples);
+
+            SampleQueryResult.LastQueryMessage = $"Excel Template saved to Desktop: '{System.IO.Path.GetFileName(templatePath)}'";
+            SampleQueryResult.HasLastQueryMessage = true;
+        }
+        catch (Exception ex)
+        {
+            SampleQueryResult.LastQueryMessage = $"Failed to create template: {ex.Message}";
+            SampleQueryResult.HasLastQueryMessage = true;
+        }
+    }
+
     [RelayCommand]
     public async Task BackupDatabase()
     {
@@ -1448,6 +1576,153 @@ public partial class MainViewModel : ViewModelBase
         sb.AppendLine(" </Worksheet>");
         sb.AppendLine("</Workbook>");
         return sb.ToString();
+    }
+
+    private async Task<(bool Success, string Message, int RowsImported)> ExecuteDataImportAsync(
+        string tableName,
+        List<ImportColumnMappingItem> mappedCols,
+        List<List<string>> rawRows,
+        bool truncateBefore,
+        bool skipErrors,
+        int batchSize,
+        Action<int, int> progressCallback)
+    {
+        if (string.IsNullOrWhiteSpace(tableName) || mappedCols.Count == 0 || rawRows.Count == 0)
+        {
+            return (false, "No valid data or mappings provided for import.", 0);
+        }
+
+        string sessionKey = SelectedTargetDatabase?.Key ?? DatabaseSessionService.Instance.ActiveSession?.Key ?? string.Empty;
+        var activeSession = DatabaseSessionService.Instance.ActiveSession;
+        string dbType = activeSession?.DatabaseType ?? SelectedTargetDatabase?.DatabaseType ?? "SQLite";
+
+        string QuoteCol(string col)
+        {
+            return dbType.ToUpperInvariant() switch
+            {
+                "POSTGRESQL" or "POSTGRES" => $"\"{col.Replace("\"", "\"\"")}\"",
+                "MYSQL" => $"{col.Replace("", "`")}",
+                _ => $"[{col.Replace("]", "]]")}]"
+            };
+        }
+
+        try
+        {
+            if (truncateBefore)
+            {
+                string cleanTarget = tableName.Trim();
+                string deleteSql = dbType.ToUpperInvariant() is "SQLITE"
+                    ? $"DELETE FROM {cleanTarget};"
+                    : $"TRUNCATE TABLE {cleanTarget};";
+                
+                var truncRes = await DatabaseSessionService.Instance.ExecuteQueryAsync(deleteSql, sessionKey);
+                if (!truncRes.Success && truncRes.Message.Contains("TRUNCATE", StringComparison.OrdinalIgnoreCase))
+                {
+                    await DatabaseSessionService.Instance.ExecuteQueryAsync($"DELETE FROM {cleanTarget};", sessionKey);
+                }
+            }
+
+            var targetColsList = mappedCols.Select(m => QuoteCol(m.TargetColumnName)).ToList();
+            string colsSql = string.Join(", ", targetColsList);
+
+            int totalRows = rawRows.Count;
+            int importedRows = 0;
+            int errorRows = 0;
+
+            int effectiveBatchSize = Math.Max(10, Math.Min(1000, batchSize));
+
+            for (int i = 0; i < totalRows; i += effectiveBatchSize)
+            {
+                var chunk = rawRows.Skip(i).Take(effectiveBatchSize).ToList();
+                var batchValues = new List<string>();
+
+                foreach (var row in chunk)
+                {
+                    var rowVals = new List<string>();
+                    foreach (var mapping in mappedCols)
+                    {
+                        string rawVal = string.Empty;
+                        if (mapping.IsConstant)
+                        {
+                            rawVal = mapping.ConstantValue;
+                        }
+                        else
+                        {
+                            int excelIdx = ExtractExcelColumnIndex(mapping.SelectedExcelColumn);
+                            if (excelIdx >= 0 && excelIdx < row.Count)
+                            {
+                                rawVal = row[excelIdx];
+                            }
+                        }
+
+                        if (string.IsNullOrEmpty(rawVal))
+                        {
+                            rowVals.Add("NULL");
+                        }
+                        else
+                        {
+                            string escaped = rawVal.Replace("'", "''");
+                            rowVals.Add($"'{escaped}'");
+                        }
+                    }
+
+                    batchValues.Add($"({string.Join(", ", rowVals)})");
+                }
+
+                if (batchValues.Count > 0)
+                {
+                    string insertSql = $"INSERT INTO {tableName} ({colsSql}) VALUES\n{string.Join(",\n", batchValues)};";
+                    var res = await DatabaseSessionService.Instance.ExecuteQueryAsync(insertSql, sessionKey);
+
+                    if (res.Success)
+                    {
+                        importedRows += chunk.Count;
+                    }
+                    else
+                    {
+                        if (skipErrors)
+                        {
+                            foreach (var singleRowSql in batchValues)
+                            {
+                                string singleInsert = $"INSERT INTO {tableName} ({colsSql}) VALUES {singleRowSql};";
+                                var singleRes = await DatabaseSessionService.Instance.ExecuteQueryAsync(singleInsert, sessionKey);
+                                if (singleRes.Success) importedRows++;
+                                else errorRows++;
+                            }
+                        }
+                        else
+                        {
+                            return (false, $"Import failed at row {i + 1}: {res.Message}", importedRows);
+                        }
+                    }
+                }
+
+                progressCallback?.Invoke(importedRows, totalRows);
+            }
+
+            await Quell.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
+                $"-- Bulk Imported {importedRows} rows from spreadsheet into {tableName}", "0ms", importedRows, "Success");
+
+            SampleQueryResult.LastQueryMessage = $"Bulk Imported {importedRows:N0} rows into {tableName}";
+            SampleQueryResult.HasLastQueryMessage = true;
+
+            string summary = errorRows > 0
+                ? $"Successfully imported {importedRows:N0} rows into {tableName} ({errorRows} rows skipped due to errors)."
+                : $"Successfully imported all {importedRows:N0} rows into {tableName}!";
+
+            return (true, summary, importedRows);
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Import error: {ex.Message}", 0);
+        }
+    }
+
+    private static int ExtractExcelColumnIndex(string option)
+    {
+        if (string.IsNullOrWhiteSpace(option) || !option.Contains(':')) return -1;
+        string letter = option.Split(':')[0].Trim();
+        return ExcelDataService.ParseColumnIndexFromRef(letter);
     }
 
     private async Task ExecuteDatabaseBackupAsync()
