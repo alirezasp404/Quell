@@ -4,7 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Quell.ViewModels"
              xmlns:components="using:Quell.Components"
-             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:ic="using:FluentIcons.Avalonia"
+              xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="700"
              x:Class="Quell.Components.DatabaseDiagramModalComponent"
              x:DataType="vm:DatabaseDiagramModalViewModel"
@@ -97,7 +98,7 @@
                                 Height="28" 
                                 Margin="0,0,10,0"
                                 VerticalAlignment="Center">
-                            <ui:FASymbolIcon Symbol="Preview" FontSize="13" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <ic:SymbolIcon Symbol="TableMultiple" FontSize="14" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
 
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -426,7 +427,7 @@
                                                                 Width="22" Height="22" 
                                                                 Margin="0,0,8,0"
                                                                 VerticalAlignment="Center">
-                                                            <ui:FASymbolIcon Symbol="Folder" FontSize="11" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            <ic:SymbolIcon Symbol="Table" FontSize="12" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                         </Border>
                                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                             <TextBlock Text="{Binding TableName}" 

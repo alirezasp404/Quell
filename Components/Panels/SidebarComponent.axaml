@@ -5,6 +5,7 @@
               xmlns:vm="using:Quell.ViewModels"
               xmlns:components="using:Quell.Components"
               xmlns:ui="using:FluentAvalonia.UI.Controls"
+              xmlns:ic="using:FluentIcons.Avalonia"
               mc:Ignorable="d" d:DesignWidth="260" d:DesignHeight="600"
               x:Class="Quell.Components.SidebarComponent"
               x:DataType="vm:SidebarViewModel"
@@ -48,13 +49,13 @@
             <Setter Property="Foreground" Value="{DynamicResource AppTableActiveForegroundBrush}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
-        <Style Selector="Border.table-node-item.active ui|FASymbolIcon.table-icon">
+        <Style Selector="Border.table-node-item.active ic|SymbolIcon.table-icon">
             <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
         </Style>
         <Style Selector="Border.table-node-item:not(.active) TextBlock.table-name">
             <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
         </Style>
-        <Style Selector="Border.table-node-item:not(.active) ui|FASymbolIcon.table-icon">
+        <Style Selector="Border.table-node-item:not(.active) ic|SymbolIcon.table-icon">
             <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}"/>
         </Style>
     </UserControl.Styles>
@@ -159,6 +160,7 @@
                         <Grid ColumnDefinitions="*, Auto" IsVisible="{Binding IsConnected}">
                             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                                 <Border Width="6" Height="6" CornerRadius="3" Background="#10B981" VerticalAlignment="Center"/>
+                                <ic:SymbolIcon Symbol="Database" FontSize="10" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
                                 <TextBlock Text="Active:" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}" VerticalAlignment="Center"/>
                                 <TextBlock Text="{Binding DatabaseName}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="110"/>
                             </StackPanel>
@@ -360,11 +362,11 @@
                                                         Background="{Binding BadgeColor}" 
                                                         VerticalAlignment="Center" 
                                                         Margin="0,0,7,0">
-                                                    <PathIcon Data="M12 3C6.5 3 2 4.34 2 6v12c0 1.66 4.5 3 10 3s10-1.34 10-3V6c0-1.66-4.5-3-10-3zm0 2c4.42 0 8 .9 8 2s-3.58 2-8 2-8-.9-8-2 3.58-2 8-2zm8 13c0 1.1-3.58 2-8 2s-8-.9-8-2v-2.12c1.76 1.05 4.7 1.62 8 1.62s6.24-.57 8-1.62V18zm0-4.5c0 1.1-3.58 2-8 2s-8-.9-8-2v-2.12c1.76 1.05 4.7 1.62 8 1.62s6.24-.57 8-1.62v2.12zm0-4.5c0 1.1-3.58 2-8 2s-8-.9-8-2V6.88c1.76 1.05 4.7 1.62 8 1.62s6.24-.57 8-1.62V9z" 
-                                                              Width="11" Height="11" 
-                                                              Foreground="White" 
-                                                              HorizontalAlignment="Center" 
-                                                              VerticalAlignment="Center"/>
+                                                    <ic:SymbolIcon Symbol="Database" 
+                                                                   FontSize="12" 
+                                                                   Foreground="White" 
+                                                                   HorizontalAlignment="Center" 
+                                                                   VerticalAlignment="Center"/>
                                                 </Border>
 
                                                 <!-- DB Title & Status Subtitle -->
@@ -492,7 +494,7 @@
                                                     <MenuItem Header="View Table Schema &amp; Properties"
                                                               Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ShowTablePropertiesCommand}">
                                                         <MenuItem.Icon>
-                                                            <ui:FASymbolIcon Symbol="Tag" FontSize="11" Foreground="{DynamicResource AppAccentBrush}"/>
+                                                            <ic:SymbolIcon Symbol="TableFreezeColumn" FontSize="11" Foreground="{DynamicResource AppAccentBrush}"/>
                                                         </MenuItem.Icon>
                                                     </MenuItem>
                                                     <MenuItem Header="Generate DDL Script (CREATE TABLE)"
@@ -506,14 +508,14 @@
                                                               Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).OpenImportModalForTableCommand}"
                                                               CommandParameter="{Binding Table.FullName}">
                                                         <MenuItem.Icon>
-                                                            <ui:FASymbolIcon Symbol="Download" FontSize="11" Foreground="#10B981"/>
+                                                            <ic:SymbolIcon Symbol="ArrowUpload" FontSize="11" Foreground="#10B981"/>
                                                         </MenuItem.Icon>
                                                     </MenuItem>
                                                     <MenuItem Header="Download Excel Template..."
                                                               Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).DownloadTemplateForTableCommand}"
                                                               CommandParameter="{Binding Table.FullName}">
                                                         <MenuItem.Icon>
-                                                            <ui:FASymbolIcon Symbol="Document" FontSize="11" Foreground="#10B981"/>
+                                                            <ic:SymbolIcon Symbol="ArrowDownload" FontSize="11" Foreground="#10B981"/>
                                                         </MenuItem.Icon>
                                                     </MenuItem>
                                                 </ContextMenu>
@@ -529,13 +531,13 @@
                                                         Margin="0,0,4,0"
                                                         IsVisible="{Binding IsActive}"/>
 
-                                                <!-- Table Document Icon -->
-                                                <ui:FASymbolIcon Grid.Column="1" 
-                                                                 Classes="table-icon"
-                                                                 Symbol="Document" 
-                                                                 FontSize="11" 
-                                                                 VerticalAlignment="Center" 
-                                                                 Margin="24,0,6,0"/>
+                                                <!-- Table Fluent Icon -->
+                                                <ic:SymbolIcon Grid.Column="1" 
+                                                               Classes="table-icon"
+                                                               Symbol="Table" 
+                                                               FontSize="11" 
+                                                               VerticalAlignment="Center" 
+                                                               Margin="24,0,6,0"/>
 
                                                 <!-- Table Full Name -->
                                                 <TextBlock Grid.Column="2"

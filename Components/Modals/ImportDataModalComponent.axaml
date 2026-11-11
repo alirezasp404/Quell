@@ -4,7 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Quell.ViewModels"
              xmlns:components="using:Quell.Components"
-             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:ic="using:FluentIcons.Avalonia"
+              xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="1150" d:DesignHeight="820"
              x:Class="Quell.Components.ImportDataModalComponent"
              x:DataType="vm:ImportDataModalViewModel"
@@ -78,7 +79,7 @@
                                 Height="32" 
                                 Margin="0,0,12,0"
                                 VerticalAlignment="Center">
-                            <ui:FASymbolIcon Symbol="Download" FontSize="15" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <ic:SymbolIcon Symbol="TableArrowUp" FontSize="16" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
 
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -471,7 +472,7 @@
                                                     Padding="12,10">
                                                 <Grid ColumnDefinitions="Auto, *">
                                                     <Border Grid.Column="0" Background="#2038BDF8" CornerRadius="6" Width="28" Height="28" Margin="0,0,8,0">
-                                                        <ui:FASymbolIcon Symbol="Document" FontSize="13" Foreground="#38BDF8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        <ic:SymbolIcon Symbol="Table" FontSize="14" Foreground="#38BDF8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                     </Border>
                                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                         <TextBlock Text="{Binding SelectedTable, FallbackValue='Database Table'}" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
@@ -545,7 +546,7 @@
                                                     Padding="12,10">
                                                 <Grid ColumnDefinitions="Auto, *">
                                                     <Border Grid.Column="0" Background="#2010B981" CornerRadius="6" Width="28" Height="28" Margin="0,0,8,0">
-                                                        <ui:FASymbolIcon Symbol="Download" FontSize="13" Foreground="#10B981" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        <ic:SymbolIcon Symbol="DocumentTable" FontSize="14" Foreground="#10B981" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                     </Border>
                                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                         <TextBlock Text="{Binding FileName, FallbackValue='Spreadsheet File'}" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>

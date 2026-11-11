@@ -3,7 +3,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:services="using:Quell.Services"
-             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:ic="using:FluentIcons.Avalonia"
+              xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="360" d:DesignHeight="280"
              x:Class="Quell.Components.SqlIntelliSenseOverlayComponent">
 
@@ -52,12 +53,12 @@
                             <Grid ColumnDefinitions="Auto, *, Auto">
                                 <!-- Vector Icon: Document (Table), Tag (Keyword), or Code (Snippet) -->
                                 <Panel Grid.Column="0" Width="18" Height="18" Margin="0,0,6,0">
-                                    <ui:FASymbolIcon Symbol="Document" 
-                                                     FontSize="11" 
-                                                     Foreground="#10B981" 
-                                                     IsVisible="{Binding IsTable}"
-                                                     VerticalAlignment="Center" 
-                                                     HorizontalAlignment="Center"/>
+                                    <ic:SymbolIcon Symbol="Table" 
+                                                   FontSize="12" 
+                                                   Foreground="#10B981" 
+                                                   IsVisible="{Binding IsTable}"
+                                                   VerticalAlignment="Center" 
+                                                   HorizontalAlignment="Center"/>
                                     <ui:FASymbolIcon Symbol="Tag" 
                                                      FontSize="11" 
                                                      Foreground="{DynamicResource AppKeywordBrush}" 
