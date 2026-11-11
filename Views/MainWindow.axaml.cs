@@ -29,6 +29,25 @@ public partial class MainWindow : Window
             FooterSplitter.DragCompleted += OnFooterSplitterDragCompleted;
         }
 
+        if (CenterGrid != null)
+        {
+            CenterGrid.AddHandler(PointerEnteredEvent, (s, e) =>
+            {
+                if (_viewModel?.Sidebar != null && !_viewModel.Sidebar.IsPinned && _viewModel.Sidebar.IsDockExpanded)
+                {
+                    _viewModel.Sidebar.IsDockExpanded = false;
+                }
+            }, RoutingStrategies.Tunnel);
+
+            CenterGrid.AddHandler(PointerPressedEvent, (s, e) =>
+            {
+                if (_viewModel?.Sidebar != null && !_viewModel.Sidebar.IsPinned && _viewModel.Sidebar.IsDockExpanded)
+                {
+                    _viewModel.Sidebar.IsDockExpanded = false;
+                }
+            }, RoutingStrategies.Tunnel);
+        }
+
         // Global Tunneling Key Handler: intercepts application shortcuts (Ctrl+B, F5, Ctrl+J, etc.)
         // at the Window root level before any child control (e.g. AvaloniaEdit TextEditor) can swallow them!
         AddHandler(KeyDownEvent, OnWindowKeyDownTunnel, RoutingStrategies.Tunnel);
@@ -79,7 +98,10 @@ public partial class MainWindow : Window
 
     private void OnSidebarPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(SidebarViewModel.IsVisible))
+        if (e.PropertyName == nameof(SidebarViewModel.IsVisible) ||
+            e.PropertyName == nameof(SidebarViewModel.IsPinned) ||
+            e.PropertyName == nameof(SidebarViewModel.IsDockExpanded) ||
+            e.PropertyName == nameof(SidebarViewModel.IsExpanded))
         {
             UpdateSidebarLayout();
         }
@@ -128,12 +150,29 @@ public partial class MainWindow : Window
 
         if (_viewModel.Sidebar.IsVisible)
         {
-            col.MinWidth = 160;
+            col.MinWidth = 54;
             col.MaxWidth = 450;
-            double w = _lastSidebarWidth.Value;
-            if (w < 160) w = 240;
-            if (w > 450) w = 450;
-            col.Width = new GridLength(w, GridUnitType.Pixel);
+            if (_viewModel.Sidebar.IsExpanded)
+            {
+                col.MinWidth = 160;
+                col.MaxWidth = 450;
+                double w = _lastSidebarWidth.Value >= 160 ? _lastSidebarWidth.Value : 260;
+                if (w > 450) w = 450;
+                col.Width = new GridLength(w, GridUnitType.Pixel);
+                if (SidebarSplitter != null) SidebarSplitter.IsVisible = true;
+            }
+            else
+            {
+                col.MinWidth = 54;
+                col.MaxWidth = 450;
+                col.Width = new GridLength(54, GridUnitType.Pixel);
+                if (SidebarSplitter != null) SidebarSplitter.IsVisible = false;
+            }
+
+            
+            
+            
+
         }
         else
         {
@@ -252,8 +291,13 @@ public partial class MainWindow : Window
                     _viewModel.SettingsModal.CloseCommand.Execute(null);
                     e.Handled = true;
                 }
+                else if (_viewModel.Sidebar.IsExpanded)
+                {
+                    _viewModel.Sidebar.CollapseDock();
+                    e.Handled = true;
+                }
             }
-            return;
+
         }
 
         // Toggle Application Menu Strip in Navbar (Alt+M or F10)
@@ -261,7 +305,7 @@ public partial class MainWindow : Window
         {
             _viewModel.Navbar.ToggleNavMenu();
             e.Handled = true;
-            return;
+
         }
 
         // Toggle or Close Explorer Sidebar (Ctrl+B)
@@ -270,7 +314,7 @@ public partial class MainWindow : Window
         {
             _viewModel.ToggleSidebarCommand.Execute(null);
             e.Handled = true;
-            return;
+
         }
 
         // Toggle Fullscreen Table/Footer
@@ -279,7 +323,7 @@ public partial class MainWindow : Window
         {
             _viewModel.ToggleFooterMaximizedCommand.Execute(null);
             e.Handled = true;
-            return;
+
         }
 
         // Run active SQL query
@@ -287,7 +331,7 @@ public partial class MainWindow : Window
         {
             _viewModel.ExecuteQueryCommand.Execute(null);
             e.Handled = true;
-            return;
+
         }
 
         // Save current query
@@ -295,7 +339,7 @@ public partial class MainWindow : Window
         {
             _viewModel.SaveQueryCommand.Execute(null);
             e.Handled = true;
-            return;
+
         }
 
         // New query tab
@@ -303,7 +347,7 @@ public partial class MainWindow : Window
         {
             _viewModel.Editor.AddTabCommand.Execute(null);
             e.Handled = true;
-            return;
+
         }
 
         // Close query tab
@@ -313,7 +357,7 @@ public partial class MainWindow : Window
             {
                 _viewModel.Editor.CloseTabCommand.Execute(_viewModel.Editor.SelectedTab);
                 e.Handled = true;
-                return;
+    
             }
         }
 
@@ -322,7 +366,7 @@ public partial class MainWindow : Window
         {
             _viewModel.ConnectModal.IsOpen = true;
             e.Handled = true;
-            return;
+
         }
 
         // Toggle Footer
@@ -330,7 +374,7 @@ public partial class MainWindow : Window
         {
             _viewModel.ToggleFooterCommand.Execute(null);
             e.Handled = true;
-            return;
+
         }
 
         // Toggle Terminal (Ctrl+` or Ctrl+Tilde)
@@ -339,7 +383,7 @@ public partial class MainWindow : Window
         {
             _viewModel.ToggleTerminalCommand.Execute(null);
             e.Handled = true;
-            return;
+
         }
 
         // Run in Terminal (Ctrl+Shift+Enter)
@@ -348,7 +392,7 @@ public partial class MainWindow : Window
         {
             _viewModel.RunSelectionInTerminalCommand.Execute(null);
             e.Handled = true;
-            return;
+
         }
 
         // Export Data
@@ -356,7 +400,7 @@ public partial class MainWindow : Window
         {
             _viewModel.ExportModal.OpenCommand.Execute(null);
             e.Handled = true;
-            return;
+
         }
 
         // Import Data (Ctrl+I)
@@ -364,7 +408,7 @@ public partial class MainWindow : Window
         {
             _viewModel.OpenImportModalCommand.Execute(null);
             e.Handled = true;
-            return;
+
         }
 
         // Open Settings
@@ -372,7 +416,7 @@ public partial class MainWindow : Window
         {
             _viewModel.SettingsModal.OpenCommand.Execute(null);
             e.Handled = true;
-            return;
+
         }
 
         // Zoom In SQL Editor Text
@@ -380,7 +424,7 @@ public partial class MainWindow : Window
         {
             MainEditor?.ZoomIn();
             e.Handled = true;
-            return;
+
         }
 
         // Zoom Out SQL Editor Text
@@ -388,7 +432,7 @@ public partial class MainWindow : Window
         {
             MainEditor?.ZoomOut();
             e.Handled = true;
-            return;
+
         }
 
         // Reset SQL Editor Zoom
@@ -396,7 +440,7 @@ public partial class MainWindow : Window
         {
             MainEditor?.ResetZoom();
             e.Handled = true;
-            return;
+
         }
 
         // Escape: close navbar menu if open, or restore footer if maximized
@@ -406,7 +450,7 @@ public partial class MainWindow : Window
             {
                 _viewModel.Navbar.IsNavMenuOpen = false;
                 e.Handled = true;
-                return;
+    
             }
 
             if (_viewModel.Footer.IsMaximized)
