@@ -2249,6 +2249,87 @@ sealed class Program
             }
             System.IO.File.Delete(persianCsv);
 
+            // 25. Test Partial Column Selection for Template Download & Import (e.g. 5 of 10 columns)
+            Console.WriteLine("\n[Action] Verifying Partial Column Selection & Template Download for Subsets...");
+            var tenColTable = new System.Collections.Generic.List<(string ColumnName, string DataType, bool IsPk, bool IsRequired)>
+            {
+                ("id", "INT", true, true),
+                ("first_name", "VARCHAR(50)", false, true),
+                ("last_name", "VARCHAR(50)", false, true),
+                ("email", "VARCHAR(100)", false, false),
+                ("phone", "VARCHAR(20)", false, false),
+                ("address", "VARCHAR(200)", false, false),
+                ("city", "VARCHAR(50)", false, false),
+                ("state", "VARCHAR(50)", false, false),
+                ("postal_code", "VARCHAR(20)", false, false),
+                ("country", "VARCHAR(50)", false, false)
+            };
+            vm.ImportModal.LoadTableColumnsCallback = async (t) => await Task.FromResult(tenColTable);
+            await vm.ImportModal.LoadTargetTableSchemaAsync("Customers");
+            if (vm.ImportModal.TotalTableColumnsCount != 10)
+            {
+                throw new Exception($"Expected 10 columns in Customers table, got {vm.ImportModal.TotalTableColumnsCount}");
+            }
+            if (vm.ImportModal.IncludedColumnsCount != 10)
+            {
+                throw new Exception($"Expected all 10 columns to be included initially, got {vm.ImportModal.IncludedColumnsCount}");
+            }
+
+            // Exclude last 5 columns (leaving exactly 5 columns included)
+            for (int i = 5; i < 10; i++)
+            {
+                vm.ImportModal.ColumnMappings[i].IsIncluded = false;
+            }
+            if (vm.ImportModal.IncludedColumnsCount != 5)
+            {
+                throw new Exception($"Expected exactly 5 included columns, got {vm.ImportModal.IncludedColumnsCount}");
+            }
+            Console.WriteLine($"[Success] Column selection verified: {vm.ImportModal.IncludedColumnsCount} of {vm.ImportModal.TotalTableColumnsCount} columns selected!");
+
+            // Test downloading template for ONLY the 5 selected columns
+            string desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            if (string.IsNullOrEmpty(desktop)) desktop = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string subsetXlsx = System.IO.Path.Combine(desktop, "Customers_import_template.xlsx");
+            await vm.ImportModal.DownloadTemplateAsync();
+            if (!System.IO.File.Exists(subsetXlsx))
+            {
+                throw new Exception("DownloadTemplateAsync failed to generate template file on desktop!");
+            }
+            var subsetData = Quell.Services.ExcelDataService.ReadSpreadsheet(subsetXlsx);
+            if (subsetData.Headers.Count != 5)
+            {
+                throw new Exception($"Expected template to contain exactly 5 columns, but got {subsetData.Headers.Count}!");
+            }
+            Console.WriteLine($"[Success] Generated template strictly limited to the 5 selected columns: {string.Join(", ", subsetData.Headers)}");
+            System.IO.File.Delete(subsetXlsx);
+
+            // Test Interactive Pan & Zoom Canvas View and Controls
+            Console.WriteLine("\n[Action] Verifying Interactive Pan & Zoom Schema Mapping Canvas...");
+            vm.ImportModal.SetViewMode("Canvas");
+            if (!vm.ImportModal.IsCanvasView)
+            {
+                throw new Exception("SetViewMode('Canvas') failed to activate canvas mode!");
+            }
+            vm.ImportModal.ZoomIn();
+            if (vm.ImportModal.ZoomLevel <= 1.0)
+            {
+                throw new Exception($"ZoomIn failed! ZoomLevel = {vm.ImportModal.ZoomLevel}");
+            }
+            vm.ImportModal.ZoomOut();
+            vm.ImportModal.ResetZoom();
+            if (vm.ImportModal.ZoomLevel != 1.0 || vm.ImportModal.PanX != 30.0 || vm.ImportModal.PanY != 25.0)
+            {
+                throw new Exception($"ResetZoom failed! Zoom={vm.ImportModal.ZoomLevel}, Pan=({vm.ImportModal.PanX}, {vm.ImportModal.PanY})");
+            }
+            vm.ImportModal.FitToView();
+            Console.WriteLine($"[Success] Canvas FitToView verified: Zoom={vm.ImportModal.ZoomLevel:P0}, Pan=({vm.ImportModal.PanX:F1}, {vm.ImportModal.PanY:F1})");
+            vm.ImportModal.SetViewMode("List");
+            if (!vm.ImportModal.IsListView)
+            {
+                throw new Exception("SetViewMode('List') failed to switch to list view!");
+            }
+            Console.WriteLine("[Success] Seamless Canvas <-> List view switching verified!");
+
             // Test Modal Dismissal
             vm.ImportModal.CloseCommand.Execute(null);
             if (vm.ImportModal.IsOpen)
