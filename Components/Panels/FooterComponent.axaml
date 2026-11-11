@@ -4,7 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Quell.ViewModels"
              xmlns:components="using:Quell.Components"
-             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:ic="using:FluentIcons.Avalonia"
+              xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="180"
              x:Class="Quell.Components.FooterComponent"
              x:DataType="vm:FooterViewModel"
@@ -67,6 +68,16 @@
             <Setter Property="Foreground" Value="{DynamicResource AppTextMutedBrush}"/>
         </Style>
         <Style Selector="Button.footer-tab-btn:not(.active):pointerover ui|FASymbolIcon.tab-icon">
+            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
+        </Style>
+
+        <Style Selector="Button.footer-tab-btn.active ic|SymbolIcon.tab-icon">
+            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
+        </Style>
+        <Style Selector="Button.footer-tab-btn:not(.active) ic|SymbolIcon.tab-icon">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextMutedBrush}"/>
+        </Style>
+        <Style Selector="Button.footer-tab-btn:not(.active):pointerover ic|SymbolIcon.tab-icon">
             <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
         </Style>
 
@@ -141,25 +152,25 @@
                                     <!-- Tab Content Body (Icon + Title + Close) -->
                                     <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                         <!-- Icon: Results Table Grid -->
-                                        <PathIcon Classes="tab-icon"
-                                                  Data="M3 3h18v18H3V3zm2 2v4h6V5H5zm8 0v4h6V5h-6zM5 11v4h6v-4H5zm8 0v4h6v-4h-6zM5 17v2h6v-2H5zm8 0v2h6v-2h-6z"
-                                                  Width="11" Height="11"
-                                                  VerticalAlignment="Center"
-                                                  IsVisible="{Binding IsResults}"/>
+                                        <ic:SymbolIcon Classes="tab-icon"
+                                                       Symbol="Table"
+                                                       FontSize="11"
+                                                       VerticalAlignment="Center"
+                                                       IsVisible="{Binding IsResults}"/>
 
                                         <!-- Icon: Table Schema & Properties -->
-                                        <ui:FASymbolIcon Classes="tab-icon"
-                                                         Symbol="Tag"
-                                                         FontSize="10"
-                                                         VerticalAlignment="Center"
-                                                         IsVisible="{Binding IsSchema}"/>
+                                        <ic:SymbolIcon Classes="tab-icon"
+                                                       Symbol="TableFreezeColumn"
+                                                       FontSize="11"
+                                                       VerticalAlignment="Center"
+                                                       IsVisible="{Binding IsSchema}"/>
 
                                         <!-- Icon: Terminal Console -->
-                                        <ui:FASymbolIcon Classes="tab-icon"
-                                                         Symbol="Play"
-                                                         FontSize="10"
-                                                         VerticalAlignment="Center"
-                                                         IsVisible="{Binding IsTerminal}"/>
+                                        <ic:SymbolIcon Classes="tab-icon"
+                                                       Symbol="Code"
+                                                       FontSize="11"
+                                                       VerticalAlignment="Center"
+                                                       IsVisible="{Binding IsTerminal}"/>
 
                                         <!-- Tab Title -->
                                         <TextBlock Classes="tab-title"

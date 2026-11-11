@@ -1,4 +1,4 @@
-﻿<Window xmlns="https://github.com/avaloniaui"
+<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Quell.ViewModels"
         xmlns:components="using:Quell.Components"
@@ -24,7 +24,7 @@
         <Grid x:Name="MainGrid" Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <!-- Resizable Sidebar Column (Min: 160px, Max: 450px) -->
-                <ColumnDefinition Width="240" MinWidth="160" MaxWidth="450" />
+                <ColumnDefinition Width="54" MinWidth="0" MaxWidth="450" />
                 <ColumnDefinition Width="Auto" />
                 <!-- Center Dynamic Workspace Column (Takes remaining width: *) -->
                 <ColumnDefinition Width="*" MinWidth="300" />
@@ -41,7 +41,7 @@
                           ResizeDirection="Columns" 
                           ResizeBehavior="PreviousAndNext"
                           Cursor="SizeWestEast" 
-                          IsVisible="{Binding Sidebar.IsVisible}" />
+                          IsVisible="{Binding Sidebar.IsExpanded}" />
 
             <!-- CENTER & FOOTER WORKSPACE -->
             <Grid x:Name="CenterGrid" Grid.Column="2">

@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Quell.ViewModels"
              xmlns:models="using:Quell.Models"
+             xmlns:ic="using:FluentIcons.Avalonia"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="350"
              x:Class="Quell.Components.SchemaPropertiesTableComponent"
@@ -97,7 +98,7 @@
                     <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                         <Border Background="{DynamicResource AppAccentBrush}" CornerRadius="3" Padding="6,2" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                <ui:FASymbolIcon Symbol="Tag" FontSize="9" Foreground="White" VerticalAlignment="Center"/>
+                                <ic:SymbolIcon Symbol="Table" FontSize="10" Foreground="White" VerticalAlignment="Center"/>
                                 <TextBlock Text="{Binding TableName, StringFormat='Table: {0}'}" FontSize="10" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Border>
