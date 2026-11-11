@@ -32,12 +32,48 @@ public partial class DiagramTableItem : ObservableObject
     public string DatabaseType { get; set; } = "SQL";
     public string FullName => string.IsNullOrWhiteSpace(Schema) ? TableName : $"{Schema}.{TableName}";
 
+    [ObservableProperty]
+    private double _x = 50;
+
+    [ObservableProperty]
+    private double _y = 50;
+
+    [ObservableProperty]
+    private double _width = 260;
+
+    [ObservableProperty]
+    private double _height = 200;
+
+    [ObservableProperty]
+    private bool _isSelected;
+
+    [ObservableProperty]
+    private bool _isHighlighted;
+
     public ObservableCollection<DiagramColumnItem> Columns { get; } = new();
     public ObservableCollection<string> OutgoingRelations { get; } = new();
 
     public int PrimaryKeysCount => Columns.Count(c => c.IsPrimaryKey);
     public int ForeignKeysCount => Columns.Count(c => c.IsForeignKey);
     public int TotalColumnsCount => Columns.Count;
+}
+
+public partial class DiagramRelationItem : ObservableObject
+{
+    public DiagramTableItem SourceTable { get; set; } = null!;
+    public DiagramTableItem TargetTable { get; set; } = null!;
+    public string SourceColumn { get; set; } = string.Empty;
+    public string TargetColumn { get; set; } = string.Empty;
+    public string RelationText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    private Point _startPoint;
+
+    [ObservableProperty]
+    private Point _endPoint;
+
+    [ObservableProperty]
+    private bool _isHighlighted;
 }
 
 public partial class DatabaseDiagramModalViewModel : ViewModelBase
@@ -58,7 +94,13 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
     private string _filterMode = "All"; // "All", "Relations", "PK"
 
     [ObservableProperty]
-    private double _zoomLevel = 1.0; // 0.7 .. 1.5
+    private double _zoomLevel = 1.0; // 0.3 .. 2.5
+
+    [ObservableProperty]
+    private double _panX = 40.0;
+
+    [ObservableProperty]
+    private double _panY = 40.0;
 
     [ObservableProperty]
     private string _statusMessage = string.Empty;
@@ -87,6 +129,7 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
 
     public ObservableCollection<DiagramTableItem> AllTables { get; } = new();
     public ObservableCollection<DiagramTableItem> FilteredTables { get; } = new();
+    public ObservableCollection<DiagramRelationItem> Relations { get; } = new();
 
     public int TotalTablesCount => AllTables.Count;
     public int TotalRelationsCount => AllTables.Sum(t => t.OutgoingRelations.Count);
@@ -96,6 +139,8 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
     public Func<string, Task>? OpenTableDataCallback { get; set; }
     public Action<string>? GenerateDdlCallback { get; set; }
     public Func<Task>? RefreshDiagramCallback { get; set; }
+
+    public event Action? RequestCanvasUpdate;
 
     public DatabaseDiagramModalViewModel()
     {
@@ -125,19 +170,109 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
     [RelayCommand]
     public void ZoomIn()
     {
-        ZoomLevel = Math.Min(1.5, Math.Round(ZoomLevel + 0.1, 1));
+        ZoomLevel = Math.Min(2.5, Math.Round(ZoomLevel + 0.15, 2));
+        RequestCanvasUpdate?.Invoke();
     }
 
     [RelayCommand]
     public void ZoomOut()
     {
-        ZoomLevel = Math.Max(0.7, Math.Round(ZoomLevel - 0.1, 1));
+        ZoomLevel = Math.Max(0.3, Math.Round(ZoomLevel - 0.15, 2));
+        RequestCanvasUpdate?.Invoke();
     }
 
     [RelayCommand]
     public void ResetZoom()
     {
         ZoomLevel = 1.0;
+        RequestCanvasUpdate?.Invoke();
+    }
+
+    [RelayCommand]
+    public void ResetView()
+    {
+        ZoomLevel = 1.0;
+        PanX = 40.0;
+        PanY = 40.0;
+        RequestCanvasUpdate?.Invoke();
+    }
+
+    [RelayCommand]
+    public void FitToView()
+    {
+        if (FilteredTables.Count == 0)
+        {
+            ResetView();
+            return;
+        }
+
+        double minX = FilteredTables.Min(t => t.X);
+        double minY = FilteredTables.Min(t => t.Y);
+        double maxX = FilteredTables.Max(t => t.X + t.Width);
+        double maxY = FilteredTables.Max(t => t.Y + t.Height);
+
+        double totalW = Math.Max(100, maxX - minX);
+        double totalH = Math.Max(100, maxY - minY);
+
+        // Approximate available viewport dimensions
+        double viewW = 950.0;
+        double viewH = 520.0;
+
+        double scaleX = viewW / (totalW + 100);
+        double scaleY = viewH / (totalH + 100);
+        double bestZoom = Math.Clamp(Math.Min(scaleX, scaleY), 0.35, 1.25);
+
+        ZoomLevel = Math.Round(bestZoom, 2);
+        PanX = 50.0 - minX * ZoomLevel;
+        PanY = 50.0 - minY * ZoomLevel;
+
+        RequestCanvasUpdate?.Invoke();
+    }
+
+    [RelayCommand]
+    public void AutoLayout()
+    {
+        if (FilteredTables.Count == 0) return;
+
+        int count = FilteredTables.Count;
+        int cols = Math.Max(2, Math.Min(4, (int)Math.Ceiling(Math.Sqrt(count))));
+
+        double startX = 60;
+        double startY = 60;
+        double colWidth = 260;
+        double xSpacing = 140; // generous space for connection lines
+        double ySpacing = 40;
+
+        double[] colHeights = new double[cols];
+        for (int i = 0; i < cols; i++) colHeights[i] = startY;
+
+        for (int i = 0; i < count; i++)
+        {
+            var table = FilteredTables[i];
+
+            int bestCol = 0;
+            double minH = colHeights[0];
+            for (int c = 1; c < cols; c++)
+            {
+                if (colHeights[c] < minH)
+                {
+                    minH = colHeights[c];
+                    bestCol = c;
+                }
+            }
+
+            double estimatedHeight = 36 + 10 + Math.Min(table.Columns.Count, 12) * 24 + (table.OutgoingRelations.Count > 0 ? 28 : 0);
+
+            table.X = startX + bestCol * (colWidth + xSpacing);
+            table.Y = colHeights[bestCol];
+            table.Width = colWidth;
+            table.Height = estimatedHeight;
+
+            colHeights[bestCol] += estimatedHeight + ySpacing;
+        }
+
+        RecalculateRelationPoints();
+        RequestCanvasUpdate?.Invoke();
     }
 
     [RelayCommand]
@@ -183,11 +318,124 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
             }
         }
 
+        RebuildRelations();
+
         OnPropertyChanged(nameof(TotalTablesCount));
         OnPropertyChanged(nameof(TotalRelationsCount));
         OnPropertyChanged(nameof(TablesWithRelationsCount));
         OnPropertyChanged(nameof(TablesWithPkCount));
         OnPropertyChanged(nameof(IsEmptyState));
+    }
+
+    public void RebuildRelations()
+    {
+        Relations.Clear();
+
+        foreach (var table in FilteredTables)
+        {
+            // 1. Foreign Keys detected on columns
+            foreach (var col in table.Columns)
+            {
+                if (col.IsForeignKey && !string.IsNullOrWhiteSpace(col.ReferencedTable))
+                {
+                    var target = FilteredTables.FirstOrDefault(t => t.TableName.Equals(col.ReferencedTable, StringComparison.OrdinalIgnoreCase));
+                    if (target != null)
+                    {
+                        var rel = new DiagramRelationItem
+                        {
+                            SourceTable = table,
+                            TargetTable = target,
+                            SourceColumn = col.ColumnName,
+                            TargetColumn = col.ReferencedColumn ?? "Id",
+                            RelationText = $"{table.TableName}.{col.ColumnName} → {target.TableName}.{col.ReferencedColumn ?? "Id"}"
+                        };
+                        Relations.Add(rel);
+                    }
+                }
+            }
+
+            // 2. OutgoingRelations string entries
+            foreach (var relStr in table.OutgoingRelations)
+            {
+                var parts = relStr.Split(new[] { "->" }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length == 2)
+                {
+                    var srcParts = parts[0].Trim().Split('.');
+                    var tgtParts = parts[1].Trim().Split('.');
+                    string targetTableName = tgtParts[0].Trim();
+                    string targetColName = tgtParts.Length > 1 ? tgtParts[1].Trim() : "Id";
+                    string srcColName = srcParts.Length > 1 ? srcParts[1].Trim() : "";
+
+                    if (!Relations.Any(r => r.SourceTable == table && r.TargetTable.TableName.Equals(targetTableName, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        var target = FilteredTables.FirstOrDefault(t => t.TableName.Equals(targetTableName, StringComparison.OrdinalIgnoreCase));
+                        if (target != null)
+                        {
+                            Relations.Add(new DiagramRelationItem
+                            {
+                                SourceTable = table,
+                                TargetTable = target,
+                                SourceColumn = srcColName,
+                                TargetColumn = targetColName,
+                                RelationText = $"{table.TableName}.{srcColName} → {target.TableName}.{targetColName}"
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        RecalculateRelationPoints();
+    }
+
+    public void RecalculateRelationPoints()
+    {
+        foreach (var rel in Relations)
+        {
+            var src = rel.SourceTable;
+            var tgt = rel.TargetTable;
+
+            // Compute Y position at specific column or center of card
+            int srcColIdx = src.Columns.ToList().FindIndex(c => c.ColumnName.Equals(rel.SourceColumn, StringComparison.OrdinalIgnoreCase));
+            double srcY = src.Y + 36 + 4 + (srcColIdx >= 0 ? srcColIdx * 24 + 12 : src.Height / 2);
+
+            int tgtColIdx = tgt.Columns.ToList().FindIndex(c => c.ColumnName.Equals(rel.TargetColumn, StringComparison.OrdinalIgnoreCase));
+            double tgtY = tgt.Y + 36 + 4 + (tgtColIdx >= 0 ? tgtColIdx * 24 + 12 : tgt.Height / 2);
+
+            // Compute X connection point (Right/Left edges)
+            double srcX, tgtX;
+            if (src.X + src.Width <= tgt.X)
+            {
+                // Source is left of Target -> exit from right of Source, enter from left of Target
+                srcX = src.X + src.Width;
+                tgtX = tgt.X;
+            }
+            else if (tgt.X + tgt.Width <= src.X)
+            {
+                // Target is left of Source -> exit from left of Source, enter from right of Target
+                srcX = src.X;
+                tgtX = tgt.X + tgt.Width;
+            }
+            else
+            {
+                // Overlapping horizontally -> connect between outer edges
+                if (src.X < tgt.X)
+                {
+                    srcX = src.X + src.Width;
+                    tgtX = tgt.X + tgt.Width;
+                }
+                else
+                {
+                    srcX = src.X;
+                    tgtX = tgt.X;
+                }
+            }
+
+            rel.StartPoint = new Point(srcX, srcY);
+            rel.EndPoint = new Point(tgtX, tgtY);
+        }
+
+        RequestCanvasUpdate?.Invoke();
     }
 
     public void LoadTables(IEnumerable<DiagramTableItem> tables, string databaseName, string dbType)
@@ -202,6 +450,7 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
         }
 
         ApplyFilter();
+        AutoLayout();
         IsLoading = false;
     }
 

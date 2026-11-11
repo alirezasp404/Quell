@@ -1164,6 +1164,17 @@ sealed class Program
             {
                 throw new Exception("OpenDiagramModal failed to load tables and open dialog!");
             }
+            // Verify Relations mapping and interactive operations
+            if (vm.DiagramModal.TotalRelationsCount > 0 && vm.DiagramModal.Relations.Count == 0)
+            {
+                throw new Exception("Expected foreign key relations to be populated in Relations collection!");
+            }
+            vm.DiagramModal.AutoLayout();
+            vm.DiagramModal.FitToView();
+            vm.DiagramModal.ZoomIn();
+            vm.DiagramModal.ZoomOut();
+            vm.DiagramModal.ResetView();
+            Console.WriteLine($"[Success] Interactive ER Canvas: {vm.DiagramModal.Relations.Count} relations mapped with orthogonal line coordinates!");
             await vm.DiagramModal.CopyMermaidDiagramAsync();
             Console.WriteLine($"Mermaid Diagram status: {vm.DiagramModal.StatusMessage}");
             vm.DiagramModal.Close();
