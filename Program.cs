@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using System;
 using System.Linq;
@@ -2339,6 +2339,107 @@ sealed class Program
             Console.WriteLine("[Success] ImportModal closed successfully!");
 
             System.IO.File.Delete(testCsv);
+
+            // 26. Test Full End-to-End Import Execution into Database via ExecuteImportCommand
+            Console.WriteLine("\n[Action] Verifying Full End-to-End Spreadsheet Import Execution into Database Table...");
+            
+            // 0. Ensure an active SQLite database connection is open
+            string tempDbPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "quell_import_test.db");
+            if (System.IO.File.Exists(tempDbPath))
+            {
+                try { System.IO.File.Delete(tempDbPath); } catch { }
+            }
+            var importDbConfig = new Quell.Services.DatabaseProviders.DatabaseConnectionConfig
+            {
+                DatabaseType = "SQLite",
+                FilePath = tempDbPath
+            };
+            var connectRes = await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.ConnectAsync(importDbConfig);
+            if (!connectRes.Success)
+            {
+                throw new Exception($"Failed to connect to test SQLite database: {connectRes.Message}");
+            }
+
+            // 0b. Restore default schema loader from active database
+            vm.ImportModal.LoadTableColumnsCallback = async tableName =>
+            {
+                var cols = await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.GetColumnsAsync(tableName);
+                var pks = await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(tableName);
+                return cols.Select(c => (c.ColumnName, c.DataType, pks.Contains(c.ColumnName, StringComparer.OrdinalIgnoreCase), false)).ToList();
+            };
+
+            // 1. Create a dedicated target table for bulk import
+            string createImportTableSql = "DROP TABLE IF EXISTS Import_Employees; CREATE TABLE Import_Employees (id INTEGER PRIMARY KEY, full_name TEXT, email TEXT, salary REAL);";
+            var createRes = await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.ExecuteQueryAsync(createImportTableSql);
+            if (!createRes.Success)
+            {
+                throw new Exception($"Failed to create Import_Employees test table: {createRes.Message}");
+            }
+
+            // 2. Prepare sample CSV file with headers matching Persian/English synonyms
+            string importCsvPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "test_employees_import.csv");
+            System.IO.File.WriteAllText(importCsvPath, "نام کامل,ایمیل,حقوق\nEhsan Nazari,ehsan@quell.app,150000\nReza Rad,reza@quell.app,125000\nSara Akbari,sara@quell.app,135000\n", System.Text.Encoding.UTF8);
+
+            // 3. Open Import Modal for Import_Employees table
+            vm.OpenImportModalForTable("Import_Employees");
+            if (!vm.ImportModal.IsOpen)
+            {
+                throw new Exception("OpenImportModalForTable failed to open modal!");
+            }
+            if (vm.ImportModal.SelectedTable != "Import_Employees")
+            {
+                throw new Exception($"Expected SelectedTable to be 'Import_Employees', got '{vm.ImportModal.SelectedTable}'");
+            }
+
+            // 4. Load spreadsheet and auto map
+            await vm.ImportModal.LoadSpreadsheetFileAsync(importCsvPath);
+            if (!vm.ImportModal.HasFileLoaded || vm.ImportModal.TotalExcelRowsCount != 3)
+            {
+                throw new Exception($"Expected 3 loaded rows from CSV, got {vm.ImportModal.TotalExcelRowsCount}");
+            }
+
+            vm.ImportModal.AutoMapColumns();
+            int empMappedCount = vm.ImportModal.ColumnMappings.Count(m => m.IsMapped);
+            Console.WriteLine($"Auto-mapped columns for Import_Employees: {empMappedCount} of {vm.ImportModal.ColumnMappings.Count}");
+            if (empMappedCount < 3)
+            {
+                throw new Exception($"Expected at least 3 auto-mapped columns, got {empMappedCount}");
+            }
+
+            // 5. Execute import into the database!
+            await vm.ImportModal.ExecuteImportCommand.ExecuteAsync(null);
+            
+            if (!vm.ImportModal.IsSuccess)
+            {
+                throw new Exception($"ExecuteImportCommand failed! Status: '{vm.ImportModal.StatusMessage}'");
+            }
+            Console.WriteLine($"[Success] Import execution status: '{vm.ImportModal.StatusMessage}'");
+
+            // 6. Verify rows physically written to the SQLite database
+            var queryImported = await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.ExecuteQueryAsync("SELECT id, full_name, email, salary FROM Import_Employees ORDER BY id;");
+            if (!queryImported.Success || queryImported.Rows.Count != 3)
+            {
+                throw new Exception($"Database verification failed! Expected 3 rows in Import_Employees table, but got {queryImported.Rows.Count} (Success: {queryImported.Success}, Msg: {queryImported.Message})");
+            }
+            Console.WriteLine($"[Success] Database physical rows verified: {queryImported.Rows.Count} rows inserted into SQLite table 'Import_Employees'!");
+            Console.WriteLine($"Row 1: {queryImported.Rows[0]["full_name"]} - {queryImported.Rows[0]["email"]} - {queryImported.Rows[0]["salary"]}");
+            Console.WriteLine($"Row 2: {queryImported.Rows[1]["full_name"]} - {queryImported.Rows[1]["email"]} - {queryImported.Rows[1]["salary"]}");
+            Console.WriteLine($"Row 3: {queryImported.Rows[2]["full_name"]} - {queryImported.Rows[2]["email"]} - {queryImported.Rows[2]["salary"]}");
+
+            // 7. Verify SampleQueryResult automatically updated with the newly imported table
+            if (vm.SampleQueryResult.CurrentTableName != "Import_Employees" || vm.SampleQueryResult.Rows.Count != 3)
+            {
+                throw new Exception($"SampleQueryResult was not refreshed with imported table data! Table='{vm.SampleQueryResult.CurrentTableName}', Rows={vm.SampleQueryResult.Rows.Count}");
+            }
+            Console.WriteLine("[Success] SampleQueryResult footer table verified to reflect newly imported rows!");
+
+            // Cleanup
+            System.IO.File.Delete(importCsvPath);
+            await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.DisconnectAsync(importDbConfig.ConnectionKey);
+            if (System.IO.File.Exists(tempDbPath))
+            {
+                try { System.IO.File.Delete(tempDbPath); } catch { }
+            }
 
             Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER, SIMULTANEOUS BATCH CELL EDITING, FOREIGN KEY NAVIGATION, HARDWARE GPU/CPU RENDERING PIPELINE, INTEGRATED TERMINAL & VISUAL EXCEL DATA IMPORT WIZARD) PASSED! <<<");
             return;

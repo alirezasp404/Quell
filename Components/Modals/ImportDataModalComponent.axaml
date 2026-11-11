@@ -850,7 +850,7 @@
                                        Text="{Binding StatusMessage}" 
                                        FontSize="11" 
                                        FontWeight="SemiBold" 
-                                       Foreground="{Binding IsSuccess, Converter={x:Null}}"
+                                       Foreground="{Binding StatusColor}"
                                        IsVisible="{Binding HasStatusMessage}" 
                                        HorizontalAlignment="Center" 
                                        VerticalAlignment="Center" 

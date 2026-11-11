@@ -362,7 +362,10 @@ public partial class ImportDataModalViewModel : ViewModelBase
     private bool _hasStatusMessage;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StatusColor))]
     private bool _isSuccess;
+
+    public string StatusColor => IsSuccess ? "#10B981" : "#EF4444";
 
     // Callbacks provided by MainViewModel
     public Func<string, Task<List<(string ColumnName, string DataType, bool IsPk, bool IsRequired)>>>? LoadTableColumnsCallback { get; set; }
@@ -930,8 +933,9 @@ public partial class ImportDataModalViewModel : ViewModelBase
 
     public int ExtractExcelColumnIndex(string option)
     {
-        if (string.IsNullOrWhiteSpace(option) || !option.Contains(':')) return -1;
-        string letter = option.Split(':')[0].Trim();
+        if (string.IsNullOrWhiteSpace(option)) return -1;
+        string letter = option.Contains(':') ? option.Split(':')[0].Trim() : option.Trim();
+        if (string.IsNullOrEmpty(letter) || !char.IsLetter(letter[0])) return -1;
         return ExcelDataService.ParseColumnIndexFromRef(letter);
     }
 
@@ -1027,7 +1031,7 @@ public partial class ImportDataModalViewModel : ViewModelBase
                     BatchSize,
                     (imported, total) =>
                     {
-                        double p = (double)imported / total * 100.0;
+                        double p = total > 0 ? (double)imported / total * 100.0 : 0;
                         ImportProgress = p;
                         ImportProgressText = $"Imported {imported:N0} of {total:N0} rows ({p:F0}%)...";
                     });
@@ -1039,9 +1043,18 @@ public partial class ImportDataModalViewModel : ViewModelBase
 
                 if (result.Success)
                 {
-                    await Task.Delay(1500);
+                    ImportProgress = 100.0;
+                    ImportProgressText = $"Completed! {result.RowsImported:N0} rows imported.";
+                    await Task.Delay(1200);
                     IsOpen = false;
                 }
+            }
+            else
+            {
+                IsImporting = false;
+                IsSuccess = false;
+                StatusMessage = "Database import callback is not initialized.";
+                HasStatusMessage = true;
             }
         }
         catch (Exception ex)

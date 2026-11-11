@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Data;
+using System.Globalization;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -1033,6 +1035,11 @@ public partial class MainViewModel : ViewModelBase
             tables.AddRange(new[] { "Users", "Orders", "Products", "Roles" });
         }
 
+        if (!string.IsNullOrWhiteSpace(defaultTable) && !tables.Contains(defaultTable))
+        {
+            tables.Insert(0, defaultTable);
+        }
+
         string? selected = defaultTable ?? Sidebar.SelectedTable?.FullName ?? SampleQueryResult.CurrentTableName;
         ImportModal.TargetDatabaseName = activeDb?.DatabaseName ?? SelectedTargetDatabase?.DisplayName ?? "Active Database";
         ImportModal.SetAvailableTables(tables, selected);
@@ -1592,33 +1599,69 @@ public partial class MainViewModel : ViewModelBase
             return (false, "No valid data or mappings provided for import.", 0);
         }
 
-        string sessionKey = SelectedTargetDatabase?.Key ?? DatabaseSessionService.Instance.ActiveSession?.Key ?? string.Empty;
-        var activeSession = DatabaseSessionService.Instance.ActiveSession;
-        string dbType = activeSession?.DatabaseType ?? SelectedTargetDatabase?.DatabaseType ?? "SQLite";
+        string sessionKey = SelectedTargetDatabase?.Key 
+            ?? DatabaseSessionService.Instance.ActiveSession?.Key 
+            ?? string.Empty;
+
+        var activeNode = Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsActive) 
+            ?? Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsConnected);
+
+        if (string.IsNullOrEmpty(sessionKey) && activeNode != null)
+        {
+            sessionKey = activeNode.ConnectionKey;
+        }
+
+        var activeSession = DatabaseSessionService.Instance.ActiveSession 
+            ?? DatabaseSessionService.Instance.OpenSessions.FirstOrDefault(s => s.Connection.State == ConnectionState.Open);
+
+        if (string.IsNullOrEmpty(sessionKey) && activeSession != null)
+        {
+            sessionKey = activeSession.Key;
+        }
+
+        if (string.IsNullOrEmpty(sessionKey) && activeSession == null)
+        {
+            return (false, "No active database connection found. Please connect to a database first.", 0);
+        }
+
+        string dbType = activeSession?.DatabaseType 
+            ?? SelectedTargetDatabase?.DatabaseType 
+            ?? activeNode?.DatabaseType 
+            ?? "SQLite";
 
         string QuoteCol(string col)
         {
+            string clean = col.Trim('[', ']', '"', '`');
             return dbType.ToUpperInvariant() switch
             {
-                "POSTGRESQL" or "POSTGRES" => $"\"{col.Replace("\"", "\"\"")}\"",
-                "MYSQL" => $"{col.Replace("", "`")}",
-                _ => $"[{col.Replace("]", "]]")}]"
+                "POSTGRESQL" or "POSTGRES" => $"\"{clean.Replace("\"", "\"\"")}\"",
+                "MYSQL" => $"`{clean.Replace("`", "``")}`",
+                _ => $"[{clean.Replace("]", "]]")}]"
             };
         }
+
+        string QuoteTable(string tbl)
+        {
+            string clean = tbl.Trim();
+            var parts = clean.Split('.');
+            var quotedParts = parts.Select(p => QuoteCol(p));
+            return string.Join(".", quotedParts);
+        }
+
+        string quotedTarget = QuoteTable(tableName);
 
         try
         {
             if (truncateBefore)
             {
-                string cleanTarget = tableName.Trim();
                 string deleteSql = dbType.ToUpperInvariant() is "SQLITE"
-                    ? $"DELETE FROM {cleanTarget};"
-                    : $"TRUNCATE TABLE {cleanTarget};";
+                    ? $"DELETE FROM {quotedTarget};"
+                    : $"TRUNCATE TABLE {quotedTarget};";
                 
                 var truncRes = await DatabaseSessionService.Instance.ExecuteQueryAsync(deleteSql, sessionKey);
                 if (!truncRes.Success && truncRes.Message.Contains("TRUNCATE", StringComparison.OrdinalIgnoreCase))
                 {
-                    await DatabaseSessionService.Instance.ExecuteQueryAsync($"DELETE FROM {cleanTarget};", sessionKey);
+                    await DatabaseSessionService.Instance.ExecuteQueryAsync($"DELETE FROM {quotedTarget};", sessionKey);
                 }
             }
 
@@ -1629,7 +1672,7 @@ public partial class MainViewModel : ViewModelBase
             int importedRows = 0;
             int errorRows = 0;
 
-            int effectiveBatchSize = Math.Max(10, Math.Min(1000, batchSize));
+            int effectiveBatchSize = Math.Max(10, Math.Min(500, batchSize));
 
             for (int i = 0; i < totalRows; i += effectiveBatchSize)
             {
@@ -1655,14 +1698,35 @@ public partial class MainViewModel : ViewModelBase
                             }
                         }
 
-                        if (string.IsNullOrEmpty(rawVal))
+                        if (string.IsNullOrWhiteSpace(rawVal) || rawVal.Trim().Equals("NULL", StringComparison.OrdinalIgnoreCase))
                         {
                             rowVals.Add("NULL");
                         }
                         else
                         {
-                            string escaped = rawVal.Replace("'", "''");
-                            rowVals.Add($"'{escaped}'");
+                            rawVal = rawVal.Trim();
+                            string dt = (mapping.DataType ?? string.Empty).ToUpperInvariant();
+                            if ((dt.Contains("INT") || dt.Contains("DECIMAL") || dt.Contains("NUMERIC") || dt.Contains("FLOAT") || dt.Contains("DOUBLE") || dt.Contains("REAL"))
+                                && decimal.TryParse(rawVal, NumberStyles.Any, CultureInfo.InvariantCulture, out var numVal))
+                            {
+                                rowVals.Add(numVal.ToString(CultureInfo.InvariantCulture));
+                            }
+                            else if ((dt.Contains("BOOL") || dt.Contains("BIT")) && bool.TryParse(rawVal, out var bVal))
+                            {
+                                if (dbType.ToUpperInvariant() is "POSTGRESQL" or "POSTGRES")
+                                {
+                                    rowVals.Add(bVal ? "TRUE" : "FALSE");
+                                }
+                                else
+                                {
+                                    rowVals.Add(bVal ? "1" : "0");
+                                }
+                            }
+                            else
+                            {
+                                string escaped = rawVal.Replace("'", "''");
+                                rowVals.Add($"'{escaped}'");
+                            }
                         }
                     }
 
@@ -1671,7 +1735,7 @@ public partial class MainViewModel : ViewModelBase
 
                 if (batchValues.Count > 0)
                 {
-                    string insertSql = $"INSERT INTO {tableName} ({colsSql}) VALUES\n{string.Join(",\n", batchValues)};";
+                    string insertSql = $"INSERT INTO {quotedTarget} ({colsSql}) VALUES\n{string.Join(",\n", batchValues)};";
                     var res = await DatabaseSessionService.Instance.ExecuteQueryAsync(insertSql, sessionKey);
 
                     if (res.Success)
@@ -1684,7 +1748,7 @@ public partial class MainViewModel : ViewModelBase
                         {
                             foreach (var singleRowSql in batchValues)
                             {
-                                string singleInsert = $"INSERT INTO {tableName} ({colsSql}) VALUES {singleRowSql};";
+                                string singleInsert = $"INSERT INTO {quotedTarget} ({colsSql}) VALUES {singleRowSql};";
                                 var singleRes = await DatabaseSessionService.Instance.ExecuteQueryAsync(singleInsert, sessionKey);
                                 if (singleRes.Success) importedRows++;
                                 else errorRows++;
@@ -1703,8 +1767,42 @@ public partial class MainViewModel : ViewModelBase
             await Quell.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
                 $"-- Bulk Imported {importedRows} rows from spreadsheet into {tableName}", "0ms", importedRows, "Success");
 
-            SampleQueryResult.LastQueryMessage = $"Bulk Imported {importedRows:N0} rows into {tableName}";
-            SampleQueryResult.HasLastQueryMessage = true;
+            // Automatically query and refresh the active result table view so user immediately sees the imported data
+            try
+            {
+                string selectQuery = dbType.ToUpperInvariant() switch
+                {
+                    "MSSQL" => $"SELECT TOP 200 * FROM {quotedTarget};",
+                    _ => $"SELECT * FROM {quotedTarget} LIMIT 200;"
+                };
+                var selectRes = await DatabaseSessionService.Instance.ExecuteQueryAsync(selectQuery, sessionKey);
+                Console.WriteLine($"[ExecuteDataImportAsync] Post-import select: Success={selectRes.Success}, Cols={selectRes.ColumnNames.Count}, Rows={selectRes.Rows.Count}, Msg='{selectRes.Message}'");
+                if (selectRes.Success && selectRes.ColumnNames.Count > 0)
+                {
+                    void UpdateResults()
+                    {
+                        SampleQueryResult.CurrentTableName = tableName;
+                        SampleQueryResult.CurrentDatabaseType = dbType;
+                        SampleQueryResult.SetResults(selectRes.ColumnNames, selectRes.Rows, selectRes.ExecutionTime);
+                        SampleQueryResult.LastExecutedQuery = selectQuery;
+                        SampleQueryResult.LastQueryMessage = $"Imported {importedRows:N0} rows into {tableName} · Table View Updated";
+                        SampleQueryResult.HasLastQueryMessage = true;
+                    }
+
+                    try
+                    {
+                        UpdateResults();
+                    }
+                    catch
+                    {
+                        Avalonia.Threading.Dispatcher.UIThread.Post(UpdateResults);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ExecuteDataImportAsync] Post-import refresh error: {ex.Message}");
+            }
 
             string summary = errorRows > 0
                 ? $"Successfully imported {importedRows:N0} rows into {tableName} ({errorRows} rows skipped due to errors)."
@@ -1720,8 +1818,9 @@ public partial class MainViewModel : ViewModelBase
 
     private static int ExtractExcelColumnIndex(string option)
     {
-        if (string.IsNullOrWhiteSpace(option) || !option.Contains(':')) return -1;
-        string letter = option.Split(':')[0].Trim();
+        if (string.IsNullOrWhiteSpace(option)) return -1;
+        string letter = option.Contains(':') ? option.Split(':')[0].Trim() : option.Trim();
+        if (string.IsNullOrEmpty(letter) || !char.IsLetter(letter[0])) return -1;
         return ExcelDataService.ParseColumnIndexFromRef(letter);
     }
 
