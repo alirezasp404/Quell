@@ -38,6 +38,14 @@
             <Setter Property="Background" Value="{DynamicResource AppTabActiveBackgroundBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
         </Style>
+        <Style Selector="Button.footer-tab-btn.active:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppTabActiveBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+        </Style>
+        <Style Selector="Button.footer-tab-btn.active:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppTabActiveBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+        </Style>
 
         <!-- Dynamic Typography & Icons for Active vs Inactive Tab -->
         <Style Selector="Button.footer-tab-btn.active TextBlock.tab-title">
@@ -113,6 +121,8 @@
                                         <MenuItem Header="Close Other Tabs" 
                                                   Command="{Binding $parent[UserControl].((vm:FooterViewModel)DataContext).CloseOtherTabsCommand}" 
                                                   CommandParameter="{Binding Name}" />
+                                        <MenuItem Header="Reset All Tabs (Results &amp; Terminal)" 
+                                                  Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ResetFooterTabsCommand}" />
                                         <Separator />
                                         <MenuItem Header="Close Footer Panel" 
                                                   Command="{Binding $parent[UserControl].((vm:FooterViewModel)DataContext).ClosePanelCommand}" />

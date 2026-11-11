@@ -12,6 +12,8 @@ public class ShellProfile
     public string IconKey { get; set; } = "Terminal";
     public bool IsDatabaseCli { get; set; }
     public string DatabaseType { get; set; } = string.Empty;
+    public bool IsDefault { get; set; }
+    public string MenuTitle => IsDefault ? $"{DisplayName} (Default)" : DisplayName;
 
     public override string ToString() => DisplayName;
 }

@@ -101,6 +101,8 @@ public partial class MainViewModel : ViewModelBase
             }
         };
 
+        ResetFooterTabs();
+
         _sampleQueryResult.EditCellModal.ExecuteQueryDetailedCallback = async sql =>
         {
             string? key = SelectedTargetDatabase?.Key ?? DatabaseSessionService.Instance.ActiveSession?.Key;
@@ -829,6 +831,7 @@ public partial class MainViewModel : ViewModelBase
         Footer.IsVisible = true;
     }
 
+    [RelayCommand]
     public void ShowQueryResultFooter()
     {
         Footer.IsVisible = true;
@@ -885,12 +888,19 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    private void ResetFooterTabs()
+    [RelayCommand]
+    public void ResetFooterTabs()
     {
         Footer.Tabs.Clear();
         Footer.Tabs.Add("Results");
         Footer.Tabs.Add("Terminal");
         Footer.SelectedTab = "Results";
+    }
+
+    [RelayCommand]
+    public void SwitchFooterTab()
+    {
+        Footer.SwitchTab();
     }
 
     private static string? ExtractTableNameFromQuery(string query)

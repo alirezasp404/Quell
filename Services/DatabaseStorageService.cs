@@ -474,6 +474,13 @@ public class DatabaseStorageService
         await ShortcutService.Instance.InitializeAsync().ConfigureAwait(false);
 
         if (reportProgress != null)
+            await reportProgress(74, "Detecting System Shells & CLIs...", "Scanning available PowerShell, CMD, Git Bash, WSL, Bash, Zsh...").ConfigureAwait(false);
+        await Quell.Services.Terminal.ShellDetectorService.Instance.PreloadShellsAsync((info) =>
+        {
+            Console.WriteLine($"[ShellDetector] {info}");
+        }).ConfigureAwait(false);
+
+        if (reportProgress != null)
             await reportProgress(78, "Loading Multi-Dialect SQL Lexers...", "Pre-caching MSSQL, PostgreSQL, MySQL, SQLite keywords...").ConfigureAwait(false);
         await SqlKeywordsService.Instance.LoadKeywordsFromDatabaseAsync().ConfigureAwait(false);
 

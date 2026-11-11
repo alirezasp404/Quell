@@ -131,9 +131,9 @@ sealed class Program
             {
                 throw new Exception($"Expected clean initial table (0 rows), but got {vm.SampleQueryResult.Rows.Count}");
             }
-            if (vm.Footer.Tabs.Count != 0)
+            if (vm.Footer.Tabs.Count != 2 || !vm.Footer.Tabs.Contains("Results") || !vm.Footer.Tabs.Contains("Terminal"))
             {
-                throw new Exception($"Expected clean initial footer tabs (0 tabs), but got {vm.Footer.Tabs.Count}");
+                throw new Exception($"Expected initial footer tabs with Results and Terminal, but got {vm.Footer.Tabs.Count} tabs: {string.Join(", ", vm.Footer.Tabs)}");
             }
             Console.WriteLine($"SchemaPropertiesTable Columns: {vm.SampleSchema.Columns.Count} columns loaded.");
             var tableComp = new Quell.Components.QueryResultTableComponent { DataContext = vm.SampleQueryResult };
@@ -1791,6 +1791,18 @@ sealed class Program
                 throw new Exception("Default shell resolution failed!");
             }
             Console.WriteLine($"[Success] Default shell resolved: {defaultShell.DisplayName} ({defaultShell.ExecutablePath})");
+
+            // Verify Terminal ViewModel AvailableShells & Dropdown Flyout Items
+            if (vm.Terminal.AvailableShells.Count == 0)
+            {
+                throw new Exception("Terminal ViewModel AvailableShells was empty!");
+            }
+            var defaultShellItem = vm.Terminal.AvailableShells.FirstOrDefault(s => s.IsDefault);
+            if (defaultShellItem == null || !defaultShellItem.MenuTitle.Contains("(Default)"))
+            {
+                throw new Exception("Default shell in AvailableShells was not marked with (Default)!");
+            }
+            Console.WriteLine($"[Success] Terminal AvailableShells ({vm.Terminal.AvailableShells.Count} shells) and Dropdown items verified!");
 
             // 3. Database CLI Resolution Tests (PostgreSQL, MySQL, SQLite, SQL Server)
             var pgConfig = new Quell.Services.DatabaseProviders.DatabaseConnectionConfig

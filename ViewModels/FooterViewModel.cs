@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -33,7 +33,11 @@ public partial class FooterViewModel : ViewModelBase
     public bool IsResultsTabSelected => string.Equals(SelectedTab, "Results", StringComparison.OrdinalIgnoreCase);
     public bool IsTerminalTabSelected => string.Equals(SelectedTab, "Terminal", StringComparison.OrdinalIgnoreCase);
 
-    public ObservableCollection<string> Tabs { get; } = new();
+    public ObservableCollection<string> Tabs { get; } = new()
+    {
+        "Results",
+        "Terminal"
+    };
     public ObservableCollection<FooterTabItem> TabItems { get; } = new();
 
     public FooterViewModel()
@@ -45,6 +49,10 @@ public partial class FooterViewModel : ViewModelBase
     partial void OnSelectedTabChanged(string value)
     {
         UpdateActiveStates();
+        if (IsTerminalTabSelected)
+        {
+            TerminalTabActivated?.Invoke();
+        }
     }
 
     private void SyncTabItems()
@@ -82,13 +90,28 @@ public partial class FooterViewModel : ViewModelBase
     public event Action? TerminalTabActivated;
 
     [RelayCommand]
-    private void SelectTab(string tabName)
+    public void SelectTab(string tabName)
     {
-        SelectedTab = tabName;
-        if (IsTerminalTabSelected)
+        if (string.Equals(SelectedTab, tabName, StringComparison.OrdinalIgnoreCase))
         {
-            TerminalTabActivated?.Invoke();
+            if (IsTerminalTabSelected)
+            {
+                TerminalTabActivated?.Invoke();
+            }
+            return;
         }
+
+        SelectedTab = tabName;
+    }
+
+    [RelayCommand]
+    public void SwitchTab()
+    {
+        if (Tabs.Count <= 1) return;
+        int currentIndex = Tabs.IndexOf(SelectedTab);
+        if (currentIndex < 0) currentIndex = 0;
+        int nextIndex = (currentIndex + 1) % Tabs.Count;
+        SelectTab(Tabs[nextIndex]);
     }
 
     [RelayCommand]
