@@ -501,6 +501,21 @@
                                                             <ui:FASymbolIcon Symbol="Code" FontSize="11" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
                                                         </MenuItem.Icon>
                                                     </MenuItem>
+                                                    <Separator />
+                                                    <MenuItem Header="Import Data from Excel / CSV..."
+                                                              Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).OpenImportModalForTableCommand}"
+                                                              CommandParameter="{Binding Table.FullName}">
+                                                        <MenuItem.Icon>
+                                                            <ui:FASymbolIcon Symbol="Download" FontSize="11" Foreground="#10B981"/>
+                                                        </MenuItem.Icon>
+                                                    </MenuItem>
+                                                    <MenuItem Header="Download Excel Template..."
+                                                              Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).DownloadTemplateForTableCommand}"
+                                                              CommandParameter="{Binding Table.FullName}">
+                                                        <MenuItem.Icon>
+                                                            <ui:FASymbolIcon Symbol="Document" FontSize="11" Foreground="#10B981"/>
+                                                        </MenuItem.Icon>
+                                                    </MenuItem>
                                                 </ContextMenu>
                                             </Border.ContextMenu>
 

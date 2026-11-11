@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Controls;
 using System;
 using System.Linq;
@@ -99,6 +99,32 @@ sealed class Program
                 throw new Exception("Ctrl+B shortcut failed to reopen the Sidebar!");
             }
             Console.WriteLine("[Success] Ctrl+B shortcut verified to close and reopen Sidebar cleanly!");
+
+            // 2c. Test Ctrl+I Keyboard Shortcut to Open Import Modal & Escape to Close
+            Console.WriteLine("\n[Action] Verifying Ctrl+I Shortcut opens Import Modal & Escape closes...");
+            window.RaiseEvent(new Avalonia.Input.KeyEventArgs
+            {
+                RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent,
+                Key = Avalonia.Input.Key.I,
+                KeyModifiers = Avalonia.Input.KeyModifiers.Control
+            });
+            if (!vm.ImportModal.IsOpen)
+            {
+                throw new Exception("Ctrl+I shortcut failed to open ImportModal!");
+            }
+            Console.WriteLine("[Success] Ctrl+I shortcut verified to open ImportModal!");
+
+            window.RaiseEvent(new Avalonia.Input.KeyEventArgs
+            {
+                RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent,
+                Key = Avalonia.Input.Key.Escape,
+                KeyModifiers = Avalonia.Input.KeyModifiers.None
+            });
+            if (vm.ImportModal.IsOpen)
+            {
+                throw new Exception("Escape key failed to close ImportModal!");
+            }
+            Console.WriteLine("[Success] Escape key verified to close ImportModal!");
 
             // 3. Test Restoring from Window Menu
             Console.WriteLine("\n[Action] Restoring Sidebar & Footer from Window Menu...");
@@ -2193,6 +2219,7 @@ sealed class Program
                 throw new Exception("CloseCommand must close ImportModal!");
             }
             Console.WriteLine("[Success] ImportModal closed successfully!");
+
             System.IO.File.Delete(testCsv);
 
             Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER, SIMULTANEOUS BATCH CELL EDITING, FOREIGN KEY NAVIGATION, HARDWARE GPU/CPU RENDERING PIPELINE, INTEGRATED TERMINAL & VISUAL EXCEL DATA IMPORT WIZARD) PASSED! <<<");

@@ -218,13 +218,18 @@ public partial class MainWindow : Window
         if (e.Handled || _viewModel == null) return;
 
         // If a modal dialog is open, do not execute workspace shortcuts (except Escape)
-        if (_viewModel.SettingsModal.IsOpen || _viewModel.ConnectModal.IsOpen || _viewModel.ConfirmModal.IsOpen || _viewModel.ExportModal.IsOpen || _viewModel.DiagramModal.IsOpen)
+        if (_viewModel.SettingsModal.IsOpen || _viewModel.ConnectModal.IsOpen || _viewModel.ConfirmModal.IsOpen || _viewModel.ExportModal.IsOpen || _viewModel.DiagramModal.IsOpen || _viewModel.ImportModal.IsOpen)
         {
             if (e.Key == Key.Escape)
             {
                 if (_viewModel.DiagramModal.IsOpen)
                 {
                     _viewModel.DiagramModal.IsOpen = false;
+                    e.Handled = true;
+                }
+                else if (_viewModel.ImportModal.IsOpen)
+                {
+                    _viewModel.ImportModal.IsOpen = false;
                     e.Handled = true;
                 }
                 else if (_viewModel.ConnectModal.IsOpen)
@@ -350,6 +355,14 @@ public partial class MainWindow : Window
         if (ShortcutService.Instance.IsMatch(ShortcutActions.ExportData, e) || (e.Key == Key.E && e.KeyModifiers == KeyModifiers.Control))
         {
             _viewModel.ExportModal.OpenCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
+
+        // Import Data (Ctrl+I)
+        if (ShortcutService.Instance.IsMatch(ShortcutActions.ImportData, e) || (e.Key == Key.I && e.KeyModifiers == KeyModifiers.Control))
+        {
+            _viewModel.OpenImportModalCommand.Execute(null);
             e.Handled = true;
             return;
         }
