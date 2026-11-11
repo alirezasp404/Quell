@@ -185,6 +185,30 @@ public partial class MainViewModel : ViewModelBase
                 _sampleQueryResult.RefreshCallback = RefreshQueryResultAsync;
         _sampleQueryResult.NavigateToForeignKeyCallback = NavigateToForeignKeyTableAsync;
 
+        _sampleQueryResult.ForeignKeyInspectorModal.FetchRecordCallback = async (tgtTable, tgtCol, val) =>
+        {
+            string? key = SelectedTargetDatabase?.Key ?? DatabaseSessionService.Instance.ActiveSession?.Key;
+            if (!string.IsNullOrEmpty(key) && DatabaseSessionService.Instance.IsSessionOpen(key))
+            {
+                string cleanVal = val?.Replace("'", "''") ?? string.Empty;
+                bool isNumeric = long.TryParse(val, out _) || double.TryParse(val, out _);
+                string whereClause = isNumeric ? $"WHERE {tgtCol} = {val}" : $"WHERE {tgtCol} = '{cleanVal}'";
+
+                string q = SelectedTargetDatabase?.DatabaseType == "MSSQL"
+                    ? $"SELECT TOP 1 * FROM {tgtTable} {whereClause};"
+                    : $"SELECT * FROM {tgtTable} {whereClause} LIMIT 1;";
+
+                var res = await DatabaseSessionService.Instance.ExecuteQueryAsync(q, key);
+                if (res.Success && res.Rows.Count > 0)
+                {
+                    return res.Rows[0];
+                }
+            }
+
+            return QueryResultTableViewModel.GetSampleRow(tgtTable, tgtCol, val);
+        };
+        _sampleQueryResult.ForeignKeyInspectorModal.NavigateToTableCallback = NavigateToForeignKeyTableAsync;
+
         // Wire sidebar actions to editor and connect modal
         _sidebar.InsertQueryToEditor = q =>
         {
@@ -434,6 +458,23 @@ public partial class MainViewModel : ViewModelBase
 
         if (SelectedTargetDatabase == null)
         {
+            string? checkTable = ExtractTableNameFromQuery(query);
+            if (!string.IsNullOrWhiteSpace(checkTable) &&
+                (checkTable.Equals("Orders", StringComparison.OrdinalIgnoreCase) ||
+                 checkTable.Equals("Users", StringComparison.OrdinalIgnoreCase) ||
+                 checkTable.Equals("Roles", StringComparison.OrdinalIgnoreCase) ||
+                 checkTable.Equals("Courses", StringComparison.OrdinalIgnoreCase) ||
+                 checkTable.Equals("Departments", StringComparison.OrdinalIgnoreCase)))
+            {
+                SampleQueryResult.LoadSampleReferencedTable(checkTable, null, null);
+                SampleQueryResult.LastExecutedQuery = query;
+                SampleQueryResult.LastQueryMessage = $"Loaded sample data for '{checkTable}' ({SampleQueryResult.TotalRows} rows)";
+                SampleQueryResult.HasLastQueryMessage = true;
+                SampleQueryResult.TargetDatabaseName = "Sample DB";
+                ShowQueryResultFooter();
+                return;
+            }
+
             SampleQueryResult.SetResults(
                 new List<string> { "Status", "Message" },
                 new List<QueryResultRow>
@@ -568,6 +609,14 @@ public partial class MainViewModel : ViewModelBase
 
     public async Task NavigateToForeignKeyTableAsync(string targetTable, string targetColumn, string? cellValue, string? sourceColumn)
     {
+        if (string.IsNullOrWhiteSpace(cellValue) || cellValue.Equals("NULL", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        string sourceDesc = $"Navigated via [{sourceColumn ?? "FK"} -> {targetTable}.{targetColumn} = {cellValue}]";
+        SampleQueryResult.PushNavigationState(sourceDesc);
+
         string? activeKey = SelectedTargetDatabase?.Key;
         string cleanVal = cellValue?.Replace("'", "''") ?? string.Empty;
         bool isNumeric = long.TryParse(cellValue, out _) || double.TryParse(cellValue, out _);

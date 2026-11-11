@@ -6,6 +6,7 @@ using System.Text;
 using Avalonia;
 using Avalonia.Collections;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
@@ -94,9 +95,40 @@ public partial class QueryResultTableComponent : UserControl
         {
             string colName = btn.Tag?.ToString() ?? "Role";
             string cellVal = row[colName];
+            if (string.IsNullOrWhiteSpace(cellVal) || cellVal.Equals("NULL", StringComparison.OrdinalIgnoreCase)) return;
             if (_viewModel != null)
             {
                 await _viewModel.NavigateToForeignKeyAsync(colName, cellVal);
+            }
+        }
+    }
+
+    private async void OnForeignKeyCellDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        e.Handled = true;
+        if (sender is Control ctrl && ctrl.DataContext is QueryResultRow row)
+        {
+            string colName = ctrl.Tag?.ToString() ?? "Role";
+            string cellVal = row[colName];
+            if (string.IsNullOrWhiteSpace(cellVal) || cellVal.Equals("NULL", StringComparison.OrdinalIgnoreCase)) return;
+            if (_viewModel != null)
+            {
+                await _viewModel.NavigateToForeignKeyAsync(colName, cellVal);
+            }
+        }
+    }
+
+    private async void OnForeignKeyInspectClick(object? sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+        if (sender is Button btn && btn.DataContext is QueryResultRow row)
+        {
+            string colName = btn.Tag?.ToString() ?? "Role";
+            string cellVal = row[colName];
+            if (string.IsNullOrWhiteSpace(cellVal) || cellVal.Equals("NULL", StringComparison.OrdinalIgnoreCase)) return;
+            if (_viewModel != null)
+            {
+                await _viewModel.InspectForeignKeyAsync(colName, cellVal);
             }
         }
     }
@@ -214,14 +246,73 @@ public partial class QueryResultTableComponent : UserControl
                             Margin = new Thickness(4, 0)
                         };
 
+                        var linkPill = new Border
+                        {
+                            Background = Avalonia.Media.Brushes.Transparent,
+                            BorderThickness = new Thickness(0),
+                            Padding = new Thickness(2, 0),
+                            Cursor = new Cursor(StandardCursorType.Hand),
+                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+                            Tag = capturedCol
+                        };
+
+                        var valueStack = new StackPanel
+                        {
+                            Orientation = Avalonia.Layout.Orientation.Horizontal,
+                            Spacing = 4,
+                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                        };
+
+                        var linkIcon = new Avalonia.Controls.PathIcon
+                        {
+                            Data = Avalonia.Media.Geometry.Parse("M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"),
+                            Width = 8,
+                            Height = 8,
+                            Opacity = 0.8,
+                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                        };
+                        linkIcon[!Avalonia.Controls.PathIcon.ForegroundProperty] = new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("AppAccentBrush");
+
                         var cellText = new TextBlock
                         {
                             FontSize = 11,
                             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
                         };
                         cellText.Bind(TextBlock.TextProperty, new Avalonia.Data.Binding($"[{capturedCol}]"));
-                        Grid.SetColumn(cellText, 0);
-                        cellGrid.Children.Add(cellText);
+                        cellText[!TextBlock.ForegroundProperty] = new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("AppAccentBrush");
+
+                        valueStack.Children.Add(linkIcon);
+                        valueStack.Children.Add(cellText);
+                        linkPill.Child = valueStack;
+
+                        ToolTip.SetTip(linkPill, $"Foreign Key: {relCopy.TargetTable}({relCopy.TargetColumn})\nDouble-click to navigate directly to referenced record");
+
+                        // Double-click on cell or value directly navigates to the referenced table WITHOUT opening a modal
+                        linkPill.DoubleTapped += async (s, e) =>
+                        {
+                            e.Handled = true;
+                            string val = row != null ? row[capturedCol] : string.Empty;
+                            if (string.IsNullOrWhiteSpace(val) || val.Equals("NULL", StringComparison.OrdinalIgnoreCase)) return;
+                            if (_viewModel != null)
+                            {
+                                await _viewModel.NavigateToForeignKeyAsync(capturedCol, val);
+                            }
+                        };
+
+                        cellGrid.DoubleTapped += async (s, e) =>
+                        {
+                            e.Handled = true;
+                            string val = row != null ? row[capturedCol] : string.Empty;
+                            if (string.IsNullOrWhiteSpace(val) || val.Equals("NULL", StringComparison.OrdinalIgnoreCase)) return;
+                            if (_viewModel != null)
+                            {
+                                await _viewModel.NavigateToForeignKeyAsync(capturedCol, val);
+                            }
+                        };
+
+                        Grid.SetColumn(linkPill, 0);
+                        cellGrid.Children.Add(linkPill);
 
                         var arrowBtn = new Button
                         {
@@ -252,6 +343,7 @@ public partial class QueryResultTableComponent : UserControl
                         {
                             e.Handled = true;
                             string val = row != null ? row[capturedCol] : string.Empty;
+                            if (string.IsNullOrWhiteSpace(val) || val.Equals("NULL", StringComparison.OrdinalIgnoreCase)) return;
                             if (_viewModel != null)
                             {
                                 await _viewModel.NavigateToForeignKeyAsync(capturedCol, val);
@@ -260,6 +352,37 @@ public partial class QueryResultTableComponent : UserControl
 
                         Grid.SetColumn(arrowBtn, 1);
                         cellGrid.Children.Add(arrowBtn);
+
+                        // Context Menu for cell
+                        var ctxMenu = new ContextMenu();
+                        var peekItem = new MenuItem { Header = $"Inspect Referenced Record in {relCopy.TargetTable}..." };
+                        peekItem.Click += async (s, e) =>
+                        {
+                            string val = row != null ? row[capturedCol] : string.Empty;
+                            if (string.IsNullOrWhiteSpace(val) || val.Equals("NULL", StringComparison.OrdinalIgnoreCase)) return;
+                            if (_viewModel != null) await _viewModel.InspectForeignKeyAsync(capturedCol, val);
+                        };
+                        var navItem = new MenuItem { Header = $"Open in {relCopy.TargetTable} Table View" };
+                        navItem.Click += async (s, e) =>
+                        {
+                            string val = row != null ? row[capturedCol] : string.Empty;
+                            if (string.IsNullOrWhiteSpace(val) || val.Equals("NULL", StringComparison.OrdinalIgnoreCase)) return;
+                            if (_viewModel != null) await _viewModel.NavigateToForeignKeyAsync(capturedCol, val);
+                        };
+                        var copyValItem = new MenuItem { Header = "Copy Foreign Key Value" };
+                        copyValItem.Click += async (s, e) =>
+                        {
+                            string val = row != null ? row[capturedCol] : string.Empty;
+                            if (!string.IsNullOrEmpty(val))
+                            {
+                                await ClipboardService.CopyTextAsync(val);
+                            }
+                        };
+                        ctxMenu.Items.Add(peekItem);
+                        ctxMenu.Items.Add(navItem);
+                        ctxMenu.Items.Add(new Separator());
+                        ctxMenu.Items.Add(copyValItem);
+                        cellGrid.ContextMenu = ctxMenu;
 
                         return cellGrid;
                     });
@@ -393,7 +516,19 @@ public partial class QueryResultTableComponent : UserControl
 
         if (e.PointerPressedEventArgs.ClickCount == 2 && !header)
         {
-            _viewModel?.OpenEditCell(item, e.Column.Header?.ToString());
+            string colName = ExtractHeaderName(e.Column);
+            if (_viewModel != null && !string.IsNullOrEmpty(colName) && _viewModel.IsColumnForeignKey(colName))
+            {
+                e.PointerPressedEventArgs.Handled = true;
+                string val = item[colName];
+                if (!string.IsNullOrWhiteSpace(val) && !val.Equals("NULL", StringComparison.OrdinalIgnoreCase))
+                {
+                    _ = _viewModel.NavigateToForeignKeyAsync(colName, val);
+                }
+                return;
+            }
+
+            _viewModel?.OpenEditCell(item, colName);
             e.PointerPressedEventArgs.Handled = true;
             return;
         }
