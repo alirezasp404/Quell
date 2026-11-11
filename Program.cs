@@ -100,6 +100,32 @@ sealed class Program
             }
             Console.WriteLine("[Success] Ctrl+B shortcut verified to close and reopen Sidebar cleanly!");
 
+            // 2c. Test Ctrl+I Keyboard Shortcut to Open Import Modal & Escape to Close
+            Console.WriteLine("\n[Action] Verifying Ctrl+I Shortcut opens Import Modal & Escape closes...");
+            window.RaiseEvent(new Avalonia.Input.KeyEventArgs
+            {
+                RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent,
+                Key = Avalonia.Input.Key.I,
+                KeyModifiers = Avalonia.Input.KeyModifiers.Control
+            });
+            if (!vm.ImportModal.IsOpen)
+            {
+                throw new Exception("Ctrl+I shortcut failed to open ImportModal!");
+            }
+            Console.WriteLine("[Success] Ctrl+I shortcut verified to open ImportModal!");
+
+            window.RaiseEvent(new Avalonia.Input.KeyEventArgs
+            {
+                RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent,
+                Key = Avalonia.Input.Key.Escape,
+                KeyModifiers = Avalonia.Input.KeyModifiers.None
+            });
+            if (vm.ImportModal.IsOpen)
+            {
+                throw new Exception("Escape key failed to close ImportModal!");
+            }
+            Console.WriteLine("[Success] Escape key verified to close ImportModal!");
+
             // 3. Test Restoring from Window Menu
             Console.WriteLine("\n[Action] Restoring Sidebar & Footer from Window Menu...");
             vm.ShowSidebarCommand.Execute(null);
@@ -2186,6 +2212,124 @@ sealed class Program
             }
             Console.WriteLine($"[Success] Mapped preview generated with {vm.ImportModal.MappedPreviewRows.Count} preview rows!");
 
+            // Test Filtering & Graphical Status
+            vm.ImportModal.SetFilter("Mapped");
+            if (vm.ImportModal.FilteredColumnMappings.Count != mappedCount)
+            {
+                throw new Exception($"Expected {mappedCount} filtered mapped items, got {vm.ImportModal.FilteredColumnMappings.Count}");
+            }
+            Console.WriteLine($"[Success] Filter 'Mapped' verified with {vm.ImportModal.FilteredColumnMappings.Count} items!");
+
+            // Test Unlink
+            var firstMapped = vm.ImportModal.ColumnMappings.First(m => m.IsMapped);
+            firstMapped.Unlink();
+            if (firstMapped.IsMapped)
+            {
+                throw new Exception("Unlink failed to disconnect column!");
+            }
+            Console.WriteLine("[Success] Graphical Unlink action verified!");
+
+            // Test Map by Position (1:1)
+            vm.ImportModal.MapByPosition();
+            if (vm.ImportModal.MappedColumnsCount != 4)
+            {
+                throw new Exception($"MapByPosition expected 4 mapped columns, got {vm.ImportModal.MappedColumnsCount}");
+            }
+            Console.WriteLine("[Success] MapByPosition (1:1) successfully mapped 4 of 4 columns!");
+
+            // Test Smart Auto-Mapping with Persian Headers
+            string persianCsv = System.IO.Path.Combine(tempDir, "quell_persian_test.csv");
+            System.IO.File.WriteAllText(persianCsv, "شناسه,نام,ایمیل,حقوق\n201,کوروش,cyrus@persia.ir,99000", System.Text.Encoding.UTF8);
+            await vm.ImportModal.LoadSpreadsheetFileAsync(persianCsv);
+            vm.ImportModal.AutoMapColumns();
+            Console.WriteLine($"[Success] Persian Smart Auto-Map mapped {vm.ImportModal.MappedColumnsCount} of {vm.ImportModal.TotalTableColumnsCount} columns!");
+            if (vm.ImportModal.MappedColumnsCount < 3)
+            {
+                throw new Exception($"Persian AutoMap expected at least 3 mapped columns, got {vm.ImportModal.MappedColumnsCount}");
+            }
+            System.IO.File.Delete(persianCsv);
+
+            // 25. Test Partial Column Selection for Template Download & Import (e.g. 5 of 10 columns)
+            Console.WriteLine("\n[Action] Verifying Partial Column Selection & Template Download for Subsets...");
+            var tenColTable = new System.Collections.Generic.List<(string ColumnName, string DataType, bool IsPk, bool IsRequired)>
+            {
+                ("id", "INT", true, true),
+                ("first_name", "VARCHAR(50)", false, true),
+                ("last_name", "VARCHAR(50)", false, true),
+                ("email", "VARCHAR(100)", false, false),
+                ("phone", "VARCHAR(20)", false, false),
+                ("address", "VARCHAR(200)", false, false),
+                ("city", "VARCHAR(50)", false, false),
+                ("state", "VARCHAR(50)", false, false),
+                ("postal_code", "VARCHAR(20)", false, false),
+                ("country", "VARCHAR(50)", false, false)
+            };
+            vm.ImportModal.LoadTableColumnsCallback = async (t) => await Task.FromResult(tenColTable);
+            await vm.ImportModal.LoadTargetTableSchemaAsync("Customers");
+            if (vm.ImportModal.TotalTableColumnsCount != 10)
+            {
+                throw new Exception($"Expected 10 columns in Customers table, got {vm.ImportModal.TotalTableColumnsCount}");
+            }
+            if (vm.ImportModal.IncludedColumnsCount != 10)
+            {
+                throw new Exception($"Expected all 10 columns to be included initially, got {vm.ImportModal.IncludedColumnsCount}");
+            }
+
+            // Exclude last 5 columns (leaving exactly 5 columns included)
+            for (int i = 5; i < 10; i++)
+            {
+                vm.ImportModal.ColumnMappings[i].IsIncluded = false;
+            }
+            if (vm.ImportModal.IncludedColumnsCount != 5)
+            {
+                throw new Exception($"Expected exactly 5 included columns, got {vm.ImportModal.IncludedColumnsCount}");
+            }
+            Console.WriteLine($"[Success] Column selection verified: {vm.ImportModal.IncludedColumnsCount} of {vm.ImportModal.TotalTableColumnsCount} columns selected!");
+
+            // Test downloading template for ONLY the 5 selected columns
+            string desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            if (string.IsNullOrEmpty(desktop)) desktop = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string subsetXlsx = System.IO.Path.Combine(desktop, "Customers_import_template.xlsx");
+            await vm.ImportModal.DownloadTemplateAsync();
+            if (!System.IO.File.Exists(subsetXlsx))
+            {
+                throw new Exception("DownloadTemplateAsync failed to generate template file on desktop!");
+            }
+            var subsetData = Quell.Services.ExcelDataService.ReadSpreadsheet(subsetXlsx);
+            if (subsetData.Headers.Count != 5)
+            {
+                throw new Exception($"Expected template to contain exactly 5 columns, but got {subsetData.Headers.Count}!");
+            }
+            Console.WriteLine($"[Success] Generated template strictly limited to the 5 selected columns: {string.Join(", ", subsetData.Headers)}");
+            System.IO.File.Delete(subsetXlsx);
+
+            // Test Interactive Pan & Zoom Canvas View and Controls
+            Console.WriteLine("\n[Action] Verifying Interactive Pan & Zoom Schema Mapping Canvas...");
+            vm.ImportModal.SetViewMode("Canvas");
+            if (!vm.ImportModal.IsCanvasView)
+            {
+                throw new Exception("SetViewMode('Canvas') failed to activate canvas mode!");
+            }
+            vm.ImportModal.ZoomIn();
+            if (vm.ImportModal.ZoomLevel <= 1.0)
+            {
+                throw new Exception($"ZoomIn failed! ZoomLevel = {vm.ImportModal.ZoomLevel}");
+            }
+            vm.ImportModal.ZoomOut();
+            vm.ImportModal.ResetZoom();
+            if (vm.ImportModal.ZoomLevel != 1.0 || vm.ImportModal.PanX != 30.0 || vm.ImportModal.PanY != 25.0)
+            {
+                throw new Exception($"ResetZoom failed! Zoom={vm.ImportModal.ZoomLevel}, Pan=({vm.ImportModal.PanX}, {vm.ImportModal.PanY})");
+            }
+            vm.ImportModal.FitToView();
+            Console.WriteLine($"[Success] Canvas FitToView verified: Zoom={vm.ImportModal.ZoomLevel:P0}, Pan=({vm.ImportModal.PanX:F1}, {vm.ImportModal.PanY:F1})");
+            vm.ImportModal.SetViewMode("List");
+            if (!vm.ImportModal.IsListView)
+            {
+                throw new Exception("SetViewMode('List') failed to switch to list view!");
+            }
+            Console.WriteLine("[Success] Seamless Canvas <-> List view switching verified!");
+
             // Test Modal Dismissal
             vm.ImportModal.CloseCommand.Execute(null);
             if (vm.ImportModal.IsOpen)
@@ -2193,7 +2337,145 @@ sealed class Program
                 throw new Exception("CloseCommand must close ImportModal!");
             }
             Console.WriteLine("[Success] ImportModal closed successfully!");
+
             System.IO.File.Delete(testCsv);
+
+            // 26. Test Full End-to-End Import Execution into Database via ExecuteImportCommand
+            Console.WriteLine("\n[Action] Verifying Full End-to-End Spreadsheet Import Execution into Database Table...");
+            
+            // 0. Ensure an active SQLite database connection is open
+            string tempDbPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "quell_import_test.db");
+            if (System.IO.File.Exists(tempDbPath))
+            {
+                try { System.IO.File.Delete(tempDbPath); } catch { }
+            }
+            var importDbConfig = new Quell.Services.DatabaseProviders.DatabaseConnectionConfig
+            {
+                DatabaseType = "SQLite",
+                FilePath = tempDbPath
+            };
+            var connectRes = await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.ConnectAsync(importDbConfig);
+            if (!connectRes.Success)
+            {
+                throw new Exception($"Failed to connect to test SQLite database: {connectRes.Message}");
+            }
+
+            // 0b. Restore default schema loader from active database
+            vm.ImportModal.LoadTableColumnsCallback = async tableName =>
+            {
+                var cols = await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.GetColumnsAsync(tableName);
+                var pks = await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(tableName);
+                return cols.Select(c => (c.ColumnName, c.DataType, pks.Contains(c.ColumnName, StringComparer.OrdinalIgnoreCase), false)).ToList();
+            };
+
+            // 1. Create a dedicated target table for bulk import
+            string createImportTableSql = "DROP TABLE IF EXISTS Import_Employees; CREATE TABLE Import_Employees (id INTEGER PRIMARY KEY, full_name TEXT, email TEXT, salary REAL);";
+            var createRes = await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.ExecuteQueryAsync(createImportTableSql);
+            if (!createRes.Success)
+            {
+                throw new Exception($"Failed to create Import_Employees test table: {createRes.Message}");
+            }
+
+            // 2. Prepare sample CSV file with headers matching Persian/English synonyms
+            string importCsvPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "test_employees_import.csv");
+            System.IO.File.WriteAllText(importCsvPath, "نام کامل,ایمیل,حقوق\nEhsan Nazari,ehsan@quell.app,150000\nReza Rad,reza@quell.app,125000\nSara Akbari,sara@quell.app,135000\n", System.Text.Encoding.UTF8);
+
+            // 3. Open Import Modal for Import_Employees table
+            vm.OpenImportModalForTable("Import_Employees");
+            if (!vm.ImportModal.IsOpen)
+            {
+                throw new Exception("OpenImportModalForTable failed to open modal!");
+            }
+            if (vm.ImportModal.SelectedTable != "Import_Employees")
+            {
+                throw new Exception($"Expected SelectedTable to be 'Import_Employees', got '{vm.ImportModal.SelectedTable}'");
+            }
+
+            // 4. Load spreadsheet and auto map
+            await vm.ImportModal.LoadSpreadsheetFileAsync(importCsvPath);
+            if (!vm.ImportModal.HasFileLoaded || vm.ImportModal.TotalExcelRowsCount != 3)
+            {
+                throw new Exception($"Expected 3 loaded rows from CSV, got {vm.ImportModal.TotalExcelRowsCount}");
+            }
+
+            vm.ImportModal.AutoMapColumns();
+            int empMappedCount = vm.ImportModal.ColumnMappings.Count(m => m.IsMapped);
+            Console.WriteLine($"Auto-mapped columns for Import_Employees: {empMappedCount} of {vm.ImportModal.ColumnMappings.Count}");
+            if (empMappedCount < 3)
+            {
+                throw new Exception($"Expected at least 3 auto-mapped columns, got {empMappedCount}");
+            }
+
+            // 5. Execute import into the database!
+            await vm.ImportModal.ExecuteImportCommand.ExecuteAsync(null);
+            
+            if (!vm.ImportModal.IsSuccess)
+            {
+                throw new Exception($"ExecuteImportCommand failed! Status: '{vm.ImportModal.StatusMessage}'");
+            }
+            Console.WriteLine($"[Success] Import execution status: '{vm.ImportModal.StatusMessage}'");
+
+            // 6. Verify rows physically written to the SQLite database
+            var queryImported = await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.ExecuteQueryAsync("SELECT id, full_name, email, salary FROM Import_Employees ORDER BY id;");
+            if (!queryImported.Success || queryImported.Rows.Count != 3)
+            {
+                throw new Exception($"Database verification failed! Expected 3 rows in Import_Employees table, but got {queryImported.Rows.Count} (Success: {queryImported.Success}, Msg: {queryImported.Message})");
+            }
+            Console.WriteLine($"[Success] Database physical rows verified: {queryImported.Rows.Count} rows inserted into SQLite table 'Import_Employees'!");
+            Console.WriteLine($"Row 1: {queryImported.Rows[0]["full_name"]} - {queryImported.Rows[0]["email"]} - {queryImported.Rows[0]["salary"]}");
+            Console.WriteLine($"Row 2: {queryImported.Rows[1]["full_name"]} - {queryImported.Rows[1]["email"]} - {queryImported.Rows[1]["salary"]}");
+            Console.WriteLine($"Row 3: {queryImported.Rows[2]["full_name"]} - {queryImported.Rows[2]["email"]} - {queryImported.Rows[2]["salary"]}");
+
+            // 7. Verify SampleQueryResult automatically updated with the newly imported table
+            if (vm.SampleQueryResult.CurrentTableName != "Import_Employees" || vm.SampleQueryResult.Rows.Count != 3)
+            {
+                throw new Exception($"SampleQueryResult was not refreshed with imported table data! Table='{vm.SampleQueryResult.CurrentTableName}', Rows={vm.SampleQueryResult.Rows.Count}");
+            }
+            Console.WriteLine("[Success] SampleQueryResult footer table verified to reflect newly imported rows!");
+
+            // 8. Test Overwrite (Upsert / Update Existing) mode:
+            // Prepare an updated CSV file with updated values (higher salary for id=1 and a brand new 4th employee)
+            string overwriteCsvPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "test_employees_overwrite.csv");
+            System.IO.File.WriteAllText(overwriteCsvPath, "id,full_name,email,salary\n1,Ehsan Nazari,ehsan@quell.app,200000\n4,Ali Moradi,ali@quell.app,180000\n", System.Text.Encoding.UTF8);
+
+            vm.OpenImportModalForTable("Import_Employees");
+            await vm.ImportModal.LoadSpreadsheetFileAsync(overwriteCsvPath);
+            vm.ImportModal.AutoMapColumns();
+            vm.ImportModal.SelectedImportMode = "Overwrite (Update Existing)";
+            vm.ImportModal.SelectedKeyColumn = "id";
+
+            if (!vm.ImportModal.IsOverwriteMode)
+            {
+                throw new Exception("IsOverwriteMode failed to return true for 'Overwrite (Update Existing)'!");
+            }
+
+            await vm.ImportModal.ExecuteImportCommand.ExecuteAsync(null);
+            if (!vm.ImportModal.IsSuccess)
+            {
+                throw new Exception($"ExecuteImportCommand in Overwrite mode failed! Status: '{vm.ImportModal.StatusMessage}'");
+            }
+
+            var queryOverwritten = await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.ExecuteQueryAsync("SELECT id, full_name, email, salary FROM Import_Employees ORDER BY id;");
+            if (!queryOverwritten.Success || queryOverwritten.Rows.Count != 4)
+            {
+                throw new Exception($"Overwrite verification failed! Expected 4 total rows in Import_Employees table, but got {queryOverwritten.Rows.Count} (Success: {queryOverwritten.Success}, Msg: {queryOverwritten.Message})");
+            }
+
+            double sal1 = Convert.ToDouble(queryOverwritten.Rows[0]["salary"]);
+            if (Math.Abs(sal1 - 200000) > 0.01)
+            {
+                throw new Exception($"Overwrite failed! Expected salary 200000 for id=1, but got {sal1}");
+            }
+            Console.WriteLine($"[Success] Overwrite / Update Existing verified! Row 1 updated to salary {sal1:N0}, Row 4 inserted!");
+            System.IO.File.Delete(overwriteCsvPath);
+
+            // Cleanup
+            System.IO.File.Delete(importCsvPath);
+            await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.DisconnectAsync(importDbConfig.ConnectionKey);
+            if (System.IO.File.Exists(tempDbPath))
+            {
+                try { System.IO.File.Delete(tempDbPath); } catch { }
+            }
 
             Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER, SIMULTANEOUS BATCH CELL EDITING, FOREIGN KEY NAVIGATION, HARDWARE GPU/CPU RENDERING PIPELINE, INTEGRATED TERMINAL & VISUAL EXCEL DATA IMPORT WIZARD) PASSED! <<<");
             return;

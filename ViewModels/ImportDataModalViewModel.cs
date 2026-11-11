@@ -14,6 +14,16 @@ using Quell.Services;
 
 namespace Quell.ViewModels;
 
+public class ExcelColumnDisplayItem : ObservableObject
+{
+    public int Index { get; set; }
+    public string ColumnLetter { get; set; } = string.Empty;
+    public string HeaderName { get; set; } = string.Empty;
+    public string SampleValue { get; set; } = string.Empty;
+    public string DisplayText => $"{ColumnLetter}: {HeaderName}";
+    public string SampleText => string.IsNullOrWhiteSpace(SampleValue) ? "(empty cell)" : $"\"{SampleValue}\"";
+}
+
 public partial class ImportColumnMappingItem : ObservableObject
 {
     public const string SkipOption = "[-- Do Not Import / Skip --]";
@@ -23,6 +33,16 @@ public partial class ImportColumnMappingItem : ObservableObject
     public string DataType { get; set; } = string.Empty;
     public bool IsPrimaryKey { get; set; }
     public bool IsRequired { get; set; }
+    public int TargetColumnIndex { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsMapped))]
+    [NotifyPropertyChangedFor(nameof(StatusBadge))]
+    [NotifyPropertyChangedFor(nameof(StatusForeground))]
+    [NotifyPropertyChangedFor(nameof(StatusBackground))]
+    [NotifyPropertyChangedFor(nameof(NodeColor))]
+    [NotifyPropertyChangedFor(nameof(CardBorderBrush))]
+    private bool _isIncluded = true;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsMapped))]
@@ -32,14 +52,27 @@ public partial class ImportColumnMappingItem : ObservableObject
     [NotifyPropertyChangedFor(nameof(StatusForeground))]
     [NotifyPropertyChangedFor(nameof(StatusBackground))]
     [NotifyPropertyChangedFor(nameof(HasWarning))]
+    [NotifyPropertyChangedFor(nameof(NodeColor))]
+    [NotifyPropertyChangedFor(nameof(CardBorderBrush))]
     private string _selectedExcelColumn = SkipOption;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NodeColor))]
+    [NotifyPropertyChangedFor(nameof(CardBorderBrush))]
     private string _constantValue = string.Empty;
+
+    [ObservableProperty]
+    private string _samplePreviewValue = "(no source connected)";
+
+    [ObservableProperty]
+    private string _matchQuality = "Unmapped"; // "Exact Match", "Smart Match", "1:1 Position", "Manual", "Constant", "Unmapped"
 
     public ObservableCollection<string> AvailableExcelColumns { get; } = new();
 
-    public bool IsMapped => !IsSkipped;
+    public Action? OnMappingChanged { get; set; }
+    public Func<string, string>? ResolveSampleValueCallback { get; set; }
+
+    public bool IsMapped => IsIncluded && !IsSkipped;
     public bool IsSkipped => string.IsNullOrWhiteSpace(SelectedExcelColumn) || SelectedExcelColumn == SkipOption;
     public bool IsConstant => SelectedExcelColumn == ConstantOption;
     public bool HasWarning => IsRequired && IsSkipped;
@@ -48,8 +81,9 @@ public partial class ImportColumnMappingItem : ObservableObject
     {
         get
         {
-            if (IsConstant) return "Constant";
-            if (IsMapped) return "Mapped";
+            if (!IsIncluded) return "Excluded";
+            if (IsConstant) return "Constant Value";
+            if (IsMapped) return string.IsNullOrWhiteSpace(MatchQuality) ? "Mapped" : MatchQuality;
             if (IsRequired) return "Required Missing!";
             return "Skipped";
         }
@@ -59,6 +93,7 @@ public partial class ImportColumnMappingItem : ObservableObject
     {
         get
         {
+            if (!IsIncluded) return "#64748B"; // Muted gray
             if (IsConstant) return "#38BDF8"; // Cyan
             if (IsMapped) return "#10B981";   // Emerald Green
             if (IsRequired) return "#F59E0B"; // Amber warning
@@ -70,19 +105,132 @@ public partial class ImportColumnMappingItem : ObservableObject
     {
         get
         {
+            if (!IsIncluded) return "#1564748B";
             if (IsConstant) return "#2038BDF8";
             if (IsMapped) return "#2010B981";
-            if (IsRequired) return "#20F59E0B";
+            if (IsRequired) return "#25F59E0B";
             return "#1094A3B8";
         }
     }
 
     public string PkBadgeText => IsPrimaryKey ? "PK" : (IsRequired ? "REQ" : "NULL");
     public string PkBadgeColor => IsPrimaryKey ? "#F59E0B" : (IsRequired ? "#EF4444" : "#64748B");
+
+    public string DataTypeBadgeColor => DataType.ToUpperInvariant() switch
+    {
+        var t when t.Contains("INT") || t.Contains("NUM") || t.Contains("FLOAT") || t.Contains("DECIMAL") || t.Contains("DOUBLE") || t.Contains("REAL") => "#2563EB",
+        var t when t.Contains("CHAR") || t.Contains("TEXT") || t.Contains("STRING") || t.Contains("CLOB") => "#7C3AED",
+        var t when t.Contains("DATE") || t.Contains("TIME") => "#D97706",
+        var t when t.Contains("BOOL") || t.Contains("BIT") => "#059669",
+        _ => "#64748B"
+    };
+
+    public string NodeColor => !IsIncluded ? "#334155" : (IsConstant ? "#38BDF8" : (IsMapped ? "#10B981" : (HasWarning ? "#EF4444" : "#475569")));
+    public string CardBorderBrush => !IsIncluded ? "#20334155" : (IsConstant ? "#4038BDF8" : (IsMapped ? "#4010B981" : (HasWarning ? "#50EF4444" : "#20475569")));
+
+    [RelayCommand]
+    public void Unlink()
+    {
+        SelectedExcelColumn = SkipOption;
+        MatchQuality = "Unmapped";
+        UpdateSamplePreview();
+        OnMappingChanged?.Invoke();
+    }
+
+    public void UpdateSamplePreview()
+    {
+        if (ResolveSampleValueCallback != null)
+        {
+            SamplePreviewValue = ResolveSampleValueCallback(SelectedExcelColumn);
+        }
+    }
+
+    partial void OnIsIncludedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsMapped));
+        OnPropertyChanged(nameof(StatusBadge));
+        OnPropertyChanged(nameof(StatusForeground));
+        OnPropertyChanged(nameof(StatusBackground));
+        OnPropertyChanged(nameof(NodeColor));
+        OnPropertyChanged(nameof(CardBorderBrush));
+        OnMappingChanged?.Invoke();
+    }
+
+    partial void OnSelectedExcelColumnChanged(string value)
+    {
+        if (value == ConstantOption)
+        {
+            MatchQuality = "Constant";
+        }
+        else if (value == SkipOption)
+        {
+            MatchQuality = "Unmapped";
+        }
+        else if (MatchQuality is "Unmapped" or "Constant")
+        {
+            MatchQuality = "Manual";
+        }
+
+        UpdateSamplePreview();
+        OnPropertyChanged(nameof(StatusBadge));
+        OnPropertyChanged(nameof(StatusForeground));
+        OnPropertyChanged(nameof(StatusBackground));
+        OnPropertyChanged(nameof(NodeColor));
+        OnPropertyChanged(nameof(CardBorderBrush));
+        OnMappingChanged?.Invoke();
+    }
+
+    partial void OnConstantValueChanged(string value)
+    {
+        UpdateSamplePreview();
+        OnPropertyChanged(nameof(StatusBadge));
+        OnMappingChanged?.Invoke();
+    }
 }
 
 public partial class ImportDataModalViewModel : ViewModelBase
 {
+    // Comprehensive English & Persian common synonym dictionary for database column auto-mapping
+    private static readonly Dictionary<string, string[]> CommonSynonyms = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["id"] = new[] { "id", "identifier", "code", "no", "number", "key", "شناسه", "کد", "شماره", "ردیف", "کد_شناسایی" },
+        ["code"] = new[] { "code", "id", "no", "number", "کد", "شناسه", "شماره" },
+        ["name"] = new[] { "name", "title", "fullname", "full_name", "first_name", "firstname", "fname", "user", "username", "نام", "اسم", "عنوان", "نام و نام خانوادگی", "نام کامل" },
+        ["first_name"] = new[] { "first_name", "firstname", "fname", "given_name", "forename", "name", "نام", "اسم", "نام_کوچک" },
+        ["last_name"] = new[] { "last_name", "lastname", "lname", "surname", "family", "family_name", "نام خانوادگی", "نام_خانوادگی", "فامیلی", "شهرت" },
+        ["full_name"] = new[] { "full_name", "fullname", "name", "display_name", "نام کامل", "نام و نام خانوادگی", "نام_کامل" },
+        ["email"] = new[] { "email", "e_mail", "mail", "email_address", "electronic_mail", "ایمیل", "پست الکترونیک", "پست_الکترونیک", "رایانامه" },
+        ["phone"] = new[] { "phone", "phonenumber", "phone_number", "telephone", "tel", "mobile", "cell", "cellphone", "mobile_number", "contact", "شماره تماس", "تلفن", "موبایل", "همراه", "شماره همراه", "شماره موبایل", "شماره تلفن" },
+        ["mobile"] = new[] { "mobile", "mobile_number", "cell", "cellphone", "phone", "موبایل", "همراه", "شماره همراه", "شماره موبایل", "تلفن همراه" },
+        ["tel"] = new[] { "tel", "telephone", "phone", "landline", "تلفن", "تلفن ثابت", "شماره تلفن" },
+        ["national_code"] = new[] { "national_code", "national_id", "nationalcode", "nationalid", "meli_code", "melicode", "melli_code", "ssn", "کد ملی", "کدملی", "شماره ملی", "شناسه ملی" },
+        ["address"] = new[] { "address", "addr", "location", "residence", "street", "آدرس", "نشانی", "محل سکونت" },
+        ["city"] = new[] { "city", "town", "شهر", "شهرستان" },
+        ["state"] = new[] { "state", "province", "استان", "ایالت" },
+        ["country"] = new[] { "country", "کشور" },
+        ["postal_code"] = new[] { "postal_code", "zip_code", "postalcode", "zipcode", "zip", "postcode", "کد پستی", "کدپستی", "زیپ کد" },
+        ["gender"] = new[] { "gender", "sex", "جنسیت", "جنس" },
+        ["age"] = new[] { "age", "سن", "سال" },
+        ["birth_date"] = new[] { "birth_date", "birthdate", "birthday", "bdate", "dob", "تاریخ تولد", "تولد", "تاریخ_تولد" },
+        ["date"] = new[] { "date", "datetime", "timestamp", "time", "تاریخ", "زمان" },
+        ["created_at"] = new[] { "created_at", "createdat", "create_date", "creation_date", "register_date", "تاریخ ثبت", "تاریخ ایجاد", "زمان ایجاد", "تاریخ" },
+        ["updated_at"] = new[] { "updated_at", "updatedat", "update_date", "modify_date", "modified_at", "تاریخ ویرایش", "تاریخ تغییر", "تاریخ بروزرسانی" },
+        ["price"] = new[] { "price", "amount", "cost", "fee", "total", "unit_price", "قیمت", "مبلغ", "هزینه", "بها", "ارزش", "فی" },
+        ["amount"] = new[] { "amount", "price", "total", "sum", "cost", "مبلغ", "مقدار", "میزان", "جمع", "قیمت" },
+        ["salary"] = new[] { "salary", "wage", "income", "pay", "حقوق", "دستمزد", "درآمد", "پایه حقوق" },
+        ["role"] = new[] { "role", "role_name", "position", "job", "title", "job_title", "نقش", "سمت", "عنوان شغلی", "جایگاه", "مسئولیت" },
+        ["title"] = new[] { "title", "subject", "heading", "name", "caption", "عنوان", "موضوع", "تیتر" },
+        ["status"] = new[] { "status", "state", "condition", "وضعیت", "حالت", "شرایط" },
+        ["description"] = new[] { "description", "desc", "details", "note", "notes", "comment", "comments", "explanation", "info", "توضیحات", "شرح", "توضیح", "یادداشت" },
+        ["quantity"] = new[] { "quantity", "qty", "count", "number", "num", "تعداد", "مقدار", "شمار" },
+        ["username"] = new[] { "username", "user_name", "user", "login", "نام کاربری", "کاربری", "شناسه کاربری" },
+        ["password"] = new[] { "password", "pass", "pwd", "secret", "رمز عبور", "کلمه عبور", "رمز" },
+        ["active"] = new[] { "active", "is_active", "enabled", "is_enabled", "فعال", "وضعیت فعال" },
+        ["company"] = new[] { "company", "organization", "firm", "شرکت", "سازمان", "موسسه" },
+        ["department"] = new[] { "department", "dept", "section", "واحد", "بخش", "دپارتمان" },
+        ["course"] = new[] { "course", "lesson", "subject", "دوره", "درس", "رشته" },
+    };
+
     [ObservableProperty]
     private bool _isOpen;
 
@@ -132,8 +280,50 @@ public partial class ImportDataModalViewModel : ViewModelBase
     public bool IsExcelPreviewTab => SelectedTab == "ExcelPreview";
     public bool IsImportPreviewTab => SelectedTab == "ImportPreview";
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsCanvasView))]
+    [NotifyPropertyChangedFor(nameof(IsListView))]
+    private string _viewMode = "Canvas"; // "Canvas" (interactive diagram) or "List" (table list)
+
+    public bool IsCanvasView => ViewMode == "Canvas";
+    public bool IsListView => ViewMode == "List";
+
+    [ObservableProperty]
+    private string _filterMode = "All"; // "All", "Mapped", "Unmapped", "Required"
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsAutoMapStrategy))]
+    [NotifyPropertyChangedFor(nameof(IsPositionStrategy))]
+    private string _activeMappingStrategy = "Auto-Map";
+
+    public bool IsAutoMapStrategy => ActiveMappingStrategy == "Auto-Map";
+    public bool IsPositionStrategy => ActiveMappingStrategy == "1:1 Position";
+
+    // Pan & Zoom Canvas State
+    [ObservableProperty]
+    private double _panX = 30.0;
+
+    [ObservableProperty]
+    private double _panY = 25.0;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ZoomPercentageText))]
+    private double _zoomLevel = 1.0;
+
+    [ObservableProperty]
+    private double _viewportWidth = 900.0;
+
+    [ObservableProperty]
+    private double _viewportHeight = 450.0;
+
+    public string ZoomPercentageText => $"{(int)Math.Round(ZoomLevel * 100)}%";
+
+    public event Action? RequestCanvasUpdate;
+
     public ObservableCollection<ImportColumnMappingItem> ColumnMappings { get; } = new();
+    public ObservableCollection<ImportColumnMappingItem> FilteredColumnMappings { get; } = new();
     public ObservableCollection<string> ExcelHeaders { get; } = new();
+    public ObservableCollection<ExcelColumnDisplayItem> ExcelColumnItems { get; } = new();
 
     // Data previews
     public List<List<string>> AllRawRows { get; } = new();
@@ -148,6 +338,21 @@ public partial class ImportDataModalViewModel : ViewModelBase
 
     [ObservableProperty]
     private int _totalTableColumnsCount;
+
+    [ObservableProperty]
+    private int _includedColumnsCount;
+
+    [ObservableProperty]
+    private int _unmappedColumnsCount;
+
+    [ObservableProperty]
+    private int _requiredColumnsCount;
+
+    [ObservableProperty]
+    private int _missingRequiredCount;
+
+    [ObservableProperty]
+    private int _mappedPercentage;
 
     [ObservableProperty]
     private bool _isImporting;
@@ -165,11 +370,44 @@ public partial class ImportDataModalViewModel : ViewModelBase
     private bool _hasStatusMessage;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StatusColor))]
     private bool _isSuccess;
+
+    public string StatusColor => IsSuccess ? "#10B981" : "#EF4444";
+
+    public List<string> ImportModes { get; } = new()
+    {
+        "Append (New Records)",
+        "Overwrite (Update Existing)",
+        "Truncate & Replace"
+    };
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsOverwriteMode))]
+    [NotifyPropertyChangedFor(nameof(IsTruncateMode))]
+    [NotifyPropertyChangedFor(nameof(ImportButtonText))]
+    private string _selectedImportMode = "Append (New Records)";
+
+    public bool IsOverwriteMode => SelectedImportMode.StartsWith("Overwrite", StringComparison.OrdinalIgnoreCase);
+    public bool IsTruncateMode => SelectedImportMode.StartsWith("Truncate", StringComparison.OrdinalIgnoreCase);
+
+    public string ImportButtonText => IsOverwriteMode 
+        ? "Overwrite / Update Table" 
+        : (IsTruncateMode ? "Truncate & Import" : "Import Data into Table");
+
+    public ObservableCollection<string> AvailableKeyColumns { get; } = new();
+
+    [ObservableProperty]
+    private string _selectedKeyColumn = string.Empty;
+
+    partial void OnSelectedImportModeChanged(string value)
+    {
+        TruncateBeforeImport = IsTruncateMode;
+    }
 
     // Callbacks provided by MainViewModel
     public Func<string, Task<List<(string ColumnName, string DataType, bool IsPk, bool IsRequired)>>>? LoadTableColumnsCallback { get; set; }
-    public Func<string, List<ImportColumnMappingItem>, List<List<string>>, bool, bool, int, Action<int, int>, Task<(bool Success, string Message, int RowsImported)>>? PerformImportCallback { get; set; }
+    public Func<string, List<ImportColumnMappingItem>, List<List<string>>, string, string, bool, int, Action<int, int>, Task<(bool Success, string Message, int RowsImported)>>? PerformImportCallback { get; set; }
 
     public ImportDataModalViewModel()
     {
@@ -220,6 +458,105 @@ public partial class ImportDataModalViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    public void SetViewMode(string mode)
+    {
+        ViewMode = mode;
+        OnPropertyChanged(nameof(IsCanvasView));
+        OnPropertyChanged(nameof(IsListView));
+        RequestCanvasUpdate?.Invoke();
+    }
+
+    [RelayCommand]
+    public void SetFilter(string filter)
+    {
+        FilterMode = filter;
+        ApplyFilter();
+    }
+
+    [RelayCommand]
+    public void SelectAllColumns()
+    {
+        foreach (var m in ColumnMappings)
+        {
+            m.IsIncluded = true;
+        }
+        UpdateMappingCounts();
+        ApplyFilter();
+        RequestCanvasUpdate?.Invoke();
+    }
+
+    [RelayCommand]
+    public void DeselectAllColumns()
+    {
+        foreach (var m in ColumnMappings)
+        {
+            m.IsIncluded = false;
+        }
+        UpdateMappingCounts();
+        ApplyFilter();
+        RequestCanvasUpdate?.Invoke();
+    }
+
+    [RelayCommand]
+    public void SelectRequiredColumns()
+    {
+        foreach (var m in ColumnMappings)
+        {
+            m.IsIncluded = m.IsRequired;
+        }
+        UpdateMappingCounts();
+        ApplyFilter();
+        RequestCanvasUpdate?.Invoke();
+    }
+
+    #region Canvas Pan & Zoom Commands
+
+    [RelayCommand]
+    public void ZoomIn()
+    {
+        ZoomLevel = Math.Min(2.5, Math.Round(ZoomLevel + 0.15, 2));
+        RequestCanvasUpdate?.Invoke();
+    }
+
+    [RelayCommand]
+    public void ZoomOut()
+    {
+        ZoomLevel = Math.Max(0.35, Math.Round(ZoomLevel - 0.15, 2));
+        RequestCanvasUpdate?.Invoke();
+    }
+
+    [RelayCommand]
+    public void ResetZoom()
+    {
+        ZoomLevel = 1.0;
+        PanX = 30.0;
+        PanY = 25.0;
+        RequestCanvasUpdate?.Invoke();
+    }
+
+    [RelayCommand]
+    public void FitToView()
+    {
+        if (ViewportWidth <= 100 || ViewportHeight <= 100) return;
+
+        double contentWidth = 1050; // Total horizontal span (LeftCard: 50..370, RightCard: 640..1000)
+        int maxRows = Math.Max(ColumnMappings.Count, ExcelHeaders.Count);
+        double contentHeight = 80 + Math.Max(4, maxRows) * 36;
+
+        double scaleX = (ViewportWidth - 60) / contentWidth;
+        double scaleY = (ViewportHeight - 60) / contentHeight;
+        double targetZoom = Math.Clamp(Math.Min(scaleX, scaleY), 0.4, 1.25);
+
+        ZoomLevel = Math.Round(targetZoom, 2);
+        PanX = Math.Max(15, (ViewportWidth - contentWidth * ZoomLevel) / 2.0);
+        PanY = Math.Max(15, (ViewportHeight - contentHeight * ZoomLevel) / 2.0);
+
+        RequestCanvasUpdate?.Invoke();
+    }
+
+    #endregion
+
+    [RelayCommand]
     public void Open()
     {
         StatusMessage = null;
@@ -242,26 +579,58 @@ public partial class ImportDataModalViewModel : ViewModelBase
     public async Task LoadTargetTableSchemaAsync(string tableName)
     {
         if (LoadTableColumnsCallback == null) return;
+        SelectedTable = tableName;
 
         try
         {
             var cols = await LoadTableColumnsCallback(tableName);
             ColumnMappings.Clear();
+            AvailableKeyColumns.Clear();
+            string? defaultKey = null;
 
-            foreach (var col in cols)
+            for (int i = 0; i < cols.Count; i++)
             {
+                var col = cols[i];
+                AvailableKeyColumns.Add(col.ColumnName);
+                if (col.IsPk && defaultKey == null)
+                {
+                    defaultKey = col.ColumnName;
+                }
+
                 var item = new ImportColumnMappingItem
                 {
                     TargetColumnName = col.ColumnName,
                     DataType = col.DataType,
                     IsPrimaryKey = col.IsPk,
-                    IsRequired = col.IsRequired
+                    IsRequired = col.IsRequired,
+                    TargetColumnIndex = i,
+                    IsIncluded = true,
+                    OnMappingChanged = () =>
+                    {
+                        UpdateMappingCounts();
+                        ApplyFilter();
+                        RequestCanvasUpdate?.Invoke();
+                        if (IsImportPreviewTab) RefreshMappedPreview();
+                    },
+                    ResolveSampleValueCallback = colOption => ResolveSampleValue(colOption)
                 };
 
                 // Populate available Excel column options
                 PopulateColumnDropdown(item);
                 ColumnMappings.Add(item);
             }
+
+            if (defaultKey == null)
+            {
+                defaultKey = AvailableKeyColumns.FirstOrDefault(c => 
+                    c.Equals("id", StringComparison.OrdinalIgnoreCase) || 
+                    c.EndsWith("_id", StringComparison.OrdinalIgnoreCase) ||
+                    c.Contains("code", StringComparison.OrdinalIgnoreCase) ||
+                    c.Contains("date", StringComparison.OrdinalIgnoreCase)) 
+                    ?? AvailableKeyColumns.FirstOrDefault() 
+                    ?? string.Empty;
+            }
+            SelectedKeyColumn = defaultKey ?? string.Empty;
 
             TotalTableColumnsCount = ColumnMappings.Count;
 
@@ -273,7 +642,10 @@ public partial class ImportDataModalViewModel : ViewModelBase
             else
             {
                 UpdateMappingCounts();
+                ApplyFilter();
             }
+
+            RequestCanvasUpdate?.Invoke();
         }
         catch (Exception ex)
         {
@@ -281,6 +653,22 @@ public partial class ImportDataModalViewModel : ViewModelBase
             HasStatusMessage = true;
             IsSuccess = false;
         }
+    }
+
+    private string ResolveSampleValue(string colOption)
+    {
+        if (string.IsNullOrWhiteSpace(colOption) || colOption == ImportColumnMappingItem.SkipOption)
+            return "(will be skipped / NULL)";
+        if (colOption == ImportColumnMappingItem.ConstantOption)
+            return "(fixed constant)";
+
+        int colIdx = ExtractExcelColumnIndex(colOption);
+        if (colIdx >= 0 && AllRawRows.Count > 0 && colIdx < AllRawRows[0].Count)
+        {
+            string val = AllRawRows[0][colIdx];
+            return string.IsNullOrEmpty(val) ? "(empty cell)" : $"Sample: \"{val}\"";
+        }
+        return "(no sample)";
     }
 
     private void PopulateColumnDropdown(ImportColumnMappingItem item)
@@ -292,7 +680,15 @@ public partial class ImportDataModalViewModel : ViewModelBase
         for (int i = 0; i < ExcelHeaders.Count; i++)
         {
             string letter = ExcelDataService.IndexToColumnLetter(i);
-            item.AvailableExcelColumns.Add($"{letter}: {ExcelHeaders[i]}");
+            string headerText = ExcelHeaders[i];
+            string sampleHint = "";
+            if (AllRawRows.Count > 0 && i < AllRawRows[0].Count && !string.IsNullOrWhiteSpace(AllRawRows[0][i]))
+            {
+                string sampleVal = AllRawRows[0][i].Trim();
+                if (sampleVal.Length > 20) sampleVal = sampleVal.Substring(0, 18) + "..";
+                sampleHint = $" (e.g. \"{sampleVal}\")";
+            }
+            item.AvailableExcelColumns.Add($"{letter}: {headerText}{sampleHint}");
         }
     }
 
@@ -364,6 +760,24 @@ public partial class ImportDataModalViewModel : ViewModelBase
             AllRawRows.AddRange(data.Rows);
             TotalExcelRowsCount = data.TotalRowCount;
 
+            // Populate Excel Column Display Items for the Canvas Card
+            ExcelColumnItems.Clear();
+            for (int i = 0; i < data.Headers.Count; i++)
+            {
+                string sample = "";
+                if (data.Rows.Count > 0 && i < data.Rows[0].Count)
+                {
+                    sample = data.Rows[0][i];
+                }
+                ExcelColumnItems.Add(new ExcelColumnDisplayItem
+                {
+                    Index = i,
+                    ColumnLetter = ExcelDataService.IndexToColumnLetter(i),
+                    HeaderName = data.Headers[i],
+                    SampleValue = sample
+                });
+            }
+
             // Generate raw preview (first 10 rows)
             RawPreviewRows.Clear();
             for (int r = 0; r < Math.Min(10, data.Rows.Count); r++)
@@ -391,6 +805,7 @@ public partial class ImportDataModalViewModel : ViewModelBase
             StatusMessage = $"Loaded {TotalExcelRowsCount} rows and {ExcelHeaders.Count} columns from '{FileName}'";
             HasStatusMessage = true;
             IsSuccess = true;
+            RequestCanvasUpdate?.Invoke();
         }
         catch (Exception ex)
         {
@@ -405,67 +820,93 @@ public partial class ImportDataModalViewModel : ViewModelBase
     public void AutoMapColumns()
     {
         if (!HasFileLoaded || ColumnMappings.Count == 0 || ExcelHeaders.Count == 0) return;
+        ActiveMappingStrategy = "Auto-Map";
 
-        foreach (var mapping in ColumnMappings)
+        // Collect all scored candidate pairs between target columns and Excel headers
+        var candidates = new List<(ImportColumnMappingItem Target, int ExcelIndex, int Score, string MatchType)>();
+
+        for (int tIdx = 0; tIdx < ColumnMappings.Count; tIdx++)
         {
-            string targetNormalized = NormalizeName(mapping.TargetColumnName);
-
-            // Find best matching Excel column
-            int bestIndex = -1;
-
-            // 1. Exact match (case insensitive)
-            for (int i = 0; i < ExcelHeaders.Count; i++)
+            var target = ColumnMappings[tIdx];
+            for (int eIdx = 0; eIdx < ExcelHeaders.Count; eIdx++)
             {
-                if (ExcelHeaders[i].Equals(mapping.TargetColumnName, StringComparison.OrdinalIgnoreCase))
+                var (score, matchType) = CalculateMatchScore(target.TargetColumnName, ExcelHeaders[eIdx], tIdx, eIdx);
+                if (score > 0)
                 {
-                    bestIndex = i;
-                    break;
+                    candidates.Add((target, eIdx, score, matchType));
                 }
             }
+        }
 
-            // 2. Normalized match (ignoring underscores, spaces, dashes)
-            if (bestIndex < 0)
-            {
-                for (int i = 0; i < ExcelHeaders.Count; i++)
-                {
-                    if (NormalizeName(ExcelHeaders[i]) == targetNormalized)
-                    {
-                        bestIndex = i;
-                        break;
-                    }
-                }
-            }
+        // Sort candidates descending by score to assign highest confidence links first
+        candidates = candidates.OrderByDescending(c => c.Score).ToList();
 
-            // 3. Contains match
-            if (bestIndex < 0)
-            {
-                for (int i = 0; i < ExcelHeaders.Count; i++)
-                {
-                    string hNorm = NormalizeName(ExcelHeaders[i]);
-                    if (hNorm.Contains(targetNormalized) || targetNormalized.Contains(hNorm))
-                    {
-                        bestIndex = i;
-                        break;
-                    }
-                }
-            }
+        var assignedTargets = new HashSet<ImportColumnMappingItem>();
+        var assignedExcelIndices = new HashSet<int>();
 
-            if (bestIndex >= 0)
+        foreach (var c in candidates)
+        {
+            if (assignedTargets.Contains(c.Target) || assignedExcelIndices.Contains(c.ExcelIndex))
+                continue;
+
+            string letter = ExcelDataService.IndexToColumnLetter(c.ExcelIndex);
+            string matchingOption = c.Target.AvailableExcelColumns.FirstOrDefault(opt => opt.StartsWith($"{letter}:"))
+                                    ?? $"{letter}: {ExcelHeaders[c.ExcelIndex]}";
+
+            c.Target.SelectedExcelColumn = matchingOption;
+            c.Target.MatchQuality = c.MatchType;
+            c.Target.UpdateSamplePreview();
+
+            assignedTargets.Add(c.Target);
+            assignedExcelIndices.Add(c.ExcelIndex);
+        }
+
+        // Remaining unassigned columns stay Skipped
+        foreach (var target in ColumnMappings)
+        {
+            if (!assignedTargets.Contains(target))
             {
-                string letter = ExcelDataService.IndexToColumnLetter(bestIndex);
-                string option = $"{letter}: {ExcelHeaders[bestIndex]}";
-                if (mapping.AvailableExcelColumns.Contains(option))
-                {
-                    mapping.SelectedExcelColumn = option;
-                }
-            }
-            else
-            {
-                mapping.SelectedExcelColumn = ImportColumnMappingItem.SkipOption;
+                target.SelectedExcelColumn = ImportColumnMappingItem.SkipOption;
+                target.MatchQuality = "Unmapped";
+                target.UpdateSamplePreview();
             }
         }
 
         UpdateMappingCounts();
+        ApplyFilter();
+        RefreshMappedPreview();
+        RequestCanvasUpdate?.Invoke();
+    }
+
+    [RelayCommand]
+    public void MapByPosition()
+    {
+        if (!HasFileLoaded || ColumnMappings.Count == 0 || ExcelHeaders.Count == 0) return;
+        ActiveMappingStrategy = "1:1 Position";
+
+        for (int i = 0; i < ColumnMappings.Count; i++)
+        {
+            var target = ColumnMappings[i];
+            if (i < ExcelHeaders.Count)
+            {
+                string letter = ExcelDataService.IndexToColumnLetter(i);
+                string matchingOption = target.AvailableExcelColumns.FirstOrDefault(opt => opt.StartsWith($"{letter}:"))
+                                        ?? $"{letter}: {ExcelHeaders[i]}";
+                target.SelectedExcelColumn = matchingOption;
+                target.MatchQuality = "1:1 Position";
+            }
+            else
+            {
+                target.SelectedExcelColumn = ImportColumnMappingItem.SkipOption;
+                target.MatchQuality = "Unmapped";
+            }
+            target.UpdateSamplePreview();
+        }
+
+        UpdateMappingCounts();
+        ApplyFilter();
+        RefreshMappedPreview();
+        RequestCanvasUpdate?.Invoke();
     }
 
     [RelayCommand]
@@ -474,14 +915,52 @@ public partial class ImportDataModalViewModel : ViewModelBase
         foreach (var m in ColumnMappings)
         {
             m.SelectedExcelColumn = ImportColumnMappingItem.SkipOption;
+            m.MatchQuality = "Unmapped";
+            m.UpdateSamplePreview();
         }
         UpdateMappingCounts();
+        ApplyFilter();
+        RefreshMappedPreview();
+        RequestCanvasUpdate?.Invoke();
+    }
+
+    public void ApplyFilter()
+    {
+        FilteredColumnMappings.Clear();
+        var source = FilterMode switch
+        {
+            "Included" => ColumnMappings.Where(m => m.IsIncluded),
+            "Mapped" => ColumnMappings.Where(m => m.IsIncluded && m.IsMapped),
+            "Unmapped" => ColumnMappings.Where(m => m.IsIncluded && m.IsSkipped),
+            "Required" => ColumnMappings.Where(m => m.IsRequired),
+            _ => ColumnMappings
+        };
+
+        foreach (var item in source)
+        {
+            FilteredColumnMappings.Add(item);
+        }
     }
 
     public void UpdateMappingCounts()
     {
-        MappedColumnsCount = ColumnMappings.Count(m => m.IsMapped);
+        IncludedColumnsCount = ColumnMappings.Count(m => m.IsIncluded);
         TotalTableColumnsCount = ColumnMappings.Count;
+        MappedColumnsCount = ColumnMappings.Count(m => m.IsIncluded && m.IsMapped);
+        UnmappedColumnsCount = ColumnMappings.Count(m => m.IsIncluded && m.IsSkipped);
+        RequiredColumnsCount = ColumnMappings.Count(m => m.IsRequired);
+        MissingRequiredCount = ColumnMappings.Count(m => m.IsIncluded && m.HasWarning);
+        MappedPercentage = IncludedColumnsCount > 0
+            ? (int)Math.Round((double)MappedColumnsCount / IncludedColumnsCount * 100.0)
+            : 0;
+
+        OnPropertyChanged(nameof(IncludedColumnsCount));
+        OnPropertyChanged(nameof(TotalTableColumnsCount));
+        OnPropertyChanged(nameof(MappedColumnsCount));
+        OnPropertyChanged(nameof(UnmappedColumnsCount));
+        OnPropertyChanged(nameof(RequiredColumnsCount));
+        OnPropertyChanged(nameof(MissingRequiredCount));
+        OnPropertyChanged(nameof(MappedPercentage));
     }
 
     public void RefreshMappedPreview()
@@ -489,7 +968,7 @@ public partial class ImportDataModalViewModel : ViewModelBase
         MappedPreviewRows.Clear();
         if (!HasFileLoaded || AllRawRows.Count == 0) return;
 
-        var mappedCols = ColumnMappings.Where(m => m.IsMapped).ToList();
+        var mappedCols = ColumnMappings.Where(m => m.IsIncluded && m.IsMapped).ToList();
         if (mappedCols.Count == 0) return;
 
         for (int r = 0; r < Math.Min(8, AllRawRows.Count); r++)
@@ -512,10 +991,11 @@ public partial class ImportDataModalViewModel : ViewModelBase
         }
     }
 
-    private int ExtractExcelColumnIndex(string option)
+    public int ExtractExcelColumnIndex(string option)
     {
-        if (string.IsNullOrWhiteSpace(option) || !option.Contains(':')) return -1;
-        string letter = option.Split(':')[0].Trim();
+        if (string.IsNullOrWhiteSpace(option)) return -1;
+        string letter = option.Contains(':') ? option.Split(':')[0].Trim() : option.Trim();
+        if (string.IsNullOrEmpty(letter) || !char.IsLetter(letter[0])) return -1;
         return ExcelDataService.ParseColumnIndexFromRef(letter);
     }
 
@@ -530,6 +1010,15 @@ public partial class ImportDataModalViewModel : ViewModelBase
             return;
         }
 
+        var included = ColumnMappings.Where(c => c.IsIncluded).ToList();
+        if (included.Count == 0)
+        {
+            StatusMessage = "Please select at least one column to include in the template.";
+            HasStatusMessage = true;
+            IsSuccess = false;
+            return;
+        }
+
         try
         {
             string desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
@@ -538,10 +1027,11 @@ public partial class ImportDataModalViewModel : ViewModelBase
             string cleanName = SelectedTable.Replace(".", "_").Replace("[", "").Replace("]", "").Replace("\"", "");
             string templatePath = Path.Combine(desktop, $"{cleanName}_import_template.xlsx");
 
-            var columns = ColumnMappings.Select(c => (c.TargetColumnName, c.DataType, c.IsRequired)).ToList();
+            // ONLY export the included / selected columns!
+            var columns = included.Select(c => (c.TargetColumnName, c.DataType, c.IsRequired)).ToList();
             ExcelDataService.CreateExcelTemplate(templatePath, cleanName, columns);
 
-            StatusMessage = $"Excel Template created on Desktop: '{Path.GetFileName(templatePath)}'";
+            StatusMessage = $"Excel Template ({included.Count} columns) created on Desktop: '{Path.GetFileName(templatePath)}'";
             HasStatusMessage = true;
             IsSuccess = true;
         }
@@ -572,27 +1062,40 @@ public partial class ImportDataModalViewModel : ViewModelBase
             return;
         }
 
-        var mappedCols = ColumnMappings.Where(m => m.IsMapped).ToList();
+        // ONLY import the active/included mapped columns!
+        var mappedCols = ColumnMappings.Where(m => m.IsIncluded && m.IsMapped).ToList();
         if (mappedCols.Count == 0)
         {
-            StatusMessage = "No columns mapped! Please map at least one column to import.";
+            StatusMessage = "No active columns mapped! Please select and map at least one column to import.";
             HasStatusMessage = true;
             IsSuccess = false;
             return;
         }
 
-        // Check for required columns missing
-        var missingRequired = ColumnMappings.Where(m => m.HasWarning).ToList();
-        if (missingRequired.Count > 0)
+        if (IsOverwriteMode)
         {
-            string colNames = string.Join(", ", missingRequired.Select(c => c.TargetColumnName));
-            // Just warn but allow proceeding
+            if (string.IsNullOrWhiteSpace(SelectedKeyColumn))
+            {
+                StatusMessage = "Please select a Key / Match column for Overwrite mode.";
+                HasStatusMessage = true;
+                IsSuccess = false;
+                return;
+            }
+
+            var keyMapping = mappedCols.FirstOrDefault(m => m.TargetColumnName.Equals(SelectedKeyColumn, StringComparison.OrdinalIgnoreCase));
+            if (keyMapping == null)
+            {
+                StatusMessage = $"Match column '{SelectedKeyColumn}' must be mapped to an Excel column for Overwrite mode.";
+                HasStatusMessage = true;
+                IsSuccess = false;
+                return;
+            }
         }
 
         IsImporting = true;
         ImportProgress = 0.0;
-        ImportProgressText = "Preparing bulk insert statements...";
-        StatusMessage = "Importing data into database...";
+        ImportProgressText = IsOverwriteMode ? "Preparing bulk upsert (overwrite) statements..." : "Preparing bulk insert statements...";
+        StatusMessage = IsOverwriteMode ? "Overwriting/updating data in database..." : "Importing data into database...";
         HasStatusMessage = true;
 
         try
@@ -603,14 +1106,15 @@ public partial class ImportDataModalViewModel : ViewModelBase
                     SelectedTable,
                     mappedCols,
                     AllRawRows,
-                    TruncateBeforeImport,
+                    SelectedImportMode,
+                    SelectedKeyColumn,
                     SkipErrors,
                     BatchSize,
                     (imported, total) =>
                     {
-                        double p = (double)imported / total * 100.0;
+                        double p = total > 0 ? (double)imported / total * 100.0 : 0;
                         ImportProgress = p;
-                        ImportProgressText = $"Imported {imported:N0} of {total:N0} rows ({p:F0}%)...";
+                        ImportProgressText = $"Processed {imported:N0} of {total:N0} rows ({p:F0}%)...";
                     });
 
                 IsImporting = false;
@@ -620,9 +1124,18 @@ public partial class ImportDataModalViewModel : ViewModelBase
 
                 if (result.Success)
                 {
-                    await Task.Delay(1500);
+                    ImportProgress = 100.0;
+                    ImportProgressText = $"Completed! {result.RowsImported:N0} rows imported.";
+                    await Task.Delay(1200);
                     IsOpen = false;
                 }
+            }
+            else
+            {
+                IsImporting = false;
+                IsSuccess = false;
+                StatusMessage = "Database import callback is not initialized.";
+                HasStatusMessage = true;
             }
         }
         catch (Exception ex)
@@ -634,9 +1147,74 @@ public partial class ImportDataModalViewModel : ViewModelBase
         }
     }
 
+    private static (int Score, string MatchType) CalculateMatchScore(string targetCol, string excelHeader, int targetIndex, int excelIndex)
+    {
+        if (string.IsNullOrWhiteSpace(targetCol) || string.IsNullOrWhiteSpace(excelHeader))
+            return (0, "None");
+
+        // 1. Exact string match (case-insensitive)
+        if (targetCol.Equals(excelHeader, StringComparison.OrdinalIgnoreCase))
+            return (100, "Exact Match");
+
+        string normTarget = NormalizeName(targetCol);
+        string normExcel = NormalizeName(excelHeader);
+
+        // 2. Normalized alphanumeric match (ignoring underscores, spaces, dashes)
+        if (normTarget == normExcel && !string.IsNullOrEmpty(normTarget))
+            return (95, "Exact Match");
+
+        // 3. Synonym dictionary matching (English & Persian)
+        foreach (var (key, synonyms) in CommonSynonyms)
+        {
+            string normKey = NormalizeName(key);
+            bool targetMatches = normTarget == normKey || synonyms.Any(s => NormalizeName(s) == normTarget);
+            bool excelMatches = normExcel == normKey || synonyms.Any(s => NormalizeName(s) == normExcel);
+
+            if (targetMatches && excelMatches)
+            {
+                return (90, "Smart Match");
+            }
+        }
+
+        // 4. Word boundary / Token overlap (minimum word length 3 chars)
+        var targetTokens = SplitWords(targetCol);
+        var excelTokens = SplitWords(excelHeader);
+        var commonTokens = targetTokens.Intersect(excelTokens, StringComparer.OrdinalIgnoreCase)
+                                       .Where(t => t.Length >= 3)
+                                       .ToList();
+
+        if (commonTokens.Count > 0)
+        {
+            return (75 + Math.Min(commonTokens.Count * 5, 10), "Token Match");
+        }
+
+        // 5. Prefix / Suffix match for longer words (length >= 4)
+        if (normTarget.Length >= 4 && normExcel.Length >= 4)
+        {
+            if (normExcel.StartsWith(normTarget) || normExcel.EndsWith(normTarget) ||
+                normTarget.StartsWith(normExcel) || normTarget.EndsWith(normExcel))
+            {
+                return (65, "Prefix Match");
+            }
+        }
+
+        return (0, "None");
+    }
+
+    private static List<string> SplitWords(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return new List<string>();
+        var spaced = Regex.Replace(input, "([a-z])([A-Z])", "$1 $2");
+        return Regex.Split(spaced, @"[\s_\-\[\]""]+")
+                    .Where(w => !string.IsNullOrWhiteSpace(w))
+                    .Select(w => w.ToLowerInvariant())
+                    .ToList();
+    }
+
     private static string NormalizeName(string name)
     {
         if (string.IsNullOrEmpty(name)) return string.Empty;
-        return Regex.Replace(name, @"[\s_\-\[\]""]", "").ToLowerInvariant();
+        string n = name.Replace("ي", "ی").Replace("ك", "ک");
+        return Regex.Replace(n, @"[\s_\-\[\]""]", "").ToLowerInvariant();
     }
 }

@@ -353,7 +353,10 @@ public class DatabaseSessionService
                     return s;
             }
         }
-        return ActiveSession;
+        lock (_openSessions)
+        {
+            return ActiveSession ?? _openSessions.Values.FirstOrDefault(s => s.Connection.State == ConnectionState.Open);
+        }
     }
 
     public async Task<List<TableMetadata>> GetTablesAsync(string? sessionKey = null, CancellationToken cancellationToken = default)

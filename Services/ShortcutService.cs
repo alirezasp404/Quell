@@ -20,6 +20,7 @@ public static class ShortcutActions
     public const string ToggleFullscreen = "ToggleFullscreen";
     public const string OpenSettings = "OpenSettings";
     public const string ExportData = "ExportData";
+    public const string ImportData = "ImportData";
     public const string ZoomIn = "ZoomIn";
     public const string ZoomOut = "ZoomOut";
     public const string ResetZoom = "ResetZoom";
@@ -75,6 +76,7 @@ public class ShortcutService
         new() { Id = ShortcutActions.ToggleFullscreen, Name = "Toggle Fullscreen Results", Category = "Panels & View", DefaultGesture = "F11", CurrentGesture = "F11", Description = "Maximizes query results to full workspace height or restores split layout." },
         new() { Id = ShortcutActions.OpenSettings, Name = "Preferences & Settings", Category = "General", DefaultGesture = "Ctrl+,", CurrentGesture = "Ctrl+,", Description = "Opens the application settings and preferences dialog." },
         new() { Id = ShortcutActions.ExportData, Name = "Export Query Results", Category = "Data", DefaultGesture = "Ctrl+E", CurrentGesture = "Ctrl+E", Description = "Opens data export modal (CSV, JSON, SQL, TSV formats)." },
+        new() { Id = ShortcutActions.ImportData, Name = "Import Data from Excel / CSV", Category = "Data", DefaultGesture = "Ctrl+I", CurrentGesture = "Ctrl+I", Description = "Opens visual data import wizard with graphical column mapping." },
         new() { Id = ShortcutActions.ZoomIn, Name = "Editor Zoom In", Category = "Editor", DefaultGesture = "Ctrl++", CurrentGesture = "Ctrl++", Description = "Increases SQL code editor font size." },
         new() { Id = ShortcutActions.ZoomOut, Name = "Editor Zoom Out", Category = "Editor", DefaultGesture = "Ctrl+-", CurrentGesture = "Ctrl+-", Description = "Decreases SQL code editor font size." },
         new() { Id = ShortcutActions.ResetZoom, Name = "Reset Editor Zoom", Category = "Editor", DefaultGesture = "Ctrl+0", CurrentGesture = "Ctrl+0", Description = "Resets SQL code editor font size to default 13px." },

@@ -361,6 +361,13 @@
                                     <ui:FASymbolIcon Symbol="Download" FontSize="11" />
                                 </MenuItem.Icon>
                             </MenuItem>
+                            <MenuItem Header="Import Data from Excel / CSV..." 
+                                      InputGesture="Ctrl+I"
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).OpenImportModalCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Download" FontSize="11" Foreground="#10B981" />
+                                </MenuItem.Icon>
+                            </MenuItem>
                             <Separator />
                             <MenuItem Header="New Query" 
                                       InputGesture="Ctrl+N" 
@@ -447,6 +454,20 @@
                                       Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).QuickExportExcelCommand}">
                                 <MenuItem.Icon>
                                     <ui:FASymbolIcon Symbol="Document" FontSize="11" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Import Data from Excel / CSV..." 
+                                      InputGesture="Ctrl+I"
+                                      HotKey="Ctrl+I"
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).OpenImportModalCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Download" FontSize="11" Foreground="#10B981" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Download Excel Template for Table..." 
+                                      Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).DownloadTableTemplateCommand}">
+                                <MenuItem.Icon>
+                                    <ui:FASymbolIcon Symbol="Document" FontSize="11" Foreground="#10B981" />
                                 </MenuItem.Icon>
                             </MenuItem>
 
