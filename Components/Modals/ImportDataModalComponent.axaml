@@ -22,6 +22,18 @@
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
             <Setter Property="BoxShadow" Value="0 12 32 0 #50000000"/>
         </Style>
+        <Style Selector="ComboBoxItem">
+            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="MinHeight" Value="24"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Padding" Value="8,2"/>
+        </Style>
+        <Style Selector="MenuItem">
+            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="MinHeight" Value="24"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Padding" Value="6,1,8,1"/>
+        </Style>
     </UserControl.Styles>
 
     <!-- Reusable Visual Excel / CSV Data Import Modal Dialog -->
@@ -277,20 +289,22 @@
                                         ToolTip.Tip="Select View Mode: Interactive 2D Canvas or Structured Columns List">
                                     <Button.Flyout>
                                         <MenuFlyout Placement="BottomEdgeAlignedLeft">
-                                            <MenuItem Header="Canvas View (2D Diagram)" 
+                                            <MenuItem Header="Canvas View" 
+                                                      FontSize="10.5" Height="24" MinHeight="22" Padding="6,1,8,1"
                                                       Command="{Binding SetViewModeCommand}" 
                                                       CommandParameter="Canvas"
                                                       ToolTip.Tip="Interactive 2D Canvas with Pan &amp; Zoom">
                                                 <MenuItem.Icon>
-                                                    <ui:FASymbolIcon Symbol="Preview" FontSize="10" Foreground="#38BDF8"/>
+                                                    <ui:FASymbolIcon Symbol="Preview" FontSize="9" Foreground="#38BDF8"/>
                                                 </MenuItem.Icon>
                                             </MenuItem>
-                                            <MenuItem Header="List View (Columns Table)" 
+                                            <MenuItem Header="List View" 
+                                                      FontSize="10.5" Height="24" MinHeight="22" Padding="6,1,8,1"
                                                       Command="{Binding SetViewModeCommand}" 
                                                       CommandParameter="List"
                                                       ToolTip.Tip="Detailed list view of database columns and mappings">
                                                 <MenuItem.Icon>
-                                                    <ui:FASymbolIcon Symbol="Document" FontSize="10" Foreground="#10B981"/>
+                                                    <ui:FASymbolIcon Symbol="Document" FontSize="9" Foreground="#10B981"/>
                                                 </MenuItem.Icon>
                                             </MenuItem>
                                         </MenuFlyout>
@@ -315,26 +329,29 @@
                                         ToolTip.Tip="Select mapping strategy (Auto-Map or 1:1 Position)">
                                     <Button.Flyout>
                                         <MenuFlyout Placement="BottomEdgeAlignedLeft">
-                                            <MenuItem Header="Auto-Map (Smart Match)" 
+                                            <MenuItem Header="Auto-Map" 
+                                                      FontSize="10.5" Height="24" MinHeight="22" Padding="6,1,8,1"
                                                       Command="{Binding AutoMapColumnsCommand}"
                                                       ToolTip.Tip="Smart match columns by English &amp; Persian names, synonyms, and types">
                                                 <MenuItem.Icon>
-                                                    <ui:FASymbolIcon Symbol="Sync" FontSize="10" Foreground="#38BDF8"/>
+                                                    <ui:FASymbolIcon Symbol="Sync" FontSize="9" Foreground="#38BDF8"/>
                                                 </MenuItem.Icon>
                                             </MenuItem>
-                                            <MenuItem Header="1:1 Position (Sequential)" 
+                                            <MenuItem Header="1:1 Position" 
+                                                      FontSize="10.5" Height="24" MinHeight="22" Padding="6,1,8,1"
                                                       Command="{Binding MapByPositionCommand}"
                                                       ToolTip.Tip="Connect columns 1:1 in sequential order (ideal for templates)">
                                                 <MenuItem.Icon>
-                                                    <ui:FASymbolIcon Symbol="Forward" FontSize="10" Foreground="#10B981"/>
+                                                    <ui:FASymbolIcon Symbol="Forward" FontSize="9" Foreground="#10B981"/>
                                                 </MenuItem.Icon>
                                             </MenuItem>
-                                            <Separator Margin="0,2"/>
-                                            <MenuItem Header="Clear All Mappings" 
+                                            <Separator Margin="0,1"/>
+                                            <MenuItem Header="Clear All" 
+                                                      FontSize="10.5" Height="24" MinHeight="22" Padding="6,1,8,1"
                                                       Command="{Binding ClearMappingsCommand}"
                                                       ToolTip.Tip="Disconnect all mapped columns">
                                                 <MenuItem.Icon>
-                                                    <ui:FASymbolIcon Symbol="Dismiss" FontSize="10" Foreground="#EF4444"/>
+                                                    <ui:FASymbolIcon Symbol="Dismiss" FontSize="9" Foreground="#EF4444"/>
                                                 </MenuItem.Icon>
                                             </MenuItem>
                                         </MenuFlyout>
