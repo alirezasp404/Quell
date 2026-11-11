@@ -8,6 +8,7 @@ using Avalonia;
 using Avalonia.Input.Platform;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Quell.Services;
 using Quell.Services.DatabaseProviders;
 
 namespace Quell.ViewModels;
@@ -56,6 +57,42 @@ public partial class DiagramTableItem : ObservableObject
     public int PrimaryKeysCount => Columns.Count(c => c.IsPrimaryKey);
     public int ForeignKeysCount => Columns.Count(c => c.IsForeignKey);
     public int TotalColumnsCount => Columns.Count;
+
+    public DiagramTableItem Clone()
+    {
+        var item = new DiagramTableItem
+        {
+            TableName = TableName,
+            Schema = Schema,
+            DatabaseType = DatabaseType,
+            X = X,
+            Y = Y,
+            Width = Width,
+            Height = Height,
+            IsSelected = IsSelected,
+            IsHighlighted = IsHighlighted
+        };
+
+        foreach (var col in Columns)
+        {
+            item.Columns.Add(new DiagramColumnItem
+            {
+                ColumnName = col.ColumnName,
+                DataType = col.DataType,
+                IsPrimaryKey = col.IsPrimaryKey,
+                IsForeignKey = col.IsForeignKey,
+                ReferencedTable = col.ReferencedTable,
+                ReferencedColumn = col.ReferencedColumn
+            });
+        }
+
+        foreach (var rel in OutgoingRelations)
+        {
+            item.OutgoingRelations.Add(rel);
+        }
+
+        return item;
+    }
 }
 
 public partial class DiagramRelationItem : ObservableObject
@@ -80,6 +117,9 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
 {
     [ObservableProperty]
     private bool _isOpen;
+
+    [ObservableProperty]
+    private string _databaseKey = string.Empty;
 
     [ObservableProperty]
     private string _databaseTitle = "Active Database";
@@ -107,6 +147,15 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _hasStatusMessage;
+
+    [ObservableProperty]
+    private bool _isLoadedFromCache;
+
+    [ObservableProperty]
+    private DateTime? _cachedAt;
+
+    [ObservableProperty]
+    private string _cacheStatusBadge = string.Empty;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsIndeterminate))]
@@ -139,6 +188,7 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
     public Func<string, Task>? OpenTableDataCallback { get; set; }
     public Action<string>? GenerateDdlCallback { get; set; }
     public Func<Task>? RefreshDiagramCallback { get; set; }
+    public Func<bool, Task>? RefreshDiagramCallbackWithFlag { get; set; }
 
     public event Action? RequestCanvasUpdate;
 
@@ -156,8 +206,20 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
     [RelayCommand]
     public void Close()
     {
+        SyncPositionsToCache();
         IsOpen = false;
         IsLoading = false;
+    }
+
+    /// <summary>
+    /// Synchronizes current table positions on the canvas back into the persistent in-memory cache.
+    /// </summary>
+    public void SyncPositionsToCache()
+    {
+        if (!string.IsNullOrWhiteSpace(DatabaseKey) && AllTables.Count > 0)
+        {
+            DiagramCacheService.Instance.UpdateTablePositions(DatabaseKey, AllTables);
+        }
     }
 
     [RelayCommand]
@@ -214,7 +276,6 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
         double totalW = Math.Max(100, maxX - minX);
         double totalH = Math.Max(100, maxY - minY);
 
-        // Approximate available viewport dimensions
         double viewW = 950.0;
         double viewH = 520.0;
 
@@ -272,13 +333,37 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
         }
 
         RecalculateRelationPoints();
+        SyncPositionsToCache();
         RequestCanvasUpdate?.Invoke();
     }
 
     [RelayCommand]
     public async Task RefreshDiagramAsync()
     {
-        if (RefreshDiagramCallback != null)
+        // Force refresh from database and update cache
+        if (RefreshDiagramCallbackWithFlag != null)
+        {
+            await RefreshDiagramCallbackWithFlag(true);
+        }
+        else if (RefreshDiagramCallback != null)
+        {
+            await RefreshDiagramCallback();
+        }
+    }
+
+    [RelayCommand]
+    public async Task ClearCacheAndReloadAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(DatabaseKey))
+        {
+            DiagramCacheService.Instance.Invalidate(DatabaseKey);
+        }
+
+        if (RefreshDiagramCallbackWithFlag != null)
+        {
+            await RefreshDiagramCallbackWithFlag(true);
+        }
+        else if (RefreshDiagramCallback != null)
         {
             await RefreshDiagramCallback();
         }
@@ -438,12 +523,53 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
         RequestCanvasUpdate?.Invoke();
     }
 
-    public void LoadTables(IEnumerable<DiagramTableItem> tables, string databaseName, string dbType)
+    /// <summary>
+    /// Loads diagram tables from in-memory cache, preserving saved coordinates.
+    /// </summary>
+    public void LoadFromCache(IEnumerable<DiagramTableItem> tables, string databaseName, string dbType, string dbKey, DateTime? cachedAt)
     {
         DatabaseTitle = databaseName;
         DatabaseType = dbType;
-        AllTables.Clear();
+        DatabaseKey = dbKey;
+        IsLoadedFromCache = true;
+        CachedAt = cachedAt;
+        CacheStatusBadge = "Cached";
 
+        AllTables.Clear();
+        foreach (var t in tables)
+        {
+            AllTables.Add(t);
+        }
+
+        ApplyFilter();
+
+        // If tables already have distinct coordinates, recalculate lines; otherwise layout
+        bool hasCoordinates = AllTables.Any(t => t.X != 50 || t.Y != 50);
+        if (hasCoordinates)
+        {
+            RecalculateRelationPoints();
+        }
+        else
+        {
+            AutoLayout();
+        }
+
+        IsLoading = false;
+    }
+
+    /// <summary>
+    /// Loads freshly analyzed diagram tables from live database.
+    /// </summary>
+    public void LoadTables(IEnumerable<DiagramTableItem> tables, string databaseName, string dbType, string dbKey = "")
+    {
+        DatabaseTitle = databaseName;
+        DatabaseType = dbType;
+        if (!string.IsNullOrEmpty(dbKey)) DatabaseKey = dbKey;
+        IsLoadedFromCache = false;
+        CachedAt = DateTime.Now;
+        CacheStatusBadge = "Live";
+
+        AllTables.Clear();
         foreach (var t in tables)
         {
             AllTables.Add(t);
@@ -512,6 +638,7 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
     public async Task ViewTableData(DiagramTableItem? table)
     {
         if (table == null || OpenTableDataCallback == null) return;
+        SyncPositionsToCache();
         IsOpen = false;
         await OpenTableDataCallback.Invoke(table.FullName);
     }
@@ -520,6 +647,7 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
     public void GenerateDdl(DiagramTableItem? table)
     {
         if (table == null || GenerateDdlCallback == null) return;
+        SyncPositionsToCache();
         IsOpen = false;
         GenerateDdlCallback.Invoke(table.FullName);
     }

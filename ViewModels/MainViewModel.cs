@@ -90,7 +90,11 @@ public partial class MainViewModel : ViewModelBase
         };
         _diagramModal.RefreshDiagramCallback = async () =>
         {
-            await OpenDiagramModal();
+            await OpenDiagramModal(forceRefresh: true);
+        };
+        _diagramModal.RefreshDiagramCallbackWithFlag = async (forceRefresh) =>
+        {
+            await OpenDiagramModal(forceRefresh: forceRefresh);
         };
 
         _footer.TerminalTabActivated += () =>
@@ -975,24 +979,51 @@ public partial class MainViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    public async Task OpenDiagramModal()
+    public async Task OpenDiagramModal(bool forceRefresh = false)
     {
         var activeSession = DatabaseSessionService.Instance.ActiveSession;
+        string dbKey = activeSession?.Key ?? SelectedTargetDatabase?.Key ?? activeSession?.DisplayName ?? SelectedTargetDatabase?.DisplayName ?? "Default";
         string dbName = activeSession?.DisplayName ?? SelectedTargetDatabase?.DisplayName ?? "Quell Studio DB";
         string dbType = activeSession?.DatabaseType ?? SelectedTargetDatabase?.DatabaseType ?? "SQLite";
 
-        // 1. Immediately open the modal and display loading state
+        // 1. Check in-memory cache if not forcing refresh
+        if (!forceRefresh && DiagramCacheService.Instance.TryGet(dbKey, out var cachedData) && cachedData != null)
+        {
+            var cachedTables = DatabaseSessionService.Instance.GetActiveCachedTables();
+            var activeDb = Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsActive) ?? Sidebar.DatabaseNodes.FirstOrDefault(n => n.IsConnected);
+            if (cachedTables.Count == 0 && activeDb != null)
+            {
+                cachedTables = activeDb.AllTableNodes.Select(t => t.Table).ToList();
+            }
+
+            // Check if schema changed (e.g. new table added or table dropped)
+            bool schemaChanged = cachedTables.Count > 0 &&
+                (cachedTables.Count != cachedData.TableCount ||
+                 !cachedTables.All(t => cachedData.KnownTableNames.Contains(t.TableName)));
+
+            if (!schemaChanged)
+            {
+                DiagramModal.LoadFromCache(cachedData.Tables.Select(t => t.Clone()), dbName, dbType, dbKey, cachedData.CachedAt);
+                DiagramModal.StatusMessage = $"Loaded instantly from cache ({cachedData.TableCount} tables)";
+                DiagramModal.HasStatusMessage = true;
+                DiagramModal.Open();
+                return;
+            }
+        }
+
+        // 2. Cache miss, schema changed, or forced reload:
         DiagramModal.DatabaseTitle = dbName;
         DiagramModal.DatabaseType = dbType;
+        DiagramModal.DatabaseKey = dbKey;
         DiagramModal.IsLoading = true;
-        DiagramModal.LoadingMessage = "Discovering database tables and relationships...";
+        DiagramModal.LoadingMessage = forceRefresh ? "Re-analyzing database schema & refreshing cache..." : "Discovering database tables and relationships...";
         DiagramModal.LoadingDetailText = "Querying schema information...";
         DiagramModal.LoadingProgress = 0.0;
         DiagramModal.AllTables.Clear();
         DiagramModal.FilteredTables.Clear();
         DiagramModal.Open();
 
-        await Task.Delay(250);
+        await Task.Delay(150);
 
         try
         {
@@ -1006,7 +1037,8 @@ public partial class MainViewModel : ViewModelBase
             if (cachedTables.Count == 0)
             {
                 var sampleTables = GetSampleDiagramTables();
-                DiagramModal.LoadTables(sampleTables, dbName, dbType);
+                DiagramModal.LoadTables(sampleTables, dbName, dbType, dbKey);
+                DiagramCacheService.Instance.Store(dbKey, dbName, dbType, sampleTables);
                 return;
             }
 
@@ -1093,7 +1125,10 @@ public partial class MainViewModel : ViewModelBase
                 sortedTables = GetSampleDiagramTables();
             }
 
-            DiagramModal.LoadTables(sortedTables, dbName, dbType);
+            DiagramModal.LoadTables(sortedTables, dbName, dbType, dbKey);
+            DiagramCacheService.Instance.Store(dbKey, dbName, dbType, sortedTables);
+            DiagramModal.StatusMessage = $"Diagram generated & cached ({sortedTables.Count} tables)";
+            DiagramModal.HasStatusMessage = true;
         }
         catch (Exception ex)
         {
@@ -1101,7 +1136,9 @@ public partial class MainViewModel : ViewModelBase
             DiagramModal.HasStatusMessage = true;
             if (DiagramModal.AllTables.Count == 0)
             {
-                DiagramModal.LoadTables(GetSampleDiagramTables(), dbName, dbType);
+                var samples = GetSampleDiagramTables();
+                DiagramModal.LoadTables(samples, dbName, dbType, dbKey);
+                DiagramCacheService.Instance.Store(dbKey, dbName, dbType, samples);
             }
         }
         finally
@@ -1143,7 +1180,12 @@ public partial class MainViewModel : ViewModelBase
     public async Task RefreshDatabaseSchema()
     {
         await Sidebar.RefreshAsync();
-        SampleQueryResult.LastQueryMessage = "Database schema & tables refreshed";
+        string? dbKey = DatabaseSessionService.Instance.ActiveSession?.Key ?? SelectedTargetDatabase?.Key;
+        if (!string.IsNullOrEmpty(dbKey))
+        {
+            DiagramCacheService.Instance.Invalidate(dbKey);
+        }
+        SampleQueryResult.LastQueryMessage = "Database schema & tables refreshed (Diagram cache invalidated)";
         SampleQueryResult.HasLastQueryMessage = true;
     }
 

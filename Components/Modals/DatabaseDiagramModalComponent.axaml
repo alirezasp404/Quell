@@ -109,6 +109,12 @@
                                 <Border Background="{DynamicResource AppAccentBrush}" CornerRadius="3" Padding="5,1" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding DatabaseType}" FontSize="9" FontWeight="Bold" Foreground="White"/>
                                 </Border>
+                                <Border Background="#10B981" CornerRadius="3" Padding="5,1" VerticalAlignment="Center" IsVisible="{Binding IsLoadedFromCache}" ToolTip.Tip="Diagram served instantly from in-memory cache">
+                                    <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
+                                        <ui:FASymbolIcon Symbol="Sync" FontSize="8" Foreground="White" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Cached" FontSize="9" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
                                 <TextBlock Text="{Binding DatabaseTitle}" 
                                            Foreground="{DynamicResource AppTextSecondaryBrush}" 
                                            FontSize="12" 
@@ -250,10 +256,23 @@
                                     Padding="8,2"
                                     IsEnabled="{Binding !IsLoading}"
                                     Command="{Binding RefreshDiagramCommand}"
-                                    ToolTip.Tip="Re-analyze and reload schema relations">
+                                    ToolTip.Tip="Re-analyze database schema and refresh cache">
                                 <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                                     <ui:FASymbolIcon Symbol="Sync" FontSize="10"/>
                                     <TextBlock Text="Reload" FontSize="11"/>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Clear Cache Button -->
+                            <Button Classes="classic-tool-btn" 
+                                    Height="27" 
+                                    Padding="8,2"
+                                    IsEnabled="{Binding !IsLoading}"
+                                    Command="{Binding ClearCacheAndReloadCommand}"
+                                    ToolTip.Tip="Clear cached diagram and force fresh schema re-analysis">
+                                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                    <ui:FASymbolIcon Symbol="Dismiss" FontSize="9" Foreground="#EF4444"/>
+                                    <TextBlock Text="Clear Cache" FontSize="11" Foreground="#EF4444"/>
                                 </StackPanel>
                             </Button>
 

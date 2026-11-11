@@ -1179,6 +1179,27 @@ sealed class Program
             Console.WriteLine($"Mermaid Diagram status: {vm.DiagramModal.StatusMessage}");
             vm.DiagramModal.Close();
 
+            // C2. Verify Diagram In-Memory Caching Lifecycle & Automatic Invalidation
+            Console.WriteLine("[Action] Verifying Diagram Caching, Instant Load & Invalidation...");
+            await vm.OpenDiagramModal(forceRefresh: false);
+            Console.WriteLine($"Diagram Cache State: IsLoadedFromCache={vm.DiagramModal.IsLoadedFromCache}, Status='{vm.DiagramModal.StatusMessage}'");
+            if (!vm.DiagramModal.IsLoadedFromCache)
+            {
+                throw new Exception("Expected diagram to be loaded instantly from cache on subsequent open!");
+            }
+            // Test ClearCacheAndReload
+            await vm.DiagramModal.ClearCacheAndReloadAsync();
+            Console.WriteLine($"After ClearCacheAndReload: IsLoadedFromCache={vm.DiagramModal.IsLoadedFromCache}, Status='{vm.DiagramModal.StatusMessage}'");
+            vm.DiagramModal.Close();
+            // Re-open: should be cached again
+            await vm.OpenDiagramModal(forceRefresh: false);
+            if (!vm.DiagramModal.IsLoadedFromCache)
+            {
+                throw new Exception("Expected diagram to be re-cached after reload!");
+            }
+            Console.WriteLine("[Success] Diagram in-memory caching, instant loading, and invalidation verified!");
+            vm.DiagramModal.Close();
+
             // D. Generate Table DDL
             vm.GenerateTableDdl();
             Console.WriteLine($"Generated DDL Tab: Title='{vm.Editor.SelectedTab.Title}', Content Length={vm.Editor.SelectedTab.Text.Length}");
