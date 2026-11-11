@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -979,7 +979,23 @@ public partial class MainViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    public async Task OpenDiagramModal(bool forceRefresh = false)
+    public async Task OpenDiagramModal()
+    {
+        await OpenDiagramModalInternal(forceRefresh: false);
+    }
+
+    [RelayCommand]
+    public async Task ForceRefreshDiagramModal()
+    {
+        await OpenDiagramModalInternal(forceRefresh: true);
+    }
+
+    public async Task OpenDiagramModal(bool forceRefresh)
+    {
+        await OpenDiagramModalInternal(forceRefresh);
+    }
+
+    private async Task OpenDiagramModalInternal(bool forceRefresh)
     {
         var activeSession = DatabaseSessionService.Instance.ActiveSession;
         string dbKey = activeSession?.Key ?? SelectedTargetDatabase?.Key ?? activeSession?.DisplayName ?? SelectedTargetDatabase?.DisplayName ?? "Default";

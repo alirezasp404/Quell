@@ -89,7 +89,7 @@ public class DiagramSurfaceControl : Control
             double d2 = goingRight ? -32.0 : 32.0;
             double midX = (start.X + d1 + end.X + d2) / 2.0;
 
-            // Build Orthogonal Stepped Path with Rounded Corners (خط‌کشی روابط)
+            // Build Orthogonal Stepped Path with Rounded Corners
             var geom = new StreamGeometry();
             using (var ctx = geom.Open())
             {

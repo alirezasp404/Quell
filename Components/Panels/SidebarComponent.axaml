@@ -1,4 +1,4 @@
-﻿<UserControl xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
               xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
               xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -143,6 +143,12 @@
                                         Padding="4,2">
                                     <ui:FASymbolIcon Symbol="Refresh" FontSize="11" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
                                 </Button>
+                                <Button Classes="classic-menu-btn"
+                                        Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).OpenDiagramModalCommand}"
+                                        ToolTip.Tip="ER Diagram &amp; Schema Relations"
+                                        Padding="4,2">
+                                    <ui:FASymbolIcon Symbol="Preview" FontSize="11" Foreground="{DynamicResource AppAccentBrush}"/>
+                                </Button>
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -277,6 +283,13 @@
                                                               IsVisible="{Binding IsConnected}">
                                                         <MenuItem.Icon>
                                                             <ui:FASymbolIcon Symbol="Refresh" FontSize="11" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                                                        </MenuItem.Icon>
+                                                    </MenuItem>
+                                                    <MenuItem Header="ER Diagram &amp; Schema Relations..."
+                                                              Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).OpenDiagramModalCommand}"
+                                                              IsVisible="{Binding IsConnected}">
+                                                        <MenuItem.Icon>
+                                                            <ui:FASymbolIcon Symbol="Preview" FontSize="11" Foreground="{DynamicResource AppAccentBrush}"/>
                                                         </MenuItem.Icon>
                                                     </MenuItem>
                                                     <MenuItem Header="Open in Terminal (CLI)" 
