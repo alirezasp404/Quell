@@ -3,6 +3,7 @@
               xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
               xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
               xmlns:vm="using:Quell.ViewModels"
+              xmlns:ic="using:FluentIcons.Avalonia"
               xmlns:ui="using:FluentAvalonia.UI.Controls"
               mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="30"
               x:Class="Quell.Components.TableToolbarComponent"
@@ -86,7 +87,7 @@
                         Height="23"
                         Padding="8,1">
                     <StackPanel Orientation="Horizontal" Spacing="5">
-                        <ui:FASymbolIcon Symbol="Folder" FontSize="11" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                        <ic:SymbolIcon Symbol="Database" FontSize="11" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
                         <TextBlock Text="{Binding TargetDatabaseName}" 
                                    Foreground="{DynamicResource AppTextPrimaryBrush}" 
                                    FontWeight="SemiBold"
@@ -105,7 +106,7 @@
                         IsVisible="{Binding HasPrimaryKey}"
                         ToolTip.Tip="Primary Key column in current table">
                     <StackPanel Orientation="Horizontal" Spacing="4">
-                        <PathIcon Data="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" Width="10" Height="10" Foreground="{DynamicResource AppTablePkColumnForegroundBrush}" VerticalAlignment="Center"/>
+                        <ic:SymbolIcon Symbol="Key" FontSize="11" Foreground="{DynamicResource AppTablePkColumnForegroundBrush}" VerticalAlignment="Center"/>
                         <TextBlock Text="PK:" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AppTablePkBadgeForegroundBrush}" VerticalAlignment="Center"/>
                         <TextBlock Text="{Binding PrimaryKeyColumnName}" 
                                    Foreground="{DynamicResource AppTablePkColumnForegroundBrush}" 

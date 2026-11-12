@@ -4,7 +4,9 @@
               xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
               xmlns:vm="using:Quell.ViewModels"
               xmlns:components="using:Quell.Components"
-              xmlns:ui="using:FluentAvalonia.UI.Controls"
+              xmlns:i="using:Avalonia.Xaml.Interactivity"
+             xmlns:b="using:Quell.Behaviors"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
               mc:Ignorable="d" d:DesignWidth="850" d:DesignHeight="680"
               x:Class="Quell.Components.SettingsModalComponent"
               x:DataType="vm:SettingsModalViewModel">
@@ -31,6 +33,9 @@
                 BoxShadow="0 12 36 #40000000"
                 Focusable="False" FocusAdorner="{x:Null}"
                 ClipToBounds="True">
+            <i:Interaction.Behaviors>
+                <b:GpuModalEntranceBehavior StartScale="0.94" DurationMs="240" />
+            </i:Interaction.Behaviors>
             <Grid RowDefinitions="Auto, *, Auto">
                 
                 <!-- 1. Header Bar -->

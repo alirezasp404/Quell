@@ -4,7 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Quell.ViewModels"
              xmlns:components="using:Quell.Components"
-             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:ic="using:FluentIcons.Avalonia"
+              xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="36"
              x:Class="Quell.Components.NavbarComponent"
              x:DataType="vm:NavbarViewModel">
@@ -352,7 +353,7 @@
                                       InputGesture="Ctrl+Shift+C"
                                       Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ConnectModal.OpenCommand}">
                                 <MenuItem.Icon>
-                                    <ui:FASymbolIcon Symbol="Link" FontSize="11" />
+                                    <ic:SymbolIcon Symbol="DatabasePlugConnected" FontSize="11" Foreground="{DynamicResource AppAccentBrush}" />
                                 </MenuItem.Icon>
                             </MenuItem>
                             <MenuItem Header="Export Results to File..." 
@@ -416,7 +417,7 @@
                         <!-- Database Management & Tools Menu -->
                         <MenuItem x:Name="MenuDatabase" Classes="nav-item nav-item-3" Header="Database" FontSize="11">
                             <MenuItem.Icon>
-                                <ui:FASymbolIcon Symbol="Folder" FontSize="11" />
+                                <ic:SymbolIcon Symbol="Database" FontSize="11" Foreground="{DynamicResource AppAccentBrush}" />
                             </MenuItem.Icon>
 
                             <!-- Connection Management -->
@@ -436,7 +437,7 @@
                             <MenuItem Header="Refresh Schema &amp; Tables" 
                                       Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RefreshDatabaseSchemaCommand}">
                                 <MenuItem.Icon>
-                                    <ui:FASymbolIcon Symbol="Sync" FontSize="11" />
+                                    <ic:SymbolIcon Symbol="ArrowSync" FontSize="11" />
                                 </MenuItem.Icon>
                             </MenuItem>
 
@@ -453,7 +454,7 @@
                             <MenuItem Header="Create Excel from Table (*.xlsx)..." 
                                       Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).QuickExportExcelCommand}">
                                 <MenuItem.Icon>
-                                    <ui:FASymbolIcon Symbol="Document" FontSize="11" />
+                                    <ic:SymbolIcon Symbol="DocumentTable" FontSize="11" Foreground="#10B981" />
                                 </MenuItem.Icon>
                             </MenuItem>
                             <MenuItem Header="Import Data from Excel / CSV..." 
@@ -461,13 +462,13 @@
                                       HotKey="Ctrl+I"
                                       Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).OpenImportModalCommand}">
                                 <MenuItem.Icon>
-                                    <ui:FASymbolIcon Symbol="Download" FontSize="11" Foreground="#10B981" />
+                                    <ic:SymbolIcon Symbol="ArrowUpload" FontSize="11" Foreground="#10B981" />
                                 </MenuItem.Icon>
                             </MenuItem>
                             <MenuItem Header="Download Excel Template for Table..." 
                                       Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).DownloadTableTemplateCommand}">
                                 <MenuItem.Icon>
-                                    <ui:FASymbolIcon Symbol="Document" FontSize="11" Foreground="#10B981" />
+                                    <ic:SymbolIcon Symbol="ArrowDownload" FontSize="11" Foreground="#10B981" />
                                 </MenuItem.Icon>
                             </MenuItem>
 
@@ -493,13 +494,13 @@
                             <MenuItem Header="ER Diagram &amp; Schema Relations..." 
                                       Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).OpenDiagramModalCommand}">
                                 <MenuItem.Icon>
-                                    <ui:FASymbolIcon Symbol="Preview" FontSize="11" />
+                                    <ic:SymbolIcon Symbol="TableMultiple" FontSize="11" Foreground="{DynamicResource AppAccentBrush}" />
                                 </MenuItem.Icon>
                             </MenuItem>
                             <MenuItem Header="View Table Schema &amp; Properties" 
                                       Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ShowTablePropertiesCommand}">
                                 <MenuItem.Icon>
-                                    <ui:FASymbolIcon Symbol="Tag" FontSize="11" />
+                                    <ic:SymbolIcon Symbol="TableFreezeColumn" FontSize="11" Foreground="{DynamicResource AppAccentBrush}" />
                                 </MenuItem.Icon>
                             </MenuItem>
                             <MenuItem Header="Generate DDL Script (CREATE TABLE)" 
@@ -515,7 +516,7 @@
                             <MenuItem Header="Optimize &amp; Vacuum Database" 
                                       Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).OptimizeDatabaseCommand}">
                                 <MenuItem.Icon>
-                                    <ui:FASymbolIcon Symbol="Settings" FontSize="11" />
+                                    <ic:SymbolIcon Symbol="Sparkle" FontSize="11" Foreground="#F59E0B" />
                                 </MenuItem.Icon>
                             </MenuItem>
                         </MenuItem>
@@ -661,7 +662,7 @@
                             Padding="4,0" 
                             VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                            <ui:FASymbolIcon Symbol="Folder" FontSize="10" Foreground="{DynamicResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
+                            <ic:SymbolIcon Symbol="Database" FontSize="11" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
                             <TextBlock Classes="db-label-text" Text="DB:" FontSize="9" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
                             <ComboBox ItemsSource="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).AvailableTargetDatabases}"
                                       SelectedItem="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).SelectedTargetDatabase}"

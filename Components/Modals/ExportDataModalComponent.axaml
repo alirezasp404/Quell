@@ -3,7 +3,10 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Quell.ViewModels"
-             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:i="using:Avalonia.Xaml.Interactivity"
+             xmlns:b="using:Quell.Behaviors"
+             xmlns:ic="using:FluentIcons.Avalonia"
+              xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
              x:Class="Quell.Components.ExportDataModalComponent"
              x:DataType="vm:ExportDataModalViewModel"
@@ -26,6 +29,9 @@
                 Width="480"
                 HorizontalAlignment="Center" 
                 VerticalAlignment="Center">
+            <i:Interaction.Behaviors>
+                <b:GpuModalEntranceBehavior StartScale="0.93" DurationMs="220" />
+            </i:Interaction.Behaviors>
             
             <Grid RowDefinitions="Auto, *, Auto">
                 
@@ -44,7 +50,7 @@
                                 Height="28" 
                                 Margin="0,0,10,0"
                                 VerticalAlignment="Center">
-                            <ui:FASymbolIcon Symbol="Download" FontSize="13" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <ic:SymbolIcon Symbol="DocumentTable" FontSize="15" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
 
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">

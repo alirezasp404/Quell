@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -15,11 +15,113 @@ public partial class SidebarViewModel : ViewModelBase
     private bool _isVisible = true;
 
     [ObservableProperty]
-    private string _selectedTab = "Explorer";
+    [NotifyPropertyChangedFor(nameof(IsExplorerTab))]
+    [NotifyPropertyChangedFor(nameof(IsDatabasesTab))]
+    [NotifyPropertyChangedFor(nameof(IsHistoryTab))]
+    [NotifyPropertyChangedFor(nameof(DrawerTitle))]
+    private string _selectedTab = "Databases";
 
     public bool IsExplorerTab => SelectedTab == "Explorer";
     public bool IsDatabasesTab => SelectedTab == "Databases";
     public bool IsHistoryTab => SelectedTab == "History";
+
+    public bool IsDatabasesTabActive => IsDatabasesTab && IsExpanded;
+    public bool IsExplorerTabActive => IsExplorerTab && IsExpanded;
+    public bool IsHistoryTabActive => IsHistoryTab && IsExpanded;
+
+    public string DrawerTitle => SelectedTab switch
+    {
+        "Databases" => "DATABASES & CONNECTIONS",
+        "History" => "QUERY HISTORY",
+        _ => "OBJECT EXPLORER"
+    };
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsExpanded))]
+    [NotifyPropertyChangedFor(nameof(PinTooltipText))]
+    [NotifyPropertyChangedFor(nameof(PinStatusText))]
+    [NotifyPropertyChangedFor(nameof(IsDatabasesTabActive))]
+    [NotifyPropertyChangedFor(nameof(IsExplorerTabActive))]
+    [NotifyPropertyChangedFor(nameof(IsHistoryTabActive))]
+    private bool _isPinned = false;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsExpanded))]
+    [NotifyPropertyChangedFor(nameof(IsDatabasesTabActive))]
+    [NotifyPropertyChangedFor(nameof(IsExplorerTabActive))]
+    [NotifyPropertyChangedFor(nameof(IsHistoryTabActive))]
+    private bool _isDockExpanded = false;
+
+    public bool IsExpanded => IsPinned || IsDockExpanded;
+
+    public string PinTooltipText => IsPinned 
+        ? "Pinned (Click to unpin / auto-collapse)" 
+        : "Pin Sidebar (Keep open)";
+
+    public string PinStatusText => IsPinned ? "Pinned" : "Pin";
+
+    [RelayCommand]
+    public void ToggleDatabasesTab()
+    {
+        if (IsExpanded && SelectedTab == "Databases")
+        {
+            CollapseDock();
+        }
+        else
+        {
+            SelectedTab = "Databases";
+            IsDockExpanded = true;
+        }
+    }
+
+    [RelayCommand]
+    public void ToggleExplorerTab()
+    {
+        if (IsExpanded && SelectedTab == "Explorer")
+        {
+            CollapseDock();
+        }
+        else
+        {
+            SelectedTab = "Explorer";
+            IsDockExpanded = true;
+        }
+    }
+
+    [RelayCommand]
+    public void ToggleHistoryTab()
+    {
+        if (IsExpanded && SelectedTab == "History")
+        {
+            CollapseDock();
+        }
+        else
+        {
+            SelectedTab = "History";
+            IsDockExpanded = true;
+        }
+    }
+
+    [RelayCommand]
+    public void CollapseDock()
+    {
+        IsPinned = false;
+        IsDockExpanded = false;
+    }
+
+    [RelayCommand]
+    public void TogglePin()
+    {
+        IsPinned = !IsPinned;
+        if (IsPinned)
+        {
+            IsDockExpanded = true;
+        }
+        else
+        {
+            IsDockExpanded = false;
+        }
+    }
 
     public ObservableCollection<string> Tabs { get; } = new()
     {

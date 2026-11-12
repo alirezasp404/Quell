@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Controls;
 using System;
 using System.Linq;
@@ -1831,6 +1831,35 @@ sealed class Program
             }
             Console.WriteLine("[Success] Hardware graphics detection, GPU vs CPU mode switching, and SQLite persistence verified!");
 
+            // Verify Xaml.Behaviors GPU Animations
+            Console.WriteLine("\n[Action] Verifying Xaml.Behaviors.Avalonia GPU Motion & Spring Behaviors...");
+            var btnBehavior = new Quell.Behaviors.GpuButtonPressBehavior { PressScale = 0.92 };
+            if (btnBehavior.IsGpuActive != graphicsService.IsGpuMotionActive)
+            {
+                throw new Exception("GpuButtonPressBehavior IsGpuActive does not match HardwareGraphicsService!");
+            }
+            var modalBehavior = new Quell.Behaviors.GpuModalEntranceBehavior();
+            if (modalBehavior.IsGpuActive != graphicsService.IsGpuMotionActive)
+            {
+                throw new Exception("GpuModalEntranceBehavior IsGpuActive does not match HardwareGraphicsService!");
+            }
+            var hoverBehavior = new Quell.Behaviors.GpuCardHoverBehavior();
+            if (hoverBehavior.IsGpuActive != graphicsService.IsGpuMotionActive)
+            {
+                throw new Exception("GpuCardHoverBehavior IsGpuActive does not match HardwareGraphicsService!");
+            }
+            var slideBehavior = new Quell.Behaviors.GpuSlideEntranceBehavior();
+            if (slideBehavior.IsGpuActive != graphicsService.IsGpuMotionActive)
+            {
+                throw new Exception("GpuSlideEntranceBehavior IsGpuActive does not match HardwareGraphicsService!");
+            }
+            var pulseBehavior = new Quell.Behaviors.GpuPulseAttentionBehavior();
+            if (pulseBehavior.IsGpuActive != graphicsService.IsGpuMotionActive)
+            {
+                throw new Exception("GpuPulseAttentionBehavior IsGpuActive does not match HardwareGraphicsService!");
+            }
+            Console.WriteLine("[Success] Xaml.Behaviors GPU pipeline verified: ButtonPress, ModalEntrance, CardHover, Slide & Pulse active!");
+
             // =========================================================================
             // F. Test Integrated Cross-Platform Terminal & Database CLI Suite
             // =========================================================================
@@ -2477,7 +2506,7 @@ sealed class Program
                 try { System.IO.File.Delete(tempDbPath); } catch { }
             }
 
-            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER, SIMULTANEOUS BATCH CELL EDITING, FOREIGN KEY NAVIGATION, HARDWARE GPU/CPU RENDERING PIPELINE, INTEGRATED TERMINAL & VISUAL EXCEL DATA IMPORT WIZARD) PASSED! <<<");
+            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER, SIMULTANEOUS BATCH CELL EDITING, FOREIGN KEY NAVIGATION, HARDWARE GPU/CPU RENDERING PIPELINE, XAML.BEHAVIORS GPU ANIMATIONS, INTEGRATED TERMINAL & VISUAL EXCEL DATA IMPORT WIZARD) PASSED! <<<");
             return;
         }
 

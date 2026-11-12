@@ -4,7 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Quell.ViewModels"
              xmlns:components="using:Quell.Components"
-             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:ic="using:FluentIcons.Avalonia"
+              xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="400"
              x:Class="Quell.Components.QueryResultTableComponent"
              x:DataType="vm:QueryResultTableViewModel">
@@ -279,7 +280,7 @@
                         </MenuItem>
                         <MenuItem Header="Delete Selected Column(s)" Command="{Binding DeleteSelectedColumnCommand}">
                             <MenuItem.Icon>
-                                <ui:FASymbolIcon Symbol="Delete" FontSize="11" Foreground="#EF4444" />
+                                <ic:SymbolIcon Symbol="TableDeleteColumn" FontSize="11" Foreground="#EF4444" />
                             </MenuItem.Icon>
                         </MenuItem>
                         <MenuItem Header="Generate DELETE Query..." Command="{Binding GenerateDeleteQueryCommand}">
@@ -302,7 +303,7 @@
                         <MenuItem Header="Export Results to File..." 
                                   Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ExportModal.OpenCommand}">
                             <MenuItem.Icon>
-                                <ui:FASymbolIcon Symbol="Download" FontSize="11" />
+                                <ic:SymbolIcon Symbol="DocumentTable" FontSize="11" Foreground="#10B981" />
                             </MenuItem.Icon>
                         </MenuItem>
                         <Separator />
@@ -524,7 +525,7 @@
                     IsVisible="{Binding !HasRows}"
                     Background="{DynamicResource AppWorkspaceBrush}">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
-                    <ui:FASymbolIcon Symbol="Page" FontSize="28" Foreground="{DynamicResource AppTextMutedBrush}" HorizontalAlignment="Center"/>
+                    <ic:SymbolIcon Symbol="Table" FontSize="36" Foreground="{DynamicResource AppTextMutedBrush}" HorizontalAlignment="Center"/>
                     <TextBlock Text="No Query Results" 
                                FontSize="13" 
                                FontWeight="Bold" 

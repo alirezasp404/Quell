@@ -3,6 +3,7 @@
               xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
               xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
               xmlns:vm="using:Quell.ViewModels"
+              xmlns:ic="using:FluentIcons.Avalonia"
               xmlns:ui="using:FluentAvalonia.UI.Controls"
               mc:Ignorable="d" d:DesignWidth="240" d:DesignHeight="300"
               x:Class="Quell.Components.ObjectExplorerEmptyStateComponent">
@@ -14,7 +15,7 @@
             CornerRadius="4" 
             Margin="6">
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" Margin="16">
-            <ui:FASymbolIcon Symbol="Folder" FontSize="32" Foreground="{DynamicResource AppTextMutedBrush}" HorizontalAlignment="Center"/>
+            <ic:SymbolIcon Symbol="Database" FontSize="36" Foreground="{DynamicResource AppTextMutedBrush}" HorizontalAlignment="Center"/>
             <TextBlock Text="No Active Connection" 
                        Foreground="{DynamicResource AppTextSecondaryBrush}" 
                        FontSize="11" 
