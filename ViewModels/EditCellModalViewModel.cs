@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Quell.Services.DatabaseProviders;
 
 namespace Quell.ViewModels;
 
@@ -37,7 +38,7 @@ public partial class EditCellModalViewModel : ViewModelBase
     private string _generatedQuery = string.Empty;
 
     [ObservableProperty]
-    private string _databaseType = "MSSQL";
+    private DatabaseType _databaseType = DatabaseType.MSSQL;
 
     [ObservableProperty]
     private string? _statusMessage;
@@ -70,12 +71,12 @@ public partial class EditCellModalViewModel : ViewModelBase
     public Action<string>? InsertQueryToEditorCallback { get; set; }
     public Action<string>? OnUpdatedCallback { get; set; }
 
-    public void Open(QueryResultRow row, string? columnName, string tableName, string dbType, IEnumerable<string>? primaryKeys = null)
+    public void Open(QueryResultRow row, string? columnName, string tableName, DatabaseType dbType, IEnumerable<string>? primaryKeys = null)
     {
         OpenBatch(new[] { row }, new[] { string.IsNullOrWhiteSpace(columnName) ? "Name" : columnName }, tableName, dbType, primaryKeys);
     }
 
-    public void OpenBatch(IEnumerable<QueryResultRow> rows, IEnumerable<string> columnNames, string tableName, string dbType, IEnumerable<string>? primaryKeys = null)
+    public void OpenBatch(IEnumerable<QueryResultRow> rows, IEnumerable<string> columnNames, string tableName, DatabaseType dbType, IEnumerable<string>? primaryKeys = null)
     {
         TargetRows.Clear();
         TargetRows.AddRange(rows);
@@ -96,7 +97,7 @@ public partial class EditCellModalViewModel : ViewModelBase
         TargetRow = TargetRows[0];
         TableName = string.IsNullOrWhiteSpace(tableName) ? "Users" : tableName.Trim();
         ColumnName = string.Join(", ", TargetColumns);
-        DatabaseType = string.IsNullOrWhiteSpace(dbType) ? "MSSQL" : dbType.Trim();
+        DatabaseType = dbType;
 
         if (TargetRows.Count > 1 || TargetColumns.Count > 1)
         {
@@ -178,7 +179,7 @@ public partial class EditCellModalViewModel : ViewModelBase
         }
     }
 
-    public static string BuildBatchUpdateQuery(string tableName, IReadOnlyList<string> columns, string newValue, IReadOnlyList<QueryResultRow> rows, string dbType, IReadOnlyList<string>? primaryKeys = null)
+    public static string BuildBatchUpdateQuery(string tableName, IReadOnlyList<string> columns, string newValue, IReadOnlyList<QueryResultRow> rows, DatabaseType dbType, IReadOnlyList<string>? primaryKeys = null)
     {
         string escapedTable = FormatIdentifier(tableName, dbType);
         string valueLiteral = FormatLiteral(newValue, dbType);
@@ -200,7 +201,7 @@ public partial class EditCellModalViewModel : ViewModelBase
         return $"UPDATE {escapedTable}\nSET {string.Join(", ", setClauses)}\nWHERE {string.Join(" OR\n      ", whereClauses)};";
     }
 
-    public static string BuildUpdateQuery(string tableName, string columnName, string newValue, QueryResultRow row, string dbType, IReadOnlyList<string>? primaryKeys = null)
+    public static string BuildUpdateQuery(string tableName, string columnName, string newValue, QueryResultRow row, DatabaseType dbType, IReadOnlyList<string>? primaryKeys = null)
     {
         string escapedTable = FormatIdentifier(tableName, dbType);
         string escapedCol = FormatIdentifier(columnName, dbType);
@@ -211,7 +212,7 @@ public partial class EditCellModalViewModel : ViewModelBase
         return $"UPDATE {escapedTable}\nSET {escapedCol} = {valueLiteral}\nWHERE {whereClause};";
     }
 
-    private static string BuildWhereClause(QueryResultRow row, string excludeColumn, string dbType, IReadOnlyList<string>? primaryKeys = null)
+    private static string BuildWhereClause(QueryResultRow row, string excludeColumn, DatabaseType dbType, IReadOnlyList<string>? primaryKeys = null)
     {
         // 1. If explicit primary keys are known from the table schema, prioritize them
         if (primaryKeys != null && primaryKeys.Count > 0)
@@ -280,7 +281,7 @@ public partial class EditCellModalViewModel : ViewModelBase
         return row.Id > 0 ? "Id" : string.Empty;
     }
 
-    private static string FormatIdentifier(string identifier, string dbType)
+    private static string FormatIdentifier(string identifier, DatabaseType dbType)
     {
         if (string.IsNullOrWhiteSpace(identifier)) return identifier;
 
@@ -296,16 +297,16 @@ public partial class EditCellModalViewModel : ViewModelBase
 
         string clean = identifier.Trim('[', ']', '"', '`');
 
-        return dbType.ToUpperInvariant() switch
+        return dbType switch
         {
-            "MSSQL" => $"[{clean}]",
-            "MYSQL" => $"`{clean}`",
-            "POSTGRESQL" or "SQLITE" => $"\"{clean}\"",
+            DatabaseType.MSSQL => $"[{clean}]",
+            DatabaseType.MySQL => $"`{clean}`",
+            DatabaseType.PostgreSQL or DatabaseType.SQLite => $"\"{clean}\"",
             _ => clean
         };
     }
 
-    public static string FormatLiteral(string? val, string dbType)
+    public static string FormatLiteral(string? val, DatabaseType dbType)
     {
         if (val == null) return "NULL";
         if (string.Equals(val, "NULL", StringComparison.OrdinalIgnoreCase)) return "NULL";
@@ -315,15 +316,14 @@ public partial class EditCellModalViewModel : ViewModelBase
         // MSSQL requires the N prefix for Unicode/NVARCHAR text (mandatory for Persian, Arabic, etc.)
         // In MSSQL, N'...' is standard for all text literals to ensure non-English/Persian characters
         // are preserved properly in NVARCHAR/NCHAR columns rather than replaced with ???? by collation.
-        if (string.Equals(dbType, "MSSQL", StringComparison.OrdinalIgnoreCase))
+        if (dbType == DatabaseType.MSSQL)
         {
             return $"N'{escaped}'";
         }
 
         // MySQL and PostgreSQL support national character literals N'...'
         // If string contains Unicode characters (e.g. Persian/Arabic), N'...' ensures proper charset interpretation.
-        if (string.Equals(dbType, "MYSQL", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(dbType, "POSTGRESQL", StringComparison.OrdinalIgnoreCase))
+        if (dbType == DatabaseType.MySQL || dbType == DatabaseType.PostgreSQL)
         {
             return HasUnicode(escaped) ? $"N'{escaped}'" : $"'{escaped}'";
         }
@@ -332,7 +332,7 @@ public partial class EditCellModalViewModel : ViewModelBase
         return $"'{escaped}'";
     }
 
-    public static string FormatLiteralOrNumber(string? val, string dbType)
+    public static string FormatLiteralOrNumber(string? val, DatabaseType dbType)
     {
         if (val == null) return "NULL";
         if (string.Equals(val, "NULL", StringComparison.OrdinalIgnoreCase)) return "NULL";

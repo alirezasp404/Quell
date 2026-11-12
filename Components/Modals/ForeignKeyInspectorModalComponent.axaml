@@ -1,0 +1,346 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Quell.ViewModels"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+             x:Class="Quell.Components.ForeignKeyInspectorModalComponent"
+             x:DataType="vm:ForeignKeyInspectorModalViewModel"
+             IsVisible="{Binding IsOpen}">
+
+    <!-- Foreign Key Quick Record Inspector Modal -->
+    <Grid>
+        <!-- 1. Semi-Transparent Backdrop (Click to dismiss) -->
+        <Border Classes="modal-backdrop" 
+                Cursor="Hand" 
+                Focusable="False" 
+                FocusAdorner="{x:Null}" 
+                Background="{DynamicResource AppModalOverlayBrush}" 
+                PointerPressed="OnBackdropPointerPressed" />
+
+        <!-- 2. Centered Modal Dialog Card -->
+        <Border Classes="modal-dialog-card"
+                Background="{DynamicResource AppWorkspaceBrush}" 
+                BorderBrush="{DynamicResource AppBorderBrush}" 
+                BorderThickness="1" 
+                CornerRadius="8" 
+                ClipToBounds="True"
+                Focusable="False" 
+                FocusAdorner="{x:Null}" 
+                BoxShadow="0 10 25 0 #33000000"
+                Width="560"
+                MaxHeight="620"
+                HorizontalAlignment="Center" 
+                VerticalAlignment="Center">
+            
+            <Grid RowDefinitions="Auto, *, Auto">
+                
+                <!-- 1. Modal Header -->
+                <Border Grid.Row="0" 
+                        Background="{DynamicResource AppSurfaceBrush}" 
+                        BorderBrush="{DynamicResource AppBorderBrush}" 
+                        BorderThickness="0,0,0,1" 
+                        CornerRadius="8,8,0,0"
+                        Padding="16,12">
+                    <Grid ColumnDefinitions="Auto, *, Auto">
+                        <Border Grid.Column="0" 
+                                Background="{DynamicResource AppAccentBrush}" 
+                                CornerRadius="6" 
+                                Width="30" 
+                                Height="30" 
+                                Margin="0,0,12,0"
+                                VerticalAlignment="Center">
+                            <PathIcon Data="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"
+                                      Width="12" 
+                                      Height="12" 
+                                      Foreground="White" 
+                                      HorizontalAlignment="Center" 
+                                      VerticalAlignment="Center"/>
+                        </Border>
+
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="Referenced Record" 
+                                           Foreground="{DynamicResource AppTextPrimaryBrush}" 
+                                           FontSize="14" 
+                                           FontWeight="Bold"/>
+                                <Border Background="{DynamicResource AppTableFkBadgeBackgroundBrush}" 
+                                        BorderBrush="{DynamicResource AppTableFkBadgeBorderBrush}" 
+                                        BorderThickness="1" 
+                                        CornerRadius="3" 
+                                        Padding="4,1" 
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding TargetTable}" 
+                                               FontSize="10" 
+                                               FontWeight="Bold" 
+                                               Foreground="{DynamicResource AppTableFkBadgeForegroundBrush}"/>
+                                </Border>
+                            </StackPanel>
+                            <TextBlock Text="{Binding TargetColumn, StringFormat='Matched via Foreign Key: {0}'}" 
+                                       Foreground="{DynamicResource AppTextMutedBrush}" 
+                                       FontSize="11"/>
+                        </StackPanel>
+
+                        <Button Grid.Column="2" 
+                                Classes="classic-menu-btn" 
+                                Command="{Binding CloseCommand}"
+                                Padding="6,2" 
+                                MinHeight="22" 
+                                ToolTip.Tip="Close (Esc)">
+                            <ui:FASymbolIcon Symbol="Dismiss" FontSize="10"/>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <!-- 2. Modal Body (Scrollable) -->
+                <ScrollViewer Grid.Row="1" 
+                              VerticalScrollBarVisibility="Auto" 
+                              HorizontalScrollBarVisibility="Disabled"
+                              Padding="16,14">
+                    <StackPanel Spacing="12">
+                        
+                        <!-- Relationship Banner -->
+                        <Border Background="{DynamicResource AppSurfaceBrush}" 
+                                BorderBrush="{DynamicResource AppBorderBrush}" 
+                                BorderThickness="1" 
+                                CornerRadius="6" 
+                                Padding="12,8">
+                            <Grid ColumnDefinitions="*, Auto">
+                                <StackPanel Grid.Column="0" Spacing="3">
+                                    <TextBlock Text="RELATIONSHIP MAPPING" 
+                                               FontSize="9" 
+                                               FontWeight="Bold" 
+                                               Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding SourceTable}" 
+                                                   FontWeight="SemiBold" 
+                                                   FontSize="12" 
+                                                   Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                                        <TextBlock Text="." 
+                                                   Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                        <TextBlock Text="{Binding SourceColumn}" 
+                                                   FontWeight="SemiBold" 
+                                                   FontSize="12" 
+                                                   Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                                        <PathIcon Data="M14 5l7 7m0 0l-7 7m7-7H3" 
+                                                  Width="9" 
+                                                  Height="9" 
+                                                  Foreground="{DynamicResource AppTextMutedBrush}" 
+                                                  VerticalAlignment="Center" 
+                                                  Margin="2,0"/>
+                                        <TextBlock Text="{Binding TargetTable}" 
+                                                   FontWeight="Bold" 
+                                                   FontSize="12" 
+                                                   Foreground="{DynamicResource AppAccentBrush}"/>
+                                        <TextBlock Text="." 
+                                                   Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                        <TextBlock Text="{Binding TargetColumn}" 
+                                                   FontWeight="SemiBold" 
+                                                   FontSize="12" 
+                                                   Foreground="{DynamicResource AppAccentBrush}"/>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <!-- Key Value Badge with Copy -->
+                                <Border Grid.Column="1" 
+                                        Background="{DynamicResource AppWorkspaceBrush}" 
+                                        BorderBrush="{DynamicResource AppBorderBrush}" 
+                                        BorderThickness="1" 
+                                        CornerRadius="4" 
+                                        Padding="8,4" 
+                                        VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <TextBlock Text="{Binding TargetColumn, StringFormat='{}{0} ='}" 
+                                                   FontSize="11" 
+                                                   FontWeight="SemiBold" 
+                                                   Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                                        <TextBlock Text="{Binding SourceValue}" 
+                                                   FontSize="11" 
+                                                   FontWeight="Bold" 
+                                                   Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                                        <Button Classes="classic-tool-btn" 
+                                                Command="{Binding CopySourceValueCommand}" 
+                                                Padding="2" 
+                                                MinHeight="18" 
+                                                ToolTip.Tip="Copy Key Value">
+                                            <ui:FASymbolIcon Symbol="Copy" FontSize="10"/>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <!-- Loading Indicator -->
+                        <StackPanel IsVisible="{Binding IsLoading}" 
+                                    Spacing="8" 
+                                    Margin="0,20" 
+                                    HorizontalAlignment="Center">
+                            <ui:FASymbolIcon Symbol="Sync" FontSize="20" Foreground="{DynamicResource AppAccentBrush}"/>
+                            <TextBlock Text="Fetching referenced record from database..." 
+                                       FontSize="11" 
+                                       Foreground="{DynamicResource AppTextMutedBrush}"/>
+                        </StackPanel>
+
+                        <!-- Not Found / Error State -->
+                        <Border IsVisible="{Binding !RecordFound}" 
+                                Background="{DynamicResource AppSurfaceBrush}" 
+                                BorderBrush="{DynamicResource AppBorderBrush}" 
+                                BorderThickness="1" 
+                                CornerRadius="6" 
+                                Padding="16" 
+                                Margin="0,10">
+                            <StackPanel Spacing="6" HorizontalAlignment="Center">
+                                <ui:FASymbolIcon Symbol="Important" FontSize="22" Foreground="#EF4444" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Referenced Record Not Found" 
+                                           FontSize="13" 
+                                           FontWeight="Bold" 
+                                           Foreground="{DynamicResource AppTextPrimaryBrush}" 
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="{Binding ErrorMessage}" 
+                                           FontSize="11" 
+                                           Foreground="{DynamicResource AppTextMutedBrush}" 
+                                           HorizontalAlignment="Center" 
+                                           TextWrapping="Wrap" 
+                                           TextAlignment="Center"/>
+                                <TextBlock Text="{Binding StatusMessage}" 
+                                           FontSize="11" 
+                                           Foreground="{DynamicResource AppTextMutedBrush}" 
+                                           HorizontalAlignment="Center" 
+                                           TextWrapping="Wrap" 
+                                           TextAlignment="Center"
+                                           IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Record Properties Grid -->
+                        <StackPanel IsVisible="{Binding RecordFound}" Spacing="6">
+                            <TextBlock Text="RECORD PROPERTIES" 
+                                       FontSize="10" 
+                                       FontWeight="Bold" 
+                                       Foreground="{DynamicResource AppTextMutedBrush}"/>
+
+                            <Border Background="{DynamicResource AppSurfaceBrush}" 
+                                    BorderBrush="{DynamicResource AppBorderBrush}" 
+                                    BorderThickness="1" 
+                                    CornerRadius="6" 
+                                    ClipToBounds="True">
+                                <ItemsControl ItemsSource="{Binding Fields}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ForeignKeyFieldItem">
+                                            <Border BorderBrush="{DynamicResource AppBorderBrush}" 
+                                                    BorderThickness="0,0,0,1" 
+                                                    Padding="10,6">
+                                                <Grid ColumnDefinitions="160, *, Auto">
+                                                    
+                                                    <!-- Field Name + Indicators -->
+                                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding FieldName}" 
+                                                                   FontWeight="SemiBold" 
+                                                                   FontSize="11" 
+                                                                   Foreground="{DynamicResource AppTextPrimaryBrush}" 
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                        
+                                                        <!-- PK Badge -->
+                                                        <Border IsVisible="{Binding IsPrimaryKey}" 
+                                                                Background="{DynamicResource AppTablePkBadgeBackgroundBrush}" 
+                                                                BorderBrush="{DynamicResource AppTablePkBadgeBorderBrush}" 
+                                                                BorderThickness="1" 
+                                                                CornerRadius="3" 
+                                                                Padding="3,0" 
+                                                                VerticalAlignment="Center">
+                                                            <TextBlock Text="PK" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource AppTablePkBadgeForegroundBrush}"/>
+                                                        </Border>
+
+                                                        <!-- FK Badge -->
+                                                        <Border IsVisible="{Binding IsForeignKey}" 
+                                                                Background="{DynamicResource AppTableFkBadgeBackgroundBrush}" 
+                                                                BorderBrush="{DynamicResource AppTableFkBadgeBorderBrush}" 
+                                                                BorderThickness="1" 
+                                                                CornerRadius="3" 
+                                                                Padding="3,0" 
+                                                                VerticalAlignment="Center">
+                                                            <TextBlock Text="FK" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource AppTableFkBadgeForegroundBrush}"/>
+                                                        </Border>
+                                                    </StackPanel>
+
+                                                    <!-- Field Value -->
+                                                    <SelectableTextBlock Grid.Column="1" 
+                                                                         Text="{Binding DisplayValue}" 
+                                                                         FontSize="11" 
+                                                                         Foreground="{DynamicResource AppTableCellForegroundBrush}" 
+                                                                         VerticalAlignment="Center" 
+                                                                         Margin="6,0" 
+                                                                         TextWrapping="Wrap"/>
+
+                                                    <!-- Copy Action -->
+                                                    <Button Grid.Column="2" 
+                                                            Classes="classic-tool-btn" 
+                                                            Command="{Binding $parent[UserControl].((vm:ForeignKeyInspectorModalViewModel)DataContext).CopyFieldValueCommand}" 
+                                                            CommandParameter="{Binding}" 
+                                                            Padding="4,2" 
+                                                            MinHeight="18" 
+                                                            ToolTip.Tip="Copy Field Value">
+                                                        <ui:FASymbolIcon Symbol="Copy" FontSize="9"/>
+                                                    </Button>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- 3. Modal Footer Actions -->
+                <Border Grid.Row="2" 
+                        Background="{DynamicResource AppSurfaceBrush}" 
+                        BorderBrush="{DynamicResource AppBorderBrush}" 
+                        BorderThickness="0,1,0,0" 
+                        CornerRadius="0,0,8,8" 
+                        Padding="16,10">
+                    <Grid ColumnDefinitions="Auto, *, Auto, Auto">
+                        
+                        <!-- Left: Copy Row as JSON -->
+                        <Button Grid.Column="0" 
+                                Classes="classic-tool-btn" 
+                                Command="{Binding CopyRecordJsonCommand}" 
+                                IsEnabled="{Binding RecordFound}"
+                                Height="26" 
+                                Padding="8,2" 
+                                ToolTip.Tip="Copy entire record as JSON to clipboard">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ui:FASymbolIcon Symbol="Copy" FontSize="11" VerticalAlignment="Center"/>
+                                <TextBlock Text="Copy as JSON" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Right: Close Button -->
+                        <Button Grid.Column="2" 
+                                Classes="classic-tool-btn" 
+                                Content="Close" 
+                                Command="{Binding CloseCommand}" 
+                                Height="26" 
+                                Padding="12,2" 
+                                Margin="0,0,8,0"/>
+
+                        <!-- Right: Open in Table View (Primary) -->
+                        <Button Grid.Column="3" 
+                                Classes="classic-action-btn" 
+                                Command="{Binding OpenInTableViewCommand}" 
+                                IsEnabled="{Binding RecordFound}"
+                                Height="26" 
+                                Padding="12,2" 
+                                ToolTip.Tip="Navigate main table results to this referenced record">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="M14 5l7 7m0 0l-7 7m7-7H3" Width="10" Height="10" Foreground="White" VerticalAlignment="Center"/>
+                                <TextBlock Text="Open in Table View" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

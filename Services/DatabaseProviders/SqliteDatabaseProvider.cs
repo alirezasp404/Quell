@@ -10,6 +10,7 @@ namespace Quell.Services.DatabaseProviders;
 
 public class SqliteDatabaseProvider : IDatabaseProvider
 {
+    public DatabaseType DatabaseType => DatabaseType.SQLite;
     public string Id => "SQLite";
     public string DisplayName => "SQLite";
     public string ShortDescription => "Embedded local database file or memory";

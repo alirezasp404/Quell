@@ -6,6 +6,7 @@ namespace Quell.Services.DatabaseProviders;
 
 public interface IDatabaseProvider
 {
+    DatabaseType DatabaseType { get; }
     string Id { get; }
     string DisplayName { get; }
     string ShortDescription { get; }

@@ -14,26 +14,22 @@ public class DatabaseCliService
     public CliLaunchInfo ResolveCli(DatabaseConnectionConfig config, TerminalSettingsModel? settings = null)
     {
         var info = new CliLaunchInfo();
-        var dbType = (config.DatabaseType ?? "SQLite").ToLowerInvariant();
 
-        switch (dbType)
+        switch (config.DatabaseType)
         {
-            case "postgresql":
-            case "postgres":
+            case DatabaseType.PostgreSQL:
                 ConfigurePostgres(config, settings?.PsqlPath, info);
                 break;
 
-            case "mysql":
-            case "mariadb":
+            case DatabaseType.MySQL:
                 ConfigureMySql(config, settings?.MySqlPath, info);
                 break;
 
-            case "sqlite":
+            case DatabaseType.SQLite:
                 ConfigureSqlite(config, settings?.SqlitePath, info);
                 break;
 
-            case "mssql":
-            case "sqlserver":
+            case DatabaseType.MSSQL:
                 ConfigureSqlServer(config, settings?.SqlCmdPath, info);
                 break;
 
@@ -64,22 +60,22 @@ public class DatabaseCliService
     {
         var dbName = !string.IsNullOrEmpty(config.Database) ? config.Database : config.DisplayName;
         env["FDB_CONNECTED"] = "true";
-        env["FDB_DB_TYPE"] = config.DatabaseType ?? "Unknown";
+        env["FDB_DB_TYPE"] = config.DatabaseType.ToDialectString();
         env["FDB_DB_HOST"] = config.Server ?? "localhost";
         env["FDB_DB_PORT"] = config.Port.ToString();
         env["FDB_DB_NAME"] = dbName;
         env["FDB_DB_USER"] = config.Username ?? string.Empty;
 
-        var scheme = (config.DatabaseType ?? "").ToLowerInvariant() switch
+        var scheme = config.DatabaseType switch
         {
-            "postgresql" or "postgres" => "postgresql",
-            "mysql" or "mariadb" => "mysql",
-            "mssql" or "sqlserver" => "sqlserver",
-            "sqlite" => "sqlite",
+            DatabaseType.PostgreSQL => "postgresql",
+            DatabaseType.MySQL => "mysql",
+            DatabaseType.MSSQL => "sqlserver",
+            DatabaseType.SQLite => "sqlite",
             _ => "db"
         };
 
-        if (scheme == "sqlite")
+        if (config.DatabaseType == DatabaseType.SQLite)
         {
             var path = !string.IsNullOrEmpty(config.FilePath) ? config.FilePath : config.Database;
             env["DATABASE_URL"] = $"sqlite:///{path}";

@@ -30,7 +30,7 @@ public partial class DiagramTableItem : ObservableObject
 {
     public string TableName { get; set; } = string.Empty;
     public string Schema { get; set; } = "dbo";
-    public string DatabaseType { get; set; } = "SQL";
+    public DatabaseType DatabaseType { get; set; } = DatabaseType.MSSQL;
     public string FullName => string.IsNullOrWhiteSpace(Schema) ? TableName : $"{Schema}.{TableName}";
 
     [ObservableProperty]
@@ -134,7 +134,7 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
     private string _databaseTitle = "Active Database";
 
     [ObservableProperty]
-    private string _databaseType = "SQL";
+    private DatabaseType _databaseType = DatabaseType.MSSQL;
 
     [ObservableProperty]
     private string _searchFilter = string.Empty;
@@ -686,7 +686,7 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
     /// <summary>
     /// Loads diagram tables from in-memory cache, preserving saved coordinates.
     /// </summary>
-    public void LoadFromCache(IEnumerable<DiagramTableItem> tables, string databaseName, string dbType, string dbKey, DateTime? cachedAt)
+    public void LoadFromCache(IEnumerable<DiagramTableItem> tables, string databaseName, DatabaseType dbType, string dbKey, DateTime? cachedAt)
     {
         DatabaseTitle = databaseName;
         DatabaseType = dbType;
@@ -720,7 +720,7 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
     /// <summary>
     /// Loads freshly analyzed diagram tables from live database.
     /// </summary>
-    public void LoadTables(IEnumerable<DiagramTableItem> tables, string databaseName, string dbType, string dbKey = "")
+    public void LoadTables(IEnumerable<DiagramTableItem> tables, string databaseName, DatabaseType dbType, string dbKey = "")
     {
         DatabaseTitle = databaseName;
         DatabaseType = dbType;

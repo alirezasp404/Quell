@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using Quell.Services.DatabaseProviders;
 using Quell.ViewModels;
 
 namespace Quell.Services;
@@ -13,7 +14,7 @@ public class CachedDiagramData
 {
     public string DatabaseKey { get; set; } = string.Empty;
     public string DatabaseTitle { get; set; } = string.Empty;
-    public string DatabaseType { get; set; } = string.Empty;
+    public DatabaseType DatabaseType { get; set; } = DatabaseType.SQLite;
     public DateTime CachedAt { get; set; } = DateTime.Now;
     public List<DiagramTableItem> Tables { get; set; } = new();
     public HashSet<string> KnownTableNames { get; set; } = new(StringComparer.OrdinalIgnoreCase);
@@ -64,7 +65,7 @@ public class DiagramCacheService
     /// Stores or updates analyzed diagram tables for the specified database key.
     /// Clones items to preserve snapshot integrity.
     /// </summary>
-    public void Store(string databaseKey, string databaseTitle, string databaseType, IEnumerable<DiagramTableItem> tables)
+    public void Store(string databaseKey, string databaseTitle, DatabaseType databaseType, IEnumerable<DiagramTableItem> tables)
     {
         if (string.IsNullOrWhiteSpace(databaseKey)) return;
 

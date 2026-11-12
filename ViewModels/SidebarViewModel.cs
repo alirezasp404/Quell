@@ -138,7 +138,7 @@ public partial class SidebarViewModel : ViewModelBase
     private string _connectionTitle = "Not Connected";
 
     [ObservableProperty]
-    private string _databaseType = string.Empty;
+    private DatabaseType? _databaseType;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SearchPlaceholderText))]
@@ -308,7 +308,7 @@ public partial class SidebarViewModel : ViewModelBase
 
             int matchingCount = node.FilterTables(filter);
             bool dbMatch = node.Title.ToLowerInvariant().Contains(filter) ||
-                           node.DatabaseType.ToLowerInvariant().Contains(filter) ||
+                           node.DatabaseType.ToDialectString().ToLowerInvariant().Contains(filter) ||
                            node.Server.ToLowerInvariant().Contains(filter) ||
                            node.DatabaseName.ToLowerInvariant().Contains(filter);
 
@@ -414,7 +414,7 @@ public partial class SidebarViewModel : ViewModelBase
                 SqlKeywordsService.Instance.ClearActiveTables();
                 IsConnected = false;
                 ConnectionTitle = "Not Connected";
-                DatabaseType = string.Empty;
+                DatabaseType = null;
                 DatabaseName = string.Empty;
                 ServerVersion = string.Empty;
                 Tables.Clear();
@@ -471,7 +471,7 @@ public partial class SidebarViewModel : ViewModelBase
                 var config = new DatabaseConnectionConfig
                 {
                     Id = node.Record.Id,
-                    DatabaseType = node.Record.DatabaseType ?? "MSSQL",
+                    DatabaseType = node.Record.DatabaseType,
                     Server = node.Record.Server,
                     Port = node.Record.Port,
                     Database = node.Record.DatabaseName,
@@ -600,13 +600,13 @@ public partial class SidebarViewModel : ViewModelBase
         node.IsConnected = false;
         node.IsActive = false;
         node.ClearTables();
-        node.Subtitle = node.Record.DatabaseType ?? "MSSQL";
+        node.Subtitle = node.Record.DatabaseType.ToDialectString();
 
         if (DatabaseSessionService.Instance.ActiveSession == null)
         {
             IsConnected = false;
             ConnectionTitle = "Not Connected";
-            DatabaseType = string.Empty;
+            DatabaseType = null;
             DatabaseName = string.Empty;
             Tables.Clear();
             StatusText = "No active database connection";
@@ -706,7 +706,7 @@ public partial class SidebarViewModel : ViewModelBase
             await ConnectDatabaseNodeAsync(node.DatabaseNode);
         }
 
-        string query = node.DatabaseNode.DatabaseType == "MSSQL"
+        string query = node.DatabaseNode.DatabaseType == Quell.Services.DatabaseProviders.DatabaseType.MSSQL
             ? $"SELECT TOP 100 * FROM {node.FullName};"
             : $"SELECT * FROM {node.FullName} LIMIT 100;";
 
@@ -748,7 +748,7 @@ public partial class SidebarViewModel : ViewModelBase
             }
         }
 
-        string query = DatabaseType == "MSSQL"
+        string query = DatabaseType == Quell.Services.DatabaseProviders.DatabaseType.MSSQL
             ? $"SELECT TOP 100 * FROM {table.FullName};"
             : $"SELECT * FROM {table.FullName} LIMIT 100;";
 
@@ -773,7 +773,7 @@ public partial class SidebarViewModel : ViewModelBase
         var config = new DatabaseConnectionConfig
         {
             Id = record.Id,
-            DatabaseType = record.DatabaseType ?? "MSSQL",
+            DatabaseType = record.DatabaseType,
             Server = record.Server,
             Port = record.Port,
             Database = record.DatabaseName,

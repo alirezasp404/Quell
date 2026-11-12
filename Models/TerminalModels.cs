@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Quell.Services.DatabaseProviders;
 
 namespace Quell.Models;
 
@@ -11,7 +12,7 @@ public class ShellProfile
     public string Arguments { get; set; } = string.Empty;
     public string IconKey { get; set; } = "Terminal";
     public bool IsDatabaseCli { get; set; }
-    public string DatabaseType { get; set; } = string.Empty;
+    public DatabaseType? DatabaseType { get; set; }
     public bool IsDefault { get; set; }
     public string MenuTitle => IsDefault ? $"{DisplayName} (Default)" : DisplayName;
 

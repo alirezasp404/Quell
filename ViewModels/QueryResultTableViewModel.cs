@@ -1,4 +1,5 @@
 using Quell.Services.DatabaseProviders;
+using Quell.Services.DemoData;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -112,6 +113,10 @@ public partial class QueryResultTableViewModel : ViewModelBase
 
     public Func<Task>? RefreshCallback { get; set; }
 
+    public Func<bool>? CheckConnectionCallback { get; set; }
+
+    private bool HasLiveConnection => IsConnectedToDatabase || (CheckConnectionCallback?.Invoke() ?? false);
+
     private readonly List<QueryResultRow> _allRows = new();
 
     [ObservableProperty]
@@ -128,7 +133,10 @@ public partial class QueryResultTableViewModel : ViewModelBase
     private string _currentTableName = string.Empty;
 
     [ObservableProperty]
-    private string _currentDatabaseType = "MSSQL";
+    private DatabaseType _currentDatabaseType = DatabaseType.MSSQL;
+
+    [ObservableProperty]
+    private bool _isConnectedToDatabase;
 
     [ObservableProperty]
     private string _primaryKeyColumnName = string.Empty;
@@ -190,32 +198,12 @@ public partial class QueryResultTableViewModel : ViewModelBase
         return false;
     }
 
-    public HashSet<string> PrimaryKeyColumns { get; } = new(StringComparer.OrdinalIgnoreCase) { "Id", "ID", "user_id" };
+    public HashSet<string> PrimaryKeyColumns { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     public bool IsColumnPrimaryKey(string? columnName)
     {
         if (string.IsNullOrWhiteSpace(columnName)) return false;
-        return PrimaryKeyColumns.Contains(columnName) || IsProbablePrimaryKey(columnName, CurrentTableName);
-    }
-
-    public static bool IsProbablePrimaryKey(string? columnName, string? tableName = null)
-    {
-        if (string.IsNullOrWhiteSpace(columnName)) return false;
-        string c = columnName.Trim().ToLowerInvariant();
-        if (c == "id" || c == "rowid" || c == "user_id" || c == "userid" || c == "uuid" || c == "guid" || c == "pk")
-            return true;
-
-        if (!string.IsNullOrEmpty(tableName))
-        {
-            string t = tableName.Trim('[', ']', '"', '`').ToLowerInvariant();
-            if (t.Contains('.')) t = t.Split('.')[1];
-            if (c == $"{t}_id" || c == $"{t}id" || c == $"{t}_pk")
-                return true;
-            if (t.EndsWith("s") && (c == $"{t.TrimEnd('s')}_id" || c == $"{t.TrimEnd('s')}id"))
-                return true;
-        }
-
-        return c.EndsWith("_id") || (c.EndsWith("id") && c.Length > 2);
+        return PrimaryKeyColumns.Contains(columnName);
     }
 
     public Dictionary<string, ForeignKeyRelation> ForeignKeyRelations { get; } = new(StringComparer.OrdinalIgnoreCase);
@@ -225,18 +213,45 @@ public partial class QueryResultTableViewModel : ViewModelBase
     public bool IsColumnForeignKey(string? columnName)
     {
         if (string.IsNullOrWhiteSpace(columnName)) return false;
-        if (ForeignKeyRelations.ContainsKey(columnName)) return true;
-        return DetectProbableForeignKey(columnName, CurrentTableName) != null;
+        return ForeignKeyRelations.ContainsKey(columnName);
     }
 
     public ForeignKeyRelation? GetForeignKeyRelation(string? columnName)
     {
         if (string.IsNullOrWhiteSpace(columnName)) return null;
-        if (ForeignKeyRelations.TryGetValue(columnName, out var rel)) return rel;
-        return DetectProbableForeignKey(columnName, CurrentTableName);
+        return ForeignKeyRelations.TryGetValue(columnName, out var rel) ? rel : null;
+    }
+
+    public void ClearMetadata()
+    {
+        PrimaryKeyColumns.Clear();
+        PrimaryKeyColumnName = string.Empty;
+        HasPrimaryKey = false;
+        ForeignKeyRelations.Clear();
     }
 
     public void SetForeignKeyRelations(IEnumerable<ForeignKeyRelation> fks)
+    {
+        ApplyForeignKeyRelations(fks);
+
+        if (_lastColumns != null)
+        {
+            ColumnsChanged?.Invoke(_lastColumns);
+        }
+    }
+
+    public void SetTableMetadata(IEnumerable<string> pks, IEnumerable<ForeignKeyRelation> fks)
+    {
+        ApplyPrimaryKeys(pks);
+        ApplyForeignKeyRelations(fks);
+
+        if (_lastColumns != null)
+        {
+            ColumnsChanged?.Invoke(_lastColumns);
+        }
+    }
+
+    private void ApplyForeignKeyRelations(IEnumerable<ForeignKeyRelation> fks)
     {
         ForeignKeyRelations.Clear();
         foreach (var fk in fks)
@@ -246,105 +261,131 @@ public partial class QueryResultTableViewModel : ViewModelBase
                 ForeignKeyRelations[fk.ColumnName] = fk;
             }
         }
+    }
 
-        if (_lastColumns != null)
+    public record TableNavigationState(
+        string TableName,
+        string ExecutedQuery,
+        IReadOnlyList<string> Columns,
+        List<QueryResultRow> Rows,
+        string ExecutionTime,
+        string SourceDescription,
+        Dictionary<string, ForeignKeyRelation> FkRelations,
+        HashSet<string> PrimaryKeys);
+
+    private readonly Stack<TableNavigationState> _navigationHistory = new();
+
+    [ObservableProperty]
+    private bool _canNavigateBack;
+
+    [ObservableProperty]
+    private string _navigateBackText = string.Empty;
+
+    [ObservableProperty]
+    private string _navigationBreadcrumbText = string.Empty;
+
+    public ForeignKeyInspectorModalViewModel ForeignKeyInspectorModal { get; } = new();
+
+    public void PushNavigationState(string sourceDescription)
+    {
+        if (Rows.Count > 0 && !string.IsNullOrEmpty(CurrentTableName))
         {
-            ColumnsChanged?.Invoke(_lastColumns);
+            var rowsCopy = new List<QueryResultRow>();
+            foreach (var r in Rows)
+            {
+                var newR = new QueryResultRow
+                {
+                    RowIndex = r.RowIndex,
+                    Id = r.Id,
+                    Name = r.Name,
+                    Email = r.Email,
+                    Role = r.Role,
+                    Course = r.Course,
+                    Status = r.Status,
+                    CreatedAt = r.CreatedAt
+                };
+                foreach (var kvp in r.Values) newR.Values[kvp.Key] = kvp.Value;
+                foreach (var kvp in r.OriginalValues) newR.OriginalValues[kvp.Key] = kvp.Value;
+                rowsCopy.Add(newR);
+            }
+
+            var fksCopy = new Dictionary<string, ForeignKeyRelation>(ForeignKeyRelations, StringComparer.OrdinalIgnoreCase);
+            var pksCopy = new HashSet<string>(PrimaryKeyColumns, StringComparer.OrdinalIgnoreCase);
+
+            var state = new TableNavigationState(
+                CurrentTableName,
+                LastExecutedQuery,
+                LastColumns != null ? new List<string>(LastColumns) : new List<string>(),
+                rowsCopy,
+                ExecutionTime,
+                sourceDescription,
+                fksCopy,
+                pksCopy);
+
+            _navigationHistory.Push(state);
+            CanNavigateBack = true;
+            NavigateBackText = $"Back to {CurrentTableName}";
+            NavigationBreadcrumbText = sourceDescription;
         }
     }
 
-    public static ForeignKeyRelation? DetectProbableForeignKey(string? columnName, string? tableName = null)
+    [RelayCommand]
+    public void NavigateBack()
     {
-        if (string.IsNullOrWhiteSpace(columnName)) return null;
-        string c = columnName.Trim();
-        string lower = c.ToLowerInvariant();
-
-        // Avoid detecting table PK as FK
-        if (QueryResultTableViewModel.IsProbablePrimaryKey(columnName, tableName))
+        if (_navigationHistory.Count > 0)
         {
-            if (!string.IsNullOrEmpty(tableName))
+            var prev = _navigationHistory.Pop();
+            CurrentTableName = prev.TableName;
+            LastExecutedQuery = prev.ExecutedQuery;
+            SetResults(prev.Columns, prev.Rows, prev.ExecutionTime);
+            SetPrimaryKeys(prev.PrimaryKeys);
+            SetForeignKeyRelations(prev.FkRelations.Values);
+
+            LastQueryMessage = $"Returned to {prev.TableName} ({prev.Rows.Count} rows)";
+            HasLastQueryMessage = true;
+
+            CanNavigateBack = _navigationHistory.Count > 0;
+            if (CanNavigateBack)
             {
-                string t = tableName.Trim('[', ']', '"', '`').ToLowerInvariant();
-                if (t.Contains('.')) t = t.Split('.')[1];
-                string singular = t.EndsWith("s") ? t.Substring(0, t.Length - 1) : t;
-                if (lower == "id" || lower == $"{t}_id" || lower == $"{t}id" || lower == $"{singular}_id" || lower == $"{singular}id")
-                    return null;
+                var top = _navigationHistory.Peek();
+                NavigateBackText = $"Back to {top.TableName}";
+                NavigationBreadcrumbText = top.SourceDescription;
             }
-            else if (lower == "id" || lower == "pk" || lower == "rowid")
+            else
             {
-                return null;
+                NavigateBackText = string.Empty;
+                NavigationBreadcrumbText = string.Empty;
             }
         }
+    }
 
-        // Course and User relations
-        if (lower == "course" || lower == "course_name" || lower == "coursetitle" || lower == "course_title")
+    public async Task InspectForeignKeyAsync(string columnName, string? cellValue)
+    {
+        if (string.IsNullOrWhiteSpace(cellValue) || cellValue.Equals("NULL", StringComparison.OrdinalIgnoreCase))
         {
-            if (!string.IsNullOrEmpty(tableName) && tableName.Equals("Users", StringComparison.OrdinalIgnoreCase))
-            {
-                return new ForeignKeyRelation { ColumnName = c, TargetTable = "Courses", TargetColumn = "Title" };
-            }
-            return new ForeignKeyRelation { ColumnName = c, TargetTable = "Users", TargetColumn = "Course" };
-        }
-        if (lower == "course_id" || lower == "courseid")
-        {
-            if (!string.IsNullOrEmpty(tableName) && tableName.Equals("Users", StringComparison.OrdinalIgnoreCase))
-            {
-                return new ForeignKeyRelation { ColumnName = c, TargetTable = "Courses", TargetColumn = "Id" };
-            }
-            return new ForeignKeyRelation { ColumnName = c, TargetTable = "Users", TargetColumn = "Id" };
+            return;
         }
 
-        if (lower == "user" || lower == "user_name" || lower == "username" || lower == "student" || lower == "student_name")
-        {
-            return new ForeignKeyRelation { ColumnName = c, TargetTable = "Users", TargetColumn = "Name" };
-        }
-        if (lower == "user_id" || lower == "userid" || lower == "student_id" || lower == "studentid")
-        {
-            return new ForeignKeyRelation { ColumnName = c, TargetTable = "Users", TargetColumn = "Id" };
-        }
+        var rel = GetForeignKeyRelation(columnName);
+        if (rel == null) return;
 
-        if (lower == "role" || lower == "role_name")
-        {
-            return new ForeignKeyRelation { ColumnName = c, TargetTable = "Roles", TargetColumn = "Title" };
-        }
-        if (lower == "role_id" || lower == "roleid")
-        {
-            return new ForeignKeyRelation { ColumnName = c, TargetTable = "Roles", TargetColumn = "Id" };
-        }
-        if (lower == "department" || lower == "department_name")
-        {
-            return new ForeignKeyRelation { ColumnName = c, TargetTable = "Departments", TargetColumn = "Name" };
-        }
-        if (lower == "department_id" || lower == "departmentid")
-        {
-            return new ForeignKeyRelation { ColumnName = c, TargetTable = "Departments", TargetColumn = "Id" };
-        }
-
-        if (lower.EndsWith("_id") && lower.Length > 3)
-        {
-            string entity = lower.Substring(0, lower.Length - 3);
-            string targetTable = entity.EndsWith("y") && !entity.EndsWith("ay") && !entity.EndsWith("ey")
-                ? entity.Substring(0, entity.Length - 1) + "ies"
-                : entity + "s";
-            string properTable = char.ToUpperInvariant(targetTable[0]) + targetTable.Substring(1);
-            return new ForeignKeyRelation { ColumnName = c, TargetTable = properTable, TargetColumn = "Id" };
-        }
-
-        if (lower.EndsWith("id") && lower.Length > 2 && char.IsUpper(c[0]))
-        {
-            string entity = lower.Substring(0, lower.Length - 2);
-            string targetTable = entity.EndsWith("y") && !entity.EndsWith("ay") && !entity.EndsWith("ey")
-                ? entity.Substring(0, entity.Length - 1) + "ies"
-                : entity + "s";
-            string properTable = char.ToUpperInvariant(targetTable[0]) + targetTable.Substring(1);
-            return new ForeignKeyRelation { ColumnName = c, TargetTable = properTable, TargetColumn = "Id" };
-        }
-
-        return null;
+        await ForeignKeyInspectorModal.OpenAsync(
+            sourceTable: CurrentTableName,
+            sourceColumn: columnName,
+            sourceValue: cellValue,
+            targetTable: rel.TargetTable,
+            targetColumn: rel.TargetColumn,
+            dbType: CurrentDatabaseType,
+            constraintName: rel.ConstraintName);
     }
 
     public async Task NavigateToForeignKeyAsync(string columnName, string? cellValue)
     {
+        if (string.IsNullOrWhiteSpace(cellValue) || cellValue.Equals("NULL", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
         var rel = GetForeignKeyRelation(columnName);
         if (rel == null) return;
 
@@ -356,10 +397,23 @@ public partial class QueryResultTableViewModel : ViewModelBase
 
     public void SetPrimaryKeys(IEnumerable<string> pks)
     {
+        ApplyPrimaryKeys(pks);
+
+        if (_lastColumns != null)
+        {
+            ColumnsChanged?.Invoke(_lastColumns);
+        }
+    }
+
+    private void ApplyPrimaryKeys(IEnumerable<string> pks)
+    {
         PrimaryKeyColumns.Clear();
         foreach (var pk in pks)
         {
-            PrimaryKeyColumns.Add(pk);
+            if (!string.IsNullOrWhiteSpace(pk))
+            {
+                PrimaryKeyColumns.Add(pk);
+            }
         }
         if (PrimaryKeyColumns.Count > 0)
         {
@@ -370,11 +424,6 @@ public partial class QueryResultTableViewModel : ViewModelBase
         {
             PrimaryKeyColumnName = string.Empty;
             HasPrimaryKey = false;
-        }
-
-        if (_lastColumns != null)
-        {
-            ColumnsChanged?.Invoke(_lastColumns);
         }
     }
 
@@ -456,38 +505,18 @@ public partial class QueryResultTableViewModel : ViewModelBase
             }
             ExecutionTime = execTime;
 
-            if (PrimaryKeyColumns.Count == 0 || !columns.Any(c => PrimaryKeyColumns.Contains(c)))
+            var matchingPks = PrimaryKeyColumns
+                .Where(pk => columns.Contains(pk, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+            if (matchingPks.Count > 0)
             {
-                var detected = columns.FirstOrDefault(c => IsProbablePrimaryKey(c, CurrentTableName));
-                if (!string.IsNullOrEmpty(detected))
-                {
-                    PrimaryKeyColumns.Clear();
-                    PrimaryKeyColumns.Add(detected);
-                    PrimaryKeyColumnName = detected;
-                    HasPrimaryKey = true;
-                }
-                else
-                {
-                    HasPrimaryKey = false;
-                    PrimaryKeyColumnName = string.Empty;
-                }
+                HasPrimaryKey = true;
+                PrimaryKeyColumnName = string.Join(", ", matchingPks);
             }
             else
             {
-                HasPrimaryKey = true;
-                PrimaryKeyColumnName = string.Join(", ", PrimaryKeyColumns.Where(c => columns.Contains(c, StringComparer.OrdinalIgnoreCase)));
-            }
-
-                        foreach (var col in columns)
-            {
-                if (!ForeignKeyRelations.ContainsKey(col))
-                {
-                    var probableFk = DetectProbableForeignKey(col, CurrentTableName);
-                    if (probableFk != null)
-                    {
-                        ForeignKeyRelations[col] = probableFk;
-                    }
-                }
+                HasPrimaryKey = false;
+                PrimaryKeyColumnName = string.Empty;
             }
 
             OnPropertyChanged(nameof(HasRows));
@@ -696,7 +725,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
         return $"DELETE FROM {escapedTable} WHERE {string.Join(" OR ", whereClauses)};";
     }
 
-    private static string FormatLiteralOrNumber(string val, string dbType)
+    private static string FormatLiteralOrNumber(string val, DatabaseType dbType)
     {
         if (long.TryParse(val, out _) || double.TryParse(val, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _))
         {
@@ -778,11 +807,11 @@ public partial class QueryResultTableViewModel : ViewModelBase
         string escapedTable = FormatIdentifier(CurrentTableName, CurrentDatabaseType);
         var escapedCols = columns.Select(c => FormatIdentifier(c, CurrentDatabaseType)).ToList();
 
-        return CurrentDatabaseType.ToUpperInvariant() switch
+        return CurrentDatabaseType switch
         {
-            "MSSQL" => $"ALTER TABLE {escapedTable} DROP COLUMN {string.Join(", ", escapedCols)};",
-            "POSTGRESQL" or "MYSQL" => $"ALTER TABLE {escapedTable} {string.Join(", ", escapedCols.Select(c => $"DROP COLUMN {c}"))};",
-            "SQLITE" => string.Join("\n", escapedCols.Select(c => $"ALTER TABLE {escapedTable} DROP COLUMN {c};")),
+            DatabaseType.MSSQL => $"ALTER TABLE {escapedTable} DROP COLUMN {string.Join(", ", escapedCols)};",
+            DatabaseType.PostgreSQL or DatabaseType.MySQL => $"ALTER TABLE {escapedTable} {string.Join(", ", escapedCols.Select(c => $"DROP COLUMN {c}"))};",
+            DatabaseType.SQLite => string.Join("\n", escapedCols.Select(c => $"ALTER TABLE {escapedTable} DROP COLUMN {c};")),
             _ => $"ALTER TABLE {escapedTable} DROP COLUMN {string.Join(", ", escapedCols)};"
         };
     }
@@ -845,7 +874,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
         return $"DELETE FROM {escapedTable} WHERE {whereClause};";
     }
 
-    public string BuildWhereClause(QueryResultRow row, string dbType)
+    public string BuildWhereClause(QueryResultRow row, DatabaseType dbType)
     {
         if (PrimaryKeyColumns.Count > 0)
         {
@@ -894,7 +923,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
         return "1 = 1";
     }
 
-    private static string FormatCondition(string col, string val, string dbType)
+    private static string FormatCondition(string col, string val, DatabaseType dbType)
     {
         string escapedCol = FormatIdentifier(col, dbType);
         if (string.Equals(val, "NULL", StringComparison.OrdinalIgnoreCase))
@@ -924,7 +953,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
         return row.Id > 0 ? "Id" : string.Empty;
     }
 
-    public static string FormatIdentifier(string identifier, string dbType)
+    public static string FormatIdentifier(string identifier, DatabaseType dbType)
     {
         if (string.IsNullOrWhiteSpace(identifier)) return identifier;
 
@@ -940,11 +969,11 @@ public partial class QueryResultTableViewModel : ViewModelBase
 
         string clean = identifier.Trim('[', ']', '"', '`');
 
-        return dbType.ToUpperInvariant() switch
+        return dbType switch
         {
-            "MSSQL" => $"[{clean}]",
-            "MYSQL" => $"`{clean}`",
-            "POSTGRESQL" or "SQLITE" => $"\"{clean}\"",
+            DatabaseType.MSSQL => $"[{clean}]",
+            DatabaseType.MySQL => $"`{clean}`",
+            DatabaseType.PostgreSQL or DatabaseType.SQLite => $"\"{clean}\"",
             _ => clean
         };
     }
@@ -966,9 +995,14 @@ public partial class QueryResultTableViewModel : ViewModelBase
             {
                 await RefreshCallback();
             }
-            else
+            else if (!HasLiveConnection)
             {
                 ResetToSampleData();
+            }
+            else
+            {
+                LastQueryMessage = "No active refresh query configured.";
+                HasLastQueryMessage = true;
             }
         }
         catch (Exception ex)
@@ -982,251 +1016,33 @@ public partial class QueryResultTableViewModel : ViewModelBase
         }
     }
 
-        public void LoadSampleReferencedTable(string tableName, string? filterColumn = null, string? filterValue = null)
+    public void LoadSampleReferencedTable(string tableName, string? filterColumn = null, string? filterValue = null)
     {
-        CurrentTableName = tableName;
-        if (tableName.Equals("Roles", StringComparison.OrdinalIgnoreCase))
+        if (HasLiveConnection) return;
+
+        var (dataset, matchedRow) = DemoDataProvider.GetSampleTable(tableName, filterColumn, filterValue);
+        CurrentTableName = dataset.TableName;
+        ClearMetadata();
+        SetResults(dataset.Columns, dataset.Rows, "9 ms");
+        SetPrimaryKeys(dataset.PrimaryKeys);
+        SetForeignKeyRelations(dataset.ForeignKeys);
+
+        if (matchedRow != null)
         {
-            var roleRows = new List<QueryResultRow>
-            {
-                new QueryResultRow { RowIndex = 1, Id = 1, Name = "DBA", Email = "dba@company.internal", Role = "SUPERUSER", Status = "Active", CreatedAt = "2025-01-01 00:00:00" },
-                new QueryResultRow { RowIndex = 2, Id = 2, Name = "Developer", Email = "dev@company.internal", Role = "READ_WRITE", Status = "Active", CreatedAt = "2025-01-10 10:00:00" },
-                new QueryResultRow { RowIndex = 3, Id = 3, Name = "Analyst", Email = "analyst@company.internal", Role = "READ_ONLY", Status = "Active", CreatedAt = "2025-01-15 12:30:00" },
-                new QueryResultRow { RowIndex = 4, Id = 4, Name = "Admin", Email = "admin@company.internal", Role = "FULL_CONTROL", Status = "Active", CreatedAt = "2025-01-01 00:00:00" }
-            };
-
-            foreach (var r in roleRows)
-            {
-                r.Values["ID"] = r.Id.ToString();
-                r.Values["TITLE"] = r.Name;
-                r.Values["DESCRIPTION"] = r.Id switch
-                {
-                    1 => "Database Administrator with full cluster access",
-                    2 => "Application Software Engineer",
-                    3 => "Business & Data Intelligence Analyst",
-                    4 => "System Administrator & Security Officer",
-                    _ => "Standard Role"
-                };
-                r.Values["PERMISSIONS"] = r.Role;
-                r.Values["CREATED AT"] = r.CreatedAt;
-
-                foreach (var kvp in r.Values)
-                {
-                    r.OriginalValues[kvp.Key] = kvp.Value;
-                }
-            }
-
-            var cols = new List<string> { "ID", "TITLE", "DESCRIPTION", "PERMISSIONS", "CREATED AT" };
-            SetResults(cols, roleRows, "12 ms");
-            SetPrimaryKeys(new[] { "ID" });
-            ForeignKeyRelations.Clear();
-            ColumnsChanged?.Invoke(cols);
-
-            if (!string.IsNullOrWhiteSpace(filterValue))
-            {
-                var match = roleRows.FirstOrDefault(r => r.Values.TryGetValue("TITLE", out var t) && t.Equals(filterValue, StringComparison.OrdinalIgnoreCase));
-                if (match != null)
-                {
-                    SelectedRow = match;
-                }
-            }
-        }
-        else if (tableName.Equals("Departments", StringComparison.OrdinalIgnoreCase))
-        {
-            var deptRows = new List<QueryResultRow>
-            {
-                new QueryResultRow { RowIndex = 1, Id = 1, Name = "Engineering", Email = "eng@company.internal", Role = "Tech Park A", Status = "Active", CreatedAt = "$2,500,000" },
-                new QueryResultRow { RowIndex = 2, Id = 2, Name = "Data Science", Email = "data@company.internal", Role = "Tech Park B", Status = "Active", CreatedAt = "$1,800,000" },
-                new QueryResultRow { RowIndex = 3, Id = 3, Name = "IT Operations", Email = "ops@company.internal", Role = "Main Tower", Status = "Active", CreatedAt = "$1,200,000" }
-            };
-
-            foreach (var r in deptRows)
-            {
-                r.Values["ID"] = r.Id.ToString();
-                r.Values["NAME"] = r.Name;
-                r.Values["BUILDING"] = r.Role;
-                r.Values["BUDGET"] = r.CreatedAt;
-
-                foreach (var kvp in r.Values)
-                {
-                    r.OriginalValues[kvp.Key] = kvp.Value;
-                }
-            }
-
-            var cols = new List<string> { "ID", "NAME", "BUILDING", "BUDGET" };
-            SetResults(cols, deptRows, "10 ms");
-            SetPrimaryKeys(new[] { "ID" });
-            ForeignKeyRelations.Clear();
-            ColumnsChanged?.Invoke(cols);
-        }
-        else if (tableName.Equals("Users", StringComparison.OrdinalIgnoreCase))
-        {
-            var userRows = new List<QueryResultRow>
-            {
-                new QueryResultRow { RowIndex = 1, Id = 101, Name = "Alice Johnson", Email = "alice@example.com", Role = "DBA", Course = "C# & Avalonia UI", Status = "Active", CreatedAt = "2026-01-15 08:30:00" },
-                new QueryResultRow { RowIndex = 2, Id = 102, Name = "Bob Smith", Email = "bob@example.com", Role = "Developer", Course = "SQL Server Architecture", Status = "Active", CreatedAt = "2026-02-10 11:15:22" },
-                new QueryResultRow { RowIndex = 3, Id = 103, Name = "Charlie Davis", Email = "charlie@example.com", Role = "Analyst", Course = "Database Performance Tuning", Status = "Pending", CreatedAt = "2026-03-01 14:45:00" },
-                new QueryResultRow { RowIndex = 4, Id = 104, Name = "Dana White", Email = "dana@example.com", Role = "Admin", Course = "PostgreSQL Administration", Status = "Active", CreatedAt = "2026-03-12 09:20:11" },
-                new QueryResultRow { RowIndex = 5, Id = 105, Name = "Evan Wright", Email = "evan@example.com", Role = "Developer", Course = "Cloud Databases & Docker", Status = "Inactive", CreatedAt = "2026-04-05 16:00:45" }
-            };
-
-            foreach (var r in userRows)
-            {
-                r.Values["ID"] = r.Id.ToString();
-                r.Values["NAME"] = r.Name;
-                r.Values["EMAIL"] = r.Email;
-                r.Values["ROLE"] = r.Role;
-                r.Values["COURSE"] = r.Course;
-                r.Values["STATUS"] = r.Status;
-                r.Values["CREATED AT"] = r.CreatedAt;
-
-                foreach (var kvp in r.Values)
-                {
-                    r.OriginalValues[kvp.Key] = kvp.Value;
-                }
-            }
-
-            var cols = new List<string> { "ID", "NAME", "EMAIL", "ROLE", "COURSE", "STATUS", "CREATED AT" };
-            SetResults(cols, userRows, "11 ms");
-            SetPrimaryKeys(new[] { "ID" });
-            ForeignKeyRelations.Clear();
-            ForeignKeyRelations["Role"] = new ForeignKeyRelation { ColumnName = "ROLE", TargetTable = "Roles", TargetColumn = "Title" };
-            ForeignKeyRelations["Course"] = new ForeignKeyRelation { ColumnName = "COURSE", TargetTable = "Courses", TargetColumn = "Title" };
-            ColumnsChanged?.Invoke(cols);
-
-            if (!string.IsNullOrWhiteSpace(filterValue))
-            {
-                var match = userRows.FirstOrDefault(r => 
-                    r.Id.ToString() == filterValue ||
-                    r.Name.Equals(filterValue, StringComparison.OrdinalIgnoreCase) ||
-                    r.Course.Equals(filterValue, StringComparison.OrdinalIgnoreCase) ||
-                    (r.Values.TryGetValue("COURSE", out var cVal) && cVal.Equals(filterValue, StringComparison.OrdinalIgnoreCase))
-                );
-                if (match != null)
-                {
-                    SelectedRow = match;
-                }
-            }
-        }
-        else if (tableName.Equals("Courses", StringComparison.OrdinalIgnoreCase))
-        {
-            var courseRows = new List<QueryResultRow>
-            {
-                new QueryResultRow { RowIndex = 1, Id = 1, Name = "C# & Avalonia UI", Email = "Alice Johnson", Role = "101", Course = "Active", Status = "Active", CreatedAt = "40 Hours" },
-                new QueryResultRow { RowIndex = 2, Id = 2, Name = "SQL Server Architecture", Email = "Bob Smith", Role = "102", Course = "Active", Status = "Active", CreatedAt = "50 Hours" },
-                new QueryResultRow { RowIndex = 3, Id = 3, Name = "Database Performance Tuning", Email = "Charlie Davis", Role = "103", Course = "In Progress", Status = "In Progress", CreatedAt = "35 Hours" },
-                new QueryResultRow { RowIndex = 4, Id = 4, Name = "PostgreSQL Administration", Email = "Dana White", Role = "104", Course = "Active", Status = "Active", CreatedAt = "45 Hours" },
-                new QueryResultRow { RowIndex = 5, Id = 5, Name = "Cloud Databases & Docker", Email = "Evan Wright", Role = "105", Course = "Completed", Status = "Completed", CreatedAt = "30 Hours" }
-            };
-
-            foreach (var r in courseRows)
-            {
-                r.Values["ID"] = r.Id.ToString();
-                r.Values["TITLE"] = r.Name;
-                r.Values["USER_ID"] = r.Role;
-                r.Values["STUDENT_NAME"] = r.Email;
-                r.Values["DURATION"] = r.CreatedAt;
-                r.Values["STATUS"] = r.Status;
-
-                foreach (var kvp in r.Values)
-                {
-                    r.OriginalValues[kvp.Key] = kvp.Value;
-                }
-            }
-
-            var cols = new List<string> { "ID", "TITLE", "USER_ID", "STUDENT_NAME", "DURATION", "STATUS" };
-            SetResults(cols, courseRows, "9 ms");
-            SetPrimaryKeys(new[] { "ID" });
-            ForeignKeyRelations.Clear();
-            ForeignKeyRelations["USER_ID"] = new ForeignKeyRelation { ColumnName = "USER_ID", TargetTable = "Users", TargetColumn = "Id" };
-            ForeignKeyRelations["STUDENT_NAME"] = new ForeignKeyRelation { ColumnName = "STUDENT_NAME", TargetTable = "Users", TargetColumn = "Name" };
-            ForeignKeyRelations["TITLE"] = new ForeignKeyRelation { ColumnName = "TITLE", TargetTable = "Users", TargetColumn = "Course" };
-            ColumnsChanged?.Invoke(cols);
-
-            if (!string.IsNullOrWhiteSpace(filterValue))
-            {
-                var match = courseRows.FirstOrDefault(r =>
-                    r.Id.ToString() == filterValue ||
-                    r.Name.Equals(filterValue, StringComparison.OrdinalIgnoreCase) ||
-                    r.Email.Equals(filterValue, StringComparison.OrdinalIgnoreCase) ||
-                    r.Role == filterValue);
-                if (match != null)
-                {
-                    SelectedRow = match;
-                }
-            }
-        }
-        else
-        {
-            var genRows = new List<QueryResultRow>
-            {
-                new QueryResultRow { RowIndex = 1, Id = 1, Name = filterValue ?? "Item 1", Email = $"{tableName.ToLower()}@test", Role = "Active", Status = "Standard", CreatedAt = DateTime.Now.ToString("yyyy-MM-dd") }
-            };
-            genRows[0].Values["ID"] = "1";
-            genRows[0].Values["NAME"] = filterValue ?? "Item 1";
-            genRows[0].Values["STATUS"] = "Active";
-            var cols = new List<string> { "ID", "NAME", "STATUS" };
-            SetResults(cols, genRows, "8 ms");
-            SetPrimaryKeys(new[] { "ID" });
-            ColumnsChanged?.Invoke(cols);
+            SelectedRow = matchedRow;
         }
     }
 
-
     public void ResetToSampleData()
     {
-        var sampleRows = new List<QueryResultRow>
-        {
-            new QueryResultRow { RowIndex = 1, Id = 101, Name = "Alice Johnson", Email = "alice@example.com", Role = "DBA", Course = "C# & Avalonia UI", Status = "Active", CreatedAt = "2026-01-15 08:30:00" },
-            new QueryResultRow { RowIndex = 2, Id = 102, Name = "Bob Smith", Email = "bob@example.com", Role = "Developer", Course = "SQL Server Architecture", Status = "Active", CreatedAt = "2026-02-10 11:15:22" },
-            new QueryResultRow { RowIndex = 3, Id = 103, Name = "Charlie Davis", Email = "charlie@example.com", Role = "Analyst", Course = "Database Performance Tuning", Status = "Pending", CreatedAt = "2026-03-01 14:45:00" },
-            new QueryResultRow { RowIndex = 4, Id = 104, Name = "Dana White", Email = "dana@example.com", Role = "Admin", Course = "PostgreSQL Administration", Status = "Active", CreatedAt = "2026-03-12 09:20:11" },
-            new QueryResultRow { RowIndex = 5, Id = 105, Name = "Evan Wright", Email = "evan@example.com", Role = "Developer", Course = "Cloud Databases & Docker", Status = "Inactive", CreatedAt = "2026-04-05 16:00:45" }
-        };
+        if (HasLiveConnection) return;
 
-        foreach (var r in sampleRows)
-        {
-            r.OriginalValues["Id"] = r.Id.ToString();
-            r.OriginalValues["Name"] = r.Name;
-            r.OriginalValues["Email"] = r.Email;
-            r.OriginalValues["Role"] = r.Role;
-            r.OriginalValues["Status"] = r.Status;
-            r.OriginalValues["CreatedAt"] = r.CreatedAt;
-        }
-
-        _allRows.Clear();
-        _allRows.AddRange(sampleRows);
-
-        Rows.Clear();
-        foreach (var r in sampleRows)
-        {
-            Rows.Add(r);
-        }
-
-        if (!string.IsNullOrWhiteSpace(SearchFilter))
-        {
-            ApplyFilter(SearchFilter);
-        }
-        else
-        {
-            TotalRows = Rows.Count;
-        }
-
-                CurrentTableName = "Users";
-        PrimaryKeyColumns.Clear();
-        PrimaryKeyColumns.Add("Id");
-        PrimaryKeyColumnName = "Id";
-        HasPrimaryKey = true;
-        ForeignKeyRelations.Clear();
-        ForeignKeyRelations["Role"] = new ForeignKeyRelation
-        {
-            ColumnName = "Role",
-            TargetTable = "Roles",
-            TargetColumn = "Title",
-            ConstraintName = "FK_Users_Roles"
-        };
-
-        ExecutionTime = "0 ms";
+        var dataset = DemoDataProvider.GetDefaultUsersDataset();
+        CurrentTableName = dataset.TableName;
+        ClearMetadata();
+        SetResults(dataset.Columns, dataset.Rows, "0 ms");
+        SetPrimaryKeys(dataset.PrimaryKeys);
+        SetForeignKeyRelations(dataset.ForeignKeys);
         LastQueryMessage = $"Table refreshed ({TotalRows} rows)";
         HasLastQueryMessage = true;
     }
