@@ -6,7 +6,7 @@ namespace Quell.Services.DatabaseProviders;
 public record DatabaseConnectionConfig
 {
     public int Id { get; init; } = 0;
-    public string DatabaseType { get; init; } = "MSSQL";
+    public DatabaseType DatabaseType { get; init; } = DatabaseType.MSSQL;
     public string Server { get; init; } = "localhost";
     public int Port { get; init; } = 1433;
     public string Database { get; init; } = "master";
@@ -19,11 +19,11 @@ public record DatabaseConnectionConfig
 
     public string ConnectionKey => Id > 0
         ? $"id_{Id}"
-        : DatabaseType == "SQLite"
+        : DatabaseType == DatabaseType.SQLite
             ? $"sqlite_{FilePath}"
             : $"{DatabaseType}_{Server}_{Port}_{Database}";
 
-    public string DisplayName => DatabaseType == "SQLite"
+    public string DisplayName => DatabaseType == DatabaseType.SQLite
         ? (string.IsNullOrEmpty(Path.GetFileName(FilePath)) ? ":memory:" : Path.GetFileName(FilePath))
         : (!string.IsNullOrWhiteSpace(Database) ? Database : Server);
 }

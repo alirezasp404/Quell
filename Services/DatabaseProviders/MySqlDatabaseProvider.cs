@@ -9,6 +9,7 @@ namespace Quell.Services.DatabaseProviders;
 
 public class MySqlDatabaseProvider : IDatabaseProvider
 {
+    public DatabaseType DatabaseType => DatabaseType.MySQL;
     public string Id => "MySQL";
     public string DisplayName => "MySQL / MariaDB";
     public string ShortDescription => "Popular relational database engine";

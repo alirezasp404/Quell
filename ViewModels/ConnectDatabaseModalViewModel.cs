@@ -11,7 +11,7 @@ namespace Quell.ViewModels;
 
 public class DatabaseEngineItem : ObservableObject
 {
-    public string Id { get; init; } = "MSSQL";
+    public DatabaseType Id { get; init; } = DatabaseType.MSSQL;
     public string Name { get; init; } = "SQL Server";
     public string Badge { get; init; } = "MSSQL";
     public string DefaultPortText { get; init; } = "1433";
@@ -41,14 +41,14 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
     public string ConnectButtonText => IsEditMode ? "Save & Connect" : "Connect";
 
     [ObservableProperty]
-    private string _selectedDatabaseType = "MSSQL";
+    private DatabaseType _selectedDatabaseType = DatabaseType.MSSQL;
 
     public ObservableCollection<DatabaseEngineItem> EngineOptions { get; } = new()
     {
-        new DatabaseEngineItem { Id = "MSSQL", Name = "SQL Server", Badge = "MSSQL", DefaultPortText = "1433", BadgeBackground = "#2563EB", IsSelected = true },
-        new DatabaseEngineItem { Id = "PostgreSQL", Name = "PostgreSQL", Badge = "PG", DefaultPortText = "5432", BadgeBackground = "#336791", IsSelected = false },
-        new DatabaseEngineItem { Id = "MySQL", Name = "MySQL", Badge = "MYSQL", DefaultPortText = "3306", BadgeBackground = "#00758F", IsSelected = false },
-        new DatabaseEngineItem { Id = "SQLite", Name = "SQLite", Badge = "SQLITE", DefaultPortText = "File", BadgeBackground = "#003B57", IsSelected = false }
+        new DatabaseEngineItem { Id = DatabaseType.MSSQL, Name = "SQL Server", Badge = "MSSQL", DefaultPortText = "1433", BadgeBackground = "#2563EB", IsSelected = true },
+        new DatabaseEngineItem { Id = DatabaseType.PostgreSQL, Name = "PostgreSQL", Badge = "PG", DefaultPortText = "5432", BadgeBackground = "#336791", IsSelected = false },
+        new DatabaseEngineItem { Id = DatabaseType.MySQL, Name = "MySQL", Badge = "MYSQL", DefaultPortText = "3306", BadgeBackground = "#00758F", IsSelected = false },
+        new DatabaseEngineItem { Id = DatabaseType.SQLite, Name = "SQLite", Badge = "SQLITE", DefaultPortText = "File", BadgeBackground = "#003B57", IsSelected = false }
     };
 
     public ObservableCollection<ConnectionRecord> SavedConnections { get; } = new();
@@ -101,30 +101,28 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isConnecting;
 
-    public bool IsFileBased => SelectedDatabaseType == "SQLite";
-    public bool IsServerBased => SelectedDatabaseType != "SQLite";
-    public bool SupportsWindowsAuth => SelectedDatabaseType == "MSSQL";
-    public bool SupportsTrustCertificate => SelectedDatabaseType == "MSSQL";
+    public bool IsFileBased => SelectedDatabaseType == DatabaseType.SQLite;
+    public bool IsServerBased => SelectedDatabaseType != DatabaseType.SQLite;
+    public bool SupportsWindowsAuth => SelectedDatabaseType == DatabaseType.MSSQL;
+    public bool SupportsTrustCertificate => SelectedDatabaseType == DatabaseType.MSSQL;
     public bool IsCredentialsEnabled => AuthType != "Windows Authentication" || IsFileBased;
 
     public string ModalSubtitle => SelectedDatabaseType switch
     {
-        "MSSQL" => "Configure Microsoft SQL Server / Azure SQL connection",
-        "PostgreSQL" => "Configure PostgreSQL instance connection",
-        "MySQL" => "Configure MySQL / MariaDB instance connection",
-        "SQLite" => "Configure local SQLite embedded database file",
+        DatabaseType.MSSQL => "Configure Microsoft SQL Server / Azure SQL connection",
+        DatabaseType.PostgreSQL => "Configure PostgreSQL instance connection",
+        DatabaseType.MySQL => "Configure MySQL / MariaDB instance connection",
+        DatabaseType.SQLite => "Configure local SQLite embedded database file",
         _ => "Configure database connection"
     };
 
     [RelayCommand]
-    public void SelectEngine(string engineId)
+    public void SelectEngine(DatabaseType engineId)
     {
-        if (string.IsNullOrWhiteSpace(engineId)) return;
-
         SelectedDatabaseType = engineId;
         foreach (var opt in EngineOptions)
         {
-            opt.IsSelected = string.Equals(opt.Id, engineId, StringComparison.OrdinalIgnoreCase);
+            opt.IsSelected = opt.Id == engineId;
         }
 
         var provider = DatabaseProviderRegistry.Instance.GetProvider(engineId);
@@ -152,7 +150,7 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
         if (record == null) return;
         SelectedSavedConnection = record;
 
-        SelectEngine(record.DatabaseType ?? "MSSQL");
+        SelectEngine(record.DatabaseType);
         Server = record.Server;
         Port = record.Port;
         Database = record.DatabaseName;
@@ -165,7 +163,7 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
         {
             Username = record.Username;
         }
-        if (record.DatabaseType == "SQLite")
+        if (record.DatabaseType == DatabaseType.SQLite)
         {
             FilePath = record.Server;
         }
@@ -229,14 +227,14 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
     {
         if (record == null) return;
         EditingConnectionId = record.Id;
-        SelectEngine(record.DatabaseType ?? "MSSQL");
+        SelectEngine(record.DatabaseType);
         Server = record.Server;
         Port = record.Port;
         Database = record.DatabaseName;
         Password = record.Password ?? string.Empty;
         if (!string.IsNullOrEmpty(record.AuthType)) AuthType = record.AuthType;
         if (!string.IsNullOrEmpty(record.Username)) Username = record.Username;
-        if (record.DatabaseType == "SQLite") FilePath = record.Server;
+        if (record.DatabaseType == DatabaseType.SQLite) FilePath = record.Server;
         StatusMessage = null;
         IsSuccess = null;
         IsOpen = true;

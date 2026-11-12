@@ -83,5 +83,6 @@
         <components:DatabaseDiagramModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="105" DataContext="{Binding DiagramModal}" />
         <components:UpdateModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="106" DataContext="{Binding UpdateModal}" />
         <components:ImportDataModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="107" DataContext="{Binding ImportModal}" />
+        <components:ForeignKeyInspectorModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="108" DataContext="{Binding SampleQueryResult.ForeignKeyInspectorModal}" />
     </Grid>
 </Window>

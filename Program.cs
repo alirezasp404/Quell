@@ -863,15 +863,15 @@ sealed class Program
 
             // Test Dynamic Dialect Switching in SqlKeywordsService
             Console.WriteLine("\n[Action] Testing Dynamic Dialect Switching in SqlKeywordsService...");
-            await Quell.Services.SqlKeywordsService.Instance.LoadKeywordsFromDatabaseAsync("PostgreSQL");
-            if (Quell.Services.SqlKeywordsService.Instance.CurrentDialect != "PostgreSQL" || !Quell.Services.SqlKeywordsService.Instance.Keywords.Contains("RETURNING"))
+            await Quell.Services.SqlKeywordsService.Instance.LoadKeywordsFromDatabaseAsync(Quell.Services.DatabaseProviders.DatabaseType.PostgreSQL);
+            if (Quell.Services.SqlKeywordsService.Instance.CurrentDialect != Quell.Services.DatabaseProviders.DatabaseType.PostgreSQL || !Quell.Services.SqlKeywordsService.Instance.Keywords.Contains("RETURNING"))
             {
                 throw new Exception("SqlKeywordsService failed to switch to PostgreSQL dialect!");
             }
             Console.WriteLine($"Switched to PostgreSQL. Contains 'RETURNING': {Quell.Services.SqlKeywordsService.Instance.Keywords.Contains("RETURNING")}");
 
-            await Quell.Services.SqlKeywordsService.Instance.LoadKeywordsFromDatabaseAsync("MSSQL");
-            if (Quell.Services.SqlKeywordsService.Instance.CurrentDialect != "MSSQL" || !Quell.Services.SqlKeywordsService.Instance.Keywords.Contains("TOP"))
+            await Quell.Services.SqlKeywordsService.Instance.LoadKeywordsFromDatabaseAsync(Quell.Services.DatabaseProviders.DatabaseType.MSSQL);
+            if (Quell.Services.SqlKeywordsService.Instance.CurrentDialect != Quell.Services.DatabaseProviders.DatabaseType.MSSQL || !Quell.Services.SqlKeywordsService.Instance.Keywords.Contains("TOP"))
             {
                 throw new Exception("SqlKeywordsService failed to switch back to MSSQL dialect!");
             }
@@ -903,7 +903,7 @@ sealed class Program
                 throw new Exception("Expected at least 4 registered database providers (MSSQL, PostgreSQL, MySQL, SQLite)!");
             }
 
-            var mssqlProv = registry.GetProvider("MSSQL");
+            var mssqlProv = registry.GetProvider(Quell.Services.DatabaseProviders.DatabaseType.MSSQL);
             var connStr = mssqlProv.BuildConnectionString(new Quell.Services.DatabaseProviders.DatabaseConnectionConfig
             {
                 Server = "127.0.0.1",
@@ -921,7 +921,7 @@ sealed class Program
             }
 
             // Test SQLite Provider In-Memory
-            var sqliteProv = registry.GetProvider("SQLite");
+            var sqliteProv = registry.GetProvider(Quell.Services.DatabaseProviders.DatabaseType.SQLite);
             var sqliteTest = await sqliteProv.TestConnectionAsync(new Quell.Services.DatabaseProviders.DatabaseConnectionConfig
             {
                 FilePath = ":memory:"
@@ -933,21 +933,21 @@ sealed class Program
             }
 
             // Test ConnectModal dynamic switching
-            vm.ConnectModal.SelectEngine("PostgreSQL");
+            vm.ConnectModal.SelectEngine(Quell.Services.DatabaseProviders.DatabaseType.PostgreSQL);
             Console.WriteLine($"Switched to PostgreSQL: Port={vm.ConnectModal.Port}, Database={vm.ConnectModal.Database}, Username={vm.ConnectModal.Username}, IsServerBased={vm.ConnectModal.IsServerBased}");
             if (vm.ConnectModal.Port != 5432 || vm.ConnectModal.Database != "postgres" || vm.ConnectModal.Username != "postgres")
             {
                 throw new Exception("ConnectModal failed to switch default parameters for PostgreSQL!");
             }
 
-            vm.ConnectModal.SelectEngine("SQLite");
+            vm.ConnectModal.SelectEngine(Quell.Services.DatabaseProviders.DatabaseType.SQLite);
             Console.WriteLine($"Switched to SQLite: IsFileBased={vm.ConnectModal.IsFileBased}, IsServerBased={vm.ConnectModal.IsServerBased}");
             if (!vm.ConnectModal.IsFileBased || vm.ConnectModal.IsServerBased)
             {
                 throw new Exception("ConnectModal failed to switch to file-based mode for SQLite!");
             }
 
-            vm.ConnectModal.SelectEngine("MSSQL");
+            vm.ConnectModal.SelectEngine(Quell.Services.DatabaseProviders.DatabaseType.MSSQL);
             Console.WriteLine($"Switched back to MSSQL: Port={vm.ConnectModal.Port}, Database={vm.ConnectModal.Database}, Username={vm.ConnectModal.Username}");
             if (vm.ConnectModal.Port != 1433 || vm.ConnectModal.Database != "master")
             {
@@ -978,7 +978,7 @@ sealed class Program
             // 13. Test Hierarchical Tree View: Adding connection, clicking to connect, displaying tables in tree
             Console.WriteLine("\n[Action] Verifying Hierarchical Tree View & Connecting from Tree...");
             int testDbId = await Quell.Services.DatabaseStorageService.Instance.SaveConnectionAsync(
-                ":memory:", 0, "TestStudioDB", "None", "sa", "SQLite");
+                ":memory:", 0, "TestStudioDB", "None", "sa", Quell.Services.DatabaseProviders.DatabaseType.SQLite);
             await vm.Sidebar.RefreshAsync();
             await vm.RefreshAvailableDatabasesAsync();
 
@@ -1275,7 +1275,7 @@ sealed class Program
             // Persist connection
             await Quell.Services.DatabaseStorageService.Instance.SaveConnectionAsync(
                 vm.ConnectModal.Server, vm.ConnectModal.Port, vm.ConnectModal.Database,
-                vm.ConnectModal.AuthType, vm.ConnectModal.Username, "MSSQL");
+                vm.ConnectModal.AuthType, vm.ConnectModal.Username, Quell.Services.DatabaseProviders.DatabaseType.MSSQL);
             await vm.Sidebar.RefreshAsync();
             await vm.ConnectModal.LoadSavedConnectionsAsync();
             Console.WriteLine($"Saved Connections Count: {vm.ConnectModal.SavedConnections.Count} (was {initialSaved})");
@@ -1351,6 +1351,7 @@ sealed class Program
                 new System.Collections.Generic.List<string> { "Id", "Name", "Email" },
                 new System.Collections.Generic.List<Quell.ViewModels.QueryResultRow> { testUserRow },
                 "5 ms");
+            vm.SampleQueryResult.SetPrimaryKeys(new[] { "Id" });
             vm.SampleQueryResult.CurrentTableName = "Users";
             var firstRow = vm.SampleQueryResult.Rows[0];
             Console.WriteLine($"Initial Row 0 Name: '{firstRow.Name}', Id: {firstRow.Id}");
@@ -1395,10 +1396,10 @@ sealed class Program
             // Verify Unicode / Multilingual Text UPDATE & Literal Encoding
             Console.WriteLine("\n[Action] Verifying Unicode / Multilingual Text UPDATE Query Generation & Execution...");
             // Verify FormatLiteral across dialects
-            string mssqlUnicode = Quell.ViewModels.EditCellModalViewModel.FormatLiteral("José García", "MSSQL");
-            string sqliteUnicode = Quell.ViewModels.EditCellModalViewModel.FormatLiteral("José García", "SQLITE");
-            string mysqlUnicode = Quell.ViewModels.EditCellModalViewModel.FormatLiteral("José García", "MYSQL");
-            string pgUnicode = Quell.ViewModels.EditCellModalViewModel.FormatLiteral("José García", "POSTGRESQL");
+            string mssqlUnicode = Quell.ViewModels.EditCellModalViewModel.FormatLiteral("José García", Quell.Services.DatabaseProviders.DatabaseType.MSSQL);
+            string sqliteUnicode = Quell.ViewModels.EditCellModalViewModel.FormatLiteral("José García", Quell.Services.DatabaseProviders.DatabaseType.SQLite);
+            string mysqlUnicode = Quell.ViewModels.EditCellModalViewModel.FormatLiteral("José García", Quell.Services.DatabaseProviders.DatabaseType.MySQL);
+            string pgUnicode = Quell.ViewModels.EditCellModalViewModel.FormatLiteral("José García", Quell.Services.DatabaseProviders.DatabaseType.PostgreSQL);
             Console.WriteLine($"Unicode Formatted Literals:\nMSSQL: {mssqlUnicode}\nSQLite: {sqliteUnicode}\nMySQL: {mysqlUnicode}\nPostgres: {pgUnicode}");
             if (mssqlUnicode != "N'José García'") throw new Exception($"MSSQL must use N prefix for Unicode text! Got '{mssqlUnicode}'");
             if (sqliteUnicode != "'José García'") throw new Exception($"SQLite must use standard quotes without N prefix! Got '{sqliteUnicode}'");
@@ -1406,7 +1407,7 @@ sealed class Program
             if (pgUnicode != "N'José García'") throw new Exception($"Postgres must use N prefix for Unicode! Got '{pgUnicode}'");
 
             // Verify MSSQL UPDATE query with N prefix for Unicode text
-            string mssqlUpdate = Quell.ViewModels.EditCellModalViewModel.BuildUpdateQuery("Users", "Name", "José García", firstRow, "MSSQL");
+            string mssqlUpdate = Quell.ViewModels.EditCellModalViewModel.BuildUpdateQuery("Users", "Name", "José García", firstRow, Quell.Services.DatabaseProviders.DatabaseType.MSSQL);
             Console.WriteLine($"Generated MSSQL Query for Unicode Name:\n{mssqlUpdate}");
             if (!mssqlUpdate.Contains("N'José García'") || !mssqlUpdate.Contains("SET [Name] = N'José García'"))
             {
@@ -1656,28 +1657,19 @@ sealed class Program
             Console.WriteLine($"Current Table: {vm.SampleQueryResult.CurrentTableName}");
             if (vm.SampleQueryResult.CurrentTableName != "Users") throw new Exception("Expected Users table!");
 
-            // B. Verify FK detection on 'Role' column
+            // B. Verify FK detection on 'Role' column from DemoDataProvider (disconnected mode only)
             bool isRoleFk = vm.SampleQueryResult.IsColumnForeignKey("Role");
             var roleRel = vm.SampleQueryResult.GetForeignKeyRelation("Role");
             Console.WriteLine($"IsColumnForeignKey('Role'): {isRoleFk}, TargetTable: '{roleRel?.TargetTable}', TargetColumn: '{roleRel?.TargetColumn}'");
-            if (!isRoleFk || roleRel == null || roleRel.TargetTable != "Roles" || roleRel.TargetColumn != "Title")
+            if (!isRoleFk || roleRel == null || !string.Equals(roleRel.TargetTable, "Roles", StringComparison.OrdinalIgnoreCase) || !string.Equals(roleRel.TargetColumn, "Title", StringComparison.OrdinalIgnoreCase))
             {
                 throw new Exception("Foreign Key relation detection failed for 'Role' column!");
             }
 
-            // C. Verify heuristic FK detection on other common schema patterns
-            var deptFk = Quell.ViewModels.QueryResultTableViewModel.DetectProbableForeignKey("department_id", "Employees");
-            Console.WriteLine($"Heuristic FK 'department_id': Table={deptFk?.TargetTable}, Col={deptFk?.TargetColumn}");
-            if (deptFk == null || deptFk.TargetTable != "Departments" || deptFk.TargetColumn != "Id")
+            // C. Verify non-FK columns are not heuristically flagged
+            if (vm.SampleQueryResult.IsColumnForeignKey("Email") || vm.SampleQueryResult.IsColumnForeignKey("department_id"))
             {
-                throw new Exception("Heuristic FK detection failed for 'department_id'!");
-            }
-
-            var custFk = Quell.ViewModels.QueryResultTableViewModel.DetectProbableForeignKey("customer_id", "Orders");
-            Console.WriteLine($"Heuristic FK 'customer_id': Table={custFk?.TargetTable}, Col={custFk?.TargetColumn}");
-            if (custFk == null || custFk.TargetTable != "Customers" || custFk.TargetColumn != "Id")
-            {
-                throw new Exception("Heuristic FK detection failed for 'customer_id'!");
+                throw new Exception("Heuristic FK false positive detected on non-FK column!");
             }
 
             // D. Test Foreign Key Navigation to referenced 'Roles' table
@@ -1709,21 +1701,8 @@ sealed class Program
                 throw new Exception($"Referenced row was not selected or title was unexpected: {vm.SampleQueryResult.SelectedRow?["TITLE"]}");
             }
             Console.WriteLine("[Success] Foreign Key visual indicators and arrow navigation to referenced table verified!");
-            // E. Test Course -> Users Foreign Key Navigation
+            // E. Test Course -> Users Foreign Key Navigation (DemoDataProvider)
             Console.WriteLine("\n[Action] Testing Course Foreign Key -> User Navigation...");
-            var courseFk = Quell.ViewModels.QueryResultTableViewModel.DetectProbableForeignKey("Course");
-            Console.WriteLine($"DetectProbableForeignKey('Course'): TargetTable={courseFk?.TargetTable}, TargetColumn={courseFk?.TargetColumn}");
-            if (courseFk == null || courseFk.TargetTable != "Users")
-            {
-                throw new Exception("Foreign Key detection failed for 'Course' linking to Users!");
-            }
-
-            var studentFk = Quell.ViewModels.QueryResultTableViewModel.DetectProbableForeignKey("student_name");
-            Console.WriteLine($"DetectProbableForeignKey('student_name'): TargetTable={studentFk?.TargetTable}, TargetColumn={studentFk?.TargetColumn}");
-            if (studentFk == null || studentFk.TargetTable != "Users")
-            {
-                throw new Exception("Foreign Key detection failed for 'student_name' linking to Users!");
-            }
 
             // Load Courses table
             vm.SampleQueryResult.LoadSampleReferencedTable("Courses");
@@ -1919,7 +1898,7 @@ sealed class Program
             // 3. Database CLI Resolution Tests (PostgreSQL, MySQL, SQLite, SQL Server)
             var pgConfig = new Quell.Services.DatabaseProviders.DatabaseConnectionConfig
             {
-                DatabaseType = "PostgreSQL",
+                DatabaseType = Quell.Services.DatabaseProviders.DatabaseType.PostgreSQL,
                 Server = "localhost",
                 Port = 5432,
                 Database = "testdb",
@@ -1939,7 +1918,7 @@ sealed class Program
 
             var myConfig = new Quell.Services.DatabaseProviders.DatabaseConnectionConfig
             {
-                DatabaseType = "MySQL",
+                DatabaseType = Quell.Services.DatabaseProviders.DatabaseType.MySQL,
                 Server = "127.0.0.1",
                 Port = 3306,
                 Database = "shopdb",
@@ -2380,7 +2359,7 @@ sealed class Program
             }
             var importDbConfig = new Quell.Services.DatabaseProviders.DatabaseConnectionConfig
             {
-                DatabaseType = "SQLite",
+                DatabaseType = Quell.Services.DatabaseProviders.DatabaseType.SQLite,
                 FilePath = tempDbPath
             };
             var connectRes = await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.ConnectAsync(importDbConfig);
@@ -2506,7 +2485,153 @@ sealed class Program
                 try { System.IO.File.Delete(tempDbPath); } catch { }
             }
 
-            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER, SIMULTANEOUS BATCH CELL EDITING, FOREIGN KEY NAVIGATION, HARDWARE GPU/CPU RENDERING PIPELINE, XAML.BEHAVIORS GPU ANIMATIONS, INTEGRATED TERMINAL & VISUAL EXCEL DATA IMPORT WIZARD) PASSED! <<<");
+            // 27. Verify Real DB Metadata-Driven PK/FK Detection, FK Inspector, Zero Heuristics & Disconnected/Connected Isolation
+            Console.WriteLine("\n[Action] Verifying Real SQLite DB Metadata-Driven PK/FK & Zero Heuristic Fallbacks...");
+            string metaDbPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "quell_metadata_verify.db");
+            if (System.IO.File.Exists(metaDbPath))
+            {
+                try { System.IO.File.Delete(metaDbPath); } catch { }
+            }
+            var metaDbConfig = new Quell.Services.DatabaseProviders.DatabaseConnectionConfig
+            {
+                DatabaseType = Quell.Services.DatabaseProviders.DatabaseType.SQLite,
+                FilePath = metaDbPath
+            };
+            var metaConnectRes = await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.ConnectAsync(metaDbConfig);
+            if (!metaConnectRes.Success)
+            {
+                throw new Exception($"Failed to connect metadata test SQLite DB: {metaConnectRes.Message}");
+            }
+
+            await vm.RefreshAvailableDatabasesAsync();
+            var metaTarget = vm.AvailableTargetDatabases.FirstOrDefault(d => d.Key == metaDbConfig.ConnectionKey);
+            if (metaTarget != null) vm.SelectedTargetDatabase = metaTarget;
+
+            if (!vm.SampleQueryResult.IsConnectedToDatabase)
+            {
+                throw new Exception("Expected IsConnectedToDatabase=true while connected to real SQLite DB!");
+            }
+
+            // Verify empty connected DB does NOT fall back to sample diagram tables
+            await vm.OpenDiagramModal(forceRefresh: true);
+            if (vm.DiagramModal.AllTables.Count != 0)
+            {
+                throw new Exception($"Empty connected DB should show 0 diagram tables, not sample tables! Got {vm.DiagramModal.AllTables.Count}");
+            }
+            vm.DiagramModal.Close();
+
+            // Create real tables with non-standard PK names and trap heuristic column names (department_id, Course without FK)
+            string setupMetaSql = @"
+                PRAGMA foreign_keys = ON;
+                CREATE TABLE OrgUnits (
+                    UnitCode TEXT PRIMARY KEY,
+                    Title TEXT NOT NULL
+                );
+                CREATE TABLE StaffMembers (
+                    BadgeNo INTEGER PRIMARY KEY,
+                    FullName TEXT NOT NULL,
+                    AssignedUnit TEXT REFERENCES OrgUnits(UnitCode),
+                    department_id INTEGER,
+                    Course TEXT
+                );
+                INSERT INTO OrgUnits (UnitCode, Title) VALUES ('ENG', 'Engineering'), ('FIN', 'Finance');
+                INSERT INTO StaffMembers (BadgeNo, FullName, AssignedUnit, department_id, Course) VALUES (501, 'Sara Rahimi', 'ENG', 99, 'Physics');";
+            var setupRes = await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.ExecuteQueryAsync(setupMetaSql, metaDbConfig.ConnectionKey);
+            if (!setupRes.Success)
+            {
+                throw new Exception($"Failed to create metadata test schema: {setupRes.Message}");
+            }
+
+            // Execute SELECT * FROM StaffMembers via MainViewModel.ExecuteQuery()
+            vm.Editor.SelectedTab!.Text = "SELECT * FROM StaffMembers;";
+            await vm.ExecuteQuery();
+
+            if (!vm.SampleQueryResult.IsColumnPrimaryKey("BadgeNo") || vm.SampleQueryResult.IsColumnPrimaryKey("department_id"))
+            {
+                throw new Exception($"Real DB PK mismatch: PKs=[{string.Join(", ", vm.SampleQueryResult.PrimaryKeyColumns)}]");
+            }
+            if (!vm.SampleQueryResult.IsColumnForeignKey("AssignedUnit"))
+            {
+                throw new Exception("Real DB FK 'AssignedUnit' was not detected from SQLite metadata!");
+            }
+            if (vm.SampleQueryResult.IsColumnForeignKey("department_id") || vm.SampleQueryResult.IsColumnForeignKey("Course"))
+            {
+                throw new Exception("Trap columns without FK constraints were falsely flagged by heuristics!");
+            }
+            var unitFkRel = vm.SampleQueryResult.GetForeignKeyRelation("AssignedUnit");
+            if (unitFkRel == null || !string.Equals(unitFkRel.TargetTable, "OrgUnits", StringComparison.OrdinalIgnoreCase) || !string.Equals(unitFkRel.TargetColumn, "UnitCode", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception($"Unexpected FK metadata target: {unitFkRel?.TargetTable}.{unitFkRel?.TargetColumn}");
+            }
+
+            // Verify real DB FK navigation
+            await vm.SampleQueryResult.NavigateToForeignKeyAsync("AssignedUnit", "ENG");
+            if (!string.Equals(vm.SampleQueryResult.CurrentTableName, "OrgUnits", StringComparison.OrdinalIgnoreCase) ||
+                vm.SampleQueryResult.Rows.Count != 1 ||
+                vm.SampleQueryResult.Rows[0]["Title"] != "Engineering" ||
+                !vm.SampleQueryResult.IsColumnPrimaryKey("UnitCode"))
+            {
+                throw new Exception($"Real DB FK navigation failed! Table={vm.SampleQueryResult.CurrentTableName}, Rows={vm.SampleQueryResult.Rows.Count}");
+            }
+            vm.SampleQueryResult.NavigateBack();
+            if (!string.Equals(vm.SampleQueryResult.CurrentTableName, "StaffMembers", StringComparison.OrdinalIgnoreCase) ||
+                !vm.SampleQueryResult.IsColumnForeignKey("AssignedUnit"))
+            {
+                throw new Exception("NavigateBack did not restore StaffMembers with FK metadata!");
+            }
+
+            // Verify ForeignKeyInspectorModal displays real DB schema types & flags (no guessed types)
+            await vm.SampleQueryResult.InspectForeignKeyAsync("AssignedUnit", "ENG");
+            var inspector = vm.SampleQueryResult.ForeignKeyInspectorModal;
+            if (!inspector.RecordFound || inspector.Fields.Count != 2)
+            {
+                throw new Exception($"Expected real FK inspector record with 2 fields, got RecordFound={inspector.RecordFound}, Fields={inspector.Fields.Count}");
+            }
+            var unitCodeField = inspector.Fields.FirstOrDefault(f => f.FieldName == "UnitCode");
+            var titleField = inspector.Fields.FirstOrDefault(f => f.FieldName == "Title");
+            if (unitCodeField == null || !unitCodeField.IsPrimaryKey || !string.Equals(unitCodeField.DataType, "TEXT", StringComparison.OrdinalIgnoreCase) || titleField?.FieldValue != "Engineering")
+            {
+                throw new Exception($"Real DB FK inspector metadata mismatch! UnitCode={unitCodeField?.DataType} PK={unitCodeField?.IsPrimaryKey}, Title={titleField?.FieldValue}");
+            }
+            inspector.CloseCommand.Execute(null);
+
+            // Verify orphan FK in connected mode does NOT fall back to sample data
+            await vm.SampleQueryResult.InspectForeignKeyAsync("AssignedUnit", "MISSING_CODE");
+            if (inspector.RecordFound)
+            {
+                throw new Exception("Connected DB FK inspector should not find missing/orphan record!");
+            }
+            inspector.CloseCommand.Execute(null);
+
+            await vm.SampleQueryResult.NavigateToForeignKeyAsync("AssignedUnit", "MISSING_CODE");
+            if (vm.SampleQueryResult.Rows.Count != 0)
+            {
+                throw new Exception($"Connected DB FK navigation for missing record should show 0 rows, not sample data! Got {vm.SampleQueryResult.Rows.Count}");
+            }
+
+            // Verify table-less query clears stale PK/FK metadata
+            vm.Editor.SelectedTab!.Text = "SELECT 'hello' AS Greeting;";
+            await vm.ExecuteQuery();
+            if (vm.SampleQueryResult.PrimaryKeyColumns.Count != 0 || vm.SampleQueryResult.ForeignKeyRelations.Count != 0 || vm.SampleQueryResult.HasPrimaryKey)
+            {
+                throw new Exception("Stale PK/FK metadata was not cleared on table-less query!");
+            }
+
+            // Disconnect and cleanup
+            await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.DisconnectAsync(metaDbConfig.ConnectionKey);
+            await vm.RefreshAvailableDatabasesAsync();
+            vm.SelectedTargetDatabase = null;
+            if (vm.SampleQueryResult.IsConnectedToDatabase)
+            {
+                throw new Exception("Expected IsConnectedToDatabase=false after disconnecting test DB!");
+            }
+            if (System.IO.File.Exists(metaDbPath))
+            {
+                try { System.IO.File.Delete(metaDbPath); } catch { }
+            }
+            Console.WriteLine("[Success] Real SQLite DB metadata-driven PK/FK, FK inspector, schema isolation & zero-heuristic tests passed!");
+
+            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER, SIMULTANEOUS BATCH CELL EDITING, FOREIGN KEY NAVIGATION, REAL DB METADATA PK/FK & ZERO HEURISTICS, HARDWARE GPU/CPU RENDERING PIPELINE, XAML.BEHAVIORS GPU ANIMATIONS, INTEGRATED TERMINAL & VISUAL EXCEL DATA IMPORT WIZARD) PASSED! <<<");
             return;
         }
 

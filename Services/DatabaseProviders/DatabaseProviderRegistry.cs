@@ -8,7 +8,7 @@ public class DatabaseProviderRegistry
     private static DatabaseProviderRegistry? _instance;
     public static DatabaseProviderRegistry Instance => _instance ??= new DatabaseProviderRegistry();
 
-    private readonly Dictionary<string, IDatabaseProvider> _providers = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<DatabaseType, IDatabaseProvider> _providers = new();
 
     public DatabaseProviderRegistry()
     {
@@ -20,16 +20,21 @@ public class DatabaseProviderRegistry
 
     public void Register(IDatabaseProvider provider)
     {
-        _providers[provider.Id] = provider;
+        _providers[provider.DatabaseType] = provider;
+    }
+
+    public IDatabaseProvider GetProvider(DatabaseType dbType)
+    {
+        if (_providers.TryGetValue(dbType, out var provider))
+        {
+            return provider;
+        }
+        return _providers[DatabaseType.MSSQL];
     }
 
     public IDatabaseProvider GetProvider(string id)
     {
-        if (!string.IsNullOrWhiteSpace(id) && _providers.TryGetValue(id, out var provider))
-        {
-            return provider;
-        }
-        return _providers["MSSQL"];
+        return GetProvider(DatabaseTypeExtensions.Parse(id));
     }
 
     public IReadOnlyCollection<IDatabaseProvider> GetAllProviders() => _providers.Values;

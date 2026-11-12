@@ -10,6 +10,7 @@ namespace Quell.Services.DatabaseProviders;
 
 public class SqlServerDatabaseProvider : IDatabaseProvider
 {
+    public DatabaseType DatabaseType => DatabaseType.MSSQL;
     public string Id => "MSSQL";
     public string DisplayName => "Microsoft SQL Server";
     public string ShortDescription => "Enterprise SQL Server & Azure SQL";

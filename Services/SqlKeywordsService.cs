@@ -19,7 +19,7 @@ public class SqlKeywordsService
     private static SqlKeywordsService? _instance;
     public static SqlKeywordsService Instance => _instance ??= new SqlKeywordsService();
 
-    public string CurrentDialect { get; private set; } = "MSSQL";
+    public DatabaseType CurrentDialect { get; private set; } = DatabaseType.MSSQL;
     public List<string> Keywords { get; private set; } = new();
     public List<SqlSnippet> Snippets { get; private set; } = new();
     public List<TableMetadata> ActiveTables { get; private set; } = new();
@@ -63,13 +63,14 @@ public class SqlKeywordsService
     /// Loads keywords and snippets directly from SQLite database for the specified dialect.
     /// Supports: MSSQL, PostgreSQL, MySQL, SQLite, etc.
     /// </summary>
-    public async Task LoadKeywordsFromDatabaseAsync(string dialect = "MSSQL")
+    public async Task LoadKeywordsFromDatabaseAsync(DatabaseType dialect = DatabaseType.MSSQL)
     {
         try
         {
             CurrentDialect = dialect;
-            var dbKeywords = await DatabaseStorageService.Instance.GetKeywordsAsync(dialect);
-            var dbSnippets = await DatabaseStorageService.Instance.GetSnippetsAsync(dialect);
+            string dialectStr = dialect.ToDialectString();
+            var dbKeywords = await DatabaseStorageService.Instance.GetKeywordsAsync(dialectStr);
+            var dbSnippets = await DatabaseStorageService.Instance.GetSnippetsAsync(dialectStr);
 
             if (dbKeywords.Count > 0)
             {

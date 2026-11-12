@@ -39,7 +39,7 @@ public class OpenDatabaseSession
     public DateTime ConnectedAt { get; init; } = DateTime.Now;
 
     public string DisplayName => Config.DisplayName;
-    public string DatabaseType => Config.DatabaseType;
+    public DatabaseType DatabaseType => Config.DatabaseType;
 }
 
 public class DatabaseSessionService
@@ -125,7 +125,7 @@ public class DatabaseSessionService
 
     private void NotifyConnectionChanged()
     {
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        void InvokeHandlers()
         {
             try
             {
@@ -135,7 +135,16 @@ public class DatabaseSessionService
             {
                 Console.WriteLine($"[DatabaseSessionService] ConnectionChanged error: {ex.Message}");
             }
-        });
+        }
+
+        if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+        {
+            InvokeHandlers();
+        }
+        else
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(InvokeHandlers);
+        }
     }
 
     public bool IsSessionOpen(string sessionKey)
@@ -372,16 +381,16 @@ public class DatabaseSessionService
 
             string sql = session.Config.DatabaseType switch
             {
-                "MSSQL" => @"
+                DatabaseType.MSSQL => @"
                     SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE 
                     FROM INFORMATION_SCHEMA.TABLES 
                     ORDER BY TABLE_SCHEMA, TABLE_NAME;",
-                "PostgreSQL" => @"
+                DatabaseType.PostgreSQL => @"
                     SELECT table_schema, table_name, table_type 
                     FROM information_schema.tables 
                     WHERE table_schema NOT IN ('pg_catalog', 'information_schema') 
                     ORDER BY table_schema, table_name;",
-                "MySQL" => @"
+                DatabaseType.MySQL => @"
                     SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE 
                     FROM information_schema.tables 
                     WHERE TABLE_SCHEMA = DATABASE() 
@@ -447,6 +456,21 @@ public class DatabaseSessionService
         }
     }
 
+    private static (string? Schema, string Table) ParseTableName(string tableName)
+    {
+        string clean = tableName.Trim().Trim('[', ']', '"', '`');
+        int dotIdx = clean.IndexOf('.');
+        if (dotIdx > 0 && dotIdx < clean.Length - 1)
+        {
+            string schema = clean.Substring(0, dotIdx).Trim('[', ']', '"', '`');
+            string table = clean.Substring(dotIdx + 1).Trim('[', ']', '"', '`');
+            return (string.IsNullOrWhiteSpace(schema) ? null : schema, table);
+        }
+        return (null, clean);
+    }
+
+    private static string EscapeSqlLiteral(string value) => value.Replace("'", "''");
+
     public async Task<List<string>> GetPrimaryKeyColumnsAsync(string tableName, string? sessionKey = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(tableName)) return new List<string>();
@@ -460,35 +484,38 @@ public class DatabaseSessionService
                 return new List<string>();
             }
 
-            string cleanTable = tableName.Trim('[', ']', '"', '`');
-            string schema = "dbo";
-            if (cleanTable.Contains('.'))
-            {
-                var parts = cleanTable.Split('.');
-                schema = parts[0];
-                cleanTable = parts[1];
-            }
+            var (schema, cleanTable) = ParseTableName(tableName);
+            bool hasSchema = !string.IsNullOrWhiteSpace(schema);
 
             string sql = session.Config.DatabaseType switch
             {
-                "MSSQL" => $@"
-                    SELECT COLUMN_NAME 
-                    FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
-                    WHERE OBJECTPROPERTY(OBJECT_ID(CONSTRAINT_SCHEMA + '.' + CONSTRAINT_NAME), 'IsPrimaryKey') = 1 
-                      AND TABLE_NAME = '{cleanTable.Replace("'", "''")}';",
-                "PostgreSQL" => $@"
+                DatabaseType.MSSQL => $@"
+                    SELECT kcu.COLUMN_NAME 
+                    FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
+                    WHERE OBJECTPROPERTY(OBJECT_ID(kcu.CONSTRAINT_SCHEMA + '.' + kcu.CONSTRAINT_NAME), 'IsPrimaryKey') = 1 
+                      AND kcu.TABLE_NAME = '{EscapeSqlLiteral(cleanTable)}'
+                      {(hasSchema ? $"AND kcu.TABLE_SCHEMA = '{EscapeSqlLiteral(schema!)}'" : "")}
+                    ORDER BY kcu.ORDINAL_POSITION;",
+                DatabaseType.PostgreSQL => $@"
                     SELECT kcu.column_name 
                     FROM information_schema.table_constraints tc 
                     JOIN information_schema.key_column_usage kcu 
                       ON tc.constraint_name = kcu.constraint_name 
+                     AND tc.table_schema = kcu.table_schema
                     WHERE tc.constraint_type = 'PRIMARY KEY' 
-                      AND tc.table_name = '{cleanTable.ToLowerInvariant().Replace("'", "''")}';",
-                "MySQL" => $@"
+                      AND LOWER(tc.table_name) = '{EscapeSqlLiteral(cleanTable.ToLowerInvariant())}'
+                      {(hasSchema ? $"AND LOWER(tc.table_schema) = '{EscapeSqlLiteral(schema!.ToLowerInvariant())}'" : "AND tc.table_schema NOT IN ('pg_catalog', 'information_schema')")}
+                    ORDER BY kcu.ordinal_position;",
+                DatabaseType.MySQL => $@"
                     SELECT COLUMN_NAME 
                     FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
                     WHERE CONSTRAINT_NAME = 'PRIMARY' 
-                      AND TABLE_NAME = '{cleanTable.Replace("'", "''")}';",
-                _ => $@"PRAGMA table_info('{cleanTable.Replace("'", "''")}');"
+                      AND TABLE_SCHEMA = {(hasSchema ? $"'{EscapeSqlLiteral(schema!)}'" : "DATABASE()")}
+                      AND TABLE_NAME = '{EscapeSqlLiteral(cleanTable)}'
+                    ORDER BY ORDINAL_POSITION;",
+                _ => hasSchema && !schema!.Equals("main", StringComparison.OrdinalIgnoreCase)
+                    ? $@"PRAGMA ""{schema.Replace("\"", "\"\"")}"".table_info('{EscapeSqlLiteral(cleanTable)}');"
+                    : $@"PRAGMA table_info('{EscapeSqlLiteral(cleanTable)}');"
             };
 
             using var cmd = session.Connection.CreateCommand();
@@ -496,16 +523,18 @@ public class DatabaseSessionService
             using var reader = cmd.ExecuteReader();
             var pks = new List<string>();
 
-            if (session.Config.DatabaseType == "SQLite")
+            if (session.Config.DatabaseType == DatabaseType.SQLite)
             {
+                var pkEntries = new List<(int Order, string Name)>();
                 while (reader.Read())
                 {
                     int pkIndex = reader.GetInt32(5);
                     if (pkIndex > 0)
                     {
-                        pks.Add(reader.GetString(1));
+                        pkEntries.Add((pkIndex, reader.GetString(1)));
                     }
                 }
+                pks.AddRange(pkEntries.OrderBy(e => e.Order).Select(e => e.Name));
             }
             else
             {
@@ -541,33 +570,48 @@ public class DatabaseSessionService
                 return new List<(string, string)>();
             }
 
-            string cleanTable = tableName.Trim('[', ']', '"', '`');
-            if (cleanTable.Contains('.'))
-            {
-                cleanTable = cleanTable.Split('.')[1];
-            }
+            var (schema, cleanTable) = ParseTableName(tableName);
+            bool hasSchema = !string.IsNullOrWhiteSpace(schema);
 
             var list = new List<(string, string)>();
 
-            if (session.Config.DatabaseType == "SQLite")
+            if (session.Config.DatabaseType == DatabaseType.SQLite)
             {
                 using var cmd = session.Connection.CreateCommand();
-                cmd.CommandText = $"PRAGMA table_info('{cleanTable.Replace("'", "''")}');";
+                cmd.CommandText = hasSchema && !schema!.Equals("main", StringComparison.OrdinalIgnoreCase)
+                    ? $"PRAGMA \"{schema.Replace("\"", "\"\"")}\".table_info('{EscapeSqlLiteral(cleanTable)}');"
+                    : $"PRAGMA table_info('{EscapeSqlLiteral(cleanTable)}');";
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
                     string colName = reader.GetString(1);
-                    string colType = reader.GetString(2);
+                    string colType = reader.IsDBNull(2) ? string.Empty : reader.GetString(2);
                     list.Add((colName, string.IsNullOrWhiteSpace(colType) ? "TEXT" : colType));
                 }
             }
             else
             {
-                string sql = $@"
-                    SELECT COLUMN_NAME, DATA_TYPE 
-                    FROM INFORMATION_SCHEMA.COLUMNS 
-                    WHERE TABLE_NAME = '{cleanTable.Replace("'", "''")}'
-                    ORDER BY ORDINAL_POSITION;";
+                string sql = session.Config.DatabaseType switch
+                {
+                    DatabaseType.PostgreSQL => $@"
+                        SELECT column_name, data_type 
+                        FROM information_schema.columns 
+                        WHERE LOWER(table_name) = '{EscapeSqlLiteral(cleanTable.ToLowerInvariant())}'
+                          {(hasSchema ? $"AND LOWER(table_schema) = '{EscapeSqlLiteral(schema!.ToLowerInvariant())}'" : "AND table_schema NOT IN ('pg_catalog', 'information_schema')")}
+                        ORDER BY ordinal_position;",
+                    DatabaseType.MySQL => $@"
+                        SELECT COLUMN_NAME, DATA_TYPE 
+                        FROM INFORMATION_SCHEMA.COLUMNS 
+                        WHERE TABLE_SCHEMA = {(hasSchema ? $"'{EscapeSqlLiteral(schema!)}'" : "DATABASE()")}
+                          AND TABLE_NAME = '{EscapeSqlLiteral(cleanTable)}'
+                        ORDER BY ORDINAL_POSITION;",
+                    _ => $@"
+                        SELECT COLUMN_NAME, DATA_TYPE 
+                        FROM INFORMATION_SCHEMA.COLUMNS 
+                        WHERE TABLE_NAME = '{EscapeSqlLiteral(cleanTable)}'
+                          {(hasSchema ? $"AND TABLE_SCHEMA = '{EscapeSqlLiteral(schema!)}'" : "")}
+                        ORDER BY ORDINAL_POSITION;"
+                };
 
                 using var cmd = session.Connection.CreateCommand();
                 cmd.CommandText = sql;
@@ -575,7 +619,7 @@ public class DatabaseSessionService
                 while (reader.Read())
                 {
                     string colName = reader.GetString(0);
-                    string colType = reader.GetString(1);
+                    string colType = reader.IsDBNull(1) ? string.Empty : reader.GetString(1);
                     list.Add((colName, colType));
                 }
             }
@@ -606,51 +650,78 @@ public class DatabaseSessionService
                 return new List<ForeignKeyRelation>();
             }
 
-            string cleanTable = tableName.Trim('[', ']', '"', '`');
-            string schema = "dbo";
-            if (cleanTable.Contains('.'))
-            {
-                var parts = cleanTable.Split('.');
-                schema = parts[0];
-                cleanTable = parts[1];
-            }
+            var (schema, cleanTable) = ParseTableName(tableName);
+            bool hasSchema = !string.IsNullOrWhiteSpace(schema);
 
             var results = new List<ForeignKeyRelation>();
 
-            if (session.Config.DatabaseType == "SQLite")
+            if (session.Config.DatabaseType == DatabaseType.SQLite)
             {
-                using var cmd = session.Connection.CreateCommand();
-                cmd.CommandText = $"PRAGMA foreign_key_list('{cleanTable.Replace("'", "''")}');";
-                using var reader = cmd.ExecuteReader();
-                while (reader.Read())
+                var rawEntries = new List<(string ColumnName, string TargetTable, string? TargetColumn)>();
+                using (var cmd = session.Connection.CreateCommand())
                 {
-                    string targetTable = reader.GetString(2);
-                    string fromCol = reader.GetString(3);
-                    string toCol = reader.IsDBNull(4) ? "Id" : reader.GetString(4);
-                    results.Add(new ForeignKeyRelation
+                    cmd.CommandText = hasSchema && !schema!.Equals("main", StringComparison.OrdinalIgnoreCase)
+                        ? $"PRAGMA \"{schema.Replace("\"", "\"\"")}\".foreign_key_list('{EscapeSqlLiteral(cleanTable)}');"
+                        : $"PRAGMA foreign_key_list('{EscapeSqlLiteral(cleanTable)}');";
+                    using var reader = cmd.ExecuteReader();
+                    while (reader.Read())
                     {
-                        ColumnName = fromCol,
-                        TargetTable = targetTable,
-                        TargetColumn = toCol
-                    });
+                        string targetTable = reader.GetString(2);
+                        string fromCol = reader.GetString(3);
+                        string? toCol = reader.IsDBNull(4) ? null : reader.GetString(4);
+                        rawEntries.Add((fromCol, targetTable, toCol));
+                    }
+                }
+
+                foreach (var entry in rawEntries)
+                {
+                    string resolvedTargetCol = entry.TargetColumn ?? string.Empty;
+                    if (string.IsNullOrWhiteSpace(resolvedTargetCol))
+                    {
+                        // SQLite omits 'to' column when FK uses shorthand REFERENCES TargetTable; resolve its actual PK column from metadata
+                        using var pkCmd = session.Connection.CreateCommand();
+                        pkCmd.CommandText = $"PRAGMA table_info('{EscapeSqlLiteral(entry.TargetTable)}');";
+                        using var pkReader = pkCmd.ExecuteReader();
+                        while (pkReader.Read())
+                        {
+                            if (pkReader.GetInt32(5) > 0)
+                            {
+                                resolvedTargetCol = pkReader.GetString(1);
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(resolvedTargetCol))
+                    {
+                        results.Add(new ForeignKeyRelation
+                        {
+                            ColumnName = entry.ColumnName,
+                            TargetTable = entry.TargetTable,
+                            TargetColumn = resolvedTargetCol
+                        });
+                    }
                 }
             }
-            else if (session.Config.DatabaseType == "MSSQL")
+            else if (session.Config.DatabaseType == DatabaseType.MSSQL)
             {
                 using var cmd = session.Connection.CreateCommand();
                 cmd.CommandText = $@"
                     SELECT 
                         col.name AS ColumnName,
-                        ref_tab.name AS TargetTable,
+                        CASE WHEN ref_sch.name = 'dbo' THEN ref_tab.name ELSE ref_sch.name + '.' + ref_tab.name END AS TargetTable,
                         ref_col.name AS TargetColumn,
                         fk.name AS ConstraintName
                     FROM sys.foreign_keys fk
                     INNER JOIN sys.foreign_key_columns fkc ON fk.object_id = fkc.constraint_object_id
                     INNER JOIN sys.tables tab ON tab.object_id = fk.parent_object_id
+                    INNER JOIN sys.schemas sch ON sch.schema_id = tab.schema_id
                     INNER JOIN sys.columns col ON col.object_id = fkc.parent_object_id AND col.column_id = fkc.parent_column_id
                     INNER JOIN sys.tables ref_tab ON ref_tab.object_id = fk.referenced_object_id
+                    INNER JOIN sys.schemas ref_sch ON ref_sch.schema_id = ref_tab.schema_id
                     INNER JOIN sys.columns ref_col ON ref_col.object_id = fkc.referenced_object_id AND ref_col.column_id = fkc.referenced_column_id
-                    WHERE tab.name = '{cleanTable.Replace("'", "''")}';";
+                    WHERE tab.name = '{EscapeSqlLiteral(cleanTable)}'
+                      {(hasSchema ? $"AND sch.name = '{EscapeSqlLiteral(schema!)}'" : "")};";
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
@@ -663,13 +734,13 @@ public class DatabaseSessionService
                     });
                 }
             }
-            else if (session.Config.DatabaseType == "PostgreSQL")
+            else if (session.Config.DatabaseType == DatabaseType.PostgreSQL)
             {
                 using var cmd = session.Connection.CreateCommand();
                 cmd.CommandText = $@"
                     SELECT
                         kcu.column_name AS ColumnName,
-                        ccu.table_name AS TargetTable,
+                        CASE WHEN ccu.table_schema = 'public' THEN ccu.table_name ELSE ccu.table_schema || '.' || ccu.table_name END AS TargetTable,
                         ccu.column_name AS TargetColumn,
                         tc.constraint_name AS ConstraintName
                     FROM information_schema.table_constraints AS tc
@@ -678,9 +749,10 @@ public class DatabaseSessionService
                       AND tc.table_schema = kcu.table_schema
                     JOIN information_schema.constraint_column_usage AS ccu
                       ON ccu.constraint_name = tc.constraint_name
-                      AND ccu.table_schema = tc.table_schema
+                      AND ccu.constraint_schema = tc.constraint_schema
                     WHERE tc.constraint_type = 'FOREIGN KEY'
-                      AND tc.table_name = '{cleanTable.ToLowerInvariant().Replace("'", "''")}';";
+                      AND LOWER(tc.table_name) = '{EscapeSqlLiteral(cleanTable.ToLowerInvariant())}'
+                      {(hasSchema ? $"AND LOWER(tc.table_schema) = '{EscapeSqlLiteral(schema!.ToLowerInvariant())}'" : "AND tc.table_schema NOT IN ('pg_catalog', 'information_schema')")};";
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
@@ -693,7 +765,7 @@ public class DatabaseSessionService
                     });
                 }
             }
-            else if (session.Config.DatabaseType == "MySQL")
+            else if (session.Config.DatabaseType == DatabaseType.MySQL)
             {
                 using var cmd = session.Connection.CreateCommand();
                 cmd.CommandText = $@"
@@ -703,9 +775,9 @@ public class DatabaseSessionService
                         REFERENCED_COLUMN_NAME AS TargetColumn,
                         CONSTRAINT_NAME AS ConstraintName
                     FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-                    WHERE TABLE_SCHEMA = DATABASE()
+                    WHERE TABLE_SCHEMA = {(hasSchema ? $"'{EscapeSqlLiteral(schema!)}'" : "DATABASE()")}
                       AND REFERENCED_TABLE_NAME IS NOT NULL
-                      AND TABLE_NAME = '{cleanTable.Replace("'", "''")}';";
+                      AND TABLE_NAME = '{EscapeSqlLiteral(cleanTable)}';";
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {

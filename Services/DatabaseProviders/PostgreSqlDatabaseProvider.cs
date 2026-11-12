@@ -10,6 +10,7 @@ namespace Quell.Services.DatabaseProviders;
 
 public class PostgreSqlDatabaseProvider : IDatabaseProvider
 {
+    public DatabaseType DatabaseType => DatabaseType.PostgreSQL;
     public string Id => "PostgreSQL";
     public string DisplayName => "PostgreSQL";
     public string ShortDescription => "Open source object-relational database";
