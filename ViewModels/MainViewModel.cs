@@ -76,6 +76,10 @@ public partial class MainViewModel : ViewModelBase
         _diagramModal = new DatabaseDiagramModalViewModel();
         _settingsModal = new SettingsModalViewModel();
         _updateModal = new UpdateModalViewModel();
+        _navbar.RequestCheckForUpdates += () =>
+        {
+            _ = _updateModal.CheckForUpdatesAsync();
+        };
         _sampleQueryResult = new QueryResultTableViewModel();
         _sampleSchema = new SchemaPropertiesTableViewModel();
 

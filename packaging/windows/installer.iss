@@ -2,7 +2,9 @@
 ; Generates Windows Installer executable (Quell-Setup-win-x64.exe)
 
 #define MyAppName "Quell"
-#define MyAppVersion "1.0.0"
+#ifndef MyAppVersion
+  #define MyAppVersion "1.0.0"
+#endif
 #define MyAppPublisher "CipherUnits"
 #define MyAppURL "https://github.com/cipherunits/Quell"
 #define MyAppExeName "Quell.exe"
@@ -11,6 +13,9 @@
 #endif
 #ifndef OutputDir
   #define OutputDir "..\..\dist\windows"
+#endif
+#ifndef OutputBaseFilename
+  #define OutputBaseFilename "Quell-Setup-win-x64"
 #endif
 
 [Setup]
@@ -23,7 +28,7 @@ AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DisableProgramGroupPage=yes
-OutputBaseFilename=Quell-Setup-win-x64
+OutputBaseFilename={#OutputBaseFilename}
 OutputDir={#OutputDir}
 Compression=lzma2/ultra64
 SolidCompression=yes

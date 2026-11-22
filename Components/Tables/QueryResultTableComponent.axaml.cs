@@ -27,6 +27,26 @@ public partial class QueryResultTableComponent : UserControl
             "OwningColumn",
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
 
+    private static readonly Func<DataGridCell, DataGridColumn?>? OwningColumnGetter =
+        CreateOwningColumnGetter();
+
+    private static Func<DataGridCell, DataGridColumn?>? CreateOwningColumnGetter()
+    {
+        try
+        {
+            var prop = typeof(DataGridCell).GetProperty(
+                "OwningColumn",
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (prop?.GetMethod != null)
+            {
+                return (Func<DataGridCell, DataGridColumn?>)Delegate.CreateDelegate(
+                    typeof(Func<DataGridCell, DataGridColumn?>), prop.GetMethod);
+            }
+        }
+        catch { }
+        return null;
+    }
+
     private QueryResultTableViewModel? _viewModel;
     private QueryResultRow? _anchorRow;
     private int _anchorCol;
@@ -41,6 +61,13 @@ public partial class QueryResultTableComponent : UserControl
     private bool _dragRows;
     private bool _refreshQueued;
     private IPointer? _capturedPointer;
+
+    private int _spanRowStart = -1;
+    private int _spanRowEnd = -1;
+    private bool _spanValid;
+    private int _dataMinCol = 1;
+    private int _dataMaxCol = 1;
+    private List<int> _cachedDataColumnIndexes = new();
 
     public QueryResultTableComponent()
     {
@@ -428,6 +455,15 @@ public partial class QueryResultTableComponent : UserControl
                 col.CellStyleClasses.Add(styleClass);
                 ResultsDataGrid.Columns.Add(col);
             }
+
+            _cachedDataColumnIndexes = ResultsDataGrid.Columns
+                .Where(column => !IsRowHeader(column))
+                .Select(column => column.DisplayIndex)
+                .OrderBy(index => index)
+                .ToList();
+            _dataMinCol = _cachedDataColumnIndexes.Count > 0 ? _cachedDataColumnIndexes[0] : 1;
+            _dataMaxCol = _cachedDataColumnIndexes.Count > 0 ? _cachedDataColumnIndexes[^1] : 1;
+            UpdateSpanCache();
         }
 
         if (Dispatcher.UIThread.CheckAccess())
@@ -537,21 +573,26 @@ public partial class QueryResultTableComponent : UserControl
     private void OnLoadingRow(object? sender, DataGridRowEventArgs e)
     {
         ApplyRow(e.Row);
-        Dispatcher.UIThread.Post(() => ApplyRow(e.Row), DispatcherPriority.Loaded);
     }
 
     private void OnUnloadingRow(object? sender, DataGridRowEventArgs e)
     {
         foreach (var cell in e.Row.GetVisualDescendants().OfType<DataGridCell>())
         {
-            cell.Classes.Remove(SelectedClass);
-            cell.Classes.Remove(ActiveClass);
+            if (cell.Classes.Contains(SelectedClass))
+                cell.Classes.Remove(SelectedClass);
+            if (cell.Classes.Contains(ActiveClass))
+                cell.Classes.Remove(ActiveClass);
         }
     }
 
     private void OnSorting(object? sender, DataGridColumnEventArgs e)
     {
-        Dispatcher.UIThread.Post(RefreshVisuals, DispatcherPriority.Background);
+        Dispatcher.UIThread.Post(() =>
+        {
+            UpdateSpanCache();
+            RefreshVisuals();
+        }, DispatcherPriority.Background);
     }
 
     private void OnGridKeyDown(object? sender, KeyEventArgs e)
@@ -779,9 +820,34 @@ public partial class QueryResultTableComponent : UserControl
         _anchorRow = anchorRow;
         _anchorCol = anchorColumn;
         _hasSelection = true;
+        UpdateSpanCache();
         SyncGridCurrency(scroll);
         QueueRefresh();
         UpdateStatus();
+    }
+
+    private void UpdateSpanCache()
+    {
+        if (!_hasSelection || _cornerARow == null || _cornerBRow == null || ResultsDataGrid.CollectionView is not DataGridCollectionView view)
+        {
+            _spanValid = false;
+            _spanRowStart = _spanRowEnd = -1;
+            return;
+        }
+
+        int first = view.IndexOf(_cornerARow);
+        int second = view.IndexOf(_cornerBRow);
+        if (first >= 0 && second >= 0)
+        {
+            _spanRowStart = Math.Min(first, second);
+            _spanRowEnd = Math.Max(first, second);
+            _spanValid = true;
+        }
+        else
+        {
+            _spanValid = false;
+            _spanRowStart = _spanRowEnd = -1;
+        }
     }
 
     private void SyncGridCurrency(bool scroll)
@@ -810,7 +876,7 @@ public partial class QueryResultTableComponent : UserControl
         {
             _refreshQueued = false;
             RefreshVisuals();
-        }, DispatcherPriority.Loaded);
+        }, DispatcherPriority.Render);
     }
 
     private void RefreshVisuals()
@@ -824,31 +890,63 @@ public partial class QueryResultTableComponent : UserControl
         if (row.DataContext is not QueryResultRow item)
             return;
 
+        if (!_hasSelection)
+        {
+            foreach (var cell in row.GetVisualDescendants().OfType<DataGridCell>())
+            {
+                if (cell.Classes.Contains(SelectedClass))
+                    cell.Classes.Remove(SelectedClass);
+                if (cell.Classes.Contains(ActiveClass))
+                    cell.Classes.Remove(ActiveClass);
+            }
+            return;
+        }
+
+        int rowIndex = row.Index;
+        bool isRowInSpan = _spanValid && rowIndex >= _spanRowStart && rowIndex <= _spanRowEnd;
+        bool isRowFullySelected = isRowInSpan && _col1 <= _dataMinCol && _col2 >= _dataMaxCol;
+        bool isRowActive = ReferenceEquals(item, _activeRow);
+
         foreach (var cell in row.GetVisualDescendants().OfType<DataGridCell>())
         {
             var column = ColumnOf(cell);
             if (column == null)
             {
-                cell.Classes.Remove(SelectedClass);
-                cell.Classes.Remove(ActiveClass);
+                if (cell.Classes.Contains(SelectedClass))
+                    cell.Classes.Remove(SelectedClass);
+                if (cell.Classes.Contains(ActiveClass))
+                    cell.Classes.Remove(ActiveClass);
                 continue;
             }
 
-            var header = IsRowHeader(column);
-            var active = !header && IsActive(item, column.DisplayIndex);
-            var selected = !active && (header
-                ? IsRowFullySelected(item)
-                : IsCellSelected(item, column.DisplayIndex));
+            int colIndex = column.DisplayIndex;
+            bool header = IsRowHeader(column);
+            bool active = !header && isRowActive && colIndex == _activeCol;
+            bool selected = !active && (header
+                ? isRowFullySelected
+                : (isRowInSpan && colIndex >= _col1 && colIndex <= _col2));
 
             if (selected)
-                cell.Classes.Add(SelectedClass);
+            {
+                if (!cell.Classes.Contains(SelectedClass))
+                    cell.Classes.Add(SelectedClass);
+            }
             else
-                cell.Classes.Remove(SelectedClass);
+            {
+                if (cell.Classes.Contains(SelectedClass))
+                    cell.Classes.Remove(SelectedClass);
+            }
 
             if (active)
-                cell.Classes.Add(ActiveClass);
+            {
+                if (!cell.Classes.Contains(ActiveClass))
+                    cell.Classes.Add(ActiveClass);
+            }
             else
-                cell.Classes.Remove(ActiveClass);
+            {
+                if (cell.Classes.Contains(ActiveClass))
+                    cell.Classes.Remove(ActiveClass);
+            }
         }
     }
 
@@ -916,19 +1014,14 @@ public partial class QueryResultTableComponent : UserControl
 
     private bool TryGetSpan(out int rowStart, out int rowEnd, out int columnStart, out int columnEnd)
     {
-        rowStart = rowEnd = columnStart = columnEnd = 0;
-        if (!_hasSelection || _cornerARow == null || _cornerBRow == null)
+        if (!_hasSelection || !_spanValid)
+        {
+            rowStart = rowEnd = columnStart = columnEnd = 0;
             return false;
-        if (ResultsDataGrid.CollectionView is not DataGridCollectionView view)
-            return false;
+        }
 
-        var first = view.IndexOf(_cornerARow);
-        var second = view.IndexOf(_cornerBRow);
-        if (first < 0 || second < 0)
-            return false;
-
-        rowStart = Math.Min(first, second);
-        rowEnd = Math.Max(first, second);
+        rowStart = _spanRowStart;
+        rowEnd = _spanRowEnd;
         columnStart = _col1;
         columnEnd = _col2;
         return true;
@@ -959,8 +1052,7 @@ public partial class QueryResultTableComponent : UserControl
         if (index < rowStart || index > rowEnd)
             return false;
 
-        var data = DataColumnIndexes();
-        return data.Count > 0 && data[0] >= columnStart && data[^1] <= columnEnd;
+        return columnStart <= _dataMinCol && columnEnd >= _dataMaxCol;
     }
 
     private (QueryResultRow Item, DataGridColumn Column)? HitTestCell(PointerEventArgs e)
@@ -982,31 +1074,35 @@ public partial class QueryResultTableComponent : UserControl
 
     private DataGridColumn? ColumnOf(DataGridCell cell)
     {
-        if (OwningColumnProperty?.GetValue(cell) is DataGridColumn owning
-            && ResultsDataGrid.Columns.Contains(owning))
+        if (OwningColumnGetter != null)
+        {
+            var col = OwningColumnGetter(cell);
+            if (col != null) return col;
+        }
+
+        if (OwningColumnProperty?.GetValue(cell) is DataGridColumn owning)
         {
             return owning;
         }
 
-        var row = DataGridRow.GetRowContainingElement(cell);
-        if (row == null)
-            return null;
-
-        var cells = row.GetVisualDescendants().OfType<DataGridCell>().ToList();
-        var index = cells.IndexOf(cell);
-        var ordered = ResultsDataGrid.Columns.OrderBy(column => column.DisplayIndex).ToList();
-        return index >= 0 && index < ordered.Count ? ordered[index] : null;
+        return null;
     }
 
     private DataGridColumn? ColumnAtDisplayIndex(int displayIndex) =>
         ResultsDataGrid.Columns.FirstOrDefault(column => column.DisplayIndex == displayIndex);
 
-    private List<int> DataColumnIndexes() =>
-        ResultsDataGrid.Columns
+    private List<int> DataColumnIndexes()
+    {
+        if (_cachedDataColumnIndexes.Count > 0)
+            return _cachedDataColumnIndexes;
+
+        _cachedDataColumnIndexes = ResultsDataGrid.Columns
             .Where(column => !IsRowHeader(column))
             .Select(column => column.DisplayIndex)
             .OrderBy(index => index)
             .ToList();
+        return _cachedDataColumnIndexes;
+    }
 
     private static bool IsRowHeader(DataGridColumn column) =>
         column.Header?.ToString() == "ROW #";

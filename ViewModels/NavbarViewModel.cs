@@ -36,6 +36,14 @@ public partial class NavbarViewModel : ViewModelBase
         "windows"
     };
 
+    public event System.Action? RequestCheckForUpdates;
+
+    [RelayCommand]
+    public void CheckForUpdates()
+    {
+        RequestCheckForUpdates?.Invoke();
+    }
+
     [RelayCommand]
     public void ToggleNavMenu()
     {

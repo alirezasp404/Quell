@@ -20,8 +20,42 @@ public class AppUpdateService
     private static AppUpdateService? _instance;
     public static AppUpdateService Instance => _instance ??= new AppUpdateService();
 
-    public static readonly Version CurrentVersion = new(1, 0, 0);
-    public static string CurrentVersionString => $"v{CurrentVersion.Major}.{CurrentVersion.Minor}.{CurrentVersion.Build}";
+    public static readonly Version CurrentVersion = ResolveCurrentVersion();
+    public static string CurrentVersionString => $"v{CurrentVersion.Major}.{CurrentVersion.Minor}.{Math.Max(0, CurrentVersion.Build)}";
+
+    private static Version ResolveCurrentVersion()
+    {
+        try
+        {
+            var assembly = System.Reflection.Assembly.GetEntryAssembly() 
+                           ?? typeof(AppUpdateService).Assembly;
+
+            // 1. Try InformationalVersion which contains full semver (e.g. "1.0.1" or "1.0.1+git-hash")
+            var infoVerAttr = assembly.GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+                .OfType<System.Reflection.AssemblyInformationalVersionAttribute>()
+                .FirstOrDefault();
+
+            if (!string.IsNullOrWhiteSpace(infoVerAttr?.InformationalVersion) && 
+                TryParseVersion(infoVerAttr.InformationalVersion, out var infoParsed) && 
+                infoParsed != null)
+            {
+                return infoParsed;
+            }
+
+            // 2. Try Assembly.GetName().Version
+            var ver = assembly.GetName().Version;
+            if (ver != null && (ver.Major > 0 || ver.Minor > 0 || ver.Build > 0))
+            {
+                return new Version(ver.Major, Math.Max(0, ver.Minor), Math.Max(0, ver.Build));
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[AppUpdateService] ResolveCurrentVersion warning: {ex.Message}");
+        }
+
+        return new Version(1, 0, 0);
+    }
 
     public const string GitHubRepo = "cipherunits/Quell";
     public const string ReleasesApiUrl = $"https://api.github.com/repos/{GitHubRepo}/releases/latest";
@@ -44,7 +78,12 @@ public class AppUpdateService
         };
         if (!_httpClient.DefaultRequestHeaders.Contains("User-Agent"))
         {
-            _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Quell-Studio", CurrentVersionString));
+            string cleanVer = $"{CurrentVersion.Major}.{CurrentVersion.Minor}.{Math.Max(0, CurrentVersion.Build)}";
+            _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Quell-Studio", cleanVer));
+        }
+        if (!_httpClient.DefaultRequestHeaders.Contains("Accept"))
+        {
+            _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
         }
     }
 
@@ -122,6 +161,12 @@ public class AppUpdateService
     /// </summary>
     public UpdateReleaseModel? ParseReleaseElement(JsonElement root)
     {
+        // Skip draft releases
+        if (root.TryGetProperty("draft", out var draftElem) && draftElem.GetBoolean())
+        {
+            return null;
+        }
+
         string tagName = root.TryGetProperty("tag_name", out var tagElem) ? tagElem.GetString() ?? "" : "";
         string name = root.TryGetProperty("name", out var nameElem) ? nameElem.GetString() ?? tagName : tagName;
         string body = root.TryGetProperty("body", out var bodyElem) ? bodyElem.GetString() ?? "" : "";
@@ -167,6 +212,7 @@ public class AppUpdateService
 
     /// <summary>
     /// Parses version string from release tag name (e.g., 'v1.1.0' -> 1.1.0).
+    /// Normalizes to a 3-part version (Major.Minor.Build) to ensure consistent comparisons.
     /// </summary>
     public static bool TryParseVersion(string? tag, out Version? version)
     {
@@ -174,15 +220,24 @@ public class AppUpdateService
         if (string.IsNullOrWhiteSpace(tag)) return false;
 
         string clean = tag.Trim().TrimStart('v', 'V');
+        int plusIndex = clean.IndexOf('+');
+        if (plusIndex > 0) clean = clean[..plusIndex];
         int dashIndex = clean.IndexOf('-');
         if (dashIndex > 0) clean = clean[..dashIndex];
 
-        // Ensure 3 segments for System.Version if only 1 or 2 are present
+        // Ensure at least 3 segments for System.Version if only 1 or 2 are present
         int dotCount = clean.Count(c => c == '.');
         if (dotCount == 0) clean += ".0.0";
         else if (dotCount == 1) clean += ".0";
 
-        return Version.TryParse(clean, out version);
+        if (Version.TryParse(clean, out var raw) && raw != null)
+        {
+            // Normalize to 3 segments (Major, Minor, Build) to prevent 3-part vs 4-part inequality bugs
+            version = new Version(raw.Major, Math.Max(0, raw.Minor), Math.Max(0, raw.Build));
+            return true;
+        }
+
+        return false;
     }
 
     public static bool TryParseVersionFromNameOrBody(string? text, out Version? version)

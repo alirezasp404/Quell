@@ -37,8 +37,11 @@ elif [ -f "$MACOS_PATH/Fdb" ]; then
     chmod +x "$MACOS_PATH/Fdb"
 fi
 
-# Copy Info.plist
+# Copy Info.plist and stamp dynamic version
 cp "$SCRIPT_DIR/Info.plist" "$CONTENTS_PATH/Info.plist"
+if command -v sed &>/dev/null; then
+    sed -i.bak "s/<string>1.0.0<\/string>/<string>$VERSION<\/string>/g" "$CONTENTS_PATH/Info.plist" && rm -f "$CONTENTS_PATH/Info.plist.bak"
+fi
 
 # Copy Assets to Resources if desired
 if [ -d "$ROOT_DIR/Assets" ]; then
