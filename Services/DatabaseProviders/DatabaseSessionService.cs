@@ -853,7 +853,7 @@ public class DatabaseSessionService
                         string colName = reader.GetName(i);
                         object val = reader.GetValue(i);
                         string strVal = val == DBNull.Value || val == null ? "NULL" : val.ToString() ?? "";
-                        row[colName] = strVal;
+                        row.SetRawValue(colName, strVal);
                     }
                     rows.Add(row);
                 }
@@ -892,7 +892,7 @@ public class DatabaseSessionService
                         string colName = reader.GetName(i);
                         object val = reader.GetValue(i);
                         string strVal = val == DBNull.Value || val == null ? "NULL" : val.ToString() ?? "";
-                        row[colName] = strVal;
+                        row.SetRawValue(colName, strVal);
                     }
                     rows.Add(row);
                 }

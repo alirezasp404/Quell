@@ -42,6 +42,37 @@ public partial class QueryResultRow : ObservableObject
     public Dictionary<string, string> Values { get; } = new(StringComparer.OrdinalIgnoreCase);
     public Dictionary<string, string> OriginalValues { get; } = new(StringComparer.OrdinalIgnoreCase);
 
+#pragma warning disable MVVMTK0034
+    public void SetRawValue(string key, string value)
+    {
+        Values[key] = value;
+        switch (key.ToUpperInvariant())
+        {
+            case "ID":
+                if (int.TryParse(value, out int idVal)) _id = idVal;
+                break;
+            case "NAME":
+                _name = value;
+                break;
+            case "EMAIL":
+                _email = value;
+                break;
+            case "ROLE":
+                _role = value;
+                break;
+            case "COURSE":
+                _course = value;
+                break;
+            case "STATUS":
+                _status = value;
+                break;
+            case "CREATED AT" or "CREATEDAT":
+                _createdAt = value;
+                break;
+        }
+    }
+#pragma warning restore MVVMTK0034
+
     public string this[string key]
     {
         get
@@ -65,6 +96,7 @@ public partial class QueryResultRow : ObservableObject
         set
         {
             Values[key] = value;
+            OnPropertyChanged("Item[]");
             switch (key.ToUpperInvariant())
             {
                 case "ID":
@@ -89,13 +121,6 @@ public partial class QueryResultRow : ObservableObject
                     CreatedAt = value;
                     break;
             }
-            OnPropertyChanged("Item[]");
-            OnPropertyChanged(nameof(Name));
-            OnPropertyChanged(nameof(Email));
-            OnPropertyChanged(nameof(Role));
-            OnPropertyChanged(nameof(Course));
-            OnPropertyChanged(nameof(Status));
-            OnPropertyChanged(nameof(CreatedAt));
         }
     }
 }
@@ -121,7 +146,21 @@ public partial class QueryResultTableViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasRows))]
+    [NotifyPropertyChangedFor(nameof(PaginationStatusText))]
     private int _totalRows;
+
+    public string PaginationStatusText
+    {
+        get
+        {
+            if (TotalRows == 0) return "0 rows";
+            if (!string.IsNullOrWhiteSpace(SearchFilter) && Rows.Count != TotalRows)
+            {
+                return $"{Rows.Count:N0} of {TotalRows:N0} rows (filtered)";
+            }
+            return $"{TotalRows:N0} rows";
+        }
+    }
 
     [ObservableProperty]
     private string _executionTime = string.Empty;
@@ -162,8 +201,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
         {
             if (Rows.Count != _allRows.Count)
             {
-                Rows.Clear();
-                foreach (var r in _allRows) Rows.Add(r);
+                Rows.ReplaceAll(_allRows);
                 TotalRows = Rows.Count;
             }
             return;
@@ -172,8 +210,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
         string term = filter.Trim();
         var filtered = _allRows.Where(r => MatchesFilter(r, term)).ToList();
 
-        Rows.Clear();
-        foreach (var r in filtered) Rows.Add(r);
+        Rows.ReplaceAll(filtered);
         TotalRows = Rows.Count;
     }
 
@@ -290,25 +327,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
     {
         if (Rows.Count > 0 && !string.IsNullOrEmpty(CurrentTableName))
         {
-            var rowsCopy = new List<QueryResultRow>();
-            foreach (var r in Rows)
-            {
-                var newR = new QueryResultRow
-                {
-                    RowIndex = r.RowIndex,
-                    Id = r.Id,
-                    Name = r.Name,
-                    Email = r.Email,
-                    Role = r.Role,
-                    Course = r.Course,
-                    Status = r.Status,
-                    CreatedAt = r.CreatedAt
-                };
-                foreach (var kvp in r.Values) newR.Values[kvp.Key] = kvp.Value;
-                foreach (var kvp in r.OriginalValues) newR.OriginalValues[kvp.Key] = kvp.Value;
-                rowsCopy.Add(newR);
-            }
-
+            var rowsCopy = new List<QueryResultRow>(Rows);
             var fksCopy = new Dictionary<string, ForeignKeyRelation>(ForeignKeyRelations, StringComparer.OrdinalIgnoreCase);
             var pksCopy = new HashSet<string>(PrimaryKeyColumns, StringComparer.OrdinalIgnoreCase);
 
@@ -466,7 +485,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
 
     public event Action<IReadOnlyList<string>>? ColumnsChanged;
 
-    public ObservableCollection<QueryResultRow> Rows { get; } = new();
+    public BulkObservableCollection<QueryResultRow> Rows { get; } = new();
 
     public QueryResultTableViewModel()
     {
@@ -485,15 +504,15 @@ public partial class QueryResultTableViewModel : ViewModelBase
             _allRows.Clear();
             _allRows.AddRange(newRows);
 
-            Rows.Clear();
             foreach (var r in newRows)
             {
                 foreach (var kvp in r.Values)
                 {
                     r.OriginalValues[kvp.Key] = kvp.Value;
                 }
-                Rows.Add(r);
             }
+
+            Rows.ReplaceAll(newRows);
 
             if (!string.IsNullOrWhiteSpace(SearchFilter))
             {
@@ -686,11 +705,10 @@ public partial class QueryResultTableViewModel : ViewModelBase
 
         if (success)
         {
-            foreach (var r in rows)
-            {
-                Rows.Remove(r);
-                _allRows.Remove(r);
-            }
+            var rowSet = new HashSet<QueryResultRow>(rows);
+            _allRows.RemoveAll(r => rowSet.Contains(r));
+            Rows.RemoveRange(rows);
+
             for (int i = 0; i < Rows.Count; i++)
             {
                 Rows[i].RowIndex = i + 1;

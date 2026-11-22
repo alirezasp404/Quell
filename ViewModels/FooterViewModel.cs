@@ -60,15 +60,39 @@ public partial class FooterViewModel : ViewModelBase
 
     private void SyncTabItems()
     {
-        TabItems.Clear();
-        foreach (var tab in Tabs)
+        var existingMap = TabItems.ToDictionary(t => t.Name, StringComparer.OrdinalIgnoreCase);
+        var newSet = new System.Collections.Generic.HashSet<string>(Tabs, StringComparer.OrdinalIgnoreCase);
+
+        for (int i = TabItems.Count - 1; i >= 0; i--)
         {
-            TabItems.Add(new FooterTabItem
+            if (!newSet.Contains(TabItems[i].Name))
             {
-                Name = tab,
-                Icon = GetTabIcon(tab),
-                IsActive = string.Equals(tab, SelectedTab, StringComparison.OrdinalIgnoreCase)
-            });
+                TabItems.RemoveAt(i);
+            }
+        }
+
+        for (int i = 0; i < Tabs.Count; i++)
+        {
+            var tab = Tabs[i];
+            if (!existingMap.TryGetValue(tab, out var item))
+            {
+                item = new FooterTabItem
+                {
+                    Name = tab,
+                    Icon = GetTabIcon(tab),
+                    IsActive = string.Equals(tab, SelectedTab, StringComparison.OrdinalIgnoreCase)
+                };
+                TabItems.Insert(Math.Min(i, TabItems.Count), item);
+            }
+            else
+            {
+                item.IsActive = string.Equals(tab, SelectedTab, StringComparison.OrdinalIgnoreCase);
+                int currentIndex = TabItems.IndexOf(item);
+                if (currentIndex != i && currentIndex >= 0)
+                {
+                    TabItems.Move(currentIndex, i);
+                }
+            }
         }
     }
 

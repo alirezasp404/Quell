@@ -22,11 +22,7 @@
 
             <!-- Pagination Navigation -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                <Button Classes="classic-menu-btn" Content="«" Padding="6,1" FontSize="11" MinHeight="18" />
-                <Button Classes="classic-menu-btn" Content="‹" Padding="6,1" FontSize="11" MinHeight="18" />
-                <TextBlock Text="Page 1 of 1" Foreground="{DynamicResource AppTextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="4,0"/>
-                <Button Classes="classic-menu-btn" Content="›" Padding="6,1" FontSize="11" MinHeight="18" />
-                <Button Classes="classic-menu-btn" Content="»" Padding="6,1" FontSize="11" MinHeight="18" />
+                <TextBlock Text="{Binding PaginationStatusText}" Foreground="{DynamicResource AppTextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="4,0"/>
             </StackPanel>
         </Grid>
     </Border>

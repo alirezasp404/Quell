@@ -543,13 +543,12 @@
 
                             <!-- Hierarchical TreeView -->
                             <Grid Grid.Row="1">
-                                <ScrollViewer VerticalScrollBarVisibility="Auto" 
-                                              IsVisible="{Binding FilteredDatabaseNodes.Count}">
-                                    <TreeView ItemsSource="{Binding FilteredDatabaseNodes}" 
-                                              SelectedItem="{Binding SelectedTreeNode, Mode=TwoWay}"
-                                              Background="Transparent"
-                                              BorderThickness="0"
-                                              Padding="0">
+                                <TreeView ItemsSource="{Binding FilteredDatabaseNodes}" 
+                                          SelectedItem="{Binding SelectedTreeNode, Mode=TwoWay}"
+                                          IsVisible="{Binding FilteredDatabaseNodes.Count}"
+                                          Background="Transparent"
+                                          BorderThickness="0"
+                                          Padding="0">
                                         <TreeView.Styles>
                                             <Style Selector="TreeViewItem" x:DataType="vm:SidebarTreeNodeBase">
                                                 <Setter Property="Padding" Value="0"/>
@@ -705,7 +704,6 @@
                                             </DataTemplate>
                                         </TreeView.DataTemplates>
                                     </TreeView>
-                                </ScrollViewer>
 
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6" IsVisible="{Binding !FilteredDatabaseNodes.Count}">
                                     <TextBlock Text="No databases or tables found" FontSize="11" Foreground="{DynamicResource AppTextMutedBrush}" HorizontalAlignment="Center"/>

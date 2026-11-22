@@ -114,6 +114,8 @@
 
                     <!-- Help Menu -->
                     <MenuItem Header="Help">
+                        <MenuItem Header="Check for Updates..." Command="{Binding CheckForUpdatesCommand}" />
+                        <Separator />
                         <MenuItem Header="Documentation" />
                         <MenuItem Header="About Quell" />
                     </MenuItem>

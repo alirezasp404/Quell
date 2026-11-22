@@ -687,13 +687,9 @@ public partial class SidebarViewModel : ViewModelBase
     {
         if (node == null) return;
 
-        // Reset active state across all tables in all databases
-        foreach (var db in DatabaseNodes)
+        if (ActiveTableNode != null)
         {
-            foreach (var t in db.AllTableNodes)
-            {
-                t.IsActive = false;
-            }
+            ActiveTableNode.IsActive = false;
         }
 
         node.IsActive = true;
@@ -738,9 +734,9 @@ public partial class SidebarViewModel : ViewModelBase
                 t.TableName.Equals(table.TableName, StringComparison.OrdinalIgnoreCase));
             if (match != null)
             {
-                foreach (var db in DatabaseNodes)
+                if (ActiveTableNode != null)
                 {
-                    foreach (var t in db.AllTableNodes) t.IsActive = false;
+                    ActiveTableNode.IsActive = false;
                 }
                 match.IsActive = true;
                 ActiveTableNode = match;
