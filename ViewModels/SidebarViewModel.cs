@@ -687,29 +687,38 @@ public partial class SidebarViewModel : ViewModelBase
     {
         if (node == null) return;
 
-        if (ActiveTableNode != null)
+        try
         {
-            ActiveTableNode.IsActive = false;
+            if (ActiveTableNode != null)
+            {
+                ActiveTableNode.IsActive = false;
+            }
+
+            node.IsActive = true;
+            ActiveTableNode = node;
+            SelectedTable = node.Table;
+            SelectedTreeNode = node;
+
+            if (!node.DatabaseNode.IsConnected || !node.DatabaseNode.IsActive)
+            {
+                await ConnectDatabaseNodeAsync(node.DatabaseNode);
+            }
+
+            var dbType = node.DatabaseNode.DatabaseType;
+            string formattedTable = QueryResultTableViewModel.FormatIdentifier(node.FullName, dbType);
+            string query = dbType == Quell.Services.DatabaseProviders.DatabaseType.MSSQL
+                ? $"SELECT TOP 100 * FROM {formattedTable};"
+                : $"SELECT * FROM {formattedTable} LIMIT 100;";
+
+            InsertQueryToEditor?.Invoke(query);
+            if (ExecuteQueryInEditor != null)
+            {
+                await ExecuteQueryInEditor.Invoke(query);
+            }
         }
-
-        node.IsActive = true;
-        ActiveTableNode = node;
-        SelectedTable = node.Table;
-        SelectedTreeNode = node;
-
-        if (!node.DatabaseNode.IsConnected || !node.DatabaseNode.IsActive)
+        catch (Exception ex)
         {
-            await ConnectDatabaseNodeAsync(node.DatabaseNode);
-        }
-
-        string query = node.DatabaseNode.DatabaseType == Quell.Services.DatabaseProviders.DatabaseType.MSSQL
-            ? $"SELECT TOP 100 * FROM {node.FullName};"
-            : $"SELECT * FROM {node.FullName} LIMIT 100;";
-
-        InsertQueryToEditor?.Invoke(query);
-        if (ExecuteQueryInEditor != null)
-        {
-            await ExecuteQueryInEditor.Invoke(query);
+            Console.WriteLine($"[SidebarViewModel] SelectTableNode error: {ex.Message}");
         }
     }
 
@@ -723,35 +732,45 @@ public partial class SidebarViewModel : ViewModelBase
     public async Task SelectTable(TableMetadata table)
     {
         if (table == null) return;
-        SelectedTable = table;
 
-        // Highlight matching TableTreeNode in active DB
-        var activeDb = DatabaseNodes.FirstOrDefault(n => n.IsActive) ?? DatabaseNodes.FirstOrDefault(n => n.IsConnected);
-        if (activeDb != null)
+        try
         {
-            var match = activeDb.AllTableNodes.FirstOrDefault(t =>
-                t.FullName.Equals(table.FullName, StringComparison.OrdinalIgnoreCase) ||
-                t.TableName.Equals(table.TableName, StringComparison.OrdinalIgnoreCase));
-            if (match != null)
+            SelectedTable = table;
+
+            // Highlight matching TableTreeNode in active DB
+            var activeDb = DatabaseNodes.FirstOrDefault(n => n.IsActive) ?? DatabaseNodes.FirstOrDefault(n => n.IsConnected);
+            if (activeDb != null)
             {
-                if (ActiveTableNode != null)
+                var match = activeDb.AllTableNodes.FirstOrDefault(t =>
+                    t.FullName.Equals(table.FullName, StringComparison.OrdinalIgnoreCase) ||
+                    t.TableName.Equals(table.TableName, StringComparison.OrdinalIgnoreCase));
+                if (match != null)
                 {
-                    ActiveTableNode.IsActive = false;
+                    if (ActiveTableNode != null)
+                    {
+                        ActiveTableNode.IsActive = false;
+                    }
+                    match.IsActive = true;
+                    ActiveTableNode = match;
+                    SelectedTreeNode = match;
                 }
-                match.IsActive = true;
-                ActiveTableNode = match;
-                SelectedTreeNode = match;
+            }
+
+            var dbType = DatabaseType ?? Quell.Services.DatabaseProviders.DatabaseType.MSSQL;
+            string formattedTable = QueryResultTableViewModel.FormatIdentifier(table.FullName, dbType);
+            string query = dbType == Quell.Services.DatabaseProviders.DatabaseType.MSSQL
+                ? $"SELECT TOP 100 * FROM {formattedTable};"
+                : $"SELECT * FROM {formattedTable} LIMIT 100;";
+
+            InsertQueryToEditor?.Invoke(query);
+            if (ExecuteQueryInEditor != null)
+            {
+                await ExecuteQueryInEditor.Invoke(query);
             }
         }
-
-        string query = DatabaseType == Quell.Services.DatabaseProviders.DatabaseType.MSSQL
-            ? $"SELECT TOP 100 * FROM {table.FullName};"
-            : $"SELECT * FROM {table.FullName} LIMIT 100;";
-
-        InsertQueryToEditor?.Invoke(query);
-        if (ExecuteQueryInEditor != null)
+        catch (Exception ex)
         {
-            await ExecuteQueryInEditor.Invoke(query);
+            Console.WriteLine($"[SidebarViewModel] SelectTable error: {ex.Message}");
         }
     }
 

@@ -520,27 +520,54 @@ public class DatabaseSessionService
 
             using var cmd = session.Connection.CreateCommand();
             cmd.CommandText = sql;
-            using var reader = cmd.ExecuteReader();
             var pks = new List<string>();
 
-            if (session.Config.DatabaseType == DatabaseType.SQLite)
+            if (cmd is DbCommand dbCmd)
             {
-                var pkEntries = new List<(int Order, string Name)>();
-                while (reader.Read())
+                await using var reader = await dbCmd.ExecuteReaderAsync(cancellationToken);
+                if (session.Config.DatabaseType == DatabaseType.SQLite)
                 {
-                    int pkIndex = reader.GetInt32(5);
-                    if (pkIndex > 0)
+                    var pkEntries = new List<(int Order, string Name)>();
+                    while (await reader.ReadAsync(cancellationToken))
                     {
-                        pkEntries.Add((pkIndex, reader.GetString(1)));
+                        int pkIndex = reader.GetInt32(5);
+                        if (pkIndex > 0)
+                        {
+                            pkEntries.Add((pkIndex, reader.GetString(1)));
+                        }
+                    }
+                    pks.AddRange(pkEntries.OrderBy(e => e.Order).Select(e => e.Name));
+                }
+                else
+                {
+                    while (await reader.ReadAsync(cancellationToken))
+                    {
+                        pks.Add(reader.GetString(0));
                     }
                 }
-                pks.AddRange(pkEntries.OrderBy(e => e.Order).Select(e => e.Name));
             }
             else
             {
-                while (reader.Read())
+                using var reader = cmd.ExecuteReader();
+                if (session.Config.DatabaseType == DatabaseType.SQLite)
                 {
-                    pks.Add(reader.GetString(0));
+                    var pkEntries = new List<(int Order, string Name)>();
+                    while (reader.Read())
+                    {
+                        int pkIndex = reader.GetInt32(5);
+                        if (pkIndex > 0)
+                        {
+                            pkEntries.Add((pkIndex, reader.GetString(1)));
+                        }
+                    }
+                    pks.AddRange(pkEntries.OrderBy(e => e.Order).Select(e => e.Name));
+                }
+                else
+                {
+                    while (reader.Read())
+                    {
+                        pks.Add(reader.GetString(0));
+                    }
                 }
             }
 

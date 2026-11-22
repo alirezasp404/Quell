@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -44,13 +45,20 @@ public partial class SidebarComponent : UserControl
 
     private void OnTableNodePointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        var point = e.GetCurrentPoint(this);
-        if (point.Properties.IsLeftButtonPressed && (sender as Control)?.DataContext is TableTreeNode tableNode)
+        try
         {
-            if (DataContext is SidebarViewModel vm)
+            var point = e.GetCurrentPoint(this);
+            if (point.Properties.IsLeftButtonPressed && (sender as Control)?.DataContext is TableTreeNode tableNode)
             {
-                _ = vm.SelectTableNode(tableNode);
+                if (DataContext is SidebarViewModel vm)
+                {
+                    _ = vm.SelectTableNode(tableNode);
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SidebarComponent] OnTableNodePointerPressed error: {ex.Message}");
         }
     }
 

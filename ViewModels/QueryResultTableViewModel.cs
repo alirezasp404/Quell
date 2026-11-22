@@ -134,7 +134,18 @@ public partial class QueryResultTableViewModel : ViewModelBase
     private string _lastExecutedQuery = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanInteractWithTable))]
     private bool _isRefreshing;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowEmptyState))]
+    [NotifyPropertyChangedFor(nameof(CanInteractWithTable))]
+    private bool _isLoading;
+
+    [ObservableProperty]
+    private string _loadingMessage = "Loading table data...";
+
+    public bool CanInteractWithTable => !IsLoading && !IsRefreshing;
 
     public Func<Task>? RefreshCallback { get; set; }
 
@@ -146,6 +157,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasRows))]
+    [NotifyPropertyChangedFor(nameof(ShowEmptyState))]
     [NotifyPropertyChangedFor(nameof(PaginationStatusText))]
     private int _totalRows;
 
@@ -184,6 +196,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
     private bool _hasPrimaryKey;
 
     public bool HasRows => Rows != null && Rows.Count > 0;
+    public bool ShowEmptyState => !HasRows && !IsLoading;
 
     partial void OnSearchFilterChanged(string value)
     {
@@ -500,62 +513,73 @@ public partial class QueryResultTableViewModel : ViewModelBase
     {
         void Apply()
         {
-            _lastColumns = columns;
-            _allRows.Clear();
-            _allRows.AddRange(newRows);
-
-            foreach (var r in newRows)
+            try
             {
-                foreach (var kvp in r.Values)
+                _lastColumns = columns;
+                _allRows.Clear();
+                _allRows.AddRange(newRows);
+
+                foreach (var r in newRows)
                 {
-                    r.OriginalValues[kvp.Key] = kvp.Value;
+                    foreach (var kvp in r.Values)
+                    {
+                        r.OriginalValues[kvp.Key] = kvp.Value;
+                    }
                 }
-            }
 
-            Rows.ReplaceAll(newRows);
+                SelectedRow = null;
 
-            if (!string.IsNullOrWhiteSpace(SearchFilter))
-            {
-                ApplyFilter(SearchFilter);
-            }
-            else
-            {
-                TotalRows = newRows.Count;
-            }
-            ExecutionTime = execTime;
+                // Notify column changes first so DataGrid reconfigures column headers/bindings and clears old selections
+                ColumnsChanged?.Invoke(columns);
 
-            var matchingPks = PrimaryKeyColumns
-                .Where(pk => columns.Contains(pk, StringComparer.OrdinalIgnoreCase))
-                .ToList();
-            if (matchingPks.Count > 0)
-            {
-                HasPrimaryKey = true;
-                PrimaryKeyColumnName = string.Join(", ", matchingPks);
-            }
-            else
-            {
-                HasPrimaryKey = false;
-                PrimaryKeyColumnName = string.Empty;
-            }
+                // Populate new rows
+                Rows.ReplaceAll(newRows);
 
-            OnPropertyChanged(nameof(HasRows));
-            ColumnsChanged?.Invoke(columns);
+                if (!string.IsNullOrWhiteSpace(SearchFilter))
+                {
+                    ApplyFilter(SearchFilter);
+                }
+                else
+                {
+                    TotalRows = newRows.Count;
+                }
+                ExecutionTime = execTime;
+
+                var matchingPks = PrimaryKeyColumns
+                    .Where(pk => columns.Contains(pk, StringComparer.OrdinalIgnoreCase))
+                    .ToList();
+                if (matchingPks.Count > 0)
+                {
+                    HasPrimaryKey = true;
+                    PrimaryKeyColumnName = string.Join(", ", matchingPks);
+                }
+                else
+                {
+                    HasPrimaryKey = false;
+                    PrimaryKeyColumnName = string.Empty;
+                }
+
+                OnPropertyChanged(nameof(HasRows));
+                OnPropertyChanged(nameof(ShowEmptyState));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[QueryResultTableViewModel] Apply results error: {ex.Message}");
+            }
         }
 
-        if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+        try
         {
             Apply();
         }
-        else
+        catch (Exception ex)
         {
+            Console.WriteLine($"[QueryResultTableViewModel] SetResults error: {ex.Message}");
             try
-            {
-                Apply();
-            }
-            catch (InvalidOperationException)
             {
                 Avalonia.Threading.Dispatcher.UIThread.Post(Apply);
             }
+            catch { }
         }
     }
 
@@ -1007,6 +1031,8 @@ public partial class QueryResultTableViewModel : ViewModelBase
     public async Task Refresh()
     {
         IsRefreshing = true;
+        IsLoading = true;
+        LoadingMessage = "Refreshing table data...";
         try
         {
             if (RefreshCallback != null)
@@ -1031,6 +1057,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
         finally
         {
             IsRefreshing = false;
+            IsLoading = false;
         }
     }
 
