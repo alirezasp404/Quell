@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Data;
 using System.Globalization;
+using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -253,16 +254,23 @@ public partial class MainViewModel : ViewModelBase
 
         _sidebar.ExecuteQueryInEditor = async q =>
         {
-            if (Editor.SelectedTab != null)
+            try
             {
-                Editor.SelectedTab.Text = q;
+                if (Editor.SelectedTab != null)
+                {
+                    Editor.SelectedTab.Text = q;
+                }
+                else
+                {
+                    Editor.AddTab();
+                    if (Editor.SelectedTab != null) Editor.SelectedTab.Text = q;
+                }
+                await ExecuteQuery();
             }
-            else
+            catch (Exception ex)
             {
-                Editor.AddTab();
-                if (Editor.SelectedTab != null) Editor.SelectedTab.Text = q;
+                Console.WriteLine($"[MainViewModel] ExecuteQueryInEditor error: {ex.Message}");
             }
-            await ExecuteQuery();
         };
 
         _sidebar.OpenConnectModal = () => _connectModal.Open();
@@ -478,84 +486,181 @@ public partial class MainViewModel : ViewModelBase
         await Sidebar.RefreshAsync();
     }
 
+    private CancellationTokenSource? _activeQueryCts;
+
     [RelayCommand]
     public async Task ExecuteQuery()
     {
+        _activeQueryCts?.Cancel();
+        var cts = new CancellationTokenSource();
+        _activeQueryCts = cts;
+        var ct = cts.Token;
+
         string query = Editor.GetQueryToExecute();
         string execTime = "0 ms";
         int rowCount = 0;
         string status = "Success";
+        string targetDbName = SelectedTargetDatabase?.FullDisplayName ?? DatabaseSessionService.Instance.TargetDisplayName;
 
-        if (SelectedTargetDatabase == null)
+        string? inferredTable = ExtractTableNameFromQuery(query);
+        SampleQueryResult.IsLoading = true;
+        SampleQueryResult.LoadingMessage = !string.IsNullOrWhiteSpace(inferredTable) 
+            ? $"Loading {inferredTable}..." 
+            : "Executing query...";
+
+        try
         {
-            var activeSession = DatabaseSessionService.Instance.ActiveSession;
-            if (activeSession != null)
+            if (SelectedTargetDatabase == null)
             {
-                var match = AvailableTargetDatabases.FirstOrDefault(d => d.Key == activeSession.Key);
-                if (match != null)
+                var activeSession = DatabaseSessionService.Instance.ActiveSession;
+                if (activeSession != null)
                 {
-                    SelectedTargetDatabase = match;
+                    var match = AvailableTargetDatabases.FirstOrDefault(d => d.Key == activeSession.Key);
+                    if (match != null)
+                    {
+                        SelectedTargetDatabase = match;
+                    }
                 }
             }
-        }
 
-        if (SelectedTargetDatabase == null && !HasActiveDatabaseConnection())
-        {
-            SampleQueryResult.IsConnectedToDatabase = false;
-            string? checkTable = ExtractTableNameFromQuery(query);
-            if (DemoDataProvider.IsSampleTableName(checkTable))
+            if (SelectedTargetDatabase == null && !HasActiveDatabaseConnection())
             {
-                SampleQueryResult.LoadSampleReferencedTable(checkTable!, null, null);
-                SampleQueryResult.LastExecutedQuery = query;
-                SampleQueryResult.LastQueryMessage = $"Loaded sample data for '{checkTable}' ({SampleQueryResult.TotalRows} rows)";
-                SampleQueryResult.HasLastQueryMessage = true;
-                SampleQueryResult.TargetDatabaseName = "Sample DB";
+                SampleQueryResult.IsConnectedToDatabase = false;
+                string? checkTable = ExtractTableNameFromQuery(query);
+                if (DemoDataProvider.IsSampleTableName(checkTable))
+                {
+                    SampleQueryResult.LoadSampleReferencedTable(checkTable!, null, null);
+                    SampleQueryResult.LastExecutedQuery = query;
+                    SampleQueryResult.LastQueryMessage = $"Loaded sample data for '{checkTable}' ({SampleQueryResult.TotalRows} rows)";
+                    SampleQueryResult.HasLastQueryMessage = true;
+                    SampleQueryResult.TargetDatabaseName = "Sample DB";
+                    ShowQueryResultFooter();
+                    return;
+                }
+
+                SampleQueryResult.CurrentTableName = string.Empty;
+                SampleQueryResult.ClearMetadata();
+                SampleQueryResult.SetResults(
+                    new List<string> { "Status", "Message" },
+                    new List<QueryResultRow>
+                    {
+                        new QueryResultRow
+                        {
+                            RowIndex = 1,
+                            ["Status"] = "Not Connected",
+                            ["Message"] = "No active database connection. Click a database in the Object Explorer to connect."
+                        }
+                    },
+                    "0 ms");
+                SampleQueryResult.TargetDatabaseName = "(No Connection)";
                 ShowQueryResultFooter();
                 return;
             }
 
-            SampleQueryResult.CurrentTableName = string.Empty;
-            SampleQueryResult.ClearMetadata();
-            SampleQueryResult.SetResults(
-                new List<string> { "Status", "Message" },
-                new List<QueryResultRow>
+            targetDbName = SelectedTargetDatabase?.FullDisplayName ?? DatabaseSessionService.Instance.TargetDisplayName;
+            string key = ResolveActiveSessionKey() ?? string.Empty;
+
+            if (!string.IsNullOrEmpty(key) && !DatabaseSessionService.Instance.IsSessionOpen(key) && SelectedTargetDatabase != null)
+            {
+                var config = new DatabaseConnectionConfig
                 {
-                    new QueryResultRow
+                    Id = SelectedTargetDatabase.ConnectionId ?? 0,
+                    DatabaseType = SelectedTargetDatabase.DatabaseType,
+                    Server = SelectedTargetDatabase.Server,
+                    Port = SelectedTargetDatabase.Port,
+                    Database = SelectedTargetDatabase.DatabaseName,
+                    AuthType = SelectedTargetDatabase.AuthType,
+                    Username = SelectedTargetDatabase.Username,
+                    FilePath = SelectedTargetDatabase.Server,
+                    TrustServerCertificate = true
+                };
+                var connResult = await DatabaseSessionService.Instance.ConnectAsync(config, ct);
+                if (!connResult.Success)
+                {
+                    SampleQueryResult.IsConnectedToDatabase = HasActiveDatabaseConnection();
+                    SampleQueryResult.CurrentTableName = string.Empty;
+                    SampleQueryResult.ClearMetadata();
+                    SampleQueryResult.SetResults(
+                        new List<string> { "Error", "TargetDatabase" },
+                        new List<QueryResultRow>
+                        {
+                            new QueryResultRow
+                            {
+                                RowIndex = 1,
+                                ["Error"] = connResult.Message,
+                                ["TargetDatabase"] = targetDbName
+                            }
+                        },
+                        "0 ms");
+                    SampleQueryResult.TargetDatabaseName = targetDbName;
+                    ShowQueryResultFooter();
+                    return;
+                }
+            }
+            else
+            {
+                DatabaseSessionService.Instance.SetActiveSession(key);
+            }
+
+            SampleQueryResult.IsConnectedToDatabase = true;
+            SampleQueryResult.CurrentDatabaseType = SelectedTargetDatabase?.DatabaseType
+                ?? DatabaseSessionService.Instance.ActiveSession?.Config.DatabaseType
+                ?? DatabaseType.MSSQL;
+
+            var result = await DatabaseSessionService.Instance.ExecuteQueryAsync(query, key, ct);
+            if (ct.IsCancellationRequested) return;
+
+            execTime = result.ExecutionTime;
+            status = result.Success ? "Success" : "Failed";
+
+            inferredTable = result.Success && result.ColumnNames.Count > 0
+                ? ExtractTableNameFromQuery(query)
+                : null;
+            SampleQueryResult.CurrentTableName = inferredTable ?? string.Empty;
+            SampleQueryResult.ClearMetadata();
+
+            if (result.Success && result.ColumnNames.Count > 0)
+            {
+                SampleQueryResult.SetResults(result.ColumnNames, result.Rows, result.ExecutionTime);
+                SampleQueryResult.LastExecutedQuery = query;
+                rowCount = result.Rows.Count;
+
+                if (!string.IsNullOrWhiteSpace(inferredTable))
+                {
+                    try
                     {
-                        RowIndex = 1,
-                        ["Status"] = "Not Connected",
-                        ["Message"] = "No active database connection. Click a database in the Object Explorer to connect."
+                        var pks = await DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(inferredTable, key, ct);
+                        var fks = await DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(inferredTable, key, ct);
+                        if (!ct.IsCancellationRequested && string.Equals(SampleQueryResult.CurrentTableName, inferredTable, StringComparison.OrdinalIgnoreCase))
+                        {
+                            SampleQueryResult.SetTableMetadata(pks, fks);
+                        }
                     }
-                },
-                "0 ms");
-            SampleQueryResult.TargetDatabaseName = "(No Connection)";
-            ShowQueryResultFooter();
-            return;
-        }
-
-        string targetDbName = SelectedTargetDatabase?.FullDisplayName ?? DatabaseSessionService.Instance.TargetDisplayName;
-        string key = ResolveActiveSessionKey() ?? string.Empty;
-
-        if (!string.IsNullOrEmpty(key) && !DatabaseSessionService.Instance.IsSessionOpen(key) && SelectedTargetDatabase != null)
-        {
-            var config = new DatabaseConnectionConfig
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[MainViewModel] Metadata lookup failed for '{inferredTable}': {ex.Message}");
+                    }
+                }
+            }
+            else if (result.Success && result.ColumnNames.Count == 0)
             {
-                Id = SelectedTargetDatabase.ConnectionId ?? 0,
-                DatabaseType = SelectedTargetDatabase.DatabaseType,
-                Server = SelectedTargetDatabase.Server,
-                Port = SelectedTargetDatabase.Port,
-                Database = SelectedTargetDatabase.DatabaseName,
-                AuthType = SelectedTargetDatabase.AuthType,
-                Username = SelectedTargetDatabase.Username,
-                FilePath = SelectedTargetDatabase.Server,
-                TrustServerCertificate = true
-            };
-            var connResult = await DatabaseSessionService.Instance.ConnectAsync(config);
-            if (!connResult.Success)
+                SampleQueryResult.SetResults(
+                    new List<string> { "Status", "Message", "TargetDatabase" },
+                    new List<QueryResultRow>
+                    {
+                        new QueryResultRow
+                        {
+                            RowIndex = 1,
+                            ["Status"] = "Success",
+                            ["Message"] = result.Message,
+                            ["TargetDatabase"] = targetDbName
+                        }
+                    },
+                    execTime);
+                rowCount = result.RowCount;
+            }
+            else if (!result.Success)
             {
-                SampleQueryResult.IsConnectedToDatabase = HasActiveDatabaseConnection();
-                SampleQueryResult.CurrentTableName = string.Empty;
-                SampleQueryResult.ClearMetadata();
                 SampleQueryResult.SetResults(
                     new List<string> { "Error", "TargetDatabase" },
                     new List<QueryResultRow>
@@ -563,78 +668,28 @@ public partial class MainViewModel : ViewModelBase
                         new QueryResultRow
                         {
                             RowIndex = 1,
-                            ["Error"] = connResult.Message,
+                            ["Error"] = result.Message,
                             ["TargetDatabase"] = targetDbName
                         }
                     },
-                    "0 ms");
-                SampleQueryResult.TargetDatabaseName = targetDbName;
-                ShowQueryResultFooter();
-                return;
+                    execTime);
             }
+
+            SampleQueryResult.TargetDatabaseName = targetDbName;
+
+            await Quell.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
+                query, execTime, rowCount, status);
+
+            _ = Sidebar.RefreshAsync();
+            ShowQueryResultFooter();
         }
-        else
+        catch (OperationCanceledException)
         {
-            DatabaseSessionService.Instance.SetActiveSession(key);
+            // Superseded by newer query
         }
-
-        SampleQueryResult.IsConnectedToDatabase = true;
-        SampleQueryResult.CurrentDatabaseType = SelectedTargetDatabase?.DatabaseType
-            ?? DatabaseSessionService.Instance.ActiveSession?.Config.DatabaseType
-            ?? DatabaseType.MSSQL;
-
-        var result = await DatabaseSessionService.Instance.ExecuteQueryAsync(query, key);
-        execTime = result.ExecutionTime;
-        status = result.Success ? "Success" : "Failed";
-
-        string? inferredTable = result.Success && result.ColumnNames.Count > 0
-            ? ExtractTableNameFromQuery(query)
-            : null;
-        SampleQueryResult.CurrentTableName = inferredTable ?? string.Empty;
-        SampleQueryResult.ClearMetadata();
-
-        if (result.Success && result.ColumnNames.Count > 0)
+        catch (Exception ex)
         {
-            SampleQueryResult.SetResults(result.ColumnNames, result.Rows, result.ExecutionTime);
-            SampleQueryResult.LastExecutedQuery = query;
-            rowCount = result.Rows.Count;
-
-            if (!string.IsNullOrWhiteSpace(inferredTable))
-            {
-                try
-                {
-                    var pks = await DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(inferredTable, key);
-                    var fks = await DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(inferredTable, key);
-                    if (string.Equals(SampleQueryResult.CurrentTableName, inferredTable, StringComparison.OrdinalIgnoreCase))
-                    {
-                        SampleQueryResult.SetTableMetadata(pks, fks);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[MainViewModel] Metadata lookup failed for '{inferredTable}': {ex.Message}");
-                }
-            }
-        }
-        else if (result.Success && result.ColumnNames.Count == 0)
-        {
-            SampleQueryResult.SetResults(
-                new List<string> { "Status", "Message", "TargetDatabase" },
-                new List<QueryResultRow>
-                {
-                    new QueryResultRow
-                    {
-                        RowIndex = 1,
-                        ["Status"] = "Success",
-                        ["Message"] = result.Message,
-                        ["TargetDatabase"] = targetDbName
-                    }
-                },
-                execTime);
-            rowCount = result.RowCount;
-        }
-        else if (!result.Success)
-        {
+            Console.WriteLine($"[MainViewModel] ExecuteQuery exception: {ex.Message}");
             SampleQueryResult.SetResults(
                 new List<string> { "Error", "TargetDatabase" },
                 new List<QueryResultRow>
@@ -642,20 +697,22 @@ public partial class MainViewModel : ViewModelBase
                     new QueryResultRow
                     {
                         RowIndex = 1,
-                        ["Error"] = result.Message,
+                        ["Error"] = ex.Message,
                         ["TargetDatabase"] = targetDbName
                     }
                 },
-                execTime);
+                "0 ms");
+            SampleQueryResult.LastQueryMessage = $"Query execution error: {ex.Message}";
+            SampleQueryResult.HasLastQueryMessage = true;
+            ShowQueryResultFooter();
         }
-
-        SampleQueryResult.TargetDatabaseName = targetDbName;
-
-        await Quell.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
-            query, execTime, rowCount, status);
-
-        _ = Sidebar.RefreshAsync();
-        ShowQueryResultFooter();
+        finally
+        {
+            if (_activeQueryCts == cts)
+            {
+                SampleQueryResult.IsLoading = false;
+            }
+        }
     }
 
     public async Task NavigateToForeignKeyTableAsync(string targetTable, string targetColumn, string? cellValue, string? sourceColumn)
@@ -665,180 +722,212 @@ public partial class MainViewModel : ViewModelBase
             return;
         }
 
-        string sourceDesc = $"Navigated via [{sourceColumn ?? "FK"} -> {targetTable}.{targetColumn} = {cellValue}]";
-        SampleQueryResult.PushNavigationState(sourceDesc);
+        SampleQueryResult.IsLoading = true;
+        SampleQueryResult.LoadingMessage = $"Loading {targetTable}...";
 
-        string? activeKey = ResolveActiveSessionKey();
-        bool isConnected = !string.IsNullOrEmpty(activeKey) && DatabaseSessionService.Instance.IsSessionOpen(activeKey);
-        DatabaseType dbType = SelectedTargetDatabase?.DatabaseType
-            ?? DatabaseSessionService.Instance.ActiveSession?.DatabaseType
-            ?? DatabaseType.MSSQL;
-
-        string quotedTable = QueryResultTableViewModel.FormatIdentifier(targetTable, dbType);
-        string quotedColumn = QueryResultTableViewModel.FormatIdentifier(targetColumn, dbType);
-        string formattedValue = EditCellModalViewModel.FormatLiteralOrNumber(cellValue, dbType);
-        string whereClause = $"WHERE {quotedColumn} = {formattedValue}";
-
-        string query = dbType == DatabaseType.MSSQL
-            ? $"SELECT TOP 100 * FROM {quotedTable} {whereClause};"
-            : $"SELECT * FROM {quotedTable} {whereClause} LIMIT 100;";
-
-        if (Editor.SelectedTab != null)
+        try
         {
-            Editor.SelectedTab.Text = query;
-        }
-        else
-        {
-            Editor.AddTab();
-            if (Editor.SelectedTab != null) Editor.SelectedTab.Text = query;
-        }
+            string sourceDesc = $"Navigated via [{sourceColumn ?? "FK"} -> {targetTable}.{targetColumn} = {cellValue}]";
+            SampleQueryResult.PushNavigationState(sourceDesc);
 
-        if (isConnected)
-        {
-            SampleQueryResult.IsConnectedToDatabase = true;
-            SampleQueryResult.CurrentDatabaseType = dbType;
-            var result = await DatabaseSessionService.Instance.ExecuteQueryAsync(query, activeKey);
+            string? activeKey = ResolveActiveSessionKey();
+            bool isConnected = !string.IsNullOrEmpty(activeKey) && DatabaseSessionService.Instance.IsSessionOpen(activeKey);
+            DatabaseType dbType = SelectedTargetDatabase?.DatabaseType
+                ?? DatabaseSessionService.Instance.ActiveSession?.DatabaseType
+                ?? DatabaseType.MSSQL;
 
-            if (result.Success && result.ColumnNames.Count > 0)
+            string quotedTable = QueryResultTableViewModel.FormatIdentifier(targetTable, dbType);
+            string quotedColumn = QueryResultTableViewModel.FormatIdentifier(targetColumn, dbType);
+            string formattedValue = EditCellModalViewModel.FormatLiteralOrNumber(cellValue, dbType);
+            string whereClause = $"WHERE {quotedColumn} = {formattedValue}";
+
+            string query = dbType == DatabaseType.MSSQL
+                ? $"SELECT TOP 100 * FROM {quotedTable} {whereClause};"
+                : $"SELECT * FROM {quotedTable} {whereClause} LIMIT 100;";
+
+            if (Editor.SelectedTab != null)
             {
-                SampleQueryResult.CurrentTableName = targetTable;
-                SampleQueryResult.ClearMetadata();
-                SampleQueryResult.SetResults(result.ColumnNames, result.Rows, result.ExecutionTime);
-                SampleQueryResult.LastExecutedQuery = query;
-                SampleQueryResult.LastQueryMessage = result.Rows.Count == 0
-                    ? $"Navigated to {targetTable} via FK [{sourceColumn} -> {targetTable}.{targetColumn}] — No matching records found (0 rows)"
-                    : $"Navigated to {targetTable} via FK [{sourceColumn} -> {targetTable}.{targetColumn}] ({result.Rows.Count} rows)";
-                SampleQueryResult.HasLastQueryMessage = true;
+                Editor.SelectedTab.Text = query;
+            }
+            else
+            {
+                Editor.AddTab();
+                if (Editor.SelectedTab != null) Editor.SelectedTab.Text = query;
+            }
 
-                try
+            if (isConnected)
+            {
+                SampleQueryResult.IsConnectedToDatabase = true;
+                SampleQueryResult.CurrentDatabaseType = dbType;
+                var result = await DatabaseSessionService.Instance.ExecuteQueryAsync(query, activeKey);
+
+                if (result.Success && result.ColumnNames.Count > 0)
                 {
-                    var pks = await DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(targetTable, activeKey);
-                    var fks = await DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(targetTable, activeKey);
-                    if (string.Equals(SampleQueryResult.CurrentTableName, targetTable, StringComparison.OrdinalIgnoreCase))
+                    SampleQueryResult.CurrentTableName = targetTable;
+                    SampleQueryResult.ClearMetadata();
+                    SampleQueryResult.SetResults(result.ColumnNames, result.Rows, result.ExecutionTime);
+                    SampleQueryResult.LastExecutedQuery = query;
+                    SampleQueryResult.LastQueryMessage = result.Rows.Count == 0
+                        ? $"Navigated to {targetTable} via FK [{sourceColumn} -> {targetTable}.{targetColumn}] — No matching records found (0 rows)"
+                        : $"Navigated to {targetTable} via FK [{sourceColumn} -> {targetTable}.{targetColumn}] ({result.Rows.Count} rows)";
+                    SampleQueryResult.HasLastQueryMessage = true;
+
+                    try
                     {
-                        SampleQueryResult.SetTableMetadata(pks, fks);
+                        var pks = await DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(targetTable, activeKey);
+                        var fks = await DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(targetTable, activeKey);
+                        if (string.Equals(SampleQueryResult.CurrentTableName, targetTable, StringComparison.OrdinalIgnoreCase))
+                        {
+                            SampleQueryResult.SetTableMetadata(pks, fks);
+                        }
                     }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[MainViewModel] Metadata lookup failed for FK target '{targetTable}': {ex.Message}");
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[MainViewModel] Metadata lookup failed for FK target '{targetTable}': {ex.Message}");
+                    }
+
+                    ShowQueryResultFooter();
+                    return;
                 }
 
+                SampleQueryResult.CurrentTableName = string.Empty;
+                SampleQueryResult.ClearMetadata();
+                SampleQueryResult.SetResults(
+                    new List<string> { "Error", "TargetTable" },
+                    new List<QueryResultRow>
+                    {
+                        new QueryResultRow
+                        {
+                            RowIndex = 1,
+                            ["Error"] = result.Message,
+                            ["TargetTable"] = targetTable
+                        }
+                    },
+                    result.ExecutionTime);
+                SampleQueryResult.LastQueryMessage = $"FK navigation failed: {result.Message}";
+                SampleQueryResult.HasLastQueryMessage = true;
                 ShowQueryResultFooter();
                 return;
             }
 
-            SampleQueryResult.CurrentTableName = string.Empty;
-            SampleQueryResult.ClearMetadata();
-            SampleQueryResult.SetResults(
-                new List<string> { "Error", "TargetTable" },
-                new List<QueryResultRow>
-                {
-                    new QueryResultRow
-                    {
-                        RowIndex = 1,
-                        ["Error"] = result.Message,
-                        ["TargetTable"] = targetTable
-                    }
-                },
-                result.ExecutionTime);
-            SampleQueryResult.LastQueryMessage = $"FK navigation failed: {result.Message}";
+            // Disconnected / demo mode only
+            SampleQueryResult.IsConnectedToDatabase = false;
+            SampleQueryResult.LoadSampleReferencedTable(targetTable, targetColumn, cellValue);
+            SampleQueryResult.LastExecutedQuery = query;
+            string matchedInfo = SampleQueryResult.SelectedRow != null ? $" (User: {SampleQueryResult.SelectedRow.Name})" : "";
+            SampleQueryResult.LastQueryMessage = $"Navigated to {targetTable} via FK [{sourceColumn} -> {targetTable}]{matchedInfo} ({SampleQueryResult.TotalRows} rows)";
             SampleQueryResult.HasLastQueryMessage = true;
             ShowQueryResultFooter();
-            return;
         }
-
-        // Disconnected / demo mode only
-        SampleQueryResult.IsConnectedToDatabase = false;
-        SampleQueryResult.LoadSampleReferencedTable(targetTable, targetColumn, cellValue);
-        SampleQueryResult.LastExecutedQuery = query;
-        string matchedInfo = SampleQueryResult.SelectedRow != null ? $" (User: {SampleQueryResult.SelectedRow.Name})" : "";
-        SampleQueryResult.LastQueryMessage = $"Navigated to {targetTable} via FK [{sourceColumn} -> {targetTable}]{matchedInfo} ({SampleQueryResult.TotalRows} rows)";
-        SampleQueryResult.HasLastQueryMessage = true;
-        ShowQueryResultFooter();
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[MainViewModel] NavigateToForeignKeyTableAsync error: {ex.Message}");
+            SampleQueryResult.LastQueryMessage = $"FK navigation error: {ex.Message}";
+            SampleQueryResult.HasLastQueryMessage = true;
+        }
+        finally
+        {
+            SampleQueryResult.IsLoading = false;
+        }
     }
 
     public async Task RefreshQueryResultAsync()
     {
-        string? activeKey = ResolveActiveSessionKey();
-        if (string.IsNullOrEmpty(activeKey) || SelectedTargetDatabase == null || !DatabaseSessionService.Instance.IsSessionOpen(activeKey))
-        {
-            SampleQueryResult.IsConnectedToDatabase = false;
-            SampleQueryResult.ResetToSampleData();
-            return;
-        }
+        SampleQueryResult.IsLoading = true;
+        SampleQueryResult.LoadingMessage = "Refreshing table data...";
 
-        SampleQueryResult.IsConnectedToDatabase = true;
-        string? queryToRun = null;
-        if (!string.IsNullOrWhiteSpace(SampleQueryResult.LastExecutedQuery) &&
-            SampleQueryResult.LastExecutedQuery.TrimStart().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
+        try
         {
-            queryToRun = SampleQueryResult.LastExecutedQuery;
-        }
-        else if (!string.IsNullOrWhiteSpace(SampleQueryResult.CurrentTableName))
-        {
-            string quotedTable = QueryResultTableViewModel.FormatIdentifier(SampleQueryResult.CurrentTableName, SampleQueryResult.CurrentDatabaseType);
-            queryToRun = SampleQueryResult.CurrentDatabaseType == DatabaseType.MSSQL
-                ? $"SELECT TOP 100 * FROM {quotedTable};"
-                : $"SELECT * FROM {quotedTable} LIMIT 100;";
-        }
-        else if (!string.IsNullOrWhiteSpace(Editor.SelectedTab?.Text) &&
-                 Editor.SelectedTab.Text.TrimStart().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
-        {
-            queryToRun = Editor.SelectedTab.Text;
-        }
-        else
-        {
-            string? firstTable = DatabaseSessionService.Instance.GetActiveCachedTables().FirstOrDefault()?.FullName;
-            if (!string.IsNullOrWhiteSpace(firstTable))
+            string? activeKey = ResolveActiveSessionKey();
+            if (string.IsNullOrEmpty(activeKey) || SelectedTargetDatabase == null || !DatabaseSessionService.Instance.IsSessionOpen(activeKey))
             {
-                string quotedFirst = QueryResultTableViewModel.FormatIdentifier(firstTable, SampleQueryResult.CurrentDatabaseType);
-                queryToRun = SampleQueryResult.CurrentDatabaseType == DatabaseType.MSSQL
-                    ? $"SELECT TOP 100 * FROM {quotedFirst};"
-                    : $"SELECT * FROM {quotedFirst} LIMIT 100;";
+                SampleQueryResult.IsConnectedToDatabase = false;
+                SampleQueryResult.ResetToSampleData();
+                return;
             }
-        }
 
-        if (string.IsNullOrWhiteSpace(queryToRun))
-        {
-            SampleQueryResult.LastQueryMessage = "No active query or table selected to refresh.";
-            SampleQueryResult.HasLastQueryMessage = true;
-            return;
-        }
-
-        var result = await DatabaseSessionService.Instance.ExecuteQueryAsync(queryToRun, activeKey);
-        if (result.Success && result.ColumnNames.Count > 0)
-        {
-            string? inferredTable = ExtractTableNameFromQuery(queryToRun)
-                ?? (string.IsNullOrWhiteSpace(SampleQueryResult.CurrentTableName) ? null : SampleQueryResult.CurrentTableName);
-            SampleQueryResult.CurrentTableName = inferredTable ?? string.Empty;
-            SampleQueryResult.ClearMetadata();
-            SampleQueryResult.SetResults(result.ColumnNames, result.Rows, result.ExecutionTime);
-            SampleQueryResult.LastExecutedQuery = queryToRun;
-            SampleQueryResult.LastQueryMessage = $"Table refreshed ({result.Rows.Count} rows) · {result.ExecutionTime}";
-            SampleQueryResult.HasLastQueryMessage = true;
-
-            if (!string.IsNullOrWhiteSpace(inferredTable))
+            SampleQueryResult.IsConnectedToDatabase = true;
+            string? queryToRun = null;
+            if (!string.IsNullOrWhiteSpace(SampleQueryResult.LastExecutedQuery) &&
+                SampleQueryResult.LastExecutedQuery.TrimStart().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
             {
-                try
+                queryToRun = SampleQueryResult.LastExecutedQuery;
+            }
+            else if (!string.IsNullOrWhiteSpace(SampleQueryResult.CurrentTableName))
+            {
+                string quotedTable = QueryResultTableViewModel.FormatIdentifier(SampleQueryResult.CurrentTableName, SampleQueryResult.CurrentDatabaseType);
+                queryToRun = SampleQueryResult.CurrentDatabaseType == DatabaseType.MSSQL
+                    ? $"SELECT TOP 100 * FROM {quotedTable};"
+                    : $"SELECT * FROM {quotedTable} LIMIT 100;";
+            }
+            else if (!string.IsNullOrWhiteSpace(Editor.SelectedTab?.Text) &&
+                     Editor.SelectedTab.Text.TrimStart().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
+            {
+                queryToRun = Editor.SelectedTab.Text;
+            }
+            else
+            {
+                string? firstTable = DatabaseSessionService.Instance.GetActiveCachedTables().FirstOrDefault()?.FullName;
+                if (!string.IsNullOrWhiteSpace(firstTable))
                 {
-                    var pks = await DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(inferredTable, activeKey);
-                    var fks = await DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(inferredTable, activeKey);
-                    if (string.Equals(SampleQueryResult.CurrentTableName, inferredTable, StringComparison.OrdinalIgnoreCase))
+                    string quotedFirst = QueryResultTableViewModel.FormatIdentifier(firstTable, SampleQueryResult.CurrentDatabaseType);
+                    queryToRun = SampleQueryResult.CurrentDatabaseType == DatabaseType.MSSQL
+                        ? $"SELECT TOP 100 * FROM {quotedFirst};"
+                        : $"SELECT * FROM {quotedFirst} LIMIT 100;";
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(queryToRun))
+            {
+                SampleQueryResult.LastQueryMessage = "No active query or table selected to refresh.";
+                SampleQueryResult.HasLastQueryMessage = true;
+                return;
+            }
+
+            var result = await DatabaseSessionService.Instance.ExecuteQueryAsync(queryToRun, activeKey);
+            if (result.Success && result.ColumnNames.Count > 0)
+            {
+                string? inferredTable = ExtractTableNameFromQuery(queryToRun)
+                    ?? (string.IsNullOrWhiteSpace(SampleQueryResult.CurrentTableName) ? null : SampleQueryResult.CurrentTableName);
+                SampleQueryResult.CurrentTableName = inferredTable ?? string.Empty;
+                SampleQueryResult.ClearMetadata();
+                SampleQueryResult.SetResults(result.ColumnNames, result.Rows, result.ExecutionTime);
+                SampleQueryResult.LastExecutedQuery = queryToRun;
+                SampleQueryResult.LastQueryMessage = $"Table refreshed ({result.Rows.Count} rows) · {result.ExecutionTime}";
+                SampleQueryResult.HasLastQueryMessage = true;
+
+                if (!string.IsNullOrWhiteSpace(inferredTable))
+                {
+                    try
                     {
-                        SampleQueryResult.SetTableMetadata(pks, fks);
+                        var pks = await DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(inferredTable, activeKey);
+                        var fks = await DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(inferredTable, activeKey);
+                        if (string.Equals(SampleQueryResult.CurrentTableName, inferredTable, StringComparison.OrdinalIgnoreCase))
+                        {
+                            SampleQueryResult.SetTableMetadata(pks, fks);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[MainViewModel] Metadata refresh failed for '{inferredTable}': {ex.Message}");
                     }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[MainViewModel] Metadata refresh failed for '{inferredTable}': {ex.Message}");
-                }
+            }
+            else if (!result.Success)
+            {
+                SampleQueryResult.LastQueryMessage = $"Refresh failed: {result.Message}";
+                SampleQueryResult.HasLastQueryMessage = true;
             }
         }
-        else if (!result.Success)
+        catch (Exception ex)
         {
-            SampleQueryResult.LastQueryMessage = $"Refresh failed: {result.Message}";
+            Console.WriteLine($"[MainViewModel] RefreshQueryResultAsync error: {ex.Message}");
+            SampleQueryResult.LastQueryMessage = $"Refresh error: {ex.Message}";
             SampleQueryResult.HasLastQueryMessage = true;
+        }
+        finally
+        {
+            SampleQueryResult.IsLoading = false;
         }
     }
 

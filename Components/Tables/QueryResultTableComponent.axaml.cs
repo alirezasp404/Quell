@@ -138,332 +138,364 @@ public partial class QueryResultTableComponent : UserControl
         }
     }
 
+    public void ClearSelection()
+    {
+        _anchorRow = null;
+        _activeRow = null;
+        _cornerARow = null;
+        _cornerBRow = null;
+        _hasSelection = false;
+        _spanValid = false;
+        _spanRowStart = -1;
+        _spanRowEnd = -1;
+        _dragging = false;
+        _dragRows = false;
+        _capturedPointer?.Capture(null);
+        _capturedPointer = null;
+
+        if (ResultsDataGrid != null)
+        {
+            ResultsDataGrid.SelectedItem = null;
+            ResultsDataGrid.CurrentColumn = null;
+        }
+        UpdateStatus();
+    }
+
     private void OnColumnsChanged(IReadOnlyList<string> columns)
     {
         void UpdateColumns()
         {
-            while (ResultsDataGrid.Columns.Count > 1)
+            try
             {
-                ResultsDataGrid.Columns.RemoveAt(ResultsDataGrid.Columns.Count - 1);
-            }
+                ClearSelection();
 
-            for (int i = 0; i < columns.Count; i++)
-            {
-                var colName = columns[i];
-                var isPk = _viewModel?.IsColumnPrimaryKey(colName) == true;
-                var fkRel = _viewModel?.GetForeignKeyRelation(colName);
-                var isFk = fkRel != null;
-                var styleClass = isPk ? "pk-col" : (isFk ? "fk-col" : ((i % 2 == 0) ? "white-col" : "alt-col"));
-
-                if (isFk && fkRel != null)
+                while (ResultsDataGrid.Columns.Count > 1)
                 {
-                    var fkCol = new DataGridTemplateColumn
+                    ResultsDataGrid.Columns.RemoveAt(ResultsDataGrid.Columns.Count - 1);
+                }
+
+                for (int i = 0; i < columns.Count; i++)
+                {
+                    var colName = columns[i];
+                    var isPk = _viewModel?.IsColumnPrimaryKey(colName) == true;
+                    var fkRel = _viewModel?.GetForeignKeyRelation(colName);
+                    var isFk = fkRel != null;
+                    var styleClass = isPk ? "pk-col" : (isFk ? "fk-col" : ((i % 2 == 0) ? "white-col" : "alt-col"));
+
+                    if (isFk && fkRel != null)
+                    {
+                        var fkCol = new DataGridTemplateColumn
+                        {
+                            Tag = colName,
+                            CanUserResize = true,
+                            CanUserSort = true,
+                            SortMemberPath = $"[{colName}]"
+                        };
+
+                        var headerPanel = new StackPanel
+                        {
+                            Orientation = Avalonia.Layout.Orientation.Horizontal,
+                            Spacing = 4,
+                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                        };
+                        ToolTip.SetTip(headerPanel, $"Foreign Key -> References {fkRel.TargetTable}({fkRel.TargetColumn})");
+
+                        var fkBadge = new Border
+                        {
+                            Background = ResolveThemeBrush("AppTableFkBadgeBackgroundBrush", "#F1F5F9"),
+                            BorderBrush = ResolveThemeBrush("AppTableFkBadgeBorderBrush", "#CBD5E1"),
+                            BorderThickness = new Avalonia.Thickness(1),
+                            CornerRadius = new Avalonia.CornerRadius(3),
+                            Padding = new Avalonia.Thickness(3, 1),
+                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                        };
+
+                        var fkStack = new StackPanel
+                        {
+                            Orientation = Avalonia.Layout.Orientation.Horizontal,
+                            Spacing = 2
+                        };
+
+                        var linkIcon = new Avalonia.Controls.PathIcon
+                        {
+                            Data = Avalonia.Media.Geometry.Parse("M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"),
+                            Width = 9,
+                            Height = 9,
+                            Foreground = ResolveThemeBrush("AppTableFkBadgeForegroundBrush", "#475569"),
+                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                        };
+
+                        var fkText = new TextBlock
+                        {
+                            Text = "FK",
+                            FontSize = 9,
+                            FontWeight = Avalonia.Media.FontWeight.Bold,
+                            Foreground = ResolveThemeBrush("AppTableFkBadgeForegroundBrush", "#475569"),
+                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                        };
+
+                        fkStack.Children.Add(linkIcon);
+                        fkStack.Children.Add(fkText);
+                        fkBadge.Child = fkStack;
+
+                        var titleBlock = new TextBlock
+                        {
+                            Text = colName.ToUpperInvariant(),
+                            FontWeight = Avalonia.Media.FontWeight.Bold,
+                            Foreground = ResolveThemeBrush("AppTableHeaderForegroundBrush", "#0F172A"),
+                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                        };
+
+                        headerPanel.Children.Add(fkBadge);
+                        headerPanel.Children.Add(titleBlock);
+                        fkCol.Header = headerPanel;
+
+                        string capturedCol = colName;
+                        var relCopy = fkRel;
+                        fkCol.CellTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<QueryResultRow>((row, ns) =>
+                        {
+                            var cellGrid = new Grid
+                            {
+                                ColumnDefinitions = new ColumnDefinitions("*,Auto"),
+                                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                                Margin = new Thickness(4, 0)
+                            };
+
+                            var linkPill = new Border
+                            {
+                                Background = Avalonia.Media.Brushes.Transparent,
+                                BorderThickness = new Thickness(0),
+                                Padding = new Thickness(2, 0),
+                                Cursor = new Cursor(StandardCursorType.Hand),
+                                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+                                Tag = capturedCol
+                            };
+
+                            var valueStack = new StackPanel
+                            {
+                                Orientation = Avalonia.Layout.Orientation.Horizontal,
+                                Spacing = 4,
+                                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                            };
+
+                            var linkIcon = new Avalonia.Controls.PathIcon
+                            {
+                                Data = Avalonia.Media.Geometry.Parse("M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"),
+                                Width = 8,
+                                Height = 8,
+                                Opacity = 0.8,
+                                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                            };
+                            linkIcon[!Avalonia.Controls.PathIcon.ForegroundProperty] = new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("AppAccentBrush");
+
+                            var cellText = new TextBlock
+                            {
+                                FontSize = 11,
+                                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                            };
+                            cellText.Bind(TextBlock.TextProperty, new Avalonia.Data.Binding($"[{capturedCol}]"));
+                            cellText[!TextBlock.ForegroundProperty] = new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("AppAccentBrush");
+
+                            valueStack.Children.Add(linkIcon);
+                            valueStack.Children.Add(cellText);
+                            linkPill.Child = valueStack;
+
+                            ToolTip.SetTip(linkPill, $"Foreign Key: {relCopy.TargetTable}({relCopy.TargetColumn})\nDouble-click to navigate directly to referenced record");
+
+                            // Double-click on cell or value directly navigates to the referenced table WITHOUT opening a modal
+                            linkPill.DoubleTapped += async (s, e) =>
+                            {
+                                e.Handled = true;
+                                string val = row != null ? row[capturedCol] : string.Empty;
+                                if (string.IsNullOrWhiteSpace(val) || val.Equals("NULL", StringComparison.OrdinalIgnoreCase)) return;
+                                if (_viewModel != null)
+                                {
+                                    await _viewModel.NavigateToForeignKeyAsync(capturedCol, val);
+                                }
+                            };
+
+                            cellGrid.DoubleTapped += async (s, e) =>
+                            {
+                                e.Handled = true;
+                                string val = row != null ? row[capturedCol] : string.Empty;
+                                if (string.IsNullOrWhiteSpace(val) || val.Equals("NULL", StringComparison.OrdinalIgnoreCase)) return;
+                                if (_viewModel != null)
+                                {
+                                    await _viewModel.NavigateToForeignKeyAsync(capturedCol, val);
+                                }
+                            };
+
+                            Grid.SetColumn(linkPill, 0);
+                            cellGrid.Children.Add(linkPill);
+
+                            var arrowBtn = new Button
+                            {
+                                Classes = { "fk-nav-btn" },
+                                Width = 20,
+                                Height = 20,
+                                Padding = new Thickness(0),
+                                Background = Avalonia.Media.Brushes.Transparent,
+                                BorderThickness = new Thickness(0),
+                                Cursor = new Cursor(StandardCursorType.Hand),
+                                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
+                                Tag = capturedCol
+                            };
+                            ToolTip.SetTip(arrowBtn, $"Navigate to referenced record in {relCopy.TargetTable} table");
+
+                            var arrowIcon = new Avalonia.Controls.PathIcon
+                            {
+                                Data = Avalonia.Media.Geometry.Parse("M14 5l7 7m0 0l-7 7m7-7H3"),
+                                Width = 10,
+                                Height = 10,
+                                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                            };
+                            arrowIcon[!Avalonia.Controls.PathIcon.ForegroundProperty] = new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("AppTextSecondaryBrush");
+                            arrowBtn.Content = arrowIcon;
+
+                            arrowBtn.Click += async (s, e) =>
+                            {
+                                e.Handled = true;
+                                string val = row != null ? row[capturedCol] : string.Empty;
+                                if (string.IsNullOrWhiteSpace(val) || val.Equals("NULL", StringComparison.OrdinalIgnoreCase)) return;
+                                if (_viewModel != null)
+                                {
+                                    await _viewModel.NavigateToForeignKeyAsync(capturedCol, val);
+                                }
+                            };
+
+                            Grid.SetColumn(arrowBtn, 1);
+                            cellGrid.Children.Add(arrowBtn);
+
+                            // Context Menu for cell
+                            var ctxMenu = new ContextMenu();
+                            var peekItem = new MenuItem { Header = $"Inspect Referenced Record in {relCopy.TargetTable}..." };
+                            peekItem.Click += async (s, e) =>
+                            {
+                                string val = row != null ? row[capturedCol] : string.Empty;
+                                if (string.IsNullOrWhiteSpace(val) || val.Equals("NULL", StringComparison.OrdinalIgnoreCase)) return;
+                                if (_viewModel != null) await _viewModel.InspectForeignKeyAsync(capturedCol, val);
+                            };
+                            var navItem = new MenuItem { Header = $"Open in {relCopy.TargetTable} Table View" };
+                            navItem.Click += async (s, e) =>
+                            {
+                                string val = row != null ? row[capturedCol] : string.Empty;
+                                if (string.IsNullOrWhiteSpace(val) || val.Equals("NULL", StringComparison.OrdinalIgnoreCase)) return;
+                                if (_viewModel != null) await _viewModel.NavigateToForeignKeyAsync(capturedCol, val);
+                            };
+                            var copyValItem = new MenuItem { Header = "Copy Foreign Key Value" };
+                            copyValItem.Click += async (s, e) =>
+                            {
+                                string val = row != null ? row[capturedCol] : string.Empty;
+                                if (!string.IsNullOrEmpty(val))
+                                {
+                                    await ClipboardService.CopyTextAsync(val);
+                                }
+                            };
+                            ctxMenu.Items.Add(peekItem);
+                            ctxMenu.Items.Add(navItem);
+                            ctxMenu.Items.Add(new Separator());
+                            ctxMenu.Items.Add(copyValItem);
+                            cellGrid.ContextMenu = ctxMenu;
+
+                            return cellGrid;
+                        });
+
+                        fkCol.CellStyleClasses.Add(styleClass);
+                        ResultsDataGrid.Columns.Add(fkCol);
+                        continue;
+                    }
+
+                    var col = new DataGridTextColumn
                     {
                         Tag = colName,
+                        Binding = new Avalonia.Data.Binding($"[{colName}]"),
                         CanUserResize = true,
-                        CanUserSort = true,
-                        SortMemberPath = $"[{colName}]"
+                        CanUserSort = true
                     };
 
-                    var headerPanel = new StackPanel
+                    if (isPk)
                     {
-                        Orientation = Avalonia.Layout.Orientation.Horizontal,
-                        Spacing = 4,
-                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-                    };
-                    ToolTip.SetTip(headerPanel, $"Foreign Key -> References {fkRel.TargetTable}({fkRel.TargetColumn})");
-
-                    var fkBadge = new Border
-                    {
-                        Background = ResolveThemeBrush("AppTableFkBadgeBackgroundBrush", "#F1F5F9"),
-                        BorderBrush = ResolveThemeBrush("AppTableFkBadgeBorderBrush", "#CBD5E1"),
-                        BorderThickness = new Avalonia.Thickness(1),
-                        CornerRadius = new Avalonia.CornerRadius(3),
-                        Padding = new Avalonia.Thickness(3, 1),
-                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-                    };
-
-                    var fkStack = new StackPanel
-                    {
-                        Orientation = Avalonia.Layout.Orientation.Horizontal,
-                        Spacing = 2
-                    };
-
-                    var linkIcon = new Avalonia.Controls.PathIcon
-                    {
-                        Data = Avalonia.Media.Geometry.Parse("M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"),
-                        Width = 9,
-                        Height = 9,
-                        Foreground = ResolveThemeBrush("AppTableFkBadgeForegroundBrush", "#475569"),
-                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-                    };
-
-                    var fkText = new TextBlock
-                    {
-                        Text = "FK",
-                        FontSize = 9,
-                        FontWeight = Avalonia.Media.FontWeight.Bold,
-                        Foreground = ResolveThemeBrush("AppTableFkBadgeForegroundBrush", "#475569"),
-                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-                    };
-
-                    fkStack.Children.Add(linkIcon);
-                    fkStack.Children.Add(fkText);
-                    fkBadge.Child = fkStack;
-
-                    var titleBlock = new TextBlock
-                    {
-                        Text = colName.ToUpperInvariant(),
-                        FontWeight = Avalonia.Media.FontWeight.Bold,
-                        Foreground = ResolveThemeBrush("AppTableHeaderForegroundBrush", "#0F172A"),
-                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-                    };
-
-                    headerPanel.Children.Add(fkBadge);
-                    headerPanel.Children.Add(titleBlock);
-                    fkCol.Header = headerPanel;
-
-                    string capturedCol = colName;
-                    var relCopy = fkRel;
-                    fkCol.CellTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<QueryResultRow>((row, ns) =>
-                    {
-                        var cellGrid = new Grid
-                        {
-                            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
-                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
-                            Margin = new Thickness(4, 0)
-                        };
-
-                        var linkPill = new Border
-                        {
-                            Background = Avalonia.Media.Brushes.Transparent,
-                            BorderThickness = new Thickness(0),
-                            Padding = new Thickness(2, 0),
-                            Cursor = new Cursor(StandardCursorType.Hand),
-                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
-                            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
-                            Tag = capturedCol
-                        };
-
-                        var valueStack = new StackPanel
+                        var headerPanel = new StackPanel
                         {
                             Orientation = Avalonia.Layout.Orientation.Horizontal,
                             Spacing = 4,
                             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
                         };
 
-                        var linkIcon = new Avalonia.Controls.PathIcon
+                        var pkBadge = new Border
                         {
-                            Data = Avalonia.Media.Geometry.Parse("M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"),
-                            Width = 8,
-                            Height = 8,
-                            Opacity = 0.8,
+                            Background = ResolveThemeBrush("AppTablePkBadgeBackgroundBrush", "#F1F5F9"),
+                            BorderBrush = ResolveThemeBrush("AppTablePkBadgeBorderBrush", "#CBD5E1"),
+                            BorderThickness = new Avalonia.Thickness(1),
+                            CornerRadius = new Avalonia.CornerRadius(3),
+                            Padding = new Avalonia.Thickness(3, 1),
                             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
                         };
-                        linkIcon[!Avalonia.Controls.PathIcon.ForegroundProperty] = new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("AppAccentBrush");
 
-                        var cellText = new TextBlock
+                        var pkStack = new StackPanel
                         {
-                            FontSize = 11,
+                            Orientation = Avalonia.Layout.Orientation.Horizontal,
+                            Spacing = 2
+                        };
+
+                        var keyIcon = new Avalonia.Controls.PathIcon
+                        {
+                            Data = Avalonia.Media.Geometry.Parse("M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"),
+                            Width = 9,
+                            Height = 9,
+                            Foreground = ResolveThemeBrush("AppTablePkBadgeForegroundBrush", "#64748B"),
                             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
                         };
-                        cellText.Bind(TextBlock.TextProperty, new Avalonia.Data.Binding($"[{capturedCol}]"));
-                        cellText[!TextBlock.ForegroundProperty] = new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("AppAccentBrush");
 
-                        valueStack.Children.Add(linkIcon);
-                        valueStack.Children.Add(cellText);
-                        linkPill.Child = valueStack;
-
-                        ToolTip.SetTip(linkPill, $"Foreign Key: {relCopy.TargetTable}({relCopy.TargetColumn})\nDouble-click to navigate directly to referenced record");
-
-                        // Double-click on cell or value directly navigates to the referenced table WITHOUT opening a modal
-                        linkPill.DoubleTapped += async (s, e) =>
+                        var pkText = new TextBlock
                         {
-                            e.Handled = true;
-                            string val = row != null ? row[capturedCol] : string.Empty;
-                            if (string.IsNullOrWhiteSpace(val) || val.Equals("NULL", StringComparison.OrdinalIgnoreCase)) return;
-                            if (_viewModel != null)
-                            {
-                                await _viewModel.NavigateToForeignKeyAsync(capturedCol, val);
-                            }
-                        };
-
-                        cellGrid.DoubleTapped += async (s, e) =>
-                        {
-                            e.Handled = true;
-                            string val = row != null ? row[capturedCol] : string.Empty;
-                            if (string.IsNullOrWhiteSpace(val) || val.Equals("NULL", StringComparison.OrdinalIgnoreCase)) return;
-                            if (_viewModel != null)
-                            {
-                                await _viewModel.NavigateToForeignKeyAsync(capturedCol, val);
-                            }
-                        };
-
-                        Grid.SetColumn(linkPill, 0);
-                        cellGrid.Children.Add(linkPill);
-
-                        var arrowBtn = new Button
-                        {
-                            Classes = { "fk-nav-btn" },
-                            Width = 20,
-                            Height = 20,
-                            Padding = new Thickness(0),
-                            Background = Avalonia.Media.Brushes.Transparent,
-                            BorderThickness = new Thickness(0),
-                            Cursor = new Cursor(StandardCursorType.Hand),
-                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
-                            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
-                            Tag = capturedCol
-                        };
-                        ToolTip.SetTip(arrowBtn, $"Navigate to referenced record in {relCopy.TargetTable} table");
-
-                        var arrowIcon = new Avalonia.Controls.PathIcon
-                        {
-                            Data = Avalonia.Media.Geometry.Parse("M14 5l7 7m0 0l-7 7m7-7H3"),
-                            Width = 10,
-                            Height = 10,
+                            Text = "PK",
+                            FontSize = 9,
+                            FontWeight = Avalonia.Media.FontWeight.Bold,
+                            Foreground = ResolveThemeBrush("AppTablePkBadgeForegroundBrush", "#64748B"),
                             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
                         };
-                        arrowIcon[!Avalonia.Controls.PathIcon.ForegroundProperty] = new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("AppTextSecondaryBrush");
-                        arrowBtn.Content = arrowIcon;
 
-                        arrowBtn.Click += async (s, e) =>
+                        pkStack.Children.Add(keyIcon);
+                        pkStack.Children.Add(pkText);
+                        pkBadge.Child = pkStack;
+
+                        var titleBlock = new TextBlock
                         {
-                            e.Handled = true;
-                            string val = row != null ? row[capturedCol] : string.Empty;
-                            if (string.IsNullOrWhiteSpace(val) || val.Equals("NULL", StringComparison.OrdinalIgnoreCase)) return;
-                            if (_viewModel != null)
-                            {
-                                await _viewModel.NavigateToForeignKeyAsync(capturedCol, val);
-                            }
+                            Text = colName.ToUpperInvariant(),
+                            FontWeight = Avalonia.Media.FontWeight.Bold,
+                            Foreground = ResolveThemeBrush("AppTableHeaderForegroundBrush", "#0F172A"),
+                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
                         };
 
-                        Grid.SetColumn(arrowBtn, 1);
-                        cellGrid.Children.Add(arrowBtn);
+                        headerPanel.Children.Add(pkBadge);
+                        headerPanel.Children.Add(titleBlock);
+                        col.Header = headerPanel;
+                    }
+                    else
+                    {
+                        col.Header = colName.ToUpperInvariant();
+                    }
 
-                        // Context Menu for cell
-                        var ctxMenu = new ContextMenu();
-                        var peekItem = new MenuItem { Header = $"Inspect Referenced Record in {relCopy.TargetTable}..." };
-                        peekItem.Click += async (s, e) =>
-                        {
-                            string val = row != null ? row[capturedCol] : string.Empty;
-                            if (string.IsNullOrWhiteSpace(val) || val.Equals("NULL", StringComparison.OrdinalIgnoreCase)) return;
-                            if (_viewModel != null) await _viewModel.InspectForeignKeyAsync(capturedCol, val);
-                        };
-                        var navItem = new MenuItem { Header = $"Open in {relCopy.TargetTable} Table View" };
-                        navItem.Click += async (s, e) =>
-                        {
-                            string val = row != null ? row[capturedCol] : string.Empty;
-                            if (string.IsNullOrWhiteSpace(val) || val.Equals("NULL", StringComparison.OrdinalIgnoreCase)) return;
-                            if (_viewModel != null) await _viewModel.NavigateToForeignKeyAsync(capturedCol, val);
-                        };
-                        var copyValItem = new MenuItem { Header = "Copy Foreign Key Value" };
-                        copyValItem.Click += async (s, e) =>
-                        {
-                            string val = row != null ? row[capturedCol] : string.Empty;
-                            if (!string.IsNullOrEmpty(val))
-                            {
-                                await ClipboardService.CopyTextAsync(val);
-                            }
-                        };
-                        ctxMenu.Items.Add(peekItem);
-                        ctxMenu.Items.Add(navItem);
-                        ctxMenu.Items.Add(new Separator());
-                        ctxMenu.Items.Add(copyValItem);
-                        cellGrid.ContextMenu = ctxMenu;
-
-                        return cellGrid;
-                    });
-
-                    fkCol.CellStyleClasses.Add(styleClass);
-                    ResultsDataGrid.Columns.Add(fkCol);
-                    continue;
+                    col.CellStyleClasses.Add(styleClass);
+                    ResultsDataGrid.Columns.Add(col);
                 }
 
-                var col = new DataGridTextColumn
-                {
-                    Tag = colName,
-                    Binding = new Avalonia.Data.Binding($"[{colName}]"),
-                    CanUserResize = true,
-                    CanUserSort = true
-                };
-
-                if (isPk)
-                {
-                    var headerPanel = new StackPanel
-                    {
-                        Orientation = Avalonia.Layout.Orientation.Horizontal,
-                        Spacing = 4,
-                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-                    };
-
-                    var pkBadge = new Border
-                    {
-                        Background = ResolveThemeBrush("AppTablePkBadgeBackgroundBrush", "#F1F5F9"),
-                        BorderBrush = ResolveThemeBrush("AppTablePkBadgeBorderBrush", "#CBD5E1"),
-                        BorderThickness = new Avalonia.Thickness(1),
-                        CornerRadius = new Avalonia.CornerRadius(3),
-                        Padding = new Avalonia.Thickness(3, 1),
-                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-                    };
-
-                    var pkStack = new StackPanel
-                    {
-                        Orientation = Avalonia.Layout.Orientation.Horizontal,
-                        Spacing = 2
-                    };
-
-                    var keyIcon = new Avalonia.Controls.PathIcon
-                    {
-                        Data = Avalonia.Media.Geometry.Parse("M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"),
-                        Width = 9,
-                        Height = 9,
-                        Foreground = ResolveThemeBrush("AppTablePkBadgeForegroundBrush", "#64748B"),
-                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-                    };
-
-                    var pkText = new TextBlock
-                    {
-                        Text = "PK",
-                        FontSize = 9,
-                        FontWeight = Avalonia.Media.FontWeight.Bold,
-                        Foreground = ResolveThemeBrush("AppTablePkBadgeForegroundBrush", "#64748B"),
-                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-                    };
-
-                    pkStack.Children.Add(keyIcon);
-                    pkStack.Children.Add(pkText);
-                    pkBadge.Child = pkStack;
-
-                    var titleBlock = new TextBlock
-                    {
-                        Text = colName.ToUpperInvariant(),
-                        FontWeight = Avalonia.Media.FontWeight.Bold,
-                        Foreground = ResolveThemeBrush("AppTableHeaderForegroundBrush", "#0F172A"),
-                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-                    };
-
-                    headerPanel.Children.Add(pkBadge);
-                    headerPanel.Children.Add(titleBlock);
-                    col.Header = headerPanel;
-                }
-                else
-                {
-                    col.Header = colName.ToUpperInvariant();
-                }
-
-                col.CellStyleClasses.Add(styleClass);
-                ResultsDataGrid.Columns.Add(col);
+                _cachedDataColumnIndexes = ResultsDataGrid.Columns
+                    .Where(column => !IsRowHeader(column))
+                    .Select(column => column.DisplayIndex)
+                    .OrderBy(index => index)
+                    .ToList();
+                _dataMinCol = _cachedDataColumnIndexes.Count > 0 ? _cachedDataColumnIndexes[0] : 1;
+                _dataMaxCol = _cachedDataColumnIndexes.Count > 0 ? _cachedDataColumnIndexes[^1] : 1;
+                UpdateSpanCache();
             }
-
-            _cachedDataColumnIndexes = ResultsDataGrid.Columns
-                .Where(column => !IsRowHeader(column))
-                .Select(column => column.DisplayIndex)
-                .OrderBy(index => index)
-                .ToList();
-            _dataMinCol = _cachedDataColumnIndexes.Count > 0 ? _cachedDataColumnIndexes[0] : 1;
-            _dataMaxCol = _cachedDataColumnIndexes.Count > 0 ? _cachedDataColumnIndexes[^1] : 1;
-            UpdateSpanCache();
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[QueryResultTableComponent] Error updating columns: {ex.Message}");
+            }
         }
 
         if (Dispatcher.UIThread.CheckAccess())
@@ -491,51 +523,58 @@ public partial class QueryResultTableComponent : UserControl
 
     private void OnCellPointerPressed(object? sender, DataGridCellPointerPressedEventArgs e)
     {
-        if (e.Row.DataContext is not QueryResultRow item || e.Column == null)
-            return;
-
-        var point = e.PointerPressedEventArgs.GetCurrentPoint(ResultsDataGrid);
-        var extend = e.PointerPressedEventArgs.KeyModifiers.HasFlag(KeyModifiers.Shift);
-        var header = IsRowHeader(e.Column);
-
-        if (point.Properties.IsRightButtonPressed)
+        try
         {
-            var alreadySelected = header
-                ? IsRowFullySelected(item)
-                : IsCellSelected(item, e.Column.DisplayIndex);
-            if (!alreadySelected)
-                BeginPointerSelection(item, e.Column, extend: false);
+            if (e.Row.DataContext is not QueryResultRow item || e.Column == null)
+                return;
 
-            return;
-        }
+            var point = e.PointerPressedEventArgs.GetCurrentPoint(ResultsDataGrid);
+            var extend = e.PointerPressedEventArgs.KeyModifiers.HasFlag(KeyModifiers.Shift);
+            var header = IsRowHeader(e.Column);
 
-        if (!point.Properties.IsLeftButtonPressed)
-            return;
-
-        if (e.PointerPressedEventArgs.ClickCount == 2 && !header)
-        {
-            string colName = ExtractHeaderName(e.Column);
-            if (_viewModel != null && !string.IsNullOrEmpty(colName) && _viewModel.IsColumnForeignKey(colName))
+            if (point.Properties.IsRightButtonPressed)
             {
-                e.PointerPressedEventArgs.Handled = true;
-                string val = item[colName];
-                if (!string.IsNullOrWhiteSpace(val) && !val.Equals("NULL", StringComparison.OrdinalIgnoreCase))
-                {
-                    _ = _viewModel.NavigateToForeignKeyAsync(colName, val);
-                }
+                var alreadySelected = header
+                    ? IsRowFullySelected(item)
+                    : IsCellSelected(item, e.Column.DisplayIndex);
+                if (!alreadySelected)
+                    BeginPointerSelection(item, e.Column, extend: false);
+
                 return;
             }
 
-            _viewModel?.OpenEditCell(item, colName);
-            e.PointerPressedEventArgs.Handled = true;
-            return;
-        }
+            if (!point.Properties.IsLeftButtonPressed)
+                return;
 
-        BeginPointerSelection(item, e.Column, extend);
-        _dragging = true;
-        _capturedPointer = e.PointerPressedEventArgs.Pointer;
-        _capturedPointer.Capture(ResultsDataGrid);
-        ResultsDataGrid.Focus();
+            if (e.PointerPressedEventArgs.ClickCount == 2 && !header)
+            {
+                string colName = ExtractHeaderName(e.Column);
+                if (_viewModel != null && !string.IsNullOrEmpty(colName) && _viewModel.IsColumnForeignKey(colName))
+                {
+                    e.PointerPressedEventArgs.Handled = true;
+                    string val = item[colName];
+                    if (!string.IsNullOrWhiteSpace(val) && !val.Equals("NULL", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _ = _viewModel.NavigateToForeignKeyAsync(colName, val);
+                    }
+                    return;
+                }
+
+                _viewModel?.OpenEditCell(item, colName);
+                e.PointerPressedEventArgs.Handled = true;
+                return;
+            }
+
+            BeginPointerSelection(item, e.Column, extend);
+            _dragging = true;
+            _capturedPointer = e.PointerPressedEventArgs.Pointer;
+            _capturedPointer?.Capture(ResultsDataGrid);
+            ResultsDataGrid.Focus();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[QueryResultTableComponent] OnCellPointerPressed error: {ex.Message}");
+        }
     }
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
@@ -887,66 +926,73 @@ public partial class QueryResultTableComponent : UserControl
 
     private void ApplyRow(DataGridRow row)
     {
-        if (row.DataContext is not QueryResultRow item)
+        if (row?.DataContext is not QueryResultRow item)
             return;
 
-        if (!_hasSelection)
+        try
         {
+            if (!_hasSelection)
+            {
+                foreach (var cell in row.GetVisualDescendants().OfType<DataGridCell>())
+                {
+                    if (cell.Classes.Contains(SelectedClass))
+                        cell.Classes.Remove(SelectedClass);
+                    if (cell.Classes.Contains(ActiveClass))
+                        cell.Classes.Remove(ActiveClass);
+                }
+                return;
+            }
+
+            int rowIndex = row.Index;
+            bool isRowInSpan = _spanValid && rowIndex >= _spanRowStart && rowIndex <= _spanRowEnd;
+            bool isRowFullySelected = isRowInSpan && _col1 <= _dataMinCol && _col2 >= _dataMaxCol;
+            bool isRowActive = ReferenceEquals(item, _activeRow);
+
             foreach (var cell in row.GetVisualDescendants().OfType<DataGridCell>())
             {
-                if (cell.Classes.Contains(SelectedClass))
-                    cell.Classes.Remove(SelectedClass);
-                if (cell.Classes.Contains(ActiveClass))
-                    cell.Classes.Remove(ActiveClass);
+                var column = ColumnOf(cell);
+                if (column == null)
+                {
+                    if (cell.Classes.Contains(SelectedClass))
+                        cell.Classes.Remove(SelectedClass);
+                    if (cell.Classes.Contains(ActiveClass))
+                        cell.Classes.Remove(ActiveClass);
+                    continue;
+                }
+
+                int colIndex = column.DisplayIndex;
+                bool header = IsRowHeader(column);
+                bool active = !header && isRowActive && colIndex == _activeCol;
+                bool selected = !active && (header
+                    ? isRowFullySelected
+                    : (isRowInSpan && colIndex >= _col1 && colIndex <= _col2));
+
+                if (selected)
+                {
+                    if (!cell.Classes.Contains(SelectedClass))
+                        cell.Classes.Add(SelectedClass);
+                }
+                else
+                {
+                    if (cell.Classes.Contains(SelectedClass))
+                        cell.Classes.Remove(SelectedClass);
+                }
+
+                if (active)
+                {
+                    if (!cell.Classes.Contains(ActiveClass))
+                        cell.Classes.Add(ActiveClass);
+                }
+                else
+                {
+                    if (cell.Classes.Contains(ActiveClass))
+                        cell.Classes.Remove(ActiveClass);
+                }
             }
-            return;
         }
-
-        int rowIndex = row.Index;
-        bool isRowInSpan = _spanValid && rowIndex >= _spanRowStart && rowIndex <= _spanRowEnd;
-        bool isRowFullySelected = isRowInSpan && _col1 <= _dataMinCol && _col2 >= _dataMaxCol;
-        bool isRowActive = ReferenceEquals(item, _activeRow);
-
-        foreach (var cell in row.GetVisualDescendants().OfType<DataGridCell>())
+        catch (Exception ex)
         {
-            var column = ColumnOf(cell);
-            if (column == null)
-            {
-                if (cell.Classes.Contains(SelectedClass))
-                    cell.Classes.Remove(SelectedClass);
-                if (cell.Classes.Contains(ActiveClass))
-                    cell.Classes.Remove(ActiveClass);
-                continue;
-            }
-
-            int colIndex = column.DisplayIndex;
-            bool header = IsRowHeader(column);
-            bool active = !header && isRowActive && colIndex == _activeCol;
-            bool selected = !active && (header
-                ? isRowFullySelected
-                : (isRowInSpan && colIndex >= _col1 && colIndex <= _col2));
-
-            if (selected)
-            {
-                if (!cell.Classes.Contains(SelectedClass))
-                    cell.Classes.Add(SelectedClass);
-            }
-            else
-            {
-                if (cell.Classes.Contains(SelectedClass))
-                    cell.Classes.Remove(SelectedClass);
-            }
-
-            if (active)
-            {
-                if (!cell.Classes.Contains(ActiveClass))
-                    cell.Classes.Add(ActiveClass);
-            }
-            else
-            {
-                if (cell.Classes.Contains(ActiveClass))
-                    cell.Classes.Remove(ActiveClass);
-            }
+            Console.WriteLine($"[QueryResultTableComponent] ApplyRow error: {ex.Message}");
         }
     }
 

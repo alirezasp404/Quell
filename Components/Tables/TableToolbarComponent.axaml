@@ -26,7 +26,7 @@
                          Text="{Binding SearchFilter}"/>
                 <Button Classes="classic-tool-btn" 
                         Command="{Binding RefreshCommand}" 
-                        IsEnabled="{Binding !IsRefreshing}"
+                        IsEnabled="{Binding CanInteractWithTable}"
                         Height="23" 
                         Padding="6,2" 
                         ToolTip.Tip="Refresh table data from database (F5)">
@@ -35,13 +35,23 @@
                         <TextBlock Text="Refresh" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
-                <Button Classes="classic-tool-btn" Command="{Binding OpenEditSelectedCellCommand}" Height="23" Padding="6,2" ToolTip.Tip="Edit selected cell graphically &amp; execute UPDATE (F2)">
+                <Button Classes="classic-tool-btn" 
+                        Command="{Binding OpenEditSelectedCellCommand}" 
+                        IsEnabled="{Binding CanInteractWithTable}"
+                        Height="23" 
+                        Padding="6,2" 
+                        ToolTip.Tip="Edit selected cell graphically &amp; execute UPDATE (F2)">
                     <StackPanel Orientation="Horizontal" Spacing="5">
                         <ui:FASymbolIcon Symbol="Edit" FontSize="11" VerticalAlignment="Center"/>
                         <TextBlock Text="Edit Cell..." VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
-                <Button Classes="classic-tool-btn" Command="{Binding DeleteSelectedRowCommand}" Height="23" Padding="6,2" ToolTip.Tip="Delete selected rows or columns with safety confirmation (Del)">
+                <Button Classes="classic-tool-btn" 
+                        Command="{Binding DeleteSelectedRowCommand}" 
+                        IsEnabled="{Binding CanInteractWithTable}"
+                        Height="23" 
+                        Padding="6,2" 
+                        ToolTip.Tip="Delete selected rows or columns with safety confirmation (Del)">
                     <StackPanel Orientation="Horizontal" Spacing="5">
                         <ui:FASymbolIcon Symbol="Delete" FontSize="11" Foreground="#EF4444" VerticalAlignment="Center"/>
                         <TextBlock Text="Delete" Foreground="#EF4444" VerticalAlignment="Center"/>
