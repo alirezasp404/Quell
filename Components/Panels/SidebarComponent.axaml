@@ -475,7 +475,7 @@
                                 </Grid>
                             </Border>
 
-                            <!-- Unified Segmented Tab Control (Tables / Views / Procs) + Companion Active DB Scope Toggle -->
+                            <!-- Unified Segmented Tab Control (Tables / Views / Procs) -->
                             <StackPanel Grid.Row="1" Spacing="6" Margin="12,0,12,8">
                                 <Border Classes="quell-segmented-track">
                                     <UniformGrid Rows="1" Columns="3">
@@ -512,25 +512,14 @@
                                     </UniformGrid>
                                 </Border>
 
-                                <!-- Scope Metadata Bar (Status Count + Companion Active DB Toggle) -->
-                                <Grid ColumnDefinitions="*, Auto" IsVisible="{Binding IsConnected}">
-                                    <TextBlock Grid.Column="0"
-                                               Text="{Binding StatusText}"
-                                               FontSize="11"
-                                               Foreground="{DynamicResource AppTextMutedBrush}"
-                                               VerticalAlignment="Center"
-                                               TextTrimming="CharacterEllipsis"
-                                               Margin="2,0,6,0"/>
-                                    <ToggleButton Grid.Column="1"
-                                                  Classes="quell-filter-toggle"
-                                                  IsChecked="{Binding FilterActiveOnly}"
-                                                  ToolTip.Tip="Show only active connected database">
-                                        <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-                                            <Border Width="6" Height="6" CornerRadius="3" Background="{DynamicResource AppStatusActiveBrush}"/>
-                                            <TextBlock Text="Active DB" FontSize="11" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                    </ToggleButton>
-                                </Grid>
+                                <!-- Scope Metadata Status -->
+                                <TextBlock Text="{Binding StatusText}"
+                                           IsVisible="{Binding IsConnected}"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource AppTextMutedBrush}"
+                                           VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis"
+                                           Margin="2,0,2,0"/>
                             </StackPanel>
 
                             <!-- Hierarchical Explorer TreeView -->

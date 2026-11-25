@@ -3,155 +3,312 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Quell.ViewModels"
+             xmlns:svc="using:Quell.Services"
              xmlns:i="using:Avalonia.Xaml.Interactivity"
              xmlns:b="using:Quell.Behaviors"
              xmlns:ic="using:FluentIcons.Avalonia"
-              xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
              x:Class="Quell.Components.ConnectDatabaseModalComponent"
              x:DataType="vm:ConnectDatabaseModalViewModel"
              IsVisible="{Binding IsOpen}">
 
+    <UserControl.Styles>
+        <!-- Engine Card Button -->
+        <Style Selector="Button.connect-engine-card">
+            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="10,9"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusAdorner" Value="{x:Null}"/>
+        </Style>
+        <Style Selector="Button.connect-engine-card /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+            <Setter Property="CornerRadius" Value="8"/>
+        </Style>
+        <Style Selector="Button.connect-engine-card:not(.active):pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderDarkBrush}"/>
+        </Style>
+        <Style Selector="Button.connect-engine-card:not(.active):pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderDarkBrush}"/>
+        </Style>
+        <Style Selector="Button.connect-engine-card.active">
+            <Setter Property="Background" Value="{DynamicResource AppSegmentedItemActiveBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+        </Style>
+        <Style Selector="Button.connect-engine-card.active /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppSegmentedItemActiveBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+        </Style>
+
+        <!-- Saved Connection Pill -->
+        <Style Selector="Border.saved-conn-chip">
+            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="4,3"/>
+        </Style>
+        <Style Selector="Border.saved-conn-chip:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+        </Style>
+
+        <!-- Unified Modal Form Inputs -->
+        <Style Selector="TextBox.connect-field">
+            <Setter Property="Background" Value="{DynamicResource AppInputBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="MinHeight" Value="34"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="TextBox.connect-field:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderDarkBrush}"/>
+        </Style>
+        <Style Selector="TextBox.connect-field:focus /template/ Border#PART_BorderElement">
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+        </Style>
+
+        <Style Selector="ComboBox.connect-combo">
+            <Setter Property="Background" Value="{DynamicResource AppInputBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="MinHeight" Value="34"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        </Style>
+
+        <!-- Semantic Status Banner -->
+        <Style Selector="Border.connect-status-banner">
+            <Setter Property="Background" Value="{DynamicResource AppAccentMutedBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="12,9"/>
+        </Style>
+        <Style Selector="Border.connect-status-banner.success">
+            <Setter Property="Background" Value="{DynamicResource AppSuccessBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppSuccessBorderBrush}"/>
+        </Style>
+        <Style Selector="Border.connect-status-banner.error">
+            <Setter Property="Background" Value="{DynamicResource AppDangerMutedBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppDangerBorderBrush}"/>
+        </Style>
+
+        <!-- GPU-Gated Transitions -->
+        <Style Selector=":is(TopLevel).gpu-mode Button.connect-engine-card">
+            <Setter Property="RenderTransformOrigin" Value="50%,50%"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.15"/>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12" Easing="CubicEaseOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector=":is(TopLevel).gpu-mode Button.connect-engine-card:pressed">
+            <Setter Property="RenderTransform" Value="scale(0.97)"/>
+        </Style>
+        <Style Selector=":is(TopLevel):not(.gpu-mode) Button.connect-engine-card">
+            <Setter Property="Transitions" Value="{x:Null}"/>
+        </Style>
+        <Style Selector=":is(TopLevel).gpu-mode Border.saved-conn-chip">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.14"/>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.14"/>
+                </Transitions>
+            </Setter>
+        </Style>
+    </UserControl.Styles>
+
     <!-- Dynamic Database Connection Modal Dialog -->
     <Grid>
         <!-- Backdrop (Click to dismiss) -->
-        <Border Classes="modal-backdrop" Cursor="Hand" Focusable="False" FocusAdorner="{x:Null}" Background="{DynamicResource AppModalOverlayBrush}" PointerPressed="OnBackdropPointerPressed" />
+        <Border Classes="modal-backdrop"
+                Focusable="False"
+                FocusAdorner="{x:Null}"
+                Background="{DynamicResource AppModalOverlayBrush}"
+                PointerPressed="OnBackdropPointerPressed" />
 
-        <!-- Centered Dialog Window Card -->
+        <!-- Centered Dialog Card -->
         <Border Classes="modal-dialog-card"
                 Focusable="False"
-                Width="530"
-                HorizontalAlignment="Center" 
+                Width="580"
+                MaxHeight="700"
+                HorizontalAlignment="Center"
                 VerticalAlignment="Center">
             <i:Interaction.Behaviors>
-                <b:GpuModalEntranceBehavior StartScale="0.93" DurationMs="220" />
+                <b:GpuModalEntranceBehavior StartScale="0.94" DurationMs="220" />
             </i:Interaction.Behaviors>
-            
+
             <Grid RowDefinitions="Auto, *, Auto">
-                
-                <!-- 1. Dialog Header -->
+
+                <!-- 1. Unified Modal Header -->
                 <Border Grid.Row="0" Classes="quell-modal-header">
                     <Grid ColumnDefinitions="Auto, *, Auto">
-                        <Border Grid.Column="0" 
-                                Background="{DynamicResource AppAccentBrush}" 
-                                CornerRadius="6" 
-                                Width="28" 
-                                Height="28" 
-                                Margin="0,0,10,0"
+                        <Border Grid.Column="0"
+                                Background="{DynamicResource AppAccentBrush}"
+                                CornerRadius="8"
+                                Width="32"
+                                Height="32"
+                                Margin="0,0,12,0"
                                 VerticalAlignment="Center">
-                            <ic:SymbolIcon Symbol="DatabasePlugConnected" FontSize="15" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <ic:SymbolIcon Symbol="DatabasePlugConnected"
+                                           FontSize="16"
+                                           Foreground="White"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
                         </Border>
 
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding ModalTitle}" 
-                                       Foreground="{DynamicResource AppTextPrimaryBrush}" 
-                                       FontSize="13" 
-                                       FontWeight="Bold"/>
-                            <TextBlock Text="{Binding ModalSubtitle}" 
-                                       Foreground="{DynamicResource AppTextMutedBrush}" 
-                                       FontSize="11" 
-                                       Margin="0,2,0,0"/>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding ModalTitle}"
+                                           Foreground="{DynamicResource AppTextPrimaryBrush}"
+                                           FontSize="13.5"
+                                           FontWeight="Bold"
+                                           VerticalAlignment="Center"/>
+                                <Border Background="{DynamicResource AppChipActiveBackgroundBrush}"
+                                        CornerRadius="999"
+                                        Padding="7,1"
+                                        VerticalAlignment="Center"
+                                        IsVisible="{Binding IsEditMode}">
+                                    <TextBlock Text="EDITING"
+                                               FontSize="9.5"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource AppChipActiveForegroundBrush}"/>
+                                </Border>
+                            </StackPanel>
+                            <TextBlock Text="{Binding ModalSubtitle}"
+                                       Foreground="{DynamicResource AppTextMutedBrush}"
+                                       FontSize="11"/>
                         </StackPanel>
 
-                        <Button Grid.Column="2" 
-                                Classes="classic-menu-btn" 
+                        <Button Grid.Column="2"
+                                Classes="panel-icon-btn"
                                 Command="{Binding CloseCommand}"
-                                Padding="6,2" 
-                                MinHeight="22">
-                            <ui:FASymbolIcon Symbol="Dismiss" FontSize="10"/>
+                                Width="28"
+                                Height="28"
+                                ToolTip.Tip="Close (Esc)">
+                            <ui:FASymbolIcon Symbol="Dismiss" FontSize="11"/>
                         </Button>
                     </Grid>
                 </Border>
 
                 <!-- 2. Form Body -->
-                <ScrollViewer Grid.Row="1" MaxHeight="520" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="18,14" Spacing="14">
-                        
-                        <!-- A. Database Engine Selection Cards -->
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Select Database Engine" 
-                                       FontSize="11" 
-                                       FontWeight="SemiBold" 
-                                       Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                            
-                            <ItemsControl ItemsSource="{Binding EngineOptions}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <UniformGrid Columns="4" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Button Command="{Binding $parent[UserControl].((vm:ConnectDatabaseModalViewModel)DataContext).SelectEngineCommand}"
-                                                CommandParameter="{Binding Id}"
-                                                Margin="3"
-                                                Padding="0"
-                                                HorizontalAlignment="Stretch"
-                                                VerticalAlignment="Stretch"
-                                                Background="Transparent"
-                                                BorderThickness="0">
-                                            <Border CornerRadius="6"
-                                                    Padding="8,8"
-                                                    BorderThickness="1.5">
-                                                <Border.Styles>
-                                                    <Style Selector="Border">
-                                                        <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}" />
-                                                        <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
-                                                    </Style>
-                                                    <!-- Highlight when selected -->
-                                                    <Style Selector="Border[Tag=True]">
-                                                        <Setter Property="Background" Value="#153B82F6" />
-                                                        <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
-                                                    </Style>
-                                                </Border.Styles>
-                                                <Border.Tag>
-                                                    <Binding Path="IsSelected" />
-                                                </Border.Tag>
+                <ScrollViewer Grid.Row="1" MaxHeight="530" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="20,16" Spacing="14">
 
-                                                <StackPanel Spacing="5" HorizontalAlignment="Center">
-                                                    <!-- Engine Badge -->
-                                                    <Border Background="{Binding BadgeBackground}" 
-                                                            CornerRadius="4" 
-                                                            Padding="5,2" 
-                                                            HorizontalAlignment="Center">
-                                                        <TextBlock Text="{Binding Badge}" 
-                                                                   Foreground="White" 
-                                                                   FontSize="9" 
-                                                                   FontWeight="Bold"/>
-                                                    </Border>
-                                                    
-                                                    <TextBlock Text="{Binding Name}" 
-                                                               FontSize="11" 
-                                                               FontWeight="SemiBold" 
-                                                               Foreground="{DynamicResource AppTextPrimaryBrush}" 
-                                                               HorizontalAlignment="Center"
-                                                               TextAlignment="Center"/>
+                        <!-- A. Database Engine Selector -->
+                        <StackPanel Spacing="7">
+                            <Grid ColumnDefinitions="*, Auto">
+                                <TextBlock Grid.Column="0"
+                                           Text="DATABASE ENGINE"
+                                           FontSize="10.5"
+                                           FontWeight="Bold"
+                                           LetterSpacing="0.5"
+                                           Foreground="{DynamicResource AppTextMutedBrush}"
+                                           VerticalAlignment="Center"/>
+                                <Border Grid.Column="1"
+                                        Background="{DynamicResource AppSurfaceBrush}"
+                                        BorderBrush="{DynamicResource AppBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="999"
+                                        Padding="8,2">
+                                    <TextBlock Text="{Binding ConnectionPreviewSummary}"
+                                               FontSize="10"
+                                               FontFamily="{DynamicResource AppFontFamilyMonospace}"
+                                               Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                                </Border>
+                            </Grid>
 
-                                                    <TextBlock Text="{Binding DefaultPortText}" 
-                                                               FontSize="9" 
-                                                               Foreground="{DynamicResource AppTextMutedBrush}" 
-                                                               HorizontalAlignment="Center"/>
+                            <Border Classes="quell-segmented-track" CornerRadius="10" Padding="4">
+                                <ItemsControl ItemsSource="{Binding EngineOptions}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Rows="1" Columns="4" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:DatabaseEngineItem">
+                                            <Button Classes="connect-engine-card"
+                                                    Classes.active="{Binding IsSelected}"
+                                                    Command="{Binding $parent[UserControl].((vm:ConnectDatabaseModalViewModel)DataContext).SelectEngineCommand}"
+                                                    CommandParameter="{Binding Id}"
+                                                    Margin="2">
+                                                <StackPanel Spacing="6">
+                                                    <Grid ColumnDefinitions="Auto, *, Auto">
+                                                        <Border Grid.Column="0"
+                                                                Background="{Binding BadgeBackground}"
+                                                                CornerRadius="5"
+                                                                Padding="6,2"
+                                                                VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Badge}"
+                                                                       Foreground="White"
+                                                                       FontSize="9"
+                                                                       FontWeight="Bold"/>
+                                                        </Border>
+                                                        <Border Grid.Column="2"
+                                                                Width="7"
+                                                                Height="7"
+                                                                CornerRadius="4"
+                                                                Background="{DynamicResource AppAccentBrush}"
+                                                                VerticalAlignment="Center"
+                                                                IsVisible="{Binding IsSelected}"/>
+                                                    </Grid>
+
+                                                    <StackPanel Spacing="1">
+                                                        <TextBlock Text="{Binding Name}"
+                                                                   FontSize="11.5"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                                                        <TextBlock Text="{Binding DefaultPortText, StringFormat='Default: {0}'}"
+                                                                   FontSize="10"
+                                                                   Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                                    </StackPanel>
                                                 </StackPanel>
-                                            </Border>
-                                        </Button>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
                         </StackPanel>
 
-                        <!-- B. Saved Connections Quick Selector (Persisted in SQLite) -->
-                        <StackPanel Spacing="6" IsVisible="{Binding SavedConnections.Count}">
+                        <!-- B. Saved Connections Quick Selector -->
+                        <StackPanel Spacing="7" IsVisible="{Binding HasSavedConnections}">
                             <Grid ColumnDefinitions="*, Auto">
-                                <TextBlock Grid.Column="0" Text="Saved Connections in SQLite" 
-                                           FontSize="11" 
-                                           FontWeight="SemiBold" 
-                                           Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                                <TextBlock Grid.Column="1" 
-                                           Text="{Binding SavedConnections.Count, StringFormat='{}{0} saved'}" 
-                                           FontSize="10" 
-                                           Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                <TextBlock Grid.Column="0"
+                                           Text="RECENT &amp; SAVED CONNECTIONS"
+                                           FontSize="10.5"
+                                           FontWeight="Bold"
+                                           LetterSpacing="0.5"
+                                           Foreground="{DynamicResource AppTextMutedBrush}"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding SavedConnections.Count, StringFormat='{}{0} saved'}"
+                                           FontSize="10.5"
+                                           Foreground="{DynamicResource AppTextMutedBrush}"
+                                           VerticalAlignment="Center"/>
                             </Grid>
-                            
+
                             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                                 <ItemsControl ItemsSource="{Binding SavedConnections}">
                                     <ItemsControl.ItemsPanel>
@@ -160,32 +317,37 @@
                                         </ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Background="{DynamicResource AppSurfaceBrush}" 
-                                                    BorderBrush="{DynamicResource AppBorderBrush}" 
-                                                    BorderThickness="1" 
-                                                    CornerRadius="4" 
-                                                    Padding="4,2">
-                                                <StackPanel Orientation="Horizontal" Spacing="4">
-                                                    <Button Classes="classic-tool-btn"
+                                        <DataTemplate x:DataType="svc:ConnectionRecord">
+                                            <Border Classes="saved-conn-chip"
+                                                    ToolTip.Tip="{Binding Server}">
+                                                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                                    <Button Classes="classic-menu-btn"
                                                             Command="{Binding $parent[UserControl].((vm:ConnectDatabaseModalViewModel)DataContext).SelectSavedConnectionCommand}"
                                                             CommandParameter="{Binding}"
-                                                            Padding="4,2" 
-                                                            BorderThickness="0" 
-                                                            Background="Transparent">
-                                                        <StackPanel Orientation="Horizontal" Spacing="6">
-                                                            <Border Background="{Binding BadgeColor}" CornerRadius="3" Padding="4,1">
-                                                                <TextBlock Text="{Binding DatabaseType}" Foreground="White" FontSize="9" FontWeight="Bold"/>
+                                                            Padding="5,2"
+                                                            MinHeight="22">
+                                                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                            <Border Background="{Binding BadgeColor}"
+                                                                    CornerRadius="4"
+                                                                    Padding="5,1"
+                                                                    VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding DatabaseType}"
+                                                                           Foreground="White"
+                                                                           FontSize="9"
+                                                                           FontWeight="Bold"/>
                                                             </Border>
-                                                            <TextBlock Text="{Binding DisplayTitle}" FontSize="11" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="{Binding DisplayTitle}"
+                                                                       FontSize="11.5"
+                                                                       FontWeight="Medium"
+                                                                       Foreground="{DynamicResource AppTextPrimaryBrush}"
+                                                                       VerticalAlignment="Center"/>
                                                         </StackPanel>
                                                     </Button>
-                                                    <Button Classes="classic-tool-btn" 
+                                                    <Button Classes="quell-tab-close-btn"
                                                             Command="{Binding $parent[UserControl].((vm:ConnectDatabaseModalViewModel)DataContext).DeleteSavedConnectionCommand}"
                                                             CommandParameter="{Binding}"
-                                                            ToolTip.Tip="Disconnect and Delete from SQLite"
-                                                            Padding="3,2">
-                                                        <ui:FASymbolIcon Symbol="Dismiss" FontSize="9" Foreground="#EF4444"/>
+                                                            ToolTip.Tip="Disconnect and delete saved connection">
+                                                        <ui:FASymbolIcon Symbol="Dismiss" FontSize="9"/>
                                                     </Button>
                                                 </StackPanel>
                                             </Border>
@@ -195,112 +357,255 @@
                             </ScrollViewer>
                         </StackPanel>
 
-                        <Separator Background="{DynamicResource AppBorderBrush}" Height="1" Margin="0,2"/>
-
                         <!-- C. SERVER-BASED CONFIGURATION (SQL Server, PostgreSQL, MySQL) -->
                         <StackPanel Spacing="12" IsVisible="{Binding IsServerBased}">
-                            <!-- Server & Port -->
-                            <Grid ColumnDefinitions="*, 12, 100">
-                                <StackPanel Grid.Column="0" Spacing="4">
-                                    <TextBlock Text="Server Host / IP" FontSize="11" FontWeight="Medium" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                                    <TextBox Text="{Binding Server}" Height="30" FontSize="12" CornerRadius="4" Padding="8,4" PlaceholderText="localhost"/>
+                            <!-- Card 1: Host & Target -->
+                            <Border Classes="quell-card" Padding="14,12">
+                                <StackPanel Spacing="10">
+                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                        <ic:SymbolIcon Symbol="Server"
+                                                       FontSize="13"
+                                                       Foreground="{DynamicResource AppAccentBrush}"
+                                                       VerticalAlignment="Center"/>
+                                        <TextBlock Text="SERVER &amp; TARGET DATABASE"
+                                                   FontSize="10.5"
+                                                   FontWeight="Bold"
+                                                   LetterSpacing="0.5"
+                                                   Foreground="{DynamicResource AppTextMutedBrush}"
+                                                   VerticalAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <Grid ColumnDefinitions="*, 10, 108">
+                                        <StackPanel Grid.Column="0" Spacing="5">
+                                            <TextBlock Text="Server Host / IP"
+                                                       FontSize="11"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                                            <TextBox Classes="connect-field"
+                                                     Text="{Binding Server}"
+                                                     PlaceholderText="localhost"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="2" Spacing="5">
+                                            <TextBlock Text="Port"
+                                                       FontSize="11"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                                            <TextBox Classes="connect-field"
+                                                     Text="{Binding Port}"
+                                                     PlaceholderText="1433"/>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <StackPanel Spacing="5">
+                                        <TextBlock Text="Initial Database"
+                                                   FontSize="11"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                                        <TextBox Classes="connect-field"
+                                                 Text="{Binding Database}"
+                                                 PlaceholderText="master"/>
+                                    </StackPanel>
                                 </StackPanel>
+                            </Border>
 
-                                <StackPanel Grid.Column="2" Spacing="4">
-                                    <TextBlock Text="Port" FontSize="11" FontWeight="Medium" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                                    <TextBox Text="{Binding Port}" Height="30" FontSize="12" CornerRadius="4" Padding="8,4" PlaceholderText="1433"/>
+                            <!-- Card 2: Credentials & Security -->
+                            <Border Classes="quell-card" Padding="14,12">
+                                <StackPanel Spacing="10">
+                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                        <ic:SymbolIcon Symbol="Key"
+                                                       FontSize="13"
+                                                       Foreground="{DynamicResource AppAccentBrush}"
+                                                       VerticalAlignment="Center"/>
+                                        <TextBlock Text="AUTHENTICATION &amp; SECURITY"
+                                                   FontSize="10.5"
+                                                   FontWeight="Bold"
+                                                   LetterSpacing="0.5"
+                                                   Foreground="{DynamicResource AppTextMutedBrush}"
+                                                   VerticalAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <!-- Authentication Method (SQL Server) -->
+                                    <StackPanel Spacing="5" IsVisible="{Binding SupportsWindowsAuth}">
+                                        <TextBlock Text="Authentication Method"
+                                                   FontSize="11"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                                        <ComboBox Classes="connect-combo"
+                                                  ItemsSource="{Binding AuthTypes}"
+                                                  SelectedItem="{Binding AuthType}"/>
+                                    </StackPanel>
+
+                                    <!-- Username & Password -->
+                                    <Grid ColumnDefinitions="*, 10, *" IsVisible="{Binding IsCredentialsEnabled}">
+                                        <StackPanel Grid.Column="0" Spacing="5">
+                                            <TextBlock Text="Username"
+                                                       FontSize="11"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                                            <TextBox Classes="connect-field"
+                                                     Text="{Binding Username}"
+                                                     PlaceholderText="sa"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="2" Spacing="5">
+                                            <TextBlock Text="Password"
+                                                       FontSize="11"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                                            <Grid>
+                                                <TextBox Classes="connect-field"
+                                                         Text="{Binding Password}"
+                                                         PasswordChar="*"
+                                                         RevealPassword="{Binding IsPasswordRevealed}"
+                                                         Padding="10,0,34,0"
+                                                         PlaceholderText="••••••••"/>
+                                                <Button Classes="quell-tab-close-btn"
+                                                        HorizontalAlignment="Right"
+                                                        VerticalAlignment="Center"
+                                                        Margin="0,0,8,0"
+                                                        Width="22"
+                                                        Height="22"
+                                                        Command="{Binding TogglePasswordVisibilityCommand}"
+                                                        ToolTip.Tip="Show / Hide Password">
+                                                    <ui:FASymbolIcon Symbol="Preview" FontSize="11"/>
+                                                </Button>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <!-- Options: Trust Server Certificate (SQL Server only) -->
+                                    <CheckBox IsChecked="{Binding TrustServerCertificate}"
+                                              Content="Trust Server Certificate (SSL/TLS Encryption)"
+                                              FontSize="11.5"
+                                              Foreground="{DynamicResource AppTextSecondaryBrush}"
+                                              IsVisible="{Binding SupportsTrustCertificate}"
+                                              Margin="0,2,0,0"/>
                                 </StackPanel>
-                            </Grid>
-
-                            <!-- Database Name -->
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="Initial Database" FontSize="11" FontWeight="Medium" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                                <TextBox Text="{Binding Database}" Height="30" FontSize="12" CornerRadius="4" Padding="8,4" PlaceholderText="master"/>
-                            </StackPanel>
-
-                            <!-- Authentication Method (For SQL Server) -->
-                            <StackPanel Spacing="4" IsVisible="{Binding SupportsWindowsAuth}">
-                                <TextBlock Text="Authentication" FontSize="11" FontWeight="Medium" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                                <ComboBox ItemsSource="{Binding AuthTypes}" SelectedItem="{Binding AuthType}" HorizontalAlignment="Stretch" Height="30" CornerRadius="4" FontSize="12" />
-                            </StackPanel>
-
-                            <!-- Username & Password -->
-                            <Grid ColumnDefinitions="*, 12, *" IsVisible="{Binding IsCredentialsEnabled}">
-                                <StackPanel Grid.Column="0" Spacing="4">
-                                    <TextBlock Text="Username" FontSize="11" FontWeight="Medium" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                                    <TextBox Text="{Binding Username}" Height="30" FontSize="12" CornerRadius="4" Padding="8,4" PlaceholderText="sa"/>
-                                </StackPanel>
-
-                                <StackPanel Grid.Column="2" Spacing="4">
-                                    <TextBlock Text="Password" FontSize="11" FontWeight="Medium" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                                    <TextBox Text="{Binding Password}" PasswordChar="*" Height="30" FontSize="12" CornerRadius="4" Padding="8,4"/>
-                                </StackPanel>
-                            </Grid>
-
-                            <!-- Options: Trust Server Certificate (SQL Server only) -->
-                            <CheckBox IsChecked="{Binding TrustServerCertificate}" 
-                                      Content="Trust Server Certificate (SSL/TLS Encryption)" 
-                                      FontSize="11" 
-                                      Foreground="{DynamicResource AppTextSecondaryBrush}" 
-                                      IsVisible="{Binding SupportsTrustCertificate}"
-                                      Margin="0,2,0,0"/>
+                            </Border>
                         </StackPanel>
 
                         <!-- D. FILE-BASED CONFIGURATION (SQLite) -->
-                        <StackPanel Spacing="12" IsVisible="{Binding IsFileBased}">
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="Database File Path" FontSize="11" FontWeight="Medium" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                                <TextBox Text="{Binding FilePath}" Height="30" FontSize="12" CornerRadius="4" Padding="8,4" PlaceholderText="e.g. C:\data\database.db or :memory:"/>
-                            </StackPanel>
+                        <Border Classes="quell-card" Padding="14,12" IsVisible="{Binding IsFileBased}">
+                            <StackPanel Spacing="10">
+                                <Grid ColumnDefinitions="*, Auto">
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                        <ui:FASymbolIcon Symbol="Folder"
+                                                         FontSize="12"
+                                                         Foreground="{DynamicResource AppAccentBrush}"
+                                                         VerticalAlignment="Center"/>
+                                        <TextBlock Text="SQLITE DATABASE FILE"
+                                                   FontSize="10.5"
+                                                   FontWeight="Bold"
+                                                   LetterSpacing="0.5"
+                                                   Foreground="{DynamicResource AppTextMutedBrush}"
+                                                   VerticalAlignment="Center"/>
+                                    </StackPanel>
 
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="Encryption Password (Optional)" FontSize="11" FontWeight="Medium" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                                <TextBox Text="{Binding Password}" PasswordChar="*" Height="30" FontSize="12" CornerRadius="4" Padding="8,4"/>
-                            </StackPanel>
-                        </StackPanel>
+                                    <Button Grid.Column="1"
+                                            Classes="classic-menu-btn"
+                                            Command="{Binding UseInMemorySqliteCommand}"
+                                            Padding="8,2"
+                                            MinHeight="20"
+                                            ToolTip.Tip="Use temporary in-memory SQLite database">
+                                        <TextBlock Text="Use :memory:"
+                                                   FontSize="10.5"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource AppAccentBrush}"/>
+                                    </Button>
+                                </Grid>
 
-                        <!-- E. Status Message Alert -->
-                        <Border CornerRadius="4" 
-                                Padding="10,8" 
-                                BorderThickness="1"
+                                <StackPanel Spacing="5">
+                                    <TextBlock Text="Database File Path"
+                                               FontSize="11"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                                    <Grid ColumnDefinitions="*, 8, Auto">
+                                        <TextBox Grid.Column="0"
+                                                 Classes="connect-field"
+                                                 Text="{Binding FilePath}"
+                                                 PlaceholderText="e.g. C:\data\database.db or :memory:"/>
+                                        <Button Grid.Column="2"
+                                                Classes="classic-tool-btn"
+                                                Height="34"
+                                                MinHeight="34"
+                                                Padding="12,0"
+                                                Command="{Binding BrowseSqliteFileCommand}"
+                                                CommandParameter="{Binding $parent[TopLevel]}">
+                                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                <ui:FASymbolIcon Symbol="Folder" FontSize="11" VerticalAlignment="Center"/>
+                                                <TextBlock Text="Browse..." VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+                                </StackPanel>
+
+                                <StackPanel Spacing="5">
+                                    <TextBlock Text="Encryption Password (Optional)"
+                                               FontSize="11"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                                    <Grid>
+                                        <TextBox Classes="connect-field"
+                                                 Text="{Binding Password}"
+                                                 PasswordChar="*"
+                                                 RevealPassword="{Binding IsPasswordRevealed}"
+                                                 Padding="10,0,34,0"
+                                                 PlaceholderText="Leave blank for unencrypted file"/>
+                                        <Button Classes="quell-tab-close-btn"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Center"
+                                                Margin="0,0,8,0"
+                                                Width="22"
+                                                Height="22"
+                                                Command="{Binding TogglePasswordVisibilityCommand}"
+                                                ToolTip.Tip="Show / Hide Password">
+                                            <ui:FASymbolIcon Symbol="Preview" FontSize="11"/>
+                                        </Button>
+                                    </Grid>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- E. Semantic Status Banner -->
+                        <Border Classes="connect-status-banner"
+                                Classes.success="{Binding IsStatusSuccess}"
+                                Classes.error="{Binding IsStatusError}"
                                 IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                            <Border.Styles>
-                                <!-- Default Testing / Progress Alert -->
-                                <Style Selector="Border">
-                                    <Setter Property="Background" Value="#EFF6FF" />
-                                    <Setter Property="BorderBrush" Value="#BFDBFE" />
-                                </Style>
-                                <!-- Success Alert -->
-                                <Style Selector="Border[Tag=Success]">
-                                    <Setter Property="Background" Value="#ECFDF5" />
-                                    <Setter Property="BorderBrush" Value="#A7F3D0" />
-                                </Style>
-                                <!-- Failure Alert -->
-                                <Style Selector="Border[Tag=Error]">
-                                    <Setter Property="Background" Value="#FEF2F2" />
-                                    <Setter Property="BorderBrush" Value="#FECACA" />
-                                </Style>
-                            </Border.Styles>
-                            <Border.Tag>
-                                <MultiBinding>
-                                    <MultiBinding.Bindings>
-                                        <Binding Path="IsSuccess" />
-                                    </MultiBinding.Bindings>
-                                </MultiBinding>
-                            </Border.Tag>
-
                             <Grid ColumnDefinitions="Auto, *">
-                                <ui:FASymbolIcon Grid.Column="0" 
-                                                 Symbol="Sync" 
-                                                 FontSize="12" 
-                                                 VerticalAlignment="Center" 
-                                                 Margin="0,0,8,0"
-                                                 Foreground="#2563EB"
-                                                 IsVisible="{Binding IsTesting}"/>
+                                <!-- Testing Spinner -->
+                                <Border Grid.Column="0"
+                                        Classes="spin-indicator"
+                                        RenderTransformOrigin="50%,50%"
+                                        VerticalAlignment="Center"
+                                        Margin="0,0,10,0"
+                                        IsVisible="{Binding IsTesting}">
+                                    <ui:FASymbolIcon Symbol="Sync"
+                                                     FontSize="13"
+                                                     Foreground="{DynamicResource AppAccentBrush}"/>
+                                </Border>
 
-                                <TextBlock Grid.Column="1" 
-                                           Text="{Binding StatusMessage}" 
-                                           FontSize="11" 
+                                <!-- Success Icon -->
+                                <ui:FASymbolIcon Grid.Column="0"
+                                                 Symbol="Checkmark"
+                                                 FontSize="13"
+                                                 VerticalAlignment="Center"
+                                                 Margin="0,0,10,0"
+                                                 Foreground="{DynamicResource AppSuccessForegroundBrush}"
+                                                 IsVisible="{Binding IsStatusSuccess}"/>
+
+                                <!-- Error Icon -->
+                                <ui:FASymbolIcon Grid.Column="0"
+                                                 Symbol="Important"
+                                                 FontSize="13"
+                                                 VerticalAlignment="Center"
+                                                 Margin="0,0,10,0"
+                                                 Foreground="{DynamicResource AppDangerForegroundBrush}"
+                                                 IsVisible="{Binding IsStatusError}"/>
+
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding StatusMessage}"
+                                           FontSize="11.5"
                                            TextWrapping="Wrap"
                                            VerticalAlignment="Center"
                                            Foreground="{DynamicResource AppTextPrimaryBrush}"/>
@@ -310,32 +615,44 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <!-- 3. Dialog Footer -->
+                <!-- 3. Unified Modal Footer -->
                 <Border Grid.Row="2" Classes="quell-modal-footer">
                     <Grid ColumnDefinitions="Auto, *, Auto">
-                        <Button Grid.Column="0" 
-                                Classes="classic-tool-btn" 
+                        <Button Grid.Column="0"
+                                Classes="classic-tool-btn"
+                                Height="32"
+                                MinHeight="32"
                                 Command="{Binding TestConnectionCommand}"
                                 IsEnabled="{Binding !IsTesting}">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
+                            <i:Interaction.Behaviors>
+                                <b:GpuButtonPressBehavior PressScale="0.95" />
+                            </i:Interaction.Behaviors>
+                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                 <ui:FASymbolIcon Symbol="Sync" FontSize="11" VerticalAlignment="Center"/>
                                 <TextBlock Text="Test Connection" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
                         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
-                            <Button Classes="classic-tool-btn" 
-                                    Content="Cancel" 
+                            <Button Classes="classic-tool-btn"
+                                    Height="32"
+                                    MinHeight="32"
+                                    Content="Cancel"
                                     Command="{Binding CloseCommand}"/>
 
                             <Button Classes="quell-btn-primary"
-                                    Padding="16,6"
-                                    Content="{Binding ConnectButtonText}" 
+                                    Height="32"
+                                    MinHeight="32"
+                                    Padding="16,0"
                                     Command="{Binding ConnectCommand}"
                                     IsEnabled="{Binding !IsConnecting}">
                                 <i:Interaction.Behaviors>
                                     <b:GpuButtonPressBehavior PressScale="0.94" />
                                 </i:Interaction.Behaviors>
+                                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                    <ic:SymbolIcon Symbol="DatabasePlugConnected" FontSize="13" Foreground="White" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding ConnectButtonText}" VerticalAlignment="Center"/>
+                                </StackPanel>
                             </Button>
                         </StackPanel>
                     </Grid>
