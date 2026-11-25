@@ -3,6 +3,46 @@
         xmlns:ic="using:FluentIcons.Avalonia"
         xmlns:ui="using:FluentAvalonia.UI.Controls">
 
+    <Styles.Resources>
+        <!-- FluentAvaloniaTheme does not provide a ControlTheme for Avalonia's ContextMenu;
+             without an explicit ControlTemplate, ContextMenu measures at 0px height. -->
+        <ControlTheme x:Key="{x:Type ContextMenu}" TargetType="ContextMenu">
+            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="2"/>
+            <Setter Property="MinWidth" Value="110"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="FocusAdorner" Value="{x:Null}"/>
+            <Setter Property="ItemsPanel">
+                <ItemsPanelTemplate>
+                    <StackPanel/>
+                </ItemsPanelTemplate>
+            </Setter>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            Padding="{TemplateBinding Padding}"
+                            BoxShadow="0 8 24 0 #40000000"
+                            ClipToBounds="True">
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                      VerticalScrollBarVisibility="Auto">
+                            <ItemsPresenter Name="PART_ItemsPresenter"
+                                            ItemsPanel="{TemplateBinding ItemsPanel}"
+                                            KeyboardNavigation.TabNavigation="Continue"
+                                            Grid.IsSharedSizeScope="True"/>
+                        </ScrollViewer>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </ControlTheme>
+    </Styles.Resources>
+
     <!-- Global Modern Typography -->
     <Style Selector="TextBlock">
         <Setter Property="FontFamily" Value="Inter, Segoe UI Variable, Segoe UI, sans-serif"/>

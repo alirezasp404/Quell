@@ -216,6 +216,7 @@ public partial class MainViewModel : ViewModelBase
             _confirmModal.Show(title, msg, target, isDestructive: true, confirmText: "Delete Row", onConfirmed: onConfirm);
         };
         _sampleQueryResult.ExecuteQueryCallback = _sampleQueryResult.EditCellModal.ExecuteQueryCallback;
+        _sampleQueryResult.ExecuteQueryDetailedCallback = _sampleQueryResult.EditCellModal.ExecuteQueryDetailedCallback;
         _sampleQueryResult.InsertQueryToEditorCallback = _sampleQueryResult.EditCellModal.InsertQueryToEditorCallback;
         _sampleQueryResult.RefreshCallback = RefreshQueryResultAsync;
         _sampleQueryResult.NavigateToForeignKeyCallback = NavigateToForeignKeyTableAsync;

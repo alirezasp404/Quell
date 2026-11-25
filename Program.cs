@@ -200,6 +200,101 @@ sealed class Program
             }
             tableComp.DataContext = null;
 
+            // 4b. Test ContextMenuService, ContextMenuBehavior & QueryResultTableComponent UI Context Menu (on UI thread)
+            Console.WriteLine("\n[Action] Verifying ContextMenuService, ContextMenuBehavior & QueryResultTableComponent Menu...");
+            int menuClickCount = 0;
+            var testCtxBuilder = new Quell.Services.ContextMenuBuilder();
+            testCtxBuilder
+                .AddSeparator() // leading separator should collapse
+                .AddItem("Edit Cell", symbol: FluentAvalonia.UI.Controls.FASymbol.Edit, gesture: "F2", onClick: () => menuClickCount++)
+                .AddSeparator()
+                .AddSeparator() // duplicate separator should collapse to 1
+                .AddItem("Hidden Item", isVisible: false)
+                .AddItem("Copy", symbol: FluentAvalonia.UI.Controls.FASymbol.Copy, gesture: "Ctrl+C", isEnabled: true)
+                .AddItem("Paste", symbol: FluentAvalonia.UI.Controls.FASymbol.Paste, gesture: "Ctrl+V", isEnabled: false)
+                .AddSeparator(); // trailing separator should collapse
+
+            var builtTestMenu = Quell.Services.ContextMenuService.Build(testCtxBuilder);
+            var builtMenuItems = builtTestMenu.Items.OfType<Avalonia.Controls.MenuItem>().ToList();
+            if (builtTestMenu.Items.Count != 4 || builtMenuItems.Count != 3)
+            {
+                throw new Exception($"Expected 3 visible MenuItems + 1 collapsed separator (4 total), got total={builtTestMenu.Items.Count}, items={builtMenuItems.Count}");
+            }
+            if (!Equals(builtMenuItems[0].Header, "Edit Cell") ||
+                !Equals(builtMenuItems[1].Header, "Copy") ||
+                !Equals(builtMenuItems[2].Header, "Paste"))
+            {
+                throw new Exception("Built context menu item headers/order mismatch!");
+            }
+            if (builtMenuItems[0].InputGesture?.ToString() != "F2" ||
+                builtMenuItems[1].InputGesture?.ToString() != "Ctrl+C" ||
+                builtMenuItems[2].InputGesture?.ToString() != "Ctrl+V" ||
+                !builtMenuItems[0].IsEnabled || builtMenuItems[2].IsEnabled)
+            {
+                throw new Exception("Built context menu gestures or IsEnabled state mismatch!");
+            }
+            builtMenuItems[0].RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.MenuItem.ClickEvent));
+            if (menuClickCount != 1)
+            {
+                throw new Exception($"Expected ContextMenuItem onClick callback count=1, got {menuClickCount}");
+            }
+
+            var isolatedTableVm = new Quell.ViewModels.QueryResultTableViewModel();
+            isolatedTableVm.ResetToSampleData();
+            var qrmComp = new Quell.Components.QueryResultTableComponent { DataContext = isolatedTableVm };
+            var qrmGrid = qrmComp.FindControl<Avalonia.Controls.DataGrid>("ResultsDataGrid");
+            if (qrmGrid == null || qrmGrid.ContextMenu != null)
+            {
+                throw new Exception("ResultsDataGrid must not carry a static inline ContextMenu!");
+            }
+            var fkCol = qrmGrid.Columns.OfType<Avalonia.Controls.DataGridTemplateColumn>()
+                .FirstOrDefault(c => string.Equals(c.Tag?.ToString(), "Role", StringComparison.OrdinalIgnoreCase));
+            var fkCellControl = fkCol?.CellTemplate?.Build(isolatedTableVm.Rows[0]);
+            if (fkCellControl == null || fkCellControl.ContextMenu != null)
+            {
+                throw new Exception("FK column template cell must not attach a separate ContextMenu override!");
+            }
+
+            var dataCtxTarget = new Quell.Components.QueryResultTableComponent.GridContextTarget(
+                isolatedTableVm.Rows[0], "Name", IsRowHeaderOnly: false, CanCopy: true, PlacementControl: qrmGrid);
+            var dataMenuBuilder = new Quell.Services.ContextMenuBuilder<Quell.Components.QueryResultTableComponent.GridContextTarget>(dataCtxTarget);
+            qrmComp.ConfigureGridContextMenu(dataMenuBuilder, dataCtxTarget);
+            var dataMenu = dataMenuBuilder.Inner.Build();
+            var dataMenuItems = dataMenu.Items.OfType<Avalonia.Controls.MenuItem>().ToList();
+            if (dataMenuItems.Count != 3 ||
+                !Equals(dataMenuItems[0].Header, "Edit Cell") ||
+                !Equals(dataMenuItems[1].Header, "Copy") ||
+                !Equals(dataMenuItems[2].Header, "Paste") ||
+                !dataMenuItems.All(m => m.IsEnabled))
+            {
+                throw new Exception("Data cell context menu must have 3 enabled items in exact order: Edit Cell, Copy, Paste!");
+            }
+            if (!Avalonia.Application.Current!.TryFindResource(typeof(Avalonia.Controls.ContextMenu), out var ctxTheme) ||
+                ctxTheme is not Avalonia.Styling.ControlTheme resolvedCtxTheme)
+            {
+                throw new Exception("Application must define a ControlTheme for ContextMenu!");
+            }
+            dataMenu.Theme = resolvedCtxTheme;
+            dataMenu.ApplyTemplate();
+            dataMenu.Measure(new Avalonia.Size(400, 400));
+            if (dataMenu.Template == null || dataMenu.DesiredSize.Height <= 0 || dataMenu.DesiredSize.Width <= 0)
+            {
+                throw new Exception($"ContextMenu collapsed to zero size or has no template: Template={dataMenu.Template != null}, DesiredSize={dataMenu.DesiredSize}");
+            }
+
+            var gutterCtxTarget = new Quell.Components.QueryResultTableComponent.GridContextTarget(
+                isolatedTableVm.Rows[0], null, IsRowHeaderOnly: true, CanCopy: true, PlacementControl: qrmGrid);
+            var gutterMenuBuilder = new Quell.Services.ContextMenuBuilder<Quell.Components.QueryResultTableComponent.GridContextTarget>(gutterCtxTarget);
+            qrmComp.ConfigureGridContextMenu(gutterMenuBuilder, gutterCtxTarget);
+            var gutterMenu = gutterMenuBuilder.Inner.Build();
+            var gutterMenuItems = gutterMenu.Items.OfType<Avalonia.Controls.MenuItem>().ToList();
+            if (gutterMenuItems[0].IsEnabled || !gutterMenuItems[1].IsEnabled || gutterMenuItems[2].IsEnabled)
+            {
+                throw new Exception("ROW # gutter context menu must disable Edit Cell & Paste while keeping Copy enabled!");
+            }
+            qrmComp.DataContext = null;
+            Console.WriteLine("[Success] ContextMenuService, FK cell unification & 3-item Query Result menu verified!");
+
             // 5. Test Modal Dialogs Lifecycle & Triggers
             Console.WriteLine("\n[Action] Verifying Modal Dialogs Lifecycle...");
             Console.WriteLine($"ConnectModal initially open: {vm.ConnectModal.IsOpen}");
@@ -2820,7 +2915,150 @@ sealed class Program
             }
             Console.WriteLine("[Success] Real SQLite DB metadata-driven PK/FK, FK inspector, schema isolation & zero-heuristic tests passed!");
 
-            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER, SIMULTANEOUS BATCH CELL EDITING, FOREIGN KEY NAVIGATION, REAL DB METADATA PK/FK & ZERO HEURISTICS, HARDWARE GPU/CPU RENDERING PIPELINE, XAML.BEHAVIORS GPU ANIMATIONS, INTEGRATED TERMINAL & VISUAL EXCEL DATA IMPORT WIZARD) PASSED! <<<");
+            // 28. Verify TSV Parsing, Offline Paste & Connected SQLite Option C Paste
+            Console.WriteLine("\n[Action] Verifying TSV Parsing, Offline Paste & Connected SQLite Option C Paste...");
+
+            // D. Verify TSV parser & NULL normalization
+            var parsedTsv = Quell.ViewModels.QueryResultTableViewModel.ParseClipboardTsv("11/19/2002 12:00:00 AM\tTrue\r\n\"line1\nline2\"\tnull\r\n");
+            if (parsedTsv.Count != 2 || parsedTsv[0].Count != 2 || parsedTsv[1].Count != 2 ||
+                parsedTsv[0][0] != "11/19/2002 12:00:00 AM" || parsedTsv[0][1] != "True" ||
+                parsedTsv[1][0] != "line1\nline2" ||
+                Quell.ViewModels.QueryResultTableViewModel.NormalizePastedValue(parsedTsv[1][1]) != "NULL")
+            {
+                throw new Exception("TSV parser or NULL normalization failed!");
+            }
+
+            // E. Verify Offline Paste (empty clipboard no-op, single-cell paste, multi-cell uniform paste, 2D TSV matrix paste + boundary clamping)
+            vm.SampleQueryResult.ResetToSampleData();
+            string? mockClipboard = null;
+            vm.SampleQueryResult.GetClipboardTextCallback = () => Task.FromResult(mockClipboard);
+
+            // E1: Empty clipboard graceful no-op
+            var offRow0 = vm.SampleQueryResult.Rows[0];
+            var offRow1 = vm.SampleQueryResult.Rows[1];
+            string origName0 = offRow0["Name"];
+            vm.SampleQueryResult.GetSelectedRowsCallback = () => new[] { offRow0 };
+            vm.SampleQueryResult.GetSelectedColumnsCallback = () => new[] { "Name" };
+            await vm.SampleQueryResult.PasteCellCommand.ExecuteAsync(null);
+            if (offRow0["Name"] != origName0 || !vm.SampleQueryResult.LastQueryMessage.Contains("empty", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception($"Empty clipboard paste should no-op cleanly! Name='{offRow0["Name"]}', Msg='{vm.SampleQueryResult.LastQueryMessage}'");
+            }
+
+            // E2: Single-value paste across multi-cell selection + case-insensitive NULL
+            mockClipboard = "null";
+            vm.SampleQueryResult.GetSelectedRowsCallback = () => new[] { offRow0, offRow1 };
+            vm.SampleQueryResult.GetSelectedColumnsCallback = () => new[] { "Email" };
+            await vm.SampleQueryResult.PasteCellCommand.ExecuteAsync(null);
+            if (offRow0["Email"] != "NULL" || offRow1["Email"] != "NULL")
+            {
+                throw new Exception($"Multi-cell uniform NULL paste failed! Row0='{offRow0["Email"]}', Row1='{offRow1["Email"]}'");
+            }
+
+            // E3: 2D TSV matrix paste with boundary clamping
+            mockClipboard = "11/19/2002 12:00:00 AM\tTrue\tEXTRA_COL\r\nSecondName\tFalse\tEXTRA_COL2";
+            vm.SampleQueryResult.GetSelectedRowsCallback = () => new[] { offRow0 };
+            vm.SampleQueryResult.GetSelectedColumnsCallback = () => new[] { "Name" };
+            await vm.SampleQueryResult.PasteCellCommand.ExecuteAsync(null);
+            if (offRow0["Name"] != "11/19/2002 12:00:00 AM" || offRow0["Email"] != "True" ||
+                offRow1["Name"] != "SecondName" || offRow1["Email"] != "False")
+            {
+                throw new Exception("2D TSV matrix paste failed!");
+            }
+
+            // F. Verify Connected SQLite Option C Paste (Persistence + Constraint Revert)
+            string pasteDbPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "quell_paste_verify.db");
+            if (System.IO.File.Exists(pasteDbPath))
+            {
+                try { System.IO.File.Delete(pasteDbPath); } catch { }
+            }
+            var pasteDbConfig = new Quell.Services.DatabaseProviders.DatabaseConnectionConfig
+            {
+                DatabaseType = Quell.Services.DatabaseProviders.DatabaseType.SQLite,
+                FilePath = pasteDbPath
+            };
+            var pasteConn = await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.ConnectAsync(pasteDbConfig);
+            if (!pasteConn.Success)
+            {
+                throw new Exception($"Failed to connect paste test SQLite DB: {pasteConn.Message}");
+            }
+            await vm.RefreshAvailableDatabasesAsync();
+            var pasteTarget = vm.AvailableTargetDatabases.FirstOrDefault(d => d.Key == pasteDbConfig.ConnectionKey);
+            if (pasteTarget != null) vm.SelectedTargetDatabase = pasteTarget;
+
+            string setupPasteSql = @"
+                CREATE TABLE Contacts (
+                    Id INTEGER PRIMARY KEY,
+                    FullName TEXT NOT NULL,
+                    BirthDate TEXT NULL,
+                    IsActive TEXT NOT NULL CHECK (IsActive IN ('True', 'False'))
+                );
+                INSERT INTO Contacts (Id, FullName, BirthDate, IsActive) VALUES
+                    (1, 'Sara', NULL, 'True'),
+                    (2, 'Reza', '01/01/2000 12:00:00 AM', 'False');";
+            var setupPasteRes = await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.ExecuteQueryAsync(setupPasteSql, pasteDbConfig.ConnectionKey);
+            if (!setupPasteRes.Success)
+            {
+                throw new Exception($"Failed to create Contacts table: {setupPasteRes.Message}");
+            }
+
+            vm.Editor.SelectedTab!.Text = "SELECT * FROM Contacts ORDER BY Id;";
+            await vm.ExecuteQuery();
+
+            // F1: Paste timestamp into NULL BirthDate cell and verify physical DB persistence
+            var cRow0 = vm.SampleQueryResult.Rows[0];
+            var cRow1 = vm.SampleQueryResult.Rows[1];
+            mockClipboard = "11/19/2002 12:00:00 AM";
+            vm.SampleQueryResult.GetSelectedRowsCallback = () => new[] { cRow0 };
+            vm.SampleQueryResult.GetSelectedColumnsCallback = () => new[] { "BirthDate" };
+            await vm.SampleQueryResult.PasteCellCommand.ExecuteAsync(null);
+            if (cRow0["BirthDate"] != "11/19/2002 12:00:00 AM" || cRow0.OriginalValues["BirthDate"] != "11/19/2002 12:00:00 AM")
+            {
+                throw new Exception($"Connected paste failed to update BirthDate! Value='{cRow0["BirthDate"]}', Msg='{vm.SampleQueryResult.LastQueryMessage}'");
+            }
+
+            // F2: Paste literal "null" into BirthDate of row 1 -> SQL NULL in DB
+            mockClipboard = "null";
+            vm.SampleQueryResult.GetSelectedRowsCallback = () => new[] { cRow1 };
+            vm.SampleQueryResult.GetSelectedColumnsCallback = () => new[] { "BirthDate" };
+            await vm.SampleQueryResult.PasteCellCommand.ExecuteAsync(null);
+            if (cRow1["BirthDate"] != "NULL")
+            {
+                throw new Exception($"Expected normalized 'NULL' on row 1 BirthDate, got '{cRow1["BirthDate"]}'");
+            }
+
+            var verifyContactsRes = await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.ExecuteQueryAsync("SELECT Id, BirthDate FROM Contacts ORDER BY Id;", pasteDbConfig.ConnectionKey);
+            if (!verifyContactsRes.Success || verifyContactsRes.Rows.Count != 2 ||
+                verifyContactsRes.Rows[0]["BirthDate"] != "11/19/2002 12:00:00 AM" ||
+                verifyContactsRes.Rows[1]["BirthDate"] != "NULL")
+            {
+                throw new Exception($"Physical DB check after Option C paste failed! Row0='{verifyContactsRes.Rows.ElementAtOrDefault(0)?["BirthDate"]}', Row1='{verifyContactsRes.Rows.ElementAtOrDefault(1)?["BirthDate"]}'");
+            }
+
+            // F3: Paste invalid CHECK value -> DB rejects UPDATE -> cell MUST revert to 'True'
+            mockClipboard = "INVALID_BOOL";
+            vm.SampleQueryResult.GetSelectedRowsCallback = () => new[] { cRow0 };
+            vm.SampleQueryResult.GetSelectedColumnsCallback = () => new[] { "IsActive" };
+            await vm.SampleQueryResult.PasteCellCommand.ExecuteAsync(null);
+            if (cRow0["IsActive"] != "True" || !vm.SampleQueryResult.LastQueryMessage.Contains("reverted", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception($"Expected cell revert on DB constraint failure! IsActive='{cRow0["IsActive"]}', Msg='{vm.SampleQueryResult.LastQueryMessage}'");
+            }
+
+            // Cleanup paste test DB
+            vm.SampleQueryResult.GetClipboardTextCallback = null;
+            vm.SampleQueryResult.GetSelectedRowsCallback = null;
+            vm.SampleQueryResult.GetSelectedColumnsCallback = null;
+            await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.DisconnectAsync(pasteDbConfig.ConnectionKey);
+            await vm.RefreshAvailableDatabasesAsync();
+            vm.SelectedTargetDatabase = null;
+            if (System.IO.File.Exists(pasteDbPath))
+            {
+                try { System.IO.File.Delete(pasteDbPath); } catch { }
+            }
+            Console.WriteLine("[Success] Right-Click ContextMenuService, Unified Cell Menu & Option C Paste verification passed!");
+
+            Console.WriteLine("\n>>> ALL TESTS (LAYOUT, TABLES, MODALS, TABS, SQL AUTOCOMPLETE, MULTI-DIALECT SQLITE, VECTOR ICONS, SPLASH SCREEN, STORAGE, DYNAMIC DATABASE PROVIDERS, ISOLATED STARTUP, HIERARCHICAL TREE VIEW, REAL QUERY, TARGET DATABASE ROUTING, DISCONNECT/DELETE, GRAPHICAL FOOTER CELL UPDATE, PRIMARY KEY NEUTRAL STYLING, MULTI-ROW BATCH DELETION, MULTI-COLUMN DROP, FOOTER REFRESH/FILTER, SIMULTANEOUS BATCH CELL EDITING, FOREIGN KEY NAVIGATION, REAL DB METADATA PK/FK & ZERO HEURISTICS, HARDWARE GPU/CPU RENDERING PIPELINE, XAML.BEHAVIORS GPU ANIMATIONS, INTEGRATED TERMINAL, VISUAL EXCEL DATA IMPORT WIZARD & RIGHT-CLICK CONTEXT MENU INFRASTRUCTURE) PASSED! <<<");
             return;
         }
 
