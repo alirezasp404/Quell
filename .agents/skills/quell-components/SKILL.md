@@ -1,10 +1,6 @@
 ---
 name: quell-components
-description: >-
-  Catalog, integration patterns, and usage rules for Quell's reusable Avalonia UI UserControl components.
-  Use whenever building a new view or modal, composing UI from existing components (buttons, editor,
-  tables, modals, settings panels, terminal, navigation, or tool windows), wiring DataContexts and
-  StyledProperties, or adding a new reusable component to Quell.
+description: Catalog, integration patterns, and usage rules for Quell's reusable Avalonia UI UserControl components. Use whenever building a new view or modal, composing UI from existing components (buttons, editor, tables, modals, settings panels, terminal, navigation, or tool windows), wiring DataContexts and StyledProperties, or adding a new reusable component to Quell.
 ---
 
 # Quell UI Components Skill
