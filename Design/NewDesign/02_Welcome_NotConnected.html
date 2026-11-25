@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+
+<meta charset="utf-8">
+<title>Quell Not Connected</title>
+
+</head>
+<body>
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/l/font?kit=UcCB3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfU5NJeWUdIOjBeTGbXZdAD2MHsQ&skey=c491285d6722e4fa&v=v20) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/l/font?kit=UcCB3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfU5NJeWUdIOjBeTGbXZdJD2MHsQ&skey=c491285d6722e4fa&v=v20) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/l/font?kit=UcCB3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfU5NJeWUdIOjBeTGbXZdBD2MHsQ&skey=c491285d6722e4fa&v=v20) format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/l/font?kit=UcCB3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfU5NJeWUdIOjBeTGbXZdOD2MHsQ&skey=c491285d6722e4fa&v=v20) format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/l/font?kit=UcCB3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfU5NJeWUdIOjBeTGbXZdCD2MHsQ&skey=c491285d6722e4fa&v=v20) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/l/font?kit=UcCB3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfU5NJeWUdIOjBeTGbXZdDD2MHsQ&skey=c491285d6722e4fa&v=v20) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("95fd2fed-9071-40f9-8948-388cb74fb48f") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/l/font?kit=UcCB3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfU5NJeWUdIOjBeTGbXZdAD2MHsQ&skey=c491285d6722e4fa&v=v20) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/l/font?kit=UcCB3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfU5NJeWUdIOjBeTGbXZdJD2MHsQ&skey=c491285d6722e4fa&v=v20) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/l/font?kit=UcCB3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfU5NJeWUdIOjBeTGbXZdBD2MHsQ&skey=c491285d6722e4fa&v=v20) format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/l/font?kit=UcCB3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfU5NJeWUdIOjBeTGbXZdOD2MHsQ&skey=c491285d6722e4fa&v=v20) format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/l/font?kit=UcCB3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfU5NJeWUdIOjBeTGbXZdCD2MHsQ&skey=c491285d6722e4fa&v=v20) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/l/font?kit=UcCB3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfU5NJeWUdIOjBeTGbXZdDD2MHsQ&skey=c491285d6722e4fa&v=v20) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("95fd2fed-9071-40f9-8948-388cb74fb48f") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/l/font?kit=UcCB3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfU5NJeWUdIOjBeTGbXZdAD2MHsQ&skey=c491285d6722e4fa&v=v20) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/l/font?kit=UcCB3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfU5NJeWUdIOjBeTGbXZdJD2MHsQ&skey=c491285d6722e4fa&v=v20) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/l/font?kit=UcCB3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfU5NJeWUdIOjBeTGbXZdBD2MHsQ&skey=c491285d6722e4fa&v=v20) format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/l/font?kit=UcCB3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfU5NJeWUdIOjBeTGbXZdOD2MHsQ&skey=c491285d6722e4fa&v=v20) format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/l/font?kit=UcCB3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfU5NJeWUdIOjBeTGbXZdCD2MHsQ&skey=c491285d6722e4fa&v=v20) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/l/font?kit=UcCB3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfU5NJeWUdIOjBeTGbXZdDD2MHsQ&skey=c491285d6722e4fa&v=v20) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("95fd2fed-9071-40f9-8948-388cb74fb48f") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("fca933d2-7add-45a9-9063-75f41738887e") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("c929ae37-e566-4ae4-bcf3-2cb0d2fee517") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("9e9887b0-093c-4545-a710-5b031b2f1b50") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("b309b81c-fe33-4bed-9872-4d423be48f11") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("192bc3d7-2725-45e1-9171-2a3b16f2becc") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("56be0b65-3693-4a69-848a-36109fa4e6e4") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("fca933d2-7add-45a9-9063-75f41738887e") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("c929ae37-e566-4ae4-bcf3-2cb0d2fee517") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("9e9887b0-093c-4545-a710-5b031b2f1b50") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("b309b81c-fe33-4bed-9872-4d423be48f11") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("192bc3d7-2725-45e1-9171-2a3b16f2becc") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("56be0b65-3693-4a69-848a-36109fa4e6e4") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style>
+<style>
+body{margin:0;background:#0F1115;font-family:'Inter',system-ui,sans-serif;color:#E6E8EC}
+button{font-family:inherit;cursor:pointer}
+.ibtn{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;background:transparent;color:#8A93A3;border-radius:10px}
+.ibtn.on{background:#1E2A47;color:#8FA8FF}
+.ghost{display:flex;align-items:center;gap:6px;height:30px;padding:0 10px;border:1px solid #2A303B;background:#171B22;color:#C3C9D4;border-radius:7px;font-size:12.5px}
+.pri{display:flex;align-items:center;justify-content:center;gap:8px;height:34px;padding:0 16px;border:0;background:#4F6FFF;color:#fff;border-radius:8px;font-size:13px;font-weight:500}
+.conn{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:10px;border:1px solid transparent}
+.conn:hover{background:#1A1F29;border-color:#2A303B}
+.kbd{font-size:11px;border:1px solid #2A303B;border-radius:5px;padding:1px 6px;color:#8A93A3}
+</style>
+
+<div style="width:1440px;height:900px;box-sizing:border-box;display:flex;flex-direction:column;background:#0F1115;overflow:hidden">
+
+<div style="height:52px;flex:none;display:flex;align-items:center;gap:14px;padding:0 14px;background:#12151B;border-bottom:1px solid #232832">
+<div style="display:flex;align-items:center;gap:10px;width:206px">
+<div style="width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#6C8CFF,#8B6CFF);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#fff">Q</div>
+<span style="font-weight:600;font-size:15px">Quell</span>
+</div>
+<button style="display:flex;align-items:center;gap:10px;height:34px;padding:0 12px;border:1px dashed #2A303B;background:#14171D;color:#8A93A3;border-radius:8px;font-size:13px">
+<span style="width:8px;height:8px;border-radius:50%;background:#566074"></span>No active database
+</button>
+<div style="flex:1"></div>
+<button class="pri" style="height:32px">Connect</button>
+<button class="ibtn" aria-label="Settings" style="width:34px;height:34px"><svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"></path><circle cx="16" cy="7" r="2"></circle><circle cx="8" cy="17" r="2"></circle></svg></button>
+</div>
+
+<div style="flex:1;min-height:0;display:flex">
+<div style="width:56px;flex:none;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 0;background:#12151B;border-right:1px solid #232832">
+<button class="ibtn on" aria-label="Explorer"><svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"></ellipse><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"></path><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"></path></svg></button>
+<button class="ibtn" aria-label="Saved queries"><svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"></path></svg></button>
+<button class="ibtn" aria-label="History"><svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></button>
+<button class="ibtn" aria-label="Schema diagram" style="opacity:0.4"><svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="7" height="6" rx="1"></rect><rect x="14" y="14" width="7" height="6" rx="1"></rect><path d="M10 7h4a3 3 0 0 1 3 3v4"></path></svg></button>
+</div>
+
+<div style="width:264px;flex:none;display:flex;flex-direction:column;background:#14171D;border-right:1px solid #232832">
+<div style="display:flex;align-items:center;height:44px;padding:0 14px"><span style="font-size:11px;font-weight:600;letter-spacing:1px;color:#8A93A3">EXPLORER</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:0 28px;text-align:center">
+<svg width="34" height="34" sc-camel-view-box="0 0 24 24" fill="none" stroke="#566074" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"></ellipse><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"></path></svg>
+<div style="font-size:14px;font-weight:500">Not connected</div>
+<div style="font-size:12.5px;color:#8A93A3;line-height:1.5">Connect to a server to browse tables, views and procedures.</div>
+<button class="pri" style="margin-top:6px">Connect to server</button>
+</div>
+</div>
+
+<div style="flex:1;min-width:0;display:flex;flex-direction:column">
+<div style="height:40px;flex:none;display:flex;align-items:flex-end;gap:2px;padding:0 10px;background:#12151B;border-bottom:1px solid #232832">
+<div style="display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;background:#0F1115;border:1px solid #232832;border-bottom:0;border-radius:8px 8px 0 0;font-size:12.5px;color:#fff">Query 1.sql</div>
+<button class="ibtn" aria-label="New query tab" style="width:30px;height:30px;margin-bottom:2px"><svg width="15" height="15" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+</div>
+<div style="height:46px;flex:none;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid #1D222B">
+<button style="display:flex;align-items:center;gap:8px;height:30px;padding:0 14px;border:0;background:#262B35;color:#7C8599;border-radius:7px;font-size:13px;font-weight:500;cursor:not-allowed" aria-disabled="true">Run <span style="font-size:11px">F5</span></button>
+<span style="font-size:12px;color:#8A93A3">Connect to a database to run queries</span>
+</div>
+
+<div style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#0F1115">
+<div style="width:860px;display:flex;flex-direction:column;gap:28px">
+<div>
+<div style="font-size:28px;font-weight:600;letter-spacing:-0.3px">Welcome to Quell</div>
+<div style="font-size:14px;color:#8A93A3;margin-top:6px">Pick a recent connection or set up a new one to start querying.</div>
+</div>
+<div style="display:flex;gap:20px">
+<div style="flex:1.3;background:#14171D;border:1px solid #232832;border-radius:14px;padding:16px 12px">
+<div style="font-size:11px;font-weight:600;letter-spacing:1px;color:#8A93A3;padding:0 14px 8px">RECENT CONNECTIONS</div>
+<div class="conn">
+<svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="#6C8CFF" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"></ellipse><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"></path></svg>
+<div style="flex:1"><div style="font-size:13.5px;font-weight:500">DevVidansDb</div><div style="font-size:12px;color:#8A93A3;margin-top:2px">localhost:1433 · last used today</div></div>
+<span style="font-size:10px;font-weight:600;color:#8FA8FF;background:#1E2A47;padding:2px 6px;border-radius:4px">MSSQL</span>
+<button class="pri" style="height:28px;font-size:12px;padding:0 12px">Connect</button>
+</div>
+<div class="conn">
+<svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="#8A93A3" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"></ellipse><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"></path></svg>
+<div style="flex:1"><div style="font-size:13.5px;font-weight:500">Staging</div><div style="font-size:12px;color:#8A93A3;margin-top:2px">staging.internal:1433 · 3 days ago</div></div>
+<span style="font-size:10px;font-weight:600;color:#8FA8FF;background:#1E2A47;padding:2px 6px;border-radius:4px">MSSQL</span>
+</div>
+<div class="conn">
+<svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="#8A93A3" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"></ellipse><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"></path></svg>
+<div style="flex:1"><div style="font-size:13.5px;font-weight:500">Analytics replica</div><div style="font-size:12px;color:#8A93A3;margin-top:2px">10.0.4.21:5432 · last week</div></div>
+<span style="font-size:10px;font-weight:600;color:#7DD3A8;background:#15281F;padding:2px 6px;border-radius:4px">PG</span>
+</div>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:12px">
+<button style="display:flex;align-items:center;gap:14px;padding:16px;border:1px solid #2A303B;background:#171B22;color:#E6E8EC;border-radius:12px;text-align:left">
+<div style="width:34px;height:34px;border-radius:9px;background:#1E2A47;color:#8FA8FF;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></div>
+<div style="flex:1"><div style="font-size:13.5px;font-weight:500">New connection</div><div style="font-size:12px;color:#8A93A3;margin-top:2px">SQL Server, PostgreSQL, MySQL, SQLite</div></div>
+<span class="kbd">Ctrl N</span>
+</button>
+<button style="display:flex;align-items:center;gap:14px;padding:16px;border:1px solid #2A303B;background:#171B22;color:#E6E8EC;border-radius:12px;text-align:left">
+<div style="width:34px;height:34px;border-radius:9px;background:#232832;color:#C3C9D4;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"></path><path d="M14 3v4h4"></path></svg></div>
+<div style="flex:1"><div style="font-size:13.5px;font-weight:500">Open SQL file</div><div style="font-size:12px;color:#8A93A3;margin-top:2px">Edit a script offline</div></div>
+<span class="kbd">Ctrl O</span>
+</button>
+<button style="display:flex;align-items:center;gap:14px;padding:16px;border:1px solid #2A303B;background:#171B22;color:#E6E8EC;border-radius:12px;text-align:left">
+<div style="width:34px;height:34px;border-radius:9px;background:#232832;color:#C3C9D4;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg></div>
+<div style="flex:1"><div style="font-size:13.5px;font-weight:500">Import connections</div><div style="font-size:12px;color:#8A93A3;margin-top:2px">From a Quell export file</div></div>
+</button>
+</div>
+</div>
+</div>
+</div>
+
+<div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:#14171D;border-top:1px solid #232832">
+<span style="font-size:11px;font-weight:600;letter-spacing:1px;color:#8A93A3">OUTPUT &amp; RESULTS</span>
+<span style="font-size:12px;color:#7C8599">No results yet</span>
+</div>
+</div>
+</div>
+
+<div style="height:28px;flex:none;display:flex;align-items:center;gap:16px;padding:0 14px;background:#12151B;border-top:1px solid #232832;font-size:11.5px;color:#8A93A3">
+<button style="display:flex;align-items:center;gap:6px;height:20px;padding:0 10px 0 8px;border:0;border-radius:999px;background:#4F6FFF;color:#fff;font-size:11px;font-weight:500"><svg width="12" height="12" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"></path></svg>Update to v1.1.0</button>
+<span>v1.0.2</span>
+<span style="display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:#F2677A"></span>Disconnected</span>
+<div style="flex:1"></div>
+<span>UTF-8</span>
+</div>
+</div>
+
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+
+
+</body></html>

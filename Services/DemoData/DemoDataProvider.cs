@@ -23,14 +23,26 @@ public static class DemoDataProvider
     public static IReadOnlyList<string> GetSampleTableNames() =>
         new[] { "Users", "Orders", "Products", "Roles" };
 
+    public static string NormalizeTableName(string? tableName)
+    {
+        if (string.IsNullOrWhiteSpace(tableName)) return string.Empty;
+        var clean = tableName.Trim().TrimEnd(';').Trim('[', ']', '"', '`');
+        if (clean.Contains('.'))
+        {
+            clean = clean.Substring(clean.LastIndexOf('.') + 1).Trim('[', ']', '"', '`');
+        }
+        return clean;
+    }
+
     public static bool IsSampleTableName(string? tableName)
     {
         if (string.IsNullOrWhiteSpace(tableName)) return false;
-        return tableName.Equals("Orders", StringComparison.OrdinalIgnoreCase)
-            || tableName.Equals("Users", StringComparison.OrdinalIgnoreCase)
-            || tableName.Equals("Roles", StringComparison.OrdinalIgnoreCase)
-            || tableName.Equals("Courses", StringComparison.OrdinalIgnoreCase)
-            || tableName.Equals("Departments", StringComparison.OrdinalIgnoreCase);
+        var clean = NormalizeTableName(tableName);
+        return clean.Equals("Orders", StringComparison.OrdinalIgnoreCase)
+            || clean.Equals("Users", StringComparison.OrdinalIgnoreCase)
+            || clean.Equals("Roles", StringComparison.OrdinalIgnoreCase)
+            || clean.Equals("Courses", StringComparison.OrdinalIgnoreCase)
+            || clean.Equals("Departments", StringComparison.OrdinalIgnoreCase);
     }
 
     public static DemoTableDataset GetDefaultUsersDataset()
@@ -44,7 +56,9 @@ public static class DemoDataProvider
         string? filterColumn = null,
         string? filterValue = null)
     {
-        if (tableName.Equals("Roles", StringComparison.OrdinalIgnoreCase))
+        string normName = NormalizeTableName(tableName);
+
+        if (normName.Equals("Roles", StringComparison.OrdinalIgnoreCase))
         {
             var roleRows = new List<QueryResultRow>
             {
@@ -85,7 +99,7 @@ public static class DemoDataProvider
                 new List<ForeignKeyRelation>()), match);
         }
 
-        if (tableName.Equals("Departments", StringComparison.OrdinalIgnoreCase))
+        if (normName.Equals("Departments", StringComparison.OrdinalIgnoreCase))
         {
             var deptRows = new List<QueryResultRow>
             {
@@ -115,7 +129,7 @@ public static class DemoDataProvider
                 new List<ForeignKeyRelation>()), match);
         }
 
-        if (tableName.Equals("Users", StringComparison.OrdinalIgnoreCase))
+        if (normName.Equals("Users", StringComparison.OrdinalIgnoreCase))
         {
             var userRows = new List<QueryResultRow>
             {
@@ -158,7 +172,7 @@ public static class DemoDataProvider
                 }), match);
         }
 
-        if (tableName.Equals("Courses", StringComparison.OrdinalIgnoreCase))
+        if (normName.Equals("Courses", StringComparison.OrdinalIgnoreCase))
         {
             var courseRows = new List<QueryResultRow>
             {
@@ -201,7 +215,7 @@ public static class DemoDataProvider
                 }), match);
         }
 
-        if (tableName.Equals("Orders", StringComparison.OrdinalIgnoreCase))
+        if (normName.Equals("Orders", StringComparison.OrdinalIgnoreCase))
         {
             var orderRows = new List<QueryResultRow>
             {
@@ -292,7 +306,8 @@ public static class DemoDataProvider
 
     public static List<TableColumnItem> GetSampleSchemaColumns(string tableName)
     {
-        if (tableName.Equals("Users", StringComparison.OrdinalIgnoreCase))
+        string normName = NormalizeTableName(tableName);
+        if (normName.Equals("Users", StringComparison.OrdinalIgnoreCase))
         {
             return new List<TableColumnItem>
             {

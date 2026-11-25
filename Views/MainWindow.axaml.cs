@@ -10,8 +10,8 @@ namespace Quell.Views;
 
 public partial class MainWindow : Window
 {
-    private GridLength _lastSidebarWidth = new(240, GridUnitType.Pixel);
-    private GridLength _lastFooterHeight = new(140, GridUnitType.Pixel);
+    private GridLength _lastSidebarWidth = new(320, GridUnitType.Pixel);
+    private GridLength _lastFooterHeight = new(320, GridUnitType.Pixel);
     private MainViewModel? _viewModel;
 
     public MainWindow()
@@ -120,7 +120,7 @@ public partial class MainWindow : Window
         if (MainGrid == null || MainGrid.ColumnDefinitions.Count < 3) return;
 
         var col0 = MainGrid.ColumnDefinitions[0];
-        if (col0.Width.IsAbsolute && col0.Width.Value >= 160)
+        if (col0.Width.IsAbsolute && col0.Width.Value >= 220)
         {
             _lastSidebarWidth = col0.Width;
         }
@@ -150,29 +150,24 @@ public partial class MainWindow : Window
 
         if (_viewModel.Sidebar.IsVisible)
         {
-            col.MinWidth = 54;
+            col.MinWidth = 56;
             col.MaxWidth = 450;
             if (_viewModel.Sidebar.IsExpanded)
             {
-                col.MinWidth = 160;
+                col.MinWidth = 220;
                 col.MaxWidth = 450;
-                double w = _lastSidebarWidth.Value >= 160 ? _lastSidebarWidth.Value : 260;
+                double w = _lastSidebarWidth.Value >= 220 ? _lastSidebarWidth.Value : 320;
                 if (w > 450) w = 450;
                 col.Width = new GridLength(w, GridUnitType.Pixel);
                 if (SidebarSplitter != null) SidebarSplitter.IsVisible = true;
             }
             else
             {
-                col.MinWidth = 54;
+                col.MinWidth = 56;
                 col.MaxWidth = 450;
-                col.Width = new GridLength(54, GridUnitType.Pixel);
+                col.Width = new GridLength(56, GridUnitType.Pixel);
                 if (SidebarSplitter != null) SidebarSplitter.IsVisible = false;
             }
-
-            
-            
-            
-
         }
         else
         {
@@ -221,17 +216,17 @@ public partial class MainWindow : Window
                     FooterSplitter.IsVisible = true;
                 }
 
-                row.MinHeight = 70;
-                row.MaxHeight = 450;
+                row.MinHeight = 120;
+                row.MaxHeight = 850;
                 double h = _lastFooterHeight.Value;
-                if (h < 70) h = 140;
-                if (h > 450) h = 450;
+                if (h < 120) h = 320;
+                if (h > 850) h = 850;
                 row.Height = new GridLength(h, GridUnitType.Pixel);
             }
         }
         else
         {
-            if (row.Height.IsAbsolute && row.Height.Value >= 70)
+            if (row.Height.IsAbsolute && row.Height.Value >= 100)
             {
                 _lastFooterHeight = row.Height;
             }

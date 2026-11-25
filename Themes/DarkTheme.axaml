@@ -2,125 +2,143 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- ================================================================= -->
-    <!-- Quell Design System: Componentized Dark Theme Palette        -->
-    <!-- Modern dark slate aesthetic for focused low-light development     -->
+    <!-- Quell Modern Design System: Componentized Dark Theme Palette       -->
+    <!-- Sleek onyx / charcoal aesthetic aligned with Quell New Design     -->
     <!-- ================================================================= -->
 
     <!-- Base Palette Colors -->
-    <Color x:Key="AppControlFaceColor">#1E293B</Color>
-    <Color x:Key="AppSurfaceColor">#1E293B</Color>
-    <Color x:Key="AppWindowBackgroundColor">#0F172A</Color>
-    <Color x:Key="AppWorkspaceColor">#0F172A</Color>
-    <Color x:Key="AppBorderColor">#334155</Color>
-    <Color x:Key="AppBorderLightColor">#1E293B</Color>
-    <Color x:Key="AppBorderDarkColor">#475569</Color>
-    <Color x:Key="AppTextPrimaryColor">#F8FAFC</Color>
-    <Color x:Key="AppTextSecondaryColor">#CBD5E1</Color>
-    <Color x:Key="AppTextMutedColor">#94A3B8</Color>
-    <Color x:Key="AppAccentColor">#3B82F6</Color>
-    <Color x:Key="AppAccentHoverColor">#60A5FA</Color>
-    <Color x:Key="AppSplitterColor">#334155</Color>
-    <Color x:Key="AppSplitterHoverColor">#60A5FA</Color>
-    <Color x:Key="AppTabSelectedColor">#0F172A</Color>
-    <Color x:Key="AppTabUnselectedColor">#1E293B</Color>
-    <Color x:Key="AppTabHoverColor">#334155</Color>
-    <Color x:Key="AppHeaderBgColor">#1E293B</Color>
-    <Color x:Key="AppToolHoverBgColor">#334155</Color>
-    <Color x:Key="AppToolHoverBorderColor">#475569</Color>
+    <Color x:Key="AppControlFaceColor">#171B22</Color>
+    <Color x:Key="AppSurfaceColor">#171B22</Color>
+    <Color x:Key="AppWindowBackgroundColor">#0F1115</Color>
+    <Color x:Key="AppWorkspaceColor">#0F1115</Color>
+    <Color x:Key="AppBorderColor">#2A303B</Color>
+    <Color x:Key="AppBorderLightColor">#1D222B</Color>
+    <Color x:Key="AppBorderDarkColor">#3A4454</Color>
+    <Color x:Key="AppTextPrimaryColor">#E6E8EC</Color>
+    <Color x:Key="AppTextSecondaryColor">#C3C9D4</Color>
+    <Color x:Key="AppTextMutedColor">#8A93A3</Color>
+    <Color x:Key="AppAccentColor">#4C7DFF</Color>
+    <Color x:Key="AppAccentHoverColor">#6C8CFF</Color>
+    <Color x:Key="AppSplitterColor">#232832</Color>
+    <Color x:Key="AppSplitterHoverColor">#4C7DFF</Color>
+    <Color x:Key="AppTabSelectedColor">#0F1115</Color>
+    <Color x:Key="AppTabUnselectedColor">#12151B</Color>
+    <Color x:Key="AppTabHoverColor">#171B22</Color>
+    <Color x:Key="AppHeaderBgColor">#12151B</Color>
+    <Color x:Key="AppToolHoverBgColor">#1A1F29</Color>
+    <Color x:Key="AppToolHoverBorderColor">#2A303B</Color>
 
     <!-- Core Semantic Brushes -->
-    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#0F172A" />
-    <SolidColorBrush x:Key="AppWorkspaceBrush" Color="#0F172A" />
-    <SolidColorBrush x:Key="AppForegroundBrush" Color="#F8FAFC" />
-    <SolidColorBrush x:Key="AppControlFaceBrush" Color="#1E293B" />
-    <SolidColorBrush x:Key="AppSurfaceBrush" Color="#1E293B" />
-    <SolidColorBrush x:Key="AppSurfaceMutedBrush" Color="#141E2E" />
-    <SolidColorBrush x:Key="AppBorderBrush" Color="#334155" />
-    <SolidColorBrush x:Key="AppBorderLightBrush" Color="#1E293B" />
-    <SolidColorBrush x:Key="AppBorderDarkBrush" Color="#475569" />
-    <SolidColorBrush x:Key="AppTextPrimaryBrush" Color="#F8FAFC" />
-    <SolidColorBrush x:Key="AppTextSecondaryBrush" Color="#CBD5E1" />
-    <SolidColorBrush x:Key="AppTextMutedBrush" Color="#94A3B8" />
-    <SolidColorBrush x:Key="AppAccentBrush" Color="#3B82F6" />
-    <SolidColorBrush x:Key="AppAccentHoverBrush" Color="#60A5FA" />
-    <SolidColorBrush x:Key="AppSplitterBrush" Color="#334155" />
-    <SolidColorBrush x:Key="AppSplitterHoverBrush" Color="#60A5FA" />
-    <SolidColorBrush x:Key="AppTabActiveBackgroundBrush" Color="#0F172A" />
-    <SolidColorBrush x:Key="AppTabInactiveBackgroundBrush" Color="#1E293B" />
-    <SolidColorBrush x:Key="AppTabHoverBackgroundBrush" Color="#334155" />
-    <SolidColorBrush x:Key="AppTabActiveBorderBrush" Color="#3B82F6" />
-    <SolidColorBrush x:Key="AppEditorBackgroundBrush" Color="#0F172A" />
-    <SolidColorBrush x:Key="AppEditorForegroundBrush" Color="#F8FAFC" />
-    <SolidColorBrush x:Key="AppSidebarBackgroundBrush" Color="#1E293B" />
-    <SolidColorBrush x:Key="AppSidebarHeaderBackgroundBrush" Color="#1E293B" />
-    <SolidColorBrush x:Key="AppSidebarHoverBrush" Color="#334155" />
-    <SolidColorBrush x:Key="AppSidebarTextBrush" Color="#F8FAFC" />
-    <SolidColorBrush x:Key="AppSidebarBorderBrush" Color="#334155" />
-    <SolidColorBrush x:Key="AppButtonBackgroundBrush" Color="#1E293B" />
-    <SolidColorBrush x:Key="AppButtonForegroundBrush" Color="#F8FAFC" />
-    <SolidColorBrush x:Key="AppButtonBorderBrush" Color="#475569" />
-    <SolidColorBrush x:Key="AppToolHoverBrush" Color="#334155" />
-    <SolidColorBrush x:Key="AppToolHoverBorderBrush" Color="#475569" />
-    <SolidColorBrush x:Key="AppModalOverlayBrush" Color="#88000000" />
-    <SolidColorBrush x:Key="AppCardBackgroundBrush" Color="#1E293B" />
+    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#0F1115" />
+    <SolidColorBrush x:Key="AppWorkspaceBrush" Color="#0F1115" />
+    <SolidColorBrush x:Key="AppForegroundBrush" Color="#E6E8EC" />
+    <SolidColorBrush x:Key="AppControlFaceBrush" Color="#171B22" />
+    <SolidColorBrush x:Key="AppSurfaceBrush" Color="#171B22" />
+    <SolidColorBrush x:Key="AppSurfaceMutedBrush" Color="#141820" />
+    <SolidColorBrush x:Key="AppBorderBrush" Color="#2A303B" />
+    <SolidColorBrush x:Key="AppBorderLightBrush" Color="#1D222B" />
+    <SolidColorBrush x:Key="AppBorderDarkBrush" Color="#3A4454" />
+    <SolidColorBrush x:Key="AppTextPrimaryBrush" Color="#E6E8EC" />
+    <SolidColorBrush x:Key="AppTextSecondaryBrush" Color="#C3C9D4" />
+    <SolidColorBrush x:Key="AppTextMutedBrush" Color="#8A93A3" />
+    <SolidColorBrush x:Key="AppAccentBrush" Color="#4C7DFF" />
+    <SolidColorBrush x:Key="AppAccentHoverBrush" Color="#6C8CFF" />
+    <SolidColorBrush x:Key="AppAccentMutedBrush" Color="#1E2A47" />
+    <SolidColorBrush x:Key="AppSplitterBrush" Color="#232832" />
+    <SolidColorBrush x:Key="AppSplitterHoverBrush" Color="#4C7DFF" />
+    <SolidColorBrush x:Key="AppTabActiveBackgroundBrush" Color="#0F1115" />
+    <SolidColorBrush x:Key="AppTabInactiveBackgroundBrush" Color="#12151B" />
+    <SolidColorBrush x:Key="AppTabHoverBackgroundBrush" Color="#171B22" />
+    <SolidColorBrush x:Key="AppTabActiveBorderBrush" Color="#4C7DFF" />
+    <SolidColorBrush x:Key="AppEditorBackgroundBrush" Color="#0F1115" />
+    <SolidColorBrush x:Key="AppEditorForegroundBrush" Color="#E6E8EC" />
+    <SolidColorBrush x:Key="AppSidebarBackgroundBrush" Color="#14171D" />
+    <SolidColorBrush x:Key="AppSidebarHeaderBackgroundBrush" Color="#14171D" />
+    <SolidColorBrush x:Key="AppSidebarHoverBrush" Color="#1A1F29" />
+    <SolidColorBrush x:Key="AppSidebarTextBrush" Color="#E6E8EC" />
+    <SolidColorBrush x:Key="AppSidebarBorderBrush" Color="#232832" />
+    <SolidColorBrush x:Key="AppChipActiveBackgroundBrush" Color="#1E2A47" />
+    <SolidColorBrush x:Key="AppChipActiveForegroundBrush" Color="#8FA8FF" />
+    <SolidColorBrush x:Key="AppMenuBackgroundBrush" Color="#1B2029" />
+    <SolidColorBrush x:Key="AppMenuBorderBrush" Color="#2F3643" />
+    <SolidColorBrush x:Key="AppStarGoldBrush" Color="#E5C07B" />
+    <SolidColorBrush x:Key="AppButtonBackgroundBrush" Color="#171B22" />
+    <SolidColorBrush x:Key="AppButtonForegroundBrush" Color="#E6E8EC" />
+    <SolidColorBrush x:Key="AppButtonBorderBrush" Color="#2A303B" />
+    <SolidColorBrush x:Key="AppToolHoverBrush" Color="#1A1F29" />
+    <SolidColorBrush x:Key="AppToolHoverBorderBrush" Color="#2A303B" />
+    <SolidColorBrush x:Key="AppModalOverlayBrush" Color="#CC000000" />
+    <SolidColorBrush x:Key="AppCardBackgroundBrush" Color="#171B22" />
+
+    <!-- TopBar & Rail Specific Brushes -->
+    <SolidColorBrush x:Key="AppTopBarBackgroundBrush" Color="#12151B" />
+    <SolidColorBrush x:Key="AppTopBarBorderBrush" Color="#232832" />
+    <SolidColorBrush x:Key="AppRailBackgroundBrush" Color="#12151B" />
+    <SolidColorBrush x:Key="AppRailBorderBrush" Color="#232832" />
 
     <!-- Terminal Component Semantic Brushes -->
-    <SolidColorBrush x:Key="AppTerminalBackgroundBrush" Color="#0F172A" />
-    <SolidColorBrush x:Key="AppTerminalForegroundBrush" Color="#F8FAFC" />
-    <SolidColorBrush x:Key="AppTerminalToolbarBackgroundBrush" Color="#1E293B" />
-    <SolidColorBrush x:Key="AppTerminalToolbarBorderBrush" Color="#334155" />
-    <SolidColorBrush x:Key="AppTerminalTabBackgroundBrush" Color="#141E2E" />
-    <SolidColorBrush x:Key="AppTerminalTabActiveBackgroundBrush" Color="#1E293B" />
-    <SolidColorBrush x:Key="AppTerminalTabBorderBrush" Color="#334155" />
-    <SolidColorBrush x:Key="AppTerminalTabActiveBorderBrush" Color="#3B82F6" />
-    <SolidColorBrush x:Key="AppTerminalSelectionBrush" Color="#4038BDF8" />
-    <SolidColorBrush x:Key="AppTerminalCursorBrush" Color="#38BDF8" />
-    <SolidColorBrush x:Key="AppTerminalStatusBackgroundBrush" Color="#0B0F17" />
-    <SolidColorBrush x:Key="AppTerminalStatusBorderBrush" Color="#1E293B" />
+    <SolidColorBrush x:Key="AppTerminalBackgroundBrush" Color="#0F1115" />
+    <SolidColorBrush x:Key="AppTerminalForegroundBrush" Color="#E6E8EC" />
+    <SolidColorBrush x:Key="AppTerminalToolbarBackgroundBrush" Color="#12151B" />
+    <SolidColorBrush x:Key="AppTerminalToolbarBorderBrush" Color="#232832" />
+    <SolidColorBrush x:Key="AppTerminalTabBackgroundBrush" Color="#12151B" />
+    <SolidColorBrush x:Key="AppTerminalTabActiveBackgroundBrush" Color="#0F1115" />
+    <SolidColorBrush x:Key="AppTerminalTabBorderBrush" Color="#232832" />
+    <SolidColorBrush x:Key="AppTerminalTabActiveBorderBrush" Color="#4C7DFF" />
+    <SolidColorBrush x:Key="AppTerminalSelectionBrush" Color="#404C7DFF" />
+    <SolidColorBrush x:Key="AppTerminalCursorBrush" Color="#8FA8FF" />
+    <SolidColorBrush x:Key="AppTerminalStatusBackgroundBrush" Color="#0B0D11" />
+    <SolidColorBrush x:Key="AppTerminalStatusBorderBrush" Color="#1D222B" />
 
     <!-- Table Component Semantic Brushes (QueryResultTable & SchemaPropertiesTable) -->
-    <SolidColorBrush x:Key="AppTableGutterBackgroundBrush" Color="#1E293B" />
-    <SolidColorBrush x:Key="AppTableGutterForegroundBrush" Color="#F8FAFC" />
-    <SolidColorBrush x:Key="AppTableGutterBorderBrush" Color="#475569" />
-    <SolidColorBrush x:Key="AppTableDividerBrush" Color="#64748B" />
-    <SolidColorBrush x:Key="AppTableWhiteColBackgroundBrush" Color="#0F172A" />
-    <SolidColorBrush x:Key="AppTableAltColBackgroundBrush" Color="#141E2E" />
-    <SolidColorBrush x:Key="AppTableCellForegroundBrush" Color="#F8FAFC" />
-    <SolidColorBrush x:Key="AppTableCellBorderBrush" Color="#334155" />
-    <SolidColorBrush x:Key="AppTableHeaderBackgroundBrush" Color="#1E293B" />
-    <SolidColorBrush x:Key="AppTableHeaderForegroundBrush" Color="#F8FAFC" />
-    <SolidColorBrush x:Key="AppTableHeaderBorderBrush" Color="#475569" />
-    <SolidColorBrush x:Key="AppTableGridLinesHorizontalBrush" Color="#334155" />
-    <SolidColorBrush x:Key="AppTableGridLinesVerticalBrush" Color="#1E293B" />
-    <SolidColorBrush x:Key="AppTableSelectedBackgroundBrush" Color="#1E3A5F" />
-    <SolidColorBrush x:Key="AppTableSelectedForegroundBrush" Color="#93C5FD" />
-    <SolidColorBrush x:Key="AppTableActiveBackgroundBrush" Color="#172554" />
-    <SolidColorBrush x:Key="AppTableActiveForegroundBrush" Color="#BFDBFE" />
-    <SolidColorBrush x:Key="AppTableActiveBorderBrush" Color="#60A5FA" />
-    <SolidColorBrush x:Key="AppTableHoverBackgroundBrush" Color="#1E293B" />
+    <SolidColorBrush x:Key="AppTableGutterBackgroundBrush" Color="#12151B" />
+    <SolidColorBrush x:Key="AppTableGutterForegroundBrush" Color="#8A93A3" />
+    <SolidColorBrush x:Key="AppTableGutterBorderBrush" Color="#1D222B" />
+    <SolidColorBrush x:Key="AppTableDividerBrush" Color="#1D222B" />
+    <SolidColorBrush x:Key="AppTableWhiteColBackgroundBrush" Color="#0F1115" />
+    <SolidColorBrush x:Key="AppTableAltColBackgroundBrush" Color="#141820" />
+    <SolidColorBrush x:Key="AppTableCellForegroundBrush" Color="#E6E8EC" />
+    <SolidColorBrush x:Key="AppTableCellBorderBrush" Color="#1D222B" />
+    <SolidColorBrush x:Key="AppTableHeaderBackgroundBrush" Color="#12151B" />
+    <SolidColorBrush x:Key="AppTableHeaderForegroundBrush" Color="#8A93A3" />
+    <SolidColorBrush x:Key="AppTableHeaderBorderBrush" Color="#1D222B" />
+    <SolidColorBrush x:Key="AppTableGridLinesHorizontalBrush" Color="#1D222B" />
+    <SolidColorBrush x:Key="AppTableGridLinesVerticalBrush" Color="#1D222B" />
+    <SolidColorBrush x:Key="AppTableSelectedBackgroundBrush" Color="#1E2A47" />
+    <SolidColorBrush x:Key="AppTableSelectedForegroundBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="AppTableActiveBackgroundBrush" Color="#1E2A47" />
+    <SolidColorBrush x:Key="AppTableActiveForegroundBrush" Color="#8FA8FF" />
+    <SolidColorBrush x:Key="AppTableActiveBorderBrush" Color="#4C7DFF" />
+    <SolidColorBrush x:Key="AppTableHoverBackgroundBrush" Color="#1B2230" />
 
-    <!-- Primary Key Semantic Brushes (Neutral Slate - NO ORANGE) -->
-    <SolidColorBrush x:Key="AppTablePkBadgeBackgroundBrush" Color="#1E293B" />
-    <SolidColorBrush x:Key="AppTablePkBadgeBorderBrush" Color="#334155" />
-    <SolidColorBrush x:Key="AppTablePkBadgeForegroundBrush" Color="#94A3B8" />
-    <SolidColorBrush x:Key="AppTablePkColumnForegroundBrush" Color="#F8FAFC" />
+    <!-- Primary Key Semantic Brushes -->
+    <SolidColorBrush x:Key="AppTablePkBadgeBackgroundBrush" Color="#1E2A47" />
+    <SolidColorBrush x:Key="AppTablePkBadgeBorderBrush" Color="#2A303B" />
+    <SolidColorBrush x:Key="AppTablePkBadgeForegroundBrush" Color="#8FA8FF" />
+    <SolidColorBrush x:Key="AppTablePkColumnForegroundBrush" Color="#8FA8FF" />
 
     <!-- Foreign Key Semantic Brushes -->
-    <SolidColorBrush x:Key="AppTableFkBadgeBackgroundBrush" Color="#1E293B" />
-    <SolidColorBrush x:Key="AppTableFkBadgeBorderBrush" Color="#334155" />
-    <SolidColorBrush x:Key="AppTableFkBadgeForegroundBrush" Color="#94A3B8" />
+    <SolidColorBrush x:Key="AppTableFkBadgeBackgroundBrush" Color="#1E2A47" />
+    <SolidColorBrush x:Key="AppTableFkBadgeBorderBrush" Color="#2A303B" />
+    <SolidColorBrush x:Key="AppTableFkBadgeForegroundBrush" Color="#8FA8FF" />
 
-    <!-- Danger & Alert Muted Background -->
-    <SolidColorBrush x:Key="AppDangerMutedBrush" Color="#451A1A" />
+    <!-- Status & Alerts Brushes -->
+    <SolidColorBrush x:Key="AppDangerMutedBrush" Color="#3A1E26" />
+    <SolidColorBrush x:Key="AppStatusActiveBrush" Color="#3DD68C" />
+    <SolidColorBrush x:Key="AppStatusActiveBackgroundBrush" Color="#162E25" />
+    <SolidColorBrush x:Key="AppStatusDeletedBrush" Color="#F2677A" />
+    <SolidColorBrush x:Key="AppStatusDeletedBackgroundBrush" Color="#3A1E26" />
+    <SolidColorBrush x:Key="AppStatusWarningBrush" Color="#F5A623" />
+    <SolidColorBrush x:Key="AppStatusWarningBackgroundBrush" Color="#3D2D14" />
 
     <!-- IntelliSense & Overlay Component Semantic Brushes -->
-    <SolidColorBrush x:Key="AppIntelliSenseHeaderBackgroundBrush" Color="#1E293B" />
-    <SolidColorBrush x:Key="AppIntelliSenseBorderBrush" Color="#3B82F6" />
-    <SolidColorBrush x:Key="AppIntelliSenseBadgeBackgroundBrush" Color="#334155" />
-    <SolidColorBrush x:Key="AppIntelliSenseBadgeForegroundBrush" Color="#94A3B8" />
+    <SolidColorBrush x:Key="AppIntelliSenseHeaderBackgroundBrush" Color="#171B22" />
+    <SolidColorBrush x:Key="AppIntelliSenseBorderBrush" Color="#4C7DFF" />
+    <SolidColorBrush x:Key="AppIntelliSenseBadgeBackgroundBrush" Color="#1E2A47" />
+    <SolidColorBrush x:Key="AppIntelliSenseBadgeForegroundBrush" Color="#8FA8FF" />
 
-    <!-- SQL Syntax Keyword Color Token (Default: Dark Mode Sky Blue) -->
-    <SolidColorBrush x:Key="AppKeywordBrush" Color="#60A5FA" />
+    <!-- SQL Syntax Keyword Color Token -->
+    <SolidColorBrush x:Key="AppKeywordBrush" Color="#8FA8FF" />
 
     <!-- Focus Visual Suppression Tokens (Eliminate harsh black focus outlines) -->
     <SolidColorBrush x:Key="SystemControlFocusVisualPrimaryBrush" Color="Transparent" />

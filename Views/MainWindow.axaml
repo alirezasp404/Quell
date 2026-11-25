@@ -23,8 +23,8 @@
         <!-- 2. MAIN DYNAMIC WORKSPACE (Sidebar + Editor + Footer) -->
         <Grid x:Name="MainGrid" Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <!-- Resizable Sidebar Column (Min: 160px, Max: 450px) -->
-                <ColumnDefinition Width="54" MinWidth="0" MaxWidth="450" />
+                <!-- Resizable Sidebar Column (Rail: 56px, Expanded: 180-450px) -->
+                <ColumnDefinition Width="56" MinWidth="0" MaxWidth="450" />
                 <ColumnDefinition Width="Auto" />
                 <!-- Center Dynamic Workspace Column (Takes remaining width: *) -->
                 <ColumnDefinition Width="*" MinWidth="300" />
@@ -49,8 +49,8 @@
                     <!-- Center Document Canvas (Takes remaining height: *) -->
                     <RowDefinition Height="*" MinHeight="180" />
                     <RowDefinition Height="Auto" />
-                    <!-- Resizable Bottom Output Panel (Compact Default: 140px, Min: 70px, Max: 450px) -->
-                    <RowDefinition Height="140" MinHeight="70" MaxHeight="450" />
+                    <!-- Resizable Bottom Output Panel (Default: 320px, Min: 120px, Max: 850px) -->
+                    <RowDefinition Height="320" MinHeight="120" MaxHeight="850" />
                 </Grid.RowDefinitions>
                 
                 <!-- CENTER DOCUMENT CANVAS -->

@@ -57,6 +57,7 @@ public class QueryHistoryRecord
     public string ExecutionTime { get; set; } = string.Empty;
     public int RowCount { get; set; }
     public string Status { get; set; } = "Success";
+    public string DatabaseName { get; set; } = string.Empty;
 }
 
 public class SavedQueryRecord
@@ -64,7 +65,17 @@ public class SavedQueryRecord
     public int Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public string QueryText { get; set; } = string.Empty;
+    public string FolderName { get; set; } = string.Empty;
+    public bool IsPinned { get; set; }
     public string UpdatedAt { get; set; } = string.Empty;
+}
+
+public class SavedQueryFolderRecord
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public bool IsExpanded { get; set; } = true;
+    public string CreatedAt { get; set; } = string.Empty;
 }
 
 public class DialectKeywordRecord
@@ -364,6 +375,42 @@ public class DatabaseStorageService
             try
             {
                 await connection.ExecuteAsync("ALTER TABLE Connections ADD COLUMN Password TEXT DEFAULT '';");
+            }
+            catch { }
+
+            try
+            {
+                await connection.ExecuteAsync("ALTER TABLE QueryHistory ADD COLUMN DatabaseName TEXT DEFAULT '';");
+            }
+            catch { }
+
+            try
+            {
+                await connection.ExecuteAsync("ALTER TABLE SavedQueries ADD COLUMN FolderName TEXT DEFAULT '';");
+            }
+            catch { }
+
+            try
+            {
+                await connection.ExecuteAsync("ALTER TABLE SavedQueries ADD COLUMN IsPinned INTEGER NOT NULL DEFAULT 0;");
+            }
+            catch { }
+
+            try
+            {
+                await connection.ExecuteAsync(@"
+                    CREATE TABLE IF NOT EXISTS SavedQueryFolders (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        Name TEXT NOT NULL UNIQUE,
+                        IsExpanded INTEGER NOT NULL DEFAULT 1,
+                        CreatedAt TEXT NOT NULL
+                    );");
+            }
+            catch { }
+
+            try
+            {
+                await connection.ExecuteAsync("DELETE FROM QueryHistory WHERE ExecutedAt < datetime('now', '-30 days');");
             }
             catch { }
 
@@ -783,25 +830,26 @@ public class DatabaseStorageService
         }
     }
 
-    public async Task SaveQueryHistoryAsync(string queryText, string executionTime, int rowCount, string status = "Success")
+    public async Task SaveQueryHistoryAsync(string queryText, string executionTime, int rowCount, string status = "Success", string databaseName = "")
     {
         try
         {
-            await InitializeAsync();
+            await InitializeAsync().ConfigureAwait(false);
             await using var connection = new SqliteConnection(_connectionString);
-            await connection.OpenAsync();
+            await connection.OpenAsync().ConfigureAwait(false);
 
             const string sql = @"
-                INSERT INTO QueryHistory (QueryText, ExecutedAt, ExecutionTime, RowCount, Status)
-                VALUES (@queryText, datetime('now'), @executionTime, @rowCount, @status);";
+                INSERT INTO QueryHistory (QueryText, ExecutedAt, ExecutionTime, RowCount, Status, DatabaseName)
+                VALUES (@queryText, datetime('now'), @executionTime, @rowCount, @status, @databaseName);";
 
             await connection.ExecuteAsync(sql, new
             {
                 queryText,
                 executionTime,
                 rowCount,
-                status
-            });
+                status,
+                databaseName = databaseName ?? string.Empty
+            }).ConfigureAwait(false);
 
             lock (_historyLock)
             {
@@ -829,7 +877,8 @@ public class DatabaseStorageService
                         ExecutedAt = h.ExecutedAt,
                         ExecutionTime = h.ExecutionTime,
                         RowCount = h.RowCount,
-                        Status = h.Status
+                        Status = h.Status,
+                        DatabaseName = h.DatabaseName
                     }).ToList();
                 }
             }
@@ -837,17 +886,18 @@ public class DatabaseStorageService
 
         try
         {
-            await InitializeAsync();
+            await InitializeAsync().ConfigureAwait(false);
             await using var connection = new SqliteConnection(_connectionString);
-            await connection.OpenAsync();
+            await connection.OpenAsync().ConfigureAwait(false);
 
             const string sql = @"
-                SELECT Id, QueryText, ExecutedAt, ExecutionTime, RowCount, Status 
+                SELECT Id, QueryText, ExecutedAt, ExecutionTime, RowCount, Status, COALESCE(DatabaseName, '') AS DatabaseName
                 FROM QueryHistory 
+                WHERE ExecutedAt >= datetime('now', '-30 days')
                 ORDER BY Id DESC 
-                LIMIT 50;";
+                LIMIT 100;";
 
-            var result = (await connection.QueryAsync<QueryHistoryRecord>(sql)).ToList();
+            var result = (await connection.QueryAsync<QueryHistoryRecord>(sql).ConfigureAwait(false)).ToList();
             lock (_historyLock)
             {
                 _cachedQueryHistory = result.Select(h => new QueryHistoryRecord
@@ -857,7 +907,8 @@ public class DatabaseStorageService
                     ExecutedAt = h.ExecutedAt,
                     ExecutionTime = h.ExecutionTime,
                     RowCount = h.RowCount,
-                    Status = h.Status
+                    Status = h.Status,
+                    DatabaseName = h.DatabaseName
                 }).ToList();
             }
             return result;
@@ -866,6 +917,250 @@ public class DatabaseStorageService
         {
             Console.WriteLine($"[DatabaseStorageService] GetQueryHistoryAsync error: {ex.Message}");
             return new List<QueryHistoryRecord>();
+        }
+    }
+
+    public async Task ClearQueryHistoryAsync()
+    {
+        try
+        {
+            await InitializeAsync().ConfigureAwait(false);
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync().ConfigureAwait(false);
+            await connection.ExecuteAsync("DELETE FROM QueryHistory;").ConfigureAwait(false);
+            lock (_historyLock)
+            {
+                _cachedQueryHistory = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] ClearQueryHistoryAsync error: {ex.Message}");
+        }
+    }
+
+    public async Task<List<SavedQueryFolderRecord>> GetSavedQueryFoldersAsync()
+    {
+        try
+        {
+            await InitializeAsync().ConfigureAwait(false);
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync().ConfigureAwait(false);
+
+            const string sql = "SELECT Id, Name, IsExpanded, CreatedAt FROM SavedQueryFolders ORDER BY Name ASC;";
+            return (await connection.QueryAsync<SavedQueryFolderRecord>(sql).ConfigureAwait(false)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] GetSavedQueryFoldersAsync error: {ex.Message}");
+            return new List<SavedQueryFolderRecord>();
+        }
+    }
+
+    public async Task SaveQueryFolderAsync(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return;
+        try
+        {
+            await InitializeAsync().ConfigureAwait(false);
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync().ConfigureAwait(false);
+
+            const string sql = @"
+                INSERT OR IGNORE INTO SavedQueryFolders (Name, IsExpanded, CreatedAt)
+                VALUES (@name, 1, datetime('now'));";
+            await connection.ExecuteAsync(sql, new { name = name.Trim() }).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] SaveQueryFolderAsync error: {ex.Message}");
+        }
+    }
+
+    public async Task RenameSavedQueryFolderAsync(string oldName, string newName)
+    {
+        if (string.IsNullOrWhiteSpace(oldName) || string.IsNullOrWhiteSpace(newName)) return;
+        try
+        {
+            await InitializeAsync().ConfigureAwait(false);
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync().ConfigureAwait(false);
+            await connection.ExecuteAsync("UPDATE SavedQueryFolders SET Name = @newName WHERE Name = @oldName;", new { oldName, newName = newName.Trim() }).ConfigureAwait(false);
+            await connection.ExecuteAsync("UPDATE SavedQueries SET FolderName = @newName WHERE FolderName = @oldName;", new { oldName, newName = newName.Trim() }).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] RenameSavedQueryFolderAsync error: {ex.Message}");
+        }
+    }
+
+    public async Task DeleteSavedQueryFolderAsync(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return;
+        try
+        {
+            await InitializeAsync().ConfigureAwait(false);
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync().ConfigureAwait(false);
+            await connection.ExecuteAsync("UPDATE SavedQueries SET FolderName = '' WHERE FolderName = @name;", new { name }).ConfigureAwait(false);
+            await connection.ExecuteAsync("DELETE FROM SavedQueryFolders WHERE Name = @name;", new { name }).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] DeleteSavedQueryFolderAsync error: {ex.Message}");
+        }
+    }
+
+    public async Task<List<SavedQueryRecord>> GetSavedQueriesAsync()
+    {
+        try
+        {
+            await InitializeAsync().ConfigureAwait(false);
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync().ConfigureAwait(false);
+
+            const string sql = @"
+                SELECT Id, Title, QueryText, COALESCE(FolderName, '') AS FolderName, IsPinned, UpdatedAt
+                FROM SavedQueries
+                ORDER BY Title ASC;";
+            return (await connection.QueryAsync<SavedQueryRecord>(sql).ConfigureAwait(false)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] GetSavedQueriesAsync error: {ex.Message}");
+            return new List<SavedQueryRecord>();
+        }
+    }
+
+    public async Task<int> SaveOrUpdateSavedQueryAsync(SavedQueryRecord record)
+    {
+        try
+        {
+            await InitializeAsync().ConfigureAwait(false);
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync().ConfigureAwait(false);
+
+            if (!string.IsNullOrWhiteSpace(record.FolderName))
+            {
+                await connection.ExecuteAsync(
+                    "INSERT OR IGNORE INTO SavedQueryFolders (Name, IsExpanded, CreatedAt) VALUES (@name, 1, datetime('now'));",
+                    new { name = record.FolderName.Trim() }).ConfigureAwait(false);
+            }
+
+            if (record.Id > 0)
+            {
+                const string updateSql = @"
+                    UPDATE SavedQueries
+                    SET Title = @Title, QueryText = @QueryText, FolderName = @FolderName, IsPinned = @IsPinned, UpdatedAt = datetime('now')
+                    WHERE Id = @Id;";
+                await connection.ExecuteAsync(updateSql, new
+                {
+                    record.Id,
+                    record.Title,
+                    record.QueryText,
+                    FolderName = record.FolderName ?? string.Empty,
+                    IsPinned = record.IsPinned ? 1 : 0
+                }).ConfigureAwait(false);
+                return record.Id;
+            }
+            else
+            {
+                const string insertSql = @"
+                    INSERT INTO SavedQueries (Title, QueryText, FolderName, IsPinned, UpdatedAt)
+                    VALUES (@Title, @QueryText, @FolderName, @IsPinned, datetime('now'));
+                    SELECT last_insert_rowid();";
+                int id = await connection.ExecuteScalarAsync<int>(insertSql, new
+                {
+                    record.Title,
+                    record.QueryText,
+                    FolderName = record.FolderName ?? string.Empty,
+                    IsPinned = record.IsPinned ? 1 : 0
+                }).ConfigureAwait(false);
+                record.Id = id;
+                return id;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] SaveOrUpdateSavedQueryAsync error: {ex.Message}");
+            return 0;
+        }
+    }
+
+    public async Task RenameSavedQueryAsync(int id, string newTitle)
+    {
+        if (id <= 0 || string.IsNullOrWhiteSpace(newTitle)) return;
+        try
+        {
+            await InitializeAsync().ConfigureAwait(false);
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync().ConfigureAwait(false);
+            await connection.ExecuteAsync(
+                "UPDATE SavedQueries SET Title = @title, UpdatedAt = datetime('now') WHERE Id = @id;",
+                new { id, title = newTitle.Trim() }).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] RenameSavedQueryAsync error: {ex.Message}");
+        }
+    }
+
+    public async Task MoveSavedQueryToFolderAsync(int id, string folderName)
+    {
+        if (id <= 0) return;
+        try
+        {
+            await InitializeAsync().ConfigureAwait(false);
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync().ConfigureAwait(false);
+            string trimmed = folderName?.Trim() ?? string.Empty;
+            if (!string.IsNullOrEmpty(trimmed))
+            {
+                await connection.ExecuteAsync(
+                    "INSERT OR IGNORE INTO SavedQueryFolders (Name, IsExpanded, CreatedAt) VALUES (@name, 1, datetime('now'));",
+                    new { name = trimmed }).ConfigureAwait(false);
+            }
+            await connection.ExecuteAsync(
+                "UPDATE SavedQueries SET FolderName = @folder, UpdatedAt = datetime('now') WHERE Id = @id;",
+                new { id, folder = trimmed }).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] MoveSavedQueryToFolderAsync error: {ex.Message}");
+        }
+    }
+
+    public async Task ToggleSavedQueryPinAsync(int id, bool isPinned)
+    {
+        if (id <= 0) return;
+        try
+        {
+            await InitializeAsync().ConfigureAwait(false);
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync().ConfigureAwait(false);
+            await connection.ExecuteAsync(
+                "UPDATE SavedQueries SET IsPinned = @pinned, UpdatedAt = datetime('now') WHERE Id = @id;",
+                new { id, pinned = isPinned ? 1 : 0 }).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] ToggleSavedQueryPinAsync error: {ex.Message}");
+        }
+    }
+
+    public async Task DeleteSavedQueryAsync(int id)
+    {
+        if (id <= 0) return;
+        try
+        {
+            await InitializeAsync().ConfigureAwait(false);
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync().ConfigureAwait(false);
+            await connection.ExecuteAsync("DELETE FROM SavedQueries WHERE Id = @id;", new { id }).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] DeleteSavedQueryAsync error: {ex.Message}");
         }
     }
 

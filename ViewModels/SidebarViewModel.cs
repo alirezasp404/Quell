@@ -16,24 +16,32 @@ public partial class SidebarViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsExplorerTab))]
+    [NotifyPropertyChangedFor(nameof(IsSavedQueriesTab))]
     [NotifyPropertyChangedFor(nameof(IsDatabasesTab))]
     [NotifyPropertyChangedFor(nameof(IsHistoryTab))]
+    [NotifyPropertyChangedFor(nameof(IsDatabasesTabActive))]
+    [NotifyPropertyChangedFor(nameof(IsExplorerTabActive))]
+    [NotifyPropertyChangedFor(nameof(IsSavedQueriesTabActive))]
+    [NotifyPropertyChangedFor(nameof(IsHistoryTabActive))]
     [NotifyPropertyChangedFor(nameof(DrawerTitle))]
-    private string _selectedTab = "Databases";
+    private string _selectedTab = "Explorer";
 
     public bool IsExplorerTab => SelectedTab == "Explorer";
+    public bool IsSavedQueriesTab => SelectedTab == "SavedQueries";
     public bool IsDatabasesTab => SelectedTab == "Databases";
     public bool IsHistoryTab => SelectedTab == "History";
 
     public bool IsDatabasesTabActive => IsDatabasesTab && IsExpanded;
     public bool IsExplorerTabActive => IsExplorerTab && IsExpanded;
+    public bool IsSavedQueriesTabActive => IsSavedQueriesTab && IsExpanded;
     public bool IsHistoryTabActive => IsHistoryTab && IsExpanded;
 
     public string DrawerTitle => SelectedTab switch
     {
-        "Databases" => "DATABASES & CONNECTIONS",
-        "History" => "QUERY HISTORY",
-        _ => "OBJECT EXPLORER"
+        "Databases" => "CONNECTIONS",
+        "SavedQueries" => "SAVED QUERIES",
+        "History" => "HISTORY",
+        _ => "EXPLORER"
     };
 
     [ObservableProperty]
@@ -42,6 +50,7 @@ public partial class SidebarViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(PinStatusText))]
     [NotifyPropertyChangedFor(nameof(IsDatabasesTabActive))]
     [NotifyPropertyChangedFor(nameof(IsExplorerTabActive))]
+    [NotifyPropertyChangedFor(nameof(IsSavedQueriesTabActive))]
     [NotifyPropertyChangedFor(nameof(IsHistoryTabActive))]
     private bool _isPinned = false;
 
@@ -49,6 +58,7 @@ public partial class SidebarViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsExpanded))]
     [NotifyPropertyChangedFor(nameof(IsDatabasesTabActive))]
     [NotifyPropertyChangedFor(nameof(IsExplorerTabActive))]
+    [NotifyPropertyChangedFor(nameof(IsSavedQueriesTabActive))]
     [NotifyPropertyChangedFor(nameof(IsHistoryTabActive))]
     private bool _isDockExpanded = false;
 
@@ -89,6 +99,21 @@ public partial class SidebarViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    public void ToggleSavedQueriesTab()
+    {
+        if (IsExpanded && SelectedTab == "SavedQueries")
+        {
+            CollapseDock();
+        }
+        else
+        {
+            SelectedTab = "SavedQueries";
+            IsDockExpanded = true;
+            _ = RefreshSavedQueriesAsync();
+        }
+    }
+
+    [RelayCommand]
     public void ToggleHistoryTab()
     {
         if (IsExpanded && SelectedTab == "History")
@@ -99,6 +124,7 @@ public partial class SidebarViewModel : ViewModelBase
         {
             SelectedTab = "History";
             IsDockExpanded = true;
+            _ = RefreshHistoryAsync();
         }
     }
 
@@ -126,8 +152,9 @@ public partial class SidebarViewModel : ViewModelBase
     public ObservableCollection<string> Tabs { get; } = new()
     {
         "Explorer",
-        "Databases",
-        "History"
+        "SavedQueries",
+        "History",
+        "Databases"
     };
 
     [ObservableProperty]
@@ -168,12 +195,51 @@ public partial class SidebarViewModel : ViewModelBase
     {
         get
         {
+            if (IsConnected && Tables.Count > 0)
+            {
+                return ExplorerCategory switch
+                {
+                    "Views" => $"Filter {Tables.Count(t => t.IsView)} views…",
+                    "Procs" => "Filter procedures…",
+                    _ => $"Filter {Tables.Count(t => !t.IsView)} tables…"
+                };
+            }
             if (IsConnected && !string.IsNullOrWhiteSpace(DatabaseName))
             {
-                return $"Search tables in {DatabaseName}...";
+                return $"Filter tables in {DatabaseName}…";
             }
-            return "Filter databases and tables...";
+            return "Filter tables & databases…";
         }
+    }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsTablesCategory))]
+    [NotifyPropertyChangedFor(nameof(IsViewsCategory))]
+    [NotifyPropertyChangedFor(nameof(IsProcsCategory))]
+    [NotifyPropertyChangedFor(nameof(SearchPlaceholderText))]
+    private string _explorerCategory = "Tables";
+
+    public bool IsTablesCategory => ExplorerCategory == "Tables";
+    public bool IsViewsCategory => ExplorerCategory == "Views";
+    public bool IsProcsCategory => ExplorerCategory == "Procs";
+
+    [RelayCommand]
+    public async Task SelectExplorerCategory(string category)
+    {
+        if (string.IsNullOrWhiteSpace(category)) return;
+        ExplorerCategory = category;
+
+        if (category == "Procs")
+        {
+            var openNodes = DatabaseNodes.Where(n => n.IsConnected && n.AllRoutineNodes.Count == 0).ToList();
+            foreach (var node in openNodes)
+            {
+                var routines = await Task.Run(() => DatabaseSessionService.Instance.GetRoutinesAsync(node.ConnectionKey));
+                node.LoadRoutines(routines, OpenProcedureNodeAsync);
+            }
+        }
+
+        ApplyFilter();
     }
 
     [ObservableProperty]
@@ -200,11 +266,78 @@ public partial class SidebarViewModel : ViewModelBase
 
     public ObservableCollection<QueryHistoryRecord> HistoryItems { get; } = new();
 
+    // Panel B: Saved Queries state
+    private readonly System.Collections.Generic.List<SavedQueryFolderRecord> _allFolderRecords = new();
+    private readonly System.Collections.Generic.List<SavedQueryRecord> _allSavedQueryRecords = new();
+
+    public ObservableCollection<SavedQueryFolderViewModel> SavedQueryFolders { get; } = new();
+    public ObservableCollection<SavedQueryItemViewModel> UnfiledSavedQueries { get; } = new();
+    public ObservableCollection<SavedQueryItemViewModel> PinnedSavedQueries { get; } = new();
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSavedQuerySearchFilter))]
+    private string _savedQuerySearchFilter = string.Empty;
+
+    public bool HasSavedQuerySearchFilter => !string.IsNullOrWhiteSpace(SavedQuerySearchFilter);
+
+    public bool HasPinnedSavedQueries => PinnedSavedQueries.Count > 0;
+    public bool HasNoSavedQueries => SavedQueryFolders.Count == 0 && UnfiledSavedQueries.Count == 0 && PinnedSavedQueries.Count == 0;
+
+    [ObservableProperty]
+    private SavedQueryItemViewModel? _selectedSavedQuery;
+
+    [ObservableProperty]
+    private bool _isCreatingFolder;
+
+    [ObservableProperty]
+    private string _newFolderName = string.Empty;
+
+    [ObservableProperty]
+    private bool _isCreatingSavedQuery;
+
+    [ObservableProperty]
+    private string _newSavedQueryTitle = string.Empty;
+
+    [ObservableProperty]
+    private string _newSavedQueryFolder = string.Empty;
+
+    // Panel C: History Panel state
+    private readonly System.Collections.Generic.List<HistoryEntryViewModel> _allHistoryEntries = new();
+    public ObservableCollection<HistoryDateGroupViewModel> GroupedHistoryItems { get; } = new();
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasHistorySearchFilter))]
+    private string _historySearchFilter = string.Empty;
+
+    public bool HasHistorySearchFilter => !string.IsNullOrWhiteSpace(HistorySearchFilter);
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsHistoryAllFilter))]
+    [NotifyPropertyChangedFor(nameof(IsHistoryFailedFilter))]
+    [NotifyPropertyChangedFor(nameof(IsHistoryThisDbFilter))]
+    private string _historyFilterMode = "All";
+
+    public bool IsHistoryAllFilter => HistoryFilterMode == "All";
+    public bool IsHistoryFailedFilter => HistoryFilterMode == "Failed";
+    public bool IsHistoryThisDbFilter => HistoryFilterMode == "ThisDB";
+    public bool HasNoHistoryEntries => GroupedHistoryItems.Count == 0;
+
+    [ObservableProperty]
+    private HistoryEntryViewModel? _selectedHistoryEntry;
+
     public Action<string>? InsertQueryToEditor { get; set; }
     public Func<string, Task>? ExecuteQueryInEditor { get; set; }
+    public Action<string, string>? OpenQueryInNewTab { get; set; }
+    public Func<string>? GetCurrentEditorQuery { get; set; }
+    public Func<string>? GetCurrentEditorTitle { get; set; }
     public Action? OpenConnectModal { get; set; }
     public Action<ConnectionRecord>? RequestActivateConnection { get; set; }
     public Action<ConnectionRecord>? RequestEditConnection { get; set; }
+    public Func<string, Task>? ViewTableStructureCallback { get; set; }
+    public Func<string, Task>? ShowTableInDiagramCallback { get; set; }
+    public Func<string, string, string, Task>? GenerateTableScriptCallback { get; set; }
+    public Action<string, string, string, Action>? RequestTruncateConfirmationCallback { get; set; }
+    public Action<string, string, Action>? RequestClearHistoryConfirmationCallback { get; set; }
     public event Action<ConnectionRecord>? ConnectionDeleted;
     public event Action<ConnectionRecord>? ConnectionDisconnected;
 
@@ -222,6 +355,7 @@ public partial class SidebarViewModel : ViewModelBase
     partial void OnSelectedTabChanged(string value)
     {
         OnPropertyChanged(nameof(IsExplorerTab));
+        OnPropertyChanged(nameof(IsSavedQueriesTab));
         OnPropertyChanged(nameof(IsDatabasesTab));
         OnPropertyChanged(nameof(IsHistoryTab));
     }
@@ -231,6 +365,16 @@ public partial class SidebarViewModel : ViewModelBase
         ApplyFilter();
     }
 
+    partial void OnSavedQuerySearchFilterChanged(string value)
+    {
+        ApplySavedQueriesFilter();
+    }
+
+    partial void OnHistorySearchFilterChanged(string value)
+    {
+        ApplyHistoryFilter();
+    }
+
     partial void OnSelectedTreeNodeChanged(SidebarTreeNodeBase? value)
     {
         // Clicking a database node does NOT auto-connect.
@@ -238,7 +382,14 @@ public partial class SidebarViewModel : ViewModelBase
         // Clicking a table node auto-generates and executes SELECT TOP 100.
         if (value is TableTreeNode tableNode)
         {
-            _ = SelectTableNode(tableNode);
+            if (tableNode.IsProcedure)
+            {
+                _ = OpenProcedureNodeAsync(tableNode);
+            }
+            else
+            {
+                _ = SelectTableNode(tableNode);
+            }
         }
     }
 
@@ -246,6 +397,18 @@ public partial class SidebarViewModel : ViewModelBase
     public void ClearSearchFilter()
     {
         TableSearchFilter = string.Empty;
+    }
+
+    [RelayCommand]
+    public void ClearSavedQuerySearchFilter()
+    {
+        SavedQuerySearchFilter = string.Empty;
+    }
+
+    [RelayCommand]
+    public void ClearHistorySearchFilter()
+    {
+        HistorySearchFilter = string.Empty;
     }
 
     private void ApplyFilter()
@@ -256,6 +419,14 @@ public partial class SidebarViewModel : ViewModelBase
 
         foreach (var t in Tables)
         {
+            bool categoryMatch = ExplorerCategory switch
+            {
+                "Views" => t.IsView,
+                "Procs" => t.IsProcedure,
+                _ => !t.IsView && !t.IsProcedure
+            };
+            if (!categoryMatch) continue;
+
             if (string.IsNullOrEmpty(filter) ||
                 t.FullName.ToLowerInvariant().Contains(filter) ||
                 t.TableName.ToLowerInvariant().Contains(filter))
@@ -268,7 +439,7 @@ public partial class SidebarViewModel : ViewModelBase
         {
             foreach (var node in DatabaseNodes)
             {
-                node.FilterTables(null);
+                node.FilterObjects(null, ExplorerCategory);
                 if (FilterActiveOnly)
                 {
                     if (node.IsActive)
@@ -306,7 +477,7 @@ public partial class SidebarViewModel : ViewModelBase
                 continue;
             }
 
-            int matchingCount = node.FilterTables(filter);
+            int matchingCount = node.FilterObjects(filter, ExplorerCategory);
             bool dbMatch = node.Title.ToLowerInvariant().Contains(filter) ||
                            node.DatabaseType.ToDialectString().ToLowerInvariant().Contains(filter) ||
                            node.Server.ToLowerInvariant().Contains(filter) ||
@@ -321,7 +492,99 @@ public partial class SidebarViewModel : ViewModelBase
             }
         }
 
-        StatusText = $"{totalMatchingTables} matching table(s)";
+        StatusText = $"{totalMatchingTables} matching item(s)";
+    }
+
+    private void WireDatabaseNodeCallbacks(DatabaseConnectionTreeNode node)
+    {
+        node.ConnectAction = ConnectDatabaseNodeAsync;
+        node.DisconnectAction = DisconnectDatabaseNodeAsync;
+        node.EditAction = EditDatabaseNode;
+        node.RefreshAction = RefreshDatabaseNodeAsync;
+        node.DeleteAction = DeleteDatabaseNodeAsync;
+        node.ExpandConnectAction = ConnectDatabaseNodeAsync;
+
+        node.OpenTableDataAction = SelectTableNode;
+        node.ViewStructureAction = async t =>
+        {
+            if (ViewTableStructureCallback != null)
+            {
+                await ViewTableStructureCallback.Invoke(t.FullName);
+            }
+        };
+        node.ShowInDiagramAction = async t =>
+        {
+            if (ShowTableInDiagramCallback != null)
+            {
+                await ShowTableInDiagramCallback.Invoke(t.FullName);
+            }
+        };
+        node.GenerateScriptAction = async (t, mode) =>
+        {
+            if (GenerateTableScriptCallback != null)
+            {
+                await GenerateTableScriptCallback.Invoke(t.FullName, t.DatabaseNode.ConnectionKey, mode);
+            }
+        };
+        node.TruncateTableAction = async t =>
+        {
+            await RequestTruncateTableAsync(t);
+        };
+    }
+
+    private async Task RequestTruncateTableAsync(TableTreeNode node)
+    {
+        if (node.IsProcedure || node.IsView) return;
+
+        var dbType = node.DatabaseNode.DatabaseType;
+        string formattedTable = QueryResultTableViewModel.FormatIdentifier(node.FullName, dbType);
+        string sql = dbType == Quell.Services.DatabaseProviders.DatabaseType.SQLite
+            ? $"DELETE FROM {formattedTable};"
+            : $"TRUNCATE TABLE {formattedTable};";
+
+        async void ExecuteTruncate()
+        {
+            var res = await Task.Run(() => DatabaseSessionService.Instance.ExecuteQueryAsync(sql, node.DatabaseNode.ConnectionKey));
+            await RefreshDatabaseNodeAsync(node.DatabaseNode);
+            if (ExecuteQueryInEditor != null && res.Success)
+            {
+                string verifyQuery = dbType == Quell.Services.DatabaseProviders.DatabaseType.MSSQL
+                    ? $"SELECT TOP 100 * FROM {formattedTable};"
+                    : $"SELECT * FROM {formattedTable} LIMIT 100;";
+                await ExecuteQueryInEditor.Invoke(verifyQuery);
+            }
+        }
+
+        if (RequestTruncateConfirmationCallback != null)
+        {
+            RequestTruncateConfirmationCallback.Invoke(
+                "Truncate Table?",
+                $"All rows in {node.FullName} will be permanently removed using:\n{sql}",
+                node.FullName,
+                ExecuteTruncate);
+        }
+        else
+        {
+            await Task.Run(() => DatabaseSessionService.Instance.ExecuteQueryAsync(sql, node.DatabaseNode.ConnectionKey));
+        }
+    }
+
+    public Task OpenProcedureNodeAsync(TableTreeNode? node)
+    {
+        if (node == null) return Task.CompletedTask;
+        if (ActiveTableNode != null) ActiveTableNode.IsActive = false;
+        node.IsActive = true;
+        ActiveTableNode = node;
+
+        string formatted = QueryResultTableViewModel.FormatIdentifier(node.FullName, node.DatabaseNode.DatabaseType);
+        string sql = node.DatabaseNode.DatabaseType switch
+        {
+            Quell.Services.DatabaseProviders.DatabaseType.MSSQL => $"EXEC {formatted};",
+            Quell.Services.DatabaseProviders.DatabaseType.PostgreSQL => $"SELECT * FROM {formatted}();",
+            _ => $"CALL {formatted}();"
+        };
+        InsertQueryToEditor?.Invoke(sql);
+        return Task.CompletedTask;
     }
 
     [RelayCommand]
@@ -369,20 +632,20 @@ public partial class SidebarViewModel : ViewModelBase
                     existing.UpdateRecord(c);
                 }
 
-                existing.ConnectAction = ConnectDatabaseNodeAsync;
-                existing.DisconnectAction = DisconnectDatabaseNodeAsync;
-                existing.EditAction = EditDatabaseNode;
-                existing.RefreshAction = RefreshDatabaseNodeAsync;
-                existing.DeleteAction = DeleteDatabaseNodeAsync;
-                existing.ExpandConnectAction = ConnectDatabaseNodeAsync;
+                WireDatabaseNodeCallbacks(existing);
 
                 existing.IsConnected = isOpen;
                 existing.IsActive = isActive;
 
                 if (isOpen)
                 {
-                    var dbTables = await DatabaseSessionService.Instance.GetTablesAsync(key);
+                    var dbTables = await Task.Run(() => DatabaseSessionService.Instance.GetTablesAsync(key));
                     existing.LoadTables(dbTables, SelectTableNode);
+                    if (ExplorerCategory == "Procs")
+                    {
+                        var routines = await Task.Run(() => DatabaseSessionService.Instance.GetRoutinesAsync(key));
+                        existing.LoadRoutines(routines, OpenProcedureNodeAsync);
+                    }
                 }
                 else
                 {
@@ -400,13 +663,17 @@ public partial class SidebarViewModel : ViewModelBase
                 DatabaseName = session.ActiveConfig.Database;
                 ServerVersion = session.ServerVersion ?? "Connected";
 
-                var activeTables = await session.GetTablesAsync();
+                var activeNode = DatabaseNodes.FirstOrDefault(n => n.IsActive);
+                var activeTables = activeNode != null && activeNode.AllTableNodes.Count > 0
+                    ? activeNode.AllTableNodes.Select(t => t.Table).ToList()
+                    : await Task.Run(() => session.GetTablesAsync());
                 Tables.Clear();
                 foreach (var t in activeTables)
                 {
                     Tables.Add(t);
                 }
                 StatusText = $"{Tables.Count} table(s) found";
+                OnPropertyChanged(nameof(SearchPlaceholderText));
                 SqlKeywordsService.Instance.UpdateActiveTables(DatabaseName, Tables);
             }
             else
@@ -418,6 +685,7 @@ public partial class SidebarViewModel : ViewModelBase
                 DatabaseName = string.Empty;
                 ServerVersion = string.Empty;
                 Tables.Clear();
+                OnPropertyChanged(nameof(SearchPlaceholderText));
                 StatusText = DatabaseNodes.Count > 0 ? $"{DatabaseNodes.Count} saved database(s)" : "No database connected";
             }
 
@@ -439,13 +707,8 @@ public partial class SidebarViewModel : ViewModelBase
                 }
             }
 
-            // Load query history
-            var history = await DatabaseStorageService.Instance.GetQueryHistoryAsync();
-            HistoryItems.Clear();
-            foreach (var h in history)
-            {
-                HistoryItems.Add(h);
-            }
+            await RefreshHistoryAsync();
+            await RefreshSavedQueriesAsync();
         }
         catch (Exception ex)
         {
@@ -851,6 +1114,451 @@ public partial class SidebarViewModel : ViewModelBase
     {
         if (item == null || string.IsNullOrWhiteSpace(item.QueryText)) return;
         InsertQueryToEditor?.Invoke(item.QueryText);
+    }
+
+    public async Task RefreshHistoryAsync()
+    {
+        try
+        {
+            var history = await Task.Run(() => DatabaseStorageService.Instance.GetQueryHistoryAsync());
+            HistoryItems.Clear();
+            _allHistoryEntries.Clear();
+            foreach (var h in history)
+            {
+                HistoryItems.Add(h);
+                _allHistoryEntries.Add(new HistoryEntryViewModel(h));
+            }
+            ApplyHistoryFilter();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SidebarViewModel] RefreshHistoryAsync error: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    public void SelectHistoryFilter(string mode)
+    {
+        if (string.IsNullOrWhiteSpace(mode)) return;
+        HistoryFilterMode = mode;
+        ApplyHistoryFilter();
+    }
+
+    private void ApplyHistoryFilter()
+    {
+        GroupedHistoryItems.Clear();
+        string term = HistorySearchFilter?.Trim().ToLowerInvariant() ?? string.Empty;
+        string activeDb = DatabaseName?.Trim() ?? string.Empty;
+
+        var filtered = _allHistoryEntries.Where(entry =>
+        {
+            if (HistoryFilterMode == "Failed" && !entry.IsFailed) return false;
+            if (HistoryFilterMode == "ThisDB")
+            {
+                if (string.IsNullOrEmpty(activeDb)) return false;
+                if (!entry.DatabaseName.Contains(activeDb, StringComparison.OrdinalIgnoreCase)) return false;
+            }
+            if (!string.IsNullOrEmpty(term))
+            {
+                return entry.QueryText.ToLowerInvariant().Contains(term) ||
+                       entry.DatabaseName.ToLowerInvariant().Contains(term);
+            }
+            return true;
+        }).ToList();
+
+        var groupOrder = new[] { "TODAY", "YESTERDAY", "EARLIER" };
+        foreach (var groupKey in groupOrder)
+        {
+            var items = filtered.Where(e => e.DateGroup == groupKey).ToList();
+            if (items.Count > 0)
+            {
+                var grp = new HistoryDateGroupViewModel(groupKey);
+                foreach (var it in items) grp.Items.Add(it);
+                GroupedHistoryItems.Add(grp);
+            }
+        }
+
+        OnPropertyChanged(nameof(HasNoHistoryEntries));
+    }
+
+    [RelayCommand]
+    public void SelectHistoryEntry(HistoryEntryViewModel? entry)
+    {
+        if (entry == null) return;
+        bool wasSelected = entry.IsSelected;
+        foreach (var item in _allHistoryEntries)
+        {
+            item.IsSelected = false;
+        }
+        entry.IsSelected = !wasSelected;
+        SelectedHistoryEntry = entry.IsSelected ? entry : null;
+    }
+
+    [RelayCommand]
+    public async Task RunHistoryAgainAsync(HistoryEntryViewModel? entry)
+    {
+        if (entry == null || string.IsNullOrWhiteSpace(entry.QueryText)) return;
+        InsertQueryToEditor?.Invoke(entry.QueryText);
+        if (ExecuteQueryInEditor != null)
+        {
+            await ExecuteQueryInEditor.Invoke(entry.QueryText);
+        }
+    }
+
+    [RelayCommand]
+    public void OpenHistoryInTab(HistoryEntryViewModel? entry)
+    {
+        if (entry == null || string.IsNullOrWhiteSpace(entry.QueryText)) return;
+        if (OpenQueryInNewTab != null)
+        {
+            OpenQueryInNewTab.Invoke($"History #{entry.Id}.sql", entry.QueryText);
+        }
+        else
+        {
+            InsertQueryToEditor?.Invoke(entry.QueryText);
+        }
+    }
+
+    [RelayCommand]
+    public async Task SaveHistoryEntryAsync(HistoryEntryViewModel? entry)
+    {
+        if (entry == null || string.IsNullOrWhiteSpace(entry.QueryText)) return;
+        string suggestedTitle = SuggestQueryTitle(entry.QueryText);
+        await DatabaseStorageService.Instance.SaveOrUpdateSavedQueryAsync(new SavedQueryRecord
+        {
+            Title = suggestedTitle,
+            QueryText = entry.QueryText,
+            FolderName = string.Empty,
+            IsPinned = false
+        });
+        await RefreshSavedQueriesAsync();
+        SelectedTab = "SavedQueries";
+        IsDockExpanded = true;
+    }
+
+    [RelayCommand]
+    public async Task ClearHistoryAsync()
+    {
+        async void PerformClear()
+        {
+            await DatabaseStorageService.Instance.ClearQueryHistoryAsync();
+            await RefreshHistoryAsync();
+        }
+
+        if (RequestClearHistoryConfirmationCallback != null)
+        {
+            RequestClearHistoryConfirmationCallback.Invoke(
+                "Clear Query History?",
+                "All recorded query history from the last 30 days on this device will be permanently cleared.",
+                PerformClear);
+        }
+        else
+        {
+            await DatabaseStorageService.Instance.ClearQueryHistoryAsync();
+            await RefreshHistoryAsync();
+        }
+    }
+
+    // =========================================================================
+    // Panel B: Saved Queries Management
+    // =========================================================================
+
+    public async Task RefreshSavedQueriesAsync()
+    {
+        try
+        {
+            var foldersTask = Task.Run(() => DatabaseStorageService.Instance.GetSavedQueryFoldersAsync());
+            var queriesTask = Task.Run(() => DatabaseStorageService.Instance.GetSavedQueriesAsync());
+            await Task.WhenAll(foldersTask, queriesTask);
+
+            _allFolderRecords.Clear();
+            _allFolderRecords.AddRange(await foldersTask);
+            _allSavedQueryRecords.Clear();
+            _allSavedQueryRecords.AddRange(await queriesTask);
+
+            ApplySavedQueriesFilter();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SidebarViewModel] RefreshSavedQueriesAsync error: {ex.Message}");
+        }
+    }
+
+    private void ApplySavedQueriesFilter()
+    {
+        var expandedMap = SavedQueryFolders.ToDictionary(f => f.Name, f => f.IsExpanded, StringComparer.OrdinalIgnoreCase);
+
+        SavedQueryFolders.Clear();
+        UnfiledSavedQueries.Clear();
+        PinnedSavedQueries.Clear();
+
+        string filter = SavedQuerySearchFilter?.Trim().ToLowerInvariant() ?? string.Empty;
+
+        var matchingQueries = _allSavedQueryRecords.Where(q =>
+            string.IsNullOrEmpty(filter) ||
+            q.Title.ToLowerInvariant().Contains(filter) ||
+            q.QueryText.ToLowerInvariant().Contains(filter) ||
+            q.FolderName.ToLowerInvariant().Contains(filter)
+        ).ToList();
+
+        var folderNames = _allFolderRecords.Select(f => f.Name)
+            .Concat(matchingQueries.Select(q => q.FolderName).Where(fn => !string.IsNullOrWhiteSpace(fn)))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n)
+            .ToList();
+
+        foreach (var folderName in folderNames)
+        {
+            var folderQueries = matchingQueries
+                .Where(q => string.Equals(q.FolderName, folderName, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (!string.IsNullOrEmpty(filter) &&
+                folderQueries.Count == 0 &&
+                !folderName.ToLowerInvariant().Contains(filter))
+            {
+                continue;
+            }
+
+            bool isExp = expandedMap.TryGetValue(folderName, out var prev) ? prev : true;
+            var folderVm = new SavedQueryFolderViewModel(folderName, isExp);
+            foreach (var q in folderQueries)
+            {
+                folderVm.Items.Add(new SavedQueryItemViewModel(q));
+            }
+            folderVm.NotifyCountChanged();
+            SavedQueryFolders.Add(folderVm);
+        }
+
+        foreach (var q in matchingQueries.Where(q => string.IsNullOrWhiteSpace(q.FolderName)))
+        {
+            UnfiledSavedQueries.Add(new SavedQueryItemViewModel(q));
+        }
+
+        foreach (var q in matchingQueries.Where(q => q.IsPinned))
+        {
+            PinnedSavedQueries.Add(new SavedQueryItemViewModel(q));
+        }
+
+        OnPropertyChanged(nameof(HasPinnedSavedQueries));
+        OnPropertyChanged(nameof(HasNoSavedQueries));
+    }
+
+    [RelayCommand]
+    public void BeginCreateFolder()
+    {
+        IsCreatingSavedQuery = false;
+        NewFolderName = string.Empty;
+        IsCreatingFolder = true;
+    }
+
+    [RelayCommand]
+    public void CancelCreateFolder()
+    {
+        IsCreatingFolder = false;
+        NewFolderName = string.Empty;
+    }
+
+    [RelayCommand]
+    public async Task ConfirmCreateFolderAsync()
+    {
+        if (string.IsNullOrWhiteSpace(NewFolderName)) return;
+        await DatabaseStorageService.Instance.SaveQueryFolderAsync(NewFolderName.Trim());
+        IsCreatingFolder = false;
+        NewFolderName = string.Empty;
+        await RefreshSavedQueriesAsync();
+    }
+
+    [RelayCommand]
+    public void BeginCreateSavedQuery()
+    {
+        IsCreatingFolder = false;
+        string sql = GetCurrentEditorQuery?.Invoke() ?? string.Empty;
+        string title = GetCurrentEditorTitle?.Invoke()?.Replace(".sql", "") ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(title) || title.StartsWith("Query ", StringComparison.OrdinalIgnoreCase))
+        {
+            title = SuggestQueryTitle(sql);
+        }
+        NewSavedQueryTitle = title;
+        NewSavedQueryFolder = SavedQueryFolders.FirstOrDefault()?.Name ?? string.Empty;
+        IsCreatingSavedQuery = true;
+    }
+
+    [RelayCommand]
+    public void CancelCreateSavedQuery()
+    {
+        IsCreatingSavedQuery = false;
+        NewSavedQueryTitle = string.Empty;
+    }
+
+    [RelayCommand]
+    public async Task ConfirmCreateSavedQueryAsync()
+    {
+        string sql = GetCurrentEditorQuery?.Invoke() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(sql))
+        {
+            sql = "SELECT 1;";
+        }
+        string title = string.IsNullOrWhiteSpace(NewSavedQueryTitle)
+            ? SuggestQueryTitle(sql)
+            : NewSavedQueryTitle.Trim();
+
+        await DatabaseStorageService.Instance.SaveOrUpdateSavedQueryAsync(new SavedQueryRecord
+        {
+            Title = title,
+            QueryText = sql,
+            FolderName = NewSavedQueryFolder?.Trim() ?? string.Empty,
+            IsPinned = false
+        });
+        IsCreatingSavedQuery = false;
+        NewSavedQueryTitle = string.Empty;
+        await RefreshSavedQueriesAsync();
+    }
+
+    public async Task QuickSaveQueryAsync(string sql, string? titleHint = null)
+    {
+        if (string.IsNullOrWhiteSpace(sql)) return;
+        string title = !string.IsNullOrWhiteSpace(titleHint)
+            ? titleHint.Replace(".sql", "", StringComparison.OrdinalIgnoreCase).Trim()
+            : SuggestQueryTitle(sql);
+        if (title.StartsWith("Query ", StringComparison.OrdinalIgnoreCase))
+        {
+            title = SuggestQueryTitle(sql);
+        }
+
+        await DatabaseStorageService.Instance.SaveOrUpdateSavedQueryAsync(new SavedQueryRecord
+        {
+            Title = title,
+            QueryText = sql,
+            FolderName = string.Empty,
+            IsPinned = false
+        });
+        await RefreshSavedQueriesAsync();
+    }
+
+    [RelayCommand]
+    public void SelectSavedQueryItem(SavedQueryItemViewModel? item)
+    {
+        if (item == null) return;
+        void ClearSelection(System.Collections.Generic.IEnumerable<SavedQueryItemViewModel> list)
+        {
+            foreach (var it in list) it.IsSelected = false;
+        }
+        foreach (var f in SavedQueryFolders) ClearSelection(f.Items);
+        ClearSelection(UnfiledSavedQueries);
+        ClearSelection(PinnedSavedQueries);
+
+        item.IsSelected = true;
+        SelectedSavedQuery = item;
+    }
+
+    [RelayCommand]
+    public void OpenSavedQueryInNewTab(SavedQueryItemViewModel? item)
+    {
+        if (item == null || string.IsNullOrWhiteSpace(item.QueryText)) return;
+        if (OpenQueryInNewTab != null)
+        {
+            OpenQueryInNewTab.Invoke($"{item.Title}.sql", item.QueryText);
+        }
+        else
+        {
+            InsertQueryToEditor?.Invoke(item.QueryText);
+        }
+    }
+
+    [RelayCommand]
+    public async Task RunSavedQueryAsync(SavedQueryItemViewModel? item)
+    {
+        if (item == null || string.IsNullOrWhiteSpace(item.QueryText)) return;
+        InsertQueryToEditor?.Invoke(item.QueryText);
+        if (ExecuteQueryInEditor != null)
+        {
+            await ExecuteQueryInEditor.Invoke(item.QueryText);
+        }
+    }
+
+    [RelayCommand]
+    public void StartRenameSavedQuery(SavedQueryItemViewModel? item)
+    {
+        if (item == null) return;
+        item.EditingTitle = item.Title;
+        item.IsRenaming = true;
+    }
+
+    [RelayCommand]
+    public void CancelRenameSavedQuery(SavedQueryItemViewModel? item)
+    {
+        if (item == null) return;
+        item.IsRenaming = false;
+    }
+
+    [RelayCommand]
+    public async Task CommitRenameSavedQueryAsync(SavedQueryItemViewModel? item)
+    {
+        if (item == null) return;
+        item.IsRenaming = false;
+        if (!string.IsNullOrWhiteSpace(item.EditingTitle) && item.EditingTitle.Trim() != item.Title)
+        {
+            await DatabaseStorageService.Instance.RenameSavedQueryAsync(item.Id, item.EditingTitle.Trim());
+            await RefreshSavedQueriesAsync();
+        }
+    }
+
+    [RelayCommand]
+    public async Task TogglePinSavedQueryAsync(SavedQueryItemViewModel? item)
+    {
+        if (item == null) return;
+        await DatabaseStorageService.Instance.ToggleSavedQueryPinAsync(item.Id, !item.IsPinned);
+        await RefreshSavedQueriesAsync();
+    }
+
+    [RelayCommand]
+    public async Task DeleteSavedQueryItemAsync(SavedQueryItemViewModel? item)
+    {
+        if (item == null) return;
+        await DatabaseStorageService.Instance.DeleteSavedQueryAsync(item.Id);
+        await RefreshSavedQueriesAsync();
+    }
+
+    [RelayCommand]
+    public async Task DeleteSavedQueryFolderAsync(SavedQueryFolderViewModel? folder)
+    {
+        if (folder == null) return;
+        await DatabaseStorageService.Instance.DeleteSavedQueryFolderAsync(folder.Name);
+        await RefreshSavedQueriesAsync();
+    }
+
+    public async Task MoveSavedQueryToFolderAsync(int queryId, string targetFolderName)
+    {
+        await DatabaseStorageService.Instance.MoveSavedQueryToFolderAsync(queryId, targetFolderName);
+        await RefreshSavedQueriesAsync();
+    }
+
+    private static string SuggestQueryTitle(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql)) return "Untitled Query";
+        var lines = sql.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        foreach (var l in lines)
+        {
+            if (l.StartsWith("--"))
+            {
+                string comment = l.TrimStart('-', ' ').Trim();
+                if (!string.IsNullOrEmpty(comment) && comment.Length <= 42 &&
+                    !comment.Equals("SQL Query Editor", StringComparison.OrdinalIgnoreCase) &&
+                    !comment.StartsWith("Type query", StringComparison.OrdinalIgnoreCase))
+                {
+                    return comment;
+                }
+            }
+        }
+        var fromMatch = System.Text.RegularExpressions.Regex.Match(
+            sql, @"\bFROM\s+([\[\]""`\w\.]+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (fromMatch.Success)
+        {
+            return $"Query {fromMatch.Groups[1].Value.Trim('[', ']', '"', '`', ';')}";
+        }
+        string clean = sql.Replace("\r", " ").Replace("\n", " ").Trim();
+        return clean.Length > 34 ? clean.Substring(0, 34) + "…" : clean;
     }
 
     [RelayCommand]

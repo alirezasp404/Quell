@@ -211,17 +211,17 @@
                 <Grid>
                     <!-- 3a. Results Table View -->
                     <Border IsVisible="{Binding IsResultsTabSelected}">
-                        <components:QueryResultTableComponent DataContext="{Binding $parent[Window].((vm:MainViewModel)DataContext).SampleQueryResult}" />
+                        <components:QueryResultTableComponent DataContext="{Binding QueryResult}" />
                     </Border>
 
                     <!-- 3b. Table Schema & Properties View -->
                     <Border IsVisible="{Binding IsSchemaTabSelected}">
-                        <components:SchemaPropertiesTableComponent DataContext="{Binding $parent[Window].((vm:MainViewModel)DataContext).SampleSchema}" />
+                        <components:SchemaPropertiesTableComponent DataContext="{Binding Schema}" />
                     </Border>
 
                     <!-- 3c. Integrated Terminal View -->
                     <Border IsVisible="{Binding IsTerminalTabSelected}">
-                        <components:TerminalComponent DataContext="{Binding $parent[Window].((vm:MainViewModel)DataContext).Terminal}" />
+                        <components:TerminalComponent DataContext="{Binding Terminal}" />
                     </Border>
                 </Grid>
             </Border>
