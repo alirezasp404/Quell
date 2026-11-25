@@ -2,90 +2,141 @@
 
 ## 1. Overview & Architecture
 
-**Quell** is an enterprise-grade database management desktop IDE built with **.NET 10**, **Avalonia UI 12.1.1**, **FluentAvalonia 3.1.0**, **AvaloniaEdit 12.0.0**, and **Dapper 2.1.89**.
+**Quell** is an enterprise-grade database management desktop IDE built with **.NET 10**, **Avalonia UI 12.1.1**, **FluentAvalonia 3.1.0**, **FluentIcons.Avalonia 2.1.345**, **AvaloniaEdit 12.0.0**, **Iciclecreek.Avalonia.Terminal 4.1.3**, **Xaml.Behaviors.Avalonia 12.0.7**, and **Dapper 2.1.89**.
 
-The application is structured around a **strictly modular, reusable component architecture**. Visual elements are isolated into self-contained `UserControl` components residing in the `Quell.Components` namespace, accompanied by dedicated MVVM ViewModels, SQLite persistent services, and Microsoft Fluent vector iconography.
+The application is structured around a **strictly modular, reusable component architecture**. Visual elements are isolated into self-contained `UserControl` components residing in the `Quell.Components` namespace (organized by category under `Components/`), accompanied by dedicated MVVM ViewModels, GPU-gated motion behaviors (`Quell.Behaviors`), SQLite persistent services, and Microsoft Fluent vector iconography.
 
 ### Core Principles
-1. **Zero Emojis / Native Vector Icons:** All graphical glyphs strictly utilize Microsoft Fluent vector symbols (`FluentAvalonia.UI.Controls.FASymbolIcon`) and `PathIcon` vector geometries.
-2. **Encapsulation & Reusability:** Every component owns its visual hierarchy, templates, and event routing, and exposes clean public APIs, styled properties, and routed events.
+1. **Zero Emojis / Native Vector Icons:** All graphical glyphs strictly utilize Microsoft Fluent vector symbols (`FluentAvalonia.UI.Controls.FASymbolIcon`, `FluentIcons.Avalonia.SymbolIcon`) and `PathIcon` vector geometries.
+2. **Encapsulation & Reusability:** Every component owns its visual hierarchy, templates, and event routing, and exposes clean public APIs, `StyledProperty` bindings, or ViewModel contracts.
 3. **Decoupled MVVM:** ViewModels never directly reference Avalonia UI controls. Data contexts and commands drive state changes.
-4. **Resilient Autocomplete:** Avoids fragile third-party popup hosts; IntelliSense suggestions are delivered via dedicated in-tree overlay components.
-5. **High-Performance Micro-ORM (Dapper):** All internal SQLite database interactions, object mappings, and query executions are powered by Dapper for maximum efficiency and clean parameterization.
+4. **Theme-First & GPU/CPU Aware:** All surfaces and typography bind to `{DynamicResource App*Brush}` tokens defined in `Themes/LightTheme.axaml` and `Themes/DarkTheme.axaml`, while animations and shadows are gated behind `:is(TopLevel).gpu-mode` and `GpuMotionBehaviorBase<T>`.
+5. **Resilient Autocomplete:** Avoids fragile third-party popup hosts; IntelliSense suggestions are delivered via dedicated in-tree overlay components.
+6. **High-Performance Micro-ORM (Dapper):** All internal SQLite database interactions, object mappings, and query executions are powered by Dapper for maximum efficiency and clean parameterization.
 
 ---
 
 ## 2. Component Catalog Directory
 
-```
+All `UserControl` components share `namespace Quell.Components` (`xmlns:components="using:Quell.Components"`), grouped into category folders:
+
+```text
 Components/
-├── Editor & IntelliSense:
-│   ├── EditorComponent.axaml                   # Composed multi-tab SQL query editor workspace
-│   ├── EditorTabStripComponent.axaml           # Reusable auto-expanding uniform tab strip with close & add actions
-│   └── SqlIntelliSenseOverlayComponent.axaml   # Reusable floating SQL autocomplete & snippet card
+├── Buttons/
+│   ├── ActionButtonComponent.axaml               # Primary accent button (quell-btn-primary) with FASymbol + Text
+│   ├── ToolButtonComponent.axaml                 # Compact secondary toolbar button (classic-tool-btn)
+│   └── IconButtonComponent.axaml                 # Compact 22x22 icon-only menu/action button (classic-menu-btn)
 │
-├── Data Tables & Grids:
-│   ├── QueryResultTableComponent.axaml         # Composed Excel-grade query results grid with alternating columns
-│   ├── TableToolbarComponent.axaml             # Reusable table search filter, refresh, stats badge & export toolbar
-│   ├── TablePaginationComponent.axaml          # Reusable selection status & pagination navigation bar
-│   └── SchemaPropertiesTableComponent.axaml     # Database schema, table columns, and metadata viewer
+├── Editor/
+│   ├── EditorComponent.axaml                     # Composed multi-tab SQL query editor workspace
+│   ├── EditorTabStripComponent.axaml             # Reusable auto-expanding uniform tab strip with close & add actions
+│   ├── LiveSyntaxPreviewComponent.axaml          # Live SQL syntax snippet preview card for Settings
+│   └── SqlIntelliSenseOverlayComponent.axaml     # Floating in-tree SQL autocomplete & snippet suggestion card
 │
-├── Modals & Dialogs:
-│   ├── ModalOverlayComponent.axaml             # Universal base modal backdrop & dialog card
-│   ├── ConnectDatabaseModalComponent.axaml      # SQL Server connection configuration dialog
-│   ├── ConfirmActionModalComponent.axaml       # Action confirmation & danger alert dialog
-│   ├── ExportDataModalComponent.axaml          # Data export format (CSV/JSON/SQL/TSV) modal
-│   └── SettingsModalComponent.axaml            # Composed preferences dialog (Theme + Syntax Colors)
+├── Tables/
+│   ├── QueryResultTableComponent.axaml           # Excel-grade query results grid with ROW # gutter & alternating columns
+│   ├── TableToolbarComponent.axaml               # Table search filter, refresh, execution stats & export toolbar
+│   ├── TablePaginationComponent.axaml            # Selection status & pagination summary bar
+│   └── SchemaPropertiesTableComponent.axaml      # Database schema, table columns, PK/FK, and metadata viewer
 │
-├── Settings Sub-Components:
-│   ├── SettingsCategoriesNavComponent.axaml    # Reusable categories navigation sidebar for settings (Appearance, Results Table, Customization, Shortcuts, Terminal)
-│   ├── ThemeSelectionCardsComponent.axaml      # Reusable Light, Dark, and System theme selection cards
-│   ├── SyntaxColorSelectorComponent.axaml      # Reusable 6-preset SQL syntax keyword color palette
-│   ├── LiveSyntaxPreviewComponent.axaml        # Reusable live code snippet preview with dynamic syntax highlighting
-│   ├── TableCustomizationComponent.axaml       # Dedicated Query Results Table row height, font size, gutter, colors, and live preview
-│   ├── PanelCustomizationComponent.axaml       # Custom Color Maker (RGB/Hex), Buttons, Global Borders, Sidebar multi-part, Editor, and Quick Bundles with live layout preview
-│   ├── ShortcutsSettingsComponent.axaml        # Dynamic keyboard shortcuts manager with SQLite persistence and key capture
-│   └── TerminalSettingsComponent.axaml         # Terminal emulator shell, typography, and database CLI binary overrides
+├── Modals/
+│   ├── ModalOverlayComponent.axaml               # Universal base modal backdrop & dialog card
+│   ├── ConnectDatabaseModalComponent.axaml       # Multi-engine database connection configuration dialog
+│   ├── ConfirmActionModalComponent.axaml         # Action confirmation & danger alert dialog
+│   ├── ExportDataModalComponent.axaml            # Data export format (CSV/JSON/SQL/TSV) modal
+│   ├── ImportDataModalComponent.axaml            # Visual Excel/CSV import & column mapping modal (+ MappingSurfaceControl.cs)
+│   ├── EditCellModalComponent.axaml              # Graphical cell editor & UPDATE SQL generator modal
+│   ├── ForeignKeyInspectorModalComponent.axaml   # Quick foreign-key referenced record inspector modal
+│   ├── DatabaseDiagramModalComponent.axaml       # Interactive pan/zoom ER diagram modal (+ DiagramSurfaceControl.cs)
+│   ├── SettingsModalComponent.axaml              # Composed preferences & customization dialog
+│   └── UpdateModalComponent.axaml                # 3-step software update modal (Available -> Downloading -> Ready)
 │
-├── Terminal & Command Line:
-│   ├── TerminalComponent.axaml                 # Multi-session tabbed PTY terminal with shell dropdown & CLI launcher
-│   └── TerminalSessionView.axaml               # Interactive terminal control host with missing CLI detection banner
+├── Settings/
+│   ├── SettingsCategoriesNavComponent.axaml      # Categories navigation sidebar for Settings modal
+│   ├── ThemeSelectionCardsComponent.axaml        # Light, Dark, and System theme selection cards
+│   ├── SyntaxColorSelectorComponent.axaml        # 6-preset SQL syntax keyword color palette
+│   ├── TableCustomizationComponent.axaml         # Query Results Table row height, font size, gutter & color presets
+│   ├── PanelCustomizationComponent.axaml         # Color Maker (RGB/Hex), buttons, borders, sidebar, editor & bundles
+│   ├── ShortcutsSettingsComponent.axaml          # Dynamic keyboard shortcuts manager with key capture
+│   ├── TerminalSettingsComponent.axaml           # Terminal shell, typography, and CLI binary overrides
+│   └── PerformanceSettingsComponent.axaml        # Hardware adapter diagnostics & Auto/GPU/CPU graphics mode selector
 │
-├── Themes & Design System Components:
-│   ├── Themes/ThemeTokens.axaml                # Componentized shared design metrics & typography
-│   ├── Themes/LightTheme.axaml                 # Light theme semantic color tokens & table brushes
-│   └── Themes/DarkTheme.axaml                  # Dark theme semantic color tokens & table brushes
+├── Terminal/
+│   ├── TerminalComponent.axaml                   # Multi-session tabbed PTY terminal with shell dropdown & CLI launcher
+│   └── TerminalSessionView.axaml                 # Interactive terminal control host with missing-CLI fallback banner
 │
-├── Layout & Tool Windows:
-│   ├── NavbarComponent.axaml                   # Composed top navigation bar
-│   ├── MainMenuBarComponent.axaml              # Reusable native desktop menu bar, brand icon & connection badge
-│   ├── MainToolbarComponent.axaml              # Reusable execution & document action toolbar
-│   ├── SidebarComponent.axaml                  # Composed collapsible left panel (Object Explorer)
-│   ├── ObjectExplorerEmptyStateComponent.axaml # Reusable empty state connection card for Object Explorer
-│   ├── FooterComponent.axaml                   # Collapsible & Fullscreen bottom results panel
-│   ├── StatusBarComponent.axaml                # Bottom status bar with connection badges
-│   └── ToolWindowHeaderComponent.axaml         # Reusable header with title, close, and maximize actions
+├── Navigation/
+│   ├── NavbarComponent.axaml                     # Composed top navigation bar (MenuBar + MainToolbar)
+│   ├── MainMenuBarComponent.axaml                # Native desktop menu bar, brand icon & connection badge
+│   ├── MainToolbarComponent.axaml                # Execution & document action toolbar (Run F5, New Tab, Save, Connect)
+│   ├── StatusBarComponent.axaml                  # Bottom status bar with connection & update badges
+│   └── ToolWindowHeaderComponent.axaml           # Reusable tool window header with title & close command
 │
-└── Splash & Startup:
-    └── SplashScreenCardComponent.axaml         # Reusable frameless splash card with SQLite loading progress
+├── Panels/
+│   ├── SidebarComponent.axaml                    # Collapsible left activity rail & Object Explorer / Queries / History drawer
+│   ├── ObjectExplorerEmptyStateComponent.axaml   # Empty state connection card for Object Explorer
+│   └── FooterComponent.axaml                     # Collapsible & maximizable bottom Results / Schema / Terminal dock
+│
+└── Splash/
+    └── SplashScreenCardComponent.axaml           # Frameless splash card with SQLite startup preload progress
+
+Themes/
+├── ThemeTokens.axaml                             # Shared corner radii, table dimensions & typography tokens
+├── LightTheme.axaml                              # Light theme semantic color tokens & table brushes
+└── DarkTheme.axaml                               # Dark theme semantic color tokens & table brushes
+
+Behaviors/
+├── GpuButtonPressBehavior.cs                     # GPU-only button press spring scale
+├── GpuCardHoverBehavior.cs                       # GPU-only card hover lift
+├── GpuModalEntranceBehavior.cs                   # GPU-only modal entrance pop
+├── GpuSlideEntranceBehavior.cs                   # GPU-only slide-and-fade entrance
+├── GpuPulseAttentionBehavior.cs                  # GPU-only repeating status dot pulse
+└── ContextMenuBehavior.cs                        # Dynamic ContextMenu builder attachment
 ```
 
 ---
 
 ## 3. How to Use Each Component (Usage Guides & Examples)
 
-This section provides comprehensive documentation and copy-pasteable code examples for using every component in XAML and C#.
+Add the XML namespace to your XAML root:
 
 ```xml
-<!-- Add the XML namespace to your XAML root: -->
 xmlns:components="using:Quell.Components"
 ```
 
 ---
 
-### 3.1 `SqlIntelliSenseOverlayComponent`
-* **File:** [SqlIntelliSenseOverlayComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/SqlIntelliSenseOverlayComponent.axaml) | [SqlIntelliSenseOverlayComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/SqlIntelliSenseOverlayComponent.axaml.cs)
-* **Description:** A floating IntelliSense suggestion card featuring SQL keyword prioritization (e.g., `SELECT` ranking #1 on typing 'S'), code snippet templates, vector icons, keyboard navigation, and live documentation previews.
+### 3.1 Button Primitives (`ActionButtonComponent`, `ToolButtonComponent`, `IconButtonComponent`)
+* **Files:**
+  * [ActionButtonComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Buttons/ActionButtonComponent.axaml) | [ActionButtonComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Buttons/ActionButtonComponent.axaml.cs)
+  * [ToolButtonComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Buttons/ToolButtonComponent.axaml) | [ToolButtonComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Buttons/ToolButtonComponent.axaml.cs)
+  * [IconButtonComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Buttons/IconButtonComponent.axaml) | [IconButtonComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Buttons/IconButtonComponent.axaml.cs)
+* **Description:** Reusable button `UserControl` wrappers exposing `StyledProperty` bindings over Quell's `quell-btn-primary`, `classic-tool-btn`, and `classic-menu-btn` styles with `FluentAvalonia` symbols (`FASymbol`).
+
+#### Styled Properties:
+* `ActionButtonComponent`: `Text` (`string`), `Symbol` (`FASymbol`, default `Play`), `Command` (`ICommand?`), `CommandParameter` (`object?`)
+* `ToolButtonComponent`: `Text` (`string`), `Symbol` (`FASymbol`, default `Add`), `Command` (`ICommand?`), `CommandParameter` (`object?`)
+* `IconButtonComponent`: `Symbol` (`FASymbol`, default `Refresh`), `Command` (`ICommand?`), `CommandParameter` (`object?`)
+
+#### XAML Usage Example:
+```xml
+<StackPanel Orientation="Horizontal" Spacing="6">
+    <components:ActionButtonComponent Text="Run Query"
+                                      Symbol="Play"
+                                      Command="{Binding ExecuteQueryCommand}" />
+    <components:ToolButtonComponent Text="New Tab"
+                                    Symbol="Add"
+                                    Command="{Binding Editor.AddTabCommand}" />
+    <components:IconButtonComponent Symbol="Refresh"
+                                    Command="{Binding RefreshCommand}" />
+</StackPanel>
+```
+
+---
+
+### 3.2 `SqlIntelliSenseOverlayComponent`
+* **File:** [SqlIntelliSenseOverlayComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Editor/SqlIntelliSenseOverlayComponent.axaml) | [SqlIntelliSenseOverlayComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Editor/SqlIntelliSenseOverlayComponent.axaml.cs)
+* **Description:** A floating in-tree IntelliSense suggestion card featuring SQL keyword prioritization (e.g., `SELECT` ranking #1 on typing `'S'`), code snippet templates, vector icons, keyboard navigation, and live documentation previews.
 
 #### Public API:
 * **Events:**
@@ -98,18 +149,14 @@ xmlns:components="using:Quell.Components"
 * **Methods:**
   * `bool UpdateFilter(string currentWord, bool showAll = false)`: Filters suggestions based on `currentWord`. Returns `true` if matches were found.
   * `void PositionAt(Point canvasPoint, double lineHeight, Size canvasSize)`: Positions the card relative to a caret coordinate, automatically flipping above the caret when near the bottom of the canvas.
-  * `void SelectNext()`: Highlights the next item down the list.
-  * `void SelectPrevious()`: Highlights the previous item up the list.
+  * `void SelectNext()` / `void SelectPrevious()`: Navigates suggestions.
   * `void CommitSelected()`: Commits the active selection and fires `ItemCommitted`.
   * `void Hide()`: Dismisses the card and clears the current match set.
 
 #### XAML Usage Example:
 ```xml
 <Grid>
-    <!-- Code Editor Canvas -->
     <ae:TextEditor Name="MyTextEditor" />
-
-    <!-- Overlay Canvas hosting the Reusable IntelliSense Component -->
     <Canvas Name="OverlayCanvas" ClipToBounds="True">
         <components:SqlIntelliSenseOverlayComponent x:Name="IntelliSenseOverlay"
                                                     IsVisible="False"
@@ -118,76 +165,30 @@ xmlns:components="using:Quell.Components"
 </Grid>
 ```
 
-#### C# Integration Example:
-```csharp
-// 1. Show suggestions when typing
-private void OnTextEntered(object? sender, TextInputEventArgs e)
-{
-    string word = GetCurrentWord();
-    if (word.Length >= 1)
-    {
-        if (IntelliSenseOverlay.UpdateFilter(word))
-        {
-            Point caretPos = GetCaretPoint();
-            IntelliSenseOverlay.PositionAt(caretPos, 18.0, OverlayCanvas.Bounds.Size);
-        }
-    }
-    else
-    {
-        IntelliSenseOverlay.Hide();
-    }
-}
-
-// 2. Intercept keyboard navigation
-private void OnKeyDown(object? sender, KeyEventArgs e)
-{
-    if (IntelliSenseOverlay.IsVisible)
-    {
-        if (e.Key == Key.Down) { IntelliSenseOverlay.SelectNext(); e.Handled = true; }
-        else if (e.Key == Key.Up) { IntelliSenseOverlay.SelectPrevious(); e.Handled = true; }
-        else if (e.Key is Key.Tab or Key.Enter) { IntelliSenseOverlay.CommitSelected(); e.Handled = true; }
-        else if (e.Key == Key.Escape) { IntelliSenseOverlay.Hide(); e.Handled = true; }
-    }
-}
-
-// 3. Handle item insertion
-private void OnIntelliSenseItemCommitted(object? sender, SqlCompletionData item)
-{
-    ReplaceCurrentWordWith(item.InsertionText);
-    MyTextEditor.TextArea.Focus();
-}
-```
-
 ---
 
-### 3.2 `EditorComponent`
-* **File:** [EditorComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/EditorComponent.axaml) | [EditorComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/EditorComponent.axaml.cs)
+### 3.3 `EditorComponent` & `EditorTabStripComponent`
+* **Files:**
+  * [EditorComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Editor/EditorComponent.axaml) | [EditorComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Editor/EditorComponent.axaml.cs)
+  * [EditorTabStripComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Editor/EditorTabStripComponent.axaml) | [EditorTabStripComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Editor/EditorTabStripComponent.axaml.cs)
 * **DataContext:** `EditorViewModel`
-* **Description:** A multi-tab SQL document editor featuring isolated per-tab undo/redo history, auto-expanding uniform tabs, blue syntax highlighting (`#2563EB`), zooming shortcuts, and built-in IntelliSense autocomplete.
-
-#### Features & Shortcuts:
-* `Ctrl + +` / `Ctrl + =`: Zoom in (increases font size by 1px up to 40px).
-* `Ctrl + -`: Zoom out (decreases font size by 1px down to 8px).
-* `Ctrl + 0`: Reset zoom (restores font size to 13px).
-* `Ctrl + MouseWheel`: Smooth real-time font size zooming.
-* `Ctrl + Space`: Manually opens IntelliSense suggestions.
-* Auto-triggering autocomplete when typing any word character (`S` $\rightarrow$ suggests `SELECT`).
+* **Description:** A multi-tab SQL document editor featuring isolated per-tab undo/redo history, uniform auto-expanding tabs (`EditorTabStripComponent`, exposing `event EventHandler<EditorTabItem>? TabSelected`), theme-aware syntax highlighting (`AppKeywordBrush`), zooming shortcuts (`Ctrl++`, `Ctrl+-`, `Ctrl+0`, `Ctrl+MouseWheel`), and built-in IntelliSense (`Ctrl+Space` or typing word characters).
 
 #### XAML Usage Example:
 ```xml
-<components:EditorComponent x:Name="MainEditor" 
+<components:EditorComponent x:Name="MainEditor"
                             DataContext="{Binding Editor}" />
+
+<!-- Standalone tab strip inside EditorComponent or custom host: -->
+<components:EditorTabStripComponent DataContext="{Binding}" />
 ```
 
 #### C# Usage Example:
 ```csharp
 var editorVm = new EditorViewModel();
 editorVm.AddTab("Query 1.sql", "SELECT * FROM Users WHERE status = 'Active';");
-editorVm.AddTab("Query 2.sql", "SELECT id, email, created_at FROM Orders;");
 
 var editorComponent = new EditorComponent { DataContext = editorVm };
-
-// Access zoom methods programmatically:
 editorComponent.ZoomIn();
 editorComponent.ZoomOut();
 editorComponent.ResetZoom();
@@ -195,89 +196,57 @@ editorComponent.ResetZoom();
 
 ---
 
-### 3.3 `QueryResultTableComponent`
-* **File:** [QueryResultTableComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/QueryResultTableComponent.axaml) | [QueryResultTableComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/QueryResultTableComponent.axaml.cs)
+### 3.4 `QueryResultTableComponent`, `TableToolbarComponent` & `TablePaginationComponent`
+* **Files:**
+  * [QueryResultTableComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Tables/QueryResultTableComponent.axaml) | [QueryResultTableComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Tables/QueryResultTableComponent.axaml.cs)
+  * [TableToolbarComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Tables/TableToolbarComponent.axaml) | [TableToolbarComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Tables/TableToolbarComponent.axaml.cs)
+  * [TablePaginationComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Tables/TablePaginationComponent.axaml) | [TablePaginationComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Tables/TablePaginationComponent.axaml.cs)
 * **DataContext:** `QueryResultTableViewModel`
-* **Description:** An Excel-grade, high-performance database query results grid with compact 25px row heights, dynamic alternating column backgrounds, an explicit `ROW #` gutter column, quick search filter, execution metrics, and full data export capabilities. Fully adapted to both Light and Dark themes via semantic brush bindings without visual bugs or contrast issues.
-
-#### Features:
-* **Compact Row Height (`25px`):** Dense display maximizing vertical data visibility.
-* **Theme-Aware Alternating Columns:** Odd and even columns adapt seamlessly (`AppTableWhiteColBackgroundBrush` & `AppTableAltColBackgroundBrush`), maintaining optimal reading contrast in both Light and Dark themes.
-* **Theme-Aware Selection & Active Border:** Selected cells and active focused cells bind to dynamic theme resources (`AppTableSelectedBackgroundBrush`, `AppTableActiveBorderBrush`), completely eliminating hardcoded color artifacts.
-* **Row Number Column (`ROW #`):** High-contrast centered row numbering with a dedicated vertical boundary line (`AppTableDividerBrush`).
-* **Interactive Context Menu:** Copy Cell (`Ctrl+C`), Copy Entire Row, Copy as JSON, Copy as CSV.
-* **Fullscreen Mode:** Includes a dedicated Fullscreen/Maximize button that expands the table across the entire workspace.
+* **Description:** An Excel-grade, high-performance database query results grid composed with `TableToolbarComponent` (search filter, refresh, execution stats, export) and `TablePaginationComponent` (selection & pagination status). Supports customizable row heights, theme-aware alternating columns (`AppTableWhiteColBackgroundBrush` & `AppTableAltColBackgroundBrush`), `ROW #` gutter, interactive context menu (Copy Cell/Row/JSON/CSV, Edit Cell, FK Inspector), and a shadow-free loading overlay (`QueryLoadingCardBorder`).
 
 #### XAML Usage Example:
 ```xml
-<components:QueryResultTableComponent x:Name="ResultsGrid" 
+<components:QueryResultTableComponent x:Name="ResultsGrid"
                                       DataContext="{Binding SampleQueryResult}" />
 ```
 
 #### C# Usage Example:
 ```csharp
 var tableVm = new QueryResultTableViewModel();
-
-// Configure column definitions
 tableVm.Columns.Add(new QueryResultColumn { Header = "ID", DataType = "INT" });
 tableVm.Columns.Add(new QueryResultColumn { Header = "NAME", DataType = "NVARCHAR" });
-tableVm.Columns.Add(new QueryResultColumn { Header = "EMAIL", DataType = "NVARCHAR" });
+tableVm.Rows.Add(new QueryResultRow(1, ["101", "Alice Johnson"]));
 
-// Populate row data
-tableVm.Rows.Add(new QueryResultRow(1, ["101", "Alice Johnson", "alice@example.com"]));
-tableVm.Rows.Add(new QueryResultRow(2, ["102", "Bob Smith", "bob@example.com"]));
-
-// Bind to component
 var tableControl = new QueryResultTableComponent { DataContext = tableVm };
 ```
 
 ---
 
-### 3.4 `SchemaPropertiesTableComponent`
-* **File:** [SchemaPropertiesTableComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/SchemaPropertiesTableComponent.axaml) | [SchemaPropertiesTableComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/SchemaPropertiesTableComponent.axaml.cs)
+### 3.5 `SchemaPropertiesTableComponent`
+* **File:** [SchemaPropertiesTableComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Tables/SchemaPropertiesTableComponent.axaml) | [SchemaPropertiesTableComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Tables/SchemaPropertiesTableComponent.axaml.cs)
 * **DataContext:** `SchemaPropertiesTableViewModel`
-* **Description:** Interactive table schema metadata viewer showing primary keys, foreign keys, data types, nullability, default values, and column descriptions with compact 25px alternating rows.
+* **Description:** Interactive table schema metadata viewer showing primary keys, foreign keys, data types, nullability, default values, and column descriptions with compact alternating rows.
 
 #### XAML Usage Example:
 ```xml
 <components:SchemaPropertiesTableComponent DataContext="{Binding SampleSchema}" />
 ```
 
-#### C# Usage Example:
-```csharp
-var schemaVm = new SchemaPropertiesTableViewModel
-{
-    TableName = "dbo.Customers",
-    RowCount = 12450
-};
-
-schemaVm.Columns.Add(new SchemaColumnItem
-{
-    Ordinal = 1,
-    Name = "CustomerID",
-    DataType = "INT",
-    IsPrimaryKey = true,
-    IsNullable = false
-});
-
-var schemaControl = new SchemaPropertiesTableComponent { DataContext = schemaVm };
-```
-
 ---
 
-### 3.5 `ModalOverlayComponent` (Universal Modal Base Card)
-* **File:** [ModalOverlayComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/ModalOverlayComponent.axaml) | [ModalOverlayComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/ModalOverlayComponent.axaml.cs)
-* **Description:** The foundational reusable modal card supporting arbitrary custom content via `ModalContent`, an interactive backdrop dismissal, keyboard `Escape` handling, and elevated `ZIndex`.
+### 3.6 `ModalOverlayComponent` (Universal Modal Base Card)
+* **File:** [ModalOverlayComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Modals/ModalOverlayComponent.axaml) | [ModalOverlayComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Modals/ModalOverlayComponent.axaml.cs)
+* **Description:** Foundational reusable modal card supporting arbitrary custom content via `ModalContent` (`[Content]`), interactive backdrop dismissal, and GPU-gated entrance motion.
 
 #### Styled Properties:
 * `IsOpen` (`bool`): Controls modal visibility and backdrop.
-* `Title` (`string`): Header title text.
+* `Title` (`string`, default: `"Dialog"`): Header title text.
 * `Subtitle` (`string?`): Secondary guidance text below the title.
-* `DialogWidth` (`double`, default: `520`): Width of the modal card.
+* `Icon` (`string`, default: `"Important"`): Header `FASymbolIcon` name.
+* `DialogWidth` (`double`, default: `520.0`): Width of the modal card.
 * `CloseCommand` (`ICommand?`): Invoked on backdrop click or close button.
-* `PrimaryButtonText` (`string?`): Text for primary action button.
-* `PrimaryCommand` (`ICommand?`): Bound to primary action.
-* `SecondaryButtonText` / `SecondaryCommand`: Optional left action button.
+* `PrimaryButtonText` (`string?`, default: `"OK"`) & `PrimaryCommand` (`ICommand?`).
+* `SecondaryButtonText` (`string?`) & `SecondaryCommand` (`ICommand?`).
 * `CancelButtonText` (`string`, default: `"Cancel"`).
 * `ModalContent` (`object?`): Content slot for custom body controls.
 
@@ -290,132 +259,68 @@ var schemaControl = new SchemaPropertiesTableComponent { DataContext = schemaVm 
                                   PrimaryButtonText="Apply Changes"
                                   PrimaryCommand="{Binding SaveSettingsCommand}"
                                   CloseCommand="{Binding CloseModalCommand}">
-    <components:ModalOverlayComponent.ModalContent>
-        <StackPanel Spacing="12" Margin="4">
-            <TextBlock Text="Sync Interval (Minutes):" FontWeight="SemiBold"/>
-            <NumericUpDown Value="15" Minimum="1" Maximum="1440"/>
-            <CheckBox Content="Enable Automatic Schema Reload" IsChecked="True"/>
-        </StackPanel>
-    </components:ModalOverlayComponent.ModalContent>
+    <StackPanel Spacing="12" Margin="4">
+        <TextBlock Text="Sync Interval (Minutes):" FontWeight="SemiBold"/>
+        <NumericUpDown Value="15" Minimum="1" Maximum="1440"/>
+    </StackPanel>
 </components:ModalOverlayComponent>
 ```
 
 ---
 
-### 3.6 `ConnectDatabaseModalComponent`
-* **File:** [ConnectDatabaseModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/ConnectDatabaseModalComponent.axaml) | [ConnectDatabaseModalComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/ConnectDatabaseModalComponent.axaml.cs)
-* **DataContext:** `ConnectDatabaseModalViewModel`
-* **Description:** Dedicated SQL Server connection dialog supporting host, port, database, authentication modes, encryption options, and live connection testing with status feedback.
+### 3.7 Feature Modals (`Connect`, `Confirm`, `Export`, `Import`, `EditCell`, `FKInspector`, `Diagram`, `Update`)
 
-#### XAML Usage Example:
+All feature modals bind `IsOpen`, render with `Classes="modal-backdrop"` + `Classes="modal-dialog-card"` + `GpuModalEntranceBehavior`, and are hosted in `Views/MainWindow.axaml` with `Grid.Row="0" Grid.RowSpan="3"`:
+
+| Component | File | DataContext | Purpose / ZIndex |
+| :--- | :--- | :--- | :--- |
+| `ConnectDatabaseModalComponent` | [ConnectDatabaseModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Modals/ConnectDatabaseModalComponent.axaml) | `ConnectDatabaseModalViewModel` | Multi-engine connection & live test (`ZIndex="100"`) |
+| `ConfirmActionModalComponent` | [ConfirmActionModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Modals/ConfirmActionModalComponent.axaml) | `ConfirmActionModalViewModel` | Destructive action warning & confirm (`ZIndex="101"`) |
+| `ExportDataModalComponent` | [ExportDataModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Modals/ExportDataModalComponent.axaml) | `ExportDataModalViewModel` | CSV/JSON/SQL/TSV export dialog (`ZIndex="102"`) |
+| `SettingsModalComponent` | [SettingsModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Modals/SettingsModalComponent.axaml) | `SettingsModalViewModel` | Composed settings & Color Maker modal (`ZIndex="103"`) |
+| `EditCellModalComponent` | [EditCellModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Modals/EditCellModalComponent.axaml) | `EditCellModalViewModel` | Graphical cell editor & `UPDATE` preview (`ZIndex="104"`) |
+| `DatabaseDiagramModalComponent` | [DatabaseDiagramModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Modals/DatabaseDiagramModalComponent.axaml) | `DatabaseDiagramModalViewModel` | Pan/zoom/drag ER diagram + `DiagramSurfaceControl` (`ZIndex="105"`) |
+| `UpdateModalComponent` | [UpdateModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Modals/UpdateModalComponent.axaml) | `UpdateModalViewModel` | 3-step update flow (`ZIndex="106"`) |
+| `ImportDataModalComponent` | [ImportDataModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Modals/ImportDataModalComponent.axaml) | `ImportDataModalViewModel` | Visual CSV/Excel mapping + `MappingSurfaceControl` (`ZIndex="107"`) |
+| `ForeignKeyInspectorModalComponent` | [ForeignKeyInspectorModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Modals/ForeignKeyInspectorModalComponent.axaml) | `ForeignKeyInspectorModalViewModel` | Foreign-key target record quick inspector (`ZIndex="108"`) |
+
+#### XAML Usage Example (`MainWindow.axaml`):
 ```xml
-<components:ConnectDatabaseModalComponent DataContext="{Binding ConnectModal}" />
-```
-
-#### Triggering Connection:
-```csharp
-// Open modal
-mainVm.ConnectModal.IsOpen = true;
-
-// Programmatically test connection
-await mainVm.ConnectModal.TestConnectionCommand.ExecuteAsync(null);
-Console.WriteLine(mainVm.ConnectModal.StatusMessage);
+<components:ConnectDatabaseModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="100" DataContext="{Binding ConnectModal}" />
+<components:ConfirmActionModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="101" DataContext="{Binding ConfirmModal}" />
+<components:ExportDataModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="102" DataContext="{Binding ExportModal}" />
+<components:SettingsModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="103" DataContext="{Binding SettingsModal}" />
+<components:EditCellModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="104" DataContext="{Binding SampleQueryResult.EditCellModal}" />
+<components:DatabaseDiagramModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="105" DataContext="{Binding DiagramModal}" />
+<components:UpdateModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="106" DataContext="{Binding UpdateModal}" />
+<components:ImportDataModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="107" DataContext="{Binding ImportModal}" />
+<components:ForeignKeyInspectorModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="108" DataContext="{Binding SampleQueryResult.ForeignKeyInspectorModal}" />
 ```
 
 ---
 
-### 3.7 `ConfirmActionModalComponent`
-* **File:** [ConfirmActionModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/ConfirmActionModalComponent.axaml) | [ConfirmActionModalComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/ConfirmActionModalComponent.axaml.cs)
-* **DataContext:** `ConfirmActionModalViewModel`
-* **Description:** Danger alert dialog for destructive actions (`Disconnect`, `DROP`, `TRUNCATE`) featuring red warning accents, target resource tags, and confirmation commands.
-
-#### XAML Usage Example:
-```xml
-<components:ConfirmActionModalComponent DataContext="{Binding ConfirmModal}" />
-```
-
-#### Triggering Confirmation:
-```csharp
-mainVm.ConfirmModal.Open(
-    actionName: "Disconnect Session",
-    targetName: "localhost:1433 (master)",
-    warningMessage: "Are you sure you want to terminate the active connection? Any uncommitted transactions will be rolled back.",
-    confirmCommand: new RelayCommand(() => DisconnectActiveDatabase())
-);
-```
-
----
-
-### 3.8 `ExportDataModalComponent`
-* **File:** [ExportDataModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/ExportDataModalComponent.axaml) | [ExportDataModalComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/ExportDataModalComponent.axaml.cs)
-* **DataContext:** `ExportDataModalViewModel`
-* **Description:** Data export configuration dialog supporting CSV, JSON, SQL INSERT, and TSV formats with native OS file dialog integration.
-
-#### XAML Usage Example:
-```xml
-<components:ExportDataModalComponent DataContext="{Binding ExportModal}" />
-```
-
----
-
-### 3.9 `SettingsModalComponent` (Appearance, Theme & Syntax Colors)
-* **File:** [SettingsModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/SettingsModalComponent.axaml) | [SettingsModalComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/SettingsModalComponent.axaml.cs)
+### 3.8 `SettingsModalComponent` & Settings Sub-Components
+* **Modal File:** [SettingsModalComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Modals/SettingsModalComponent.axaml) | [SettingsModalComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Modals/SettingsModalComponent.axaml.cs)
 * **DataContext:** `SettingsModalViewModel`
-* **Description:** Application preferences dialog featuring real-time color theme switching (`Light`, `Dark`, `System Default`) and SQL syntax keyword color customization, backed by SQLite persistent storage (`AppSettings` table via Dapper) and automatic loading during the startup splash screen.
-
-#### Features:
-1. **Interactive Workspace Theme Selection:**
-   * **Light Theme:** Clean, bright desktop workspace with high-contrast text.
-   * **Dark Theme:** Modern dark mode workspace with deep slate backgrounds (`#0F172A`, `#1E293B`) and blue accents.
-   * **System Default:** Synchronizes dynamically with the host operating system's dark/light preference.
-2. **SQL Syntax & Keyword Highlighting Color Customizer:**
-   * Allows users to customize the highlight color of SQL keywords (`SELECT`, `FROM`, `WHERE`) and IntelliSense suggestion badges.
-   * **6 Curated High-Contrast Presets:**
-     * **Royal Blue:** Light `#2563EB` | Dark `#60A5FA` (Default Studio Blue)
-     * **Emerald Green:** Light `#059669` | Dark `#34D399` (Mint & Emerald)
-     * **Violet Purple:** Light `#7C3AED` | Dark `#A78BFA` (Vibrant Lavender & Violet)
-     * **Amber Gold:** Light `#D97706` | Dark `#FBBF24` (Golden Amber & Honey)
-     * **Crimson Rose:** Light `#E11D48` | Dark `#FB7185` (Ruby Crimson & Rose)
-     * **Cyan Teal:** Light `#0891B2` | Dark `#38BDF8` (Oceanic Teal & Cyan)
-   * **Automatic Tone & Contrast Preservation:** Switching between Light and Dark themes dynamically re-tints the chosen keyword color to guarantee maximum legibility against the active background without contrast degradation.
-   * **Live Code Preview:** Shows a real-time mini code snippet in the settings dialog demonstrating the chosen keyword color.
-3. **Instant Live Preview:** Changes apply immediately across the text editor, IntelliSense overlay, and UI components without requiring a restart.
-4. **SQLite Database Persistence (Dapper):** Both `Theme` and `KeywordColor` are persisted to the `AppSettings` table via Dapper SQL commands.
-5. **Splash Screen Auto-Load:** The saved theme and syntax color are pre-loaded from SQLite during the splash screen startup sequence.
-6. **Access Shortcuts:**
-   * Top Navbar: `File` $\rightarrow$ `Settings...`
-   * Keyboard Shortcut: `Ctrl+,` (Ctrl + Comma)
-   * Dismissal: `Escape` key or backdrop click cancels any unsaved preview and restores the saved theme.
-
-#### XAML Usage Example:
-```xml
-<components:SettingsModalComponent Grid.Row="0" Grid.RowSpan="3" ZIndex="103" 
-                                  DataContext="{Binding SettingsModal}" />
-```
-
-#### C# Usage Example:
-```csharp
-// Open settings dialog programmatically
-await mainVm.SettingsModal.OpenAsync();
-
-// Switch to Dark theme and Emerald Green syntax color
-mainVm.SettingsModal.SelectTheme("Dark");
-mainVm.SettingsModal.SelectKeywordColor("Green");
-
-// Persist both settings to SQLite and close dialog
-await mainVm.SettingsModal.SaveAsync();
-```
+* **Description:** Composed application preferences dialog backed by SQLite persistent storage (`AppSettings` table via Dapper) and startup pre-caching. It assembles these modular sub-components (all `x:DataType="vm:SettingsModalViewModel"`):
+  * [SettingsCategoriesNavComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Settings/SettingsCategoriesNavComponent.axaml) — Category navigation rail
+  * [ThemeSelectionCardsComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Settings/ThemeSelectionCardsComponent.axaml) — Light / Dark / System theme selector cards
+  * [SyntaxColorSelectorComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Settings/SyntaxColorSelectorComponent.axaml) — 6 SQL keyword color presets
+  * [LiveSyntaxPreviewComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Editor/LiveSyntaxPreviewComponent.axaml) — Live SQL keyword highlight preview
+  * [TableCustomizationComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Settings/TableCustomizationComponent.axaml) — Table row height, font size, gutter, and color presets
+  * [PanelCustomizationComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Settings/PanelCustomizationComponent.axaml) — Color Maker (RGB/Hex sync), button/border/sidebar/editor colors, and quick bundles
+  * [ShortcutsSettingsComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Settings/ShortcutsSettingsComponent.axaml) — Dynamic keyboard shortcut capture & filtering
+  * [TerminalSettingsComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Settings/TerminalSettingsComponent.axaml) — Shell profile, font settings, and CLI binary overrides
+  * [PerformanceSettingsComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Settings/PerformanceSettingsComponent.axaml) — Hardware adapter card & `Auto` / `GPU` / `CPU` rendering mode switcher
 
 ---
 
-### 3.10 Theme Components & Color Tokens
+### 3.9 Theme Components & Color Tokens
 * **Files:**
-  * [ThemeTokens.axaml](file:///c:/Users/ehsan/Desktop/Quell/Themes/ThemeTokens.axaml): Shared corner radii, table row heights (`25px`), and typography.
+  * [ThemeTokens.axaml](file:///c:/Users/ehsan/Desktop/Quell/Themes/ThemeTokens.axaml): Shared corner radii, table dimensions, and typography.
   * [LightTheme.axaml](file:///c:/Users/ehsan/Desktop/Quell/Themes/LightTheme.axaml): Light mode semantic color tokens and table brushes.
   * [DarkTheme.axaml](file:///c:/Users/ehsan/Desktop/Quell/Themes/DarkTheme.axaml): Dark mode semantic color tokens and table brushes.
-* **Description:** Modular AXAML resource dictionaries componentizing the application design system. Each theme is an independent component loaded into `Application.Resources.ThemeDictionaries`.
-
-#### Usage in App.axaml:
+* **Usage in `App.axaml`:**
 ```xml
 <Application.Resources>
     <ResourceDictionary>
@@ -433,85 +338,69 @@ await mainVm.SettingsModal.SaveAsync();
 ---
 
 ### 3.10 `ToolWindowHeaderComponent`
-* **File:** [ToolWindowHeaderComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/ToolWindowHeaderComponent.axaml) | [ToolWindowHeaderComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/ToolWindowHeaderComponent.axaml.cs)
-* **Description:** Reusable title header for dockable panels and tool windows with built-in Fullscreen/Maximize and Close buttons.
+* **File:** [ToolWindowHeaderComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Navigation/ToolWindowHeaderComponent.axaml) | [ToolWindowHeaderComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Navigation/ToolWindowHeaderComponent.axaml.cs)
+* **Description:** Reusable title header for dockable panels and tool windows with a close action button.
 
 #### Styled Properties:
-* `Title` (`string`): Panel title (e.g. `"OBJECT EXPLORER"`, `"QUERY RESULTS"`).
-* `IsMaximized` (`bool`): Toggles between Fullscreen (`FullScreen`) and Restore (`BackToWindow`) vector icons.
-* `IsMaximizeVisible` (`bool`, default: `true`): Controls visibility of the Maximize button.
-* `CloseCommand` (`ICommand?`): Invoked when clicking the close (`✕`) button.
-* `MaximizeCommand` (`ICommand?`): Invoked when clicking the maximize button.
+* `Title` (`string`, default: `"Tool Window"`): Panel title (e.g., `"OBJECT EXPLORER"`).
+* `CloseCommand` (`ICommand?`): Invoked when clicking the close button.
 
 #### XAML Usage Example:
 ```xml
-<components:ToolWindowHeaderComponent Title="QUERY RESULTS"
-                                      IsMaximized="{Binding Footer.IsMaximized}"
-                                      MaximizeCommand="{Binding ToggleFooterMaximizedCommand}"
-                                      CloseCommand="{Binding ToggleFooterCommand}" />
+<components:ToolWindowHeaderComponent Title="OBJECT EXPLORER"
+                                      CloseCommand="{Binding ToggleSidebarCommand}" />
 ```
 
 ---
 
-### 3.11 `NavbarComponent`
-* **File:** [NavbarComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/NavbarComponent.axaml) | [NavbarComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/NavbarComponent.axaml.cs)
-* **DataContext:** `NavbarViewModel`
-* **Description:** The top navigation bar containing native desktop menus (`File`, `Edit`, `View`, `Window`, `Help`) and action shortcuts.
+### 3.11 Navigation Components (`NavbarComponent`, `MainMenuBarComponent`, `MainToolbarComponent`, `StatusBarComponent`)
+* **Files:**
+  * [NavbarComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Navigation/NavbarComponent.axaml) | [NavbarComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Navigation/NavbarComponent.axaml.cs) (`NavbarViewModel`)
+  * [MainMenuBarComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Navigation/MainMenuBarComponent.axaml) | [MainMenuBarComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Navigation/MainMenuBarComponent.axaml.cs) (`NavbarViewModel`)
+  * [MainToolbarComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Navigation/MainToolbarComponent.axaml) | [MainToolbarComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Navigation/MainToolbarComponent.axaml.cs) (`NavbarViewModel`)
+  * [StatusBarComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Navigation/StatusBarComponent.axaml) | [StatusBarComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Navigation/StatusBarComponent.axaml.cs) (`MainViewModel`)
+* **Description:** Top window chrome, native menus (`File`, `Edit`, `View`, `Window`, `Help`), execution toolbar (`Run (F5)`, `New Tab`, `Connect`), and anchored bottom status bar with connection and update indicators.
 
 #### XAML Usage Example:
 ```xml
-<components:NavbarComponent Grid.Row="0" 
-                            DataContext="{Binding Navbar}" />
+<components:NavbarComponent x:Name="MainNavbar" Grid.Row="0" DataContext="{Binding Navbar}" />
+<components:StatusBarComponent x:Name="MainStatusBar" Grid.Row="2" />
 ```
 
 ---
 
-### 3.12 `SidebarComponent`
-* **File:** [SidebarComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/SidebarComponent.axaml) | [SidebarComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/SidebarComponent.axaml.cs)
-* **DataContext:** `SidebarViewModel`
-* **Description:** The left-hand tool panel hosting the Database Object Explorer and schema tree views.
+### 3.12 Panel Components (`SidebarComponent`, `ObjectExplorerEmptyStateComponent`, `FooterComponent`)
+* **Files:**
+  * [SidebarComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Panels/SidebarComponent.axaml) | [SidebarComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Panels/SidebarComponent.axaml.cs) (`SidebarViewModel`)
+  * [ObjectExplorerEmptyStateComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Panels/ObjectExplorerEmptyStateComponent.axaml) | [ObjectExplorerEmptyStateComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Panels/ObjectExplorerEmptyStateComponent.axaml.cs)
+  * [FooterComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Panels/FooterComponent.axaml) | [FooterComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Panels/FooterComponent.axaml.cs) (`FooterViewModel`)
+* **Description:** Left collapsible activity rail + drawer (`Object Explorer`, `Saved Queries`, `History`), disconnected empty state card (`ObjectExplorerEmptyStateComponent`), and collapsible/maximizable bottom dock (`FooterComponent`) hosting Results, Schema, and Terminal tabs.
 
 #### XAML Usage Example:
 ```xml
-<components:SidebarComponent Grid.Column="0" 
-                             DataContext="{Binding Sidebar}" />
+<components:SidebarComponent Grid.Column="0" DataContext="{Binding Sidebar}" />
+<components:FooterComponent Grid.Row="2" DataContext="{Binding Footer}" />
 ```
 
 ---
 
-### 3.13 `FooterComponent`
-* **File:** [FooterComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/FooterComponent.axaml) | [FooterComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/FooterComponent.axaml.cs)
-* **DataContext:** `FooterViewModel`
-* **Description:** The collapsible and maximizable bottom dock housing query output tables, execution statistics, and logs.
+### 3.13 Terminal Components (`TerminalComponent`, `TerminalSessionView`)
+* **Files:**
+  * [TerminalComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Terminal/TerminalComponent.axaml) | [TerminalComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Terminal/TerminalComponent.axaml.cs) (`TerminalViewModel`)
+  * [TerminalSessionView.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Terminal/TerminalSessionView.axaml) | [TerminalSessionView.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/Terminal/TerminalSessionView.axaml.cs) (`TerminalSessionViewModel`)
+* **Description:** Multi-session tabbed PTY terminal (`Iciclecreek.Terminal`) with shell selector, database CLI launcher, live theme color synchronization, and missing-CLI error banner with fallback actions.
 
 #### XAML Usage Example:
 ```xml
-<components:FooterComponent Grid.Row="2" 
-                            DataContext="{Binding Footer}" />
+<components:TerminalComponent DataContext="{Binding Terminal}" />
 ```
 
 ---
 
-### 3.14 `StatusBarComponent`
-* **File:** [StatusBarComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/StatusBarComponent.axaml) | [StatusBarComponent.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Components/StatusBarComponent.axaml.cs)
-* **Description:** Anchored application footer bar displaying active database connection, server version, execution time, and keyboard layout indicators.
-
-#### XAML Usage Example:
-```xml
-<components:StatusBarComponent Grid.Row="2" />
-```
-
----
-
-### 3.15 `SplashScreenCardComponent` & Startup Pre-load Sequence
+### 3.14 `SplashScreenCardComponent` & Startup Pre-load Sequence
 * **File:** [SplashScreenCardComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Splash/SplashScreenCardComponent.axaml) | [SplashScreenWindow.axaml.cs](file:///c:/Users/ehsan/Desktop/Quell/Views/SplashScreenWindow.axaml.cs)
 * **DataContext:** `SplashScreenViewModel`
-* **Description:** Reusable frameless splash card with high-resolution artwork and live real-time SQLite initialization diagnostics. Pre-loads all core app configurations (theme, keyword syntax color, panel customizations, table dimensions, keyboard shortcuts, dialect keywords, saved connections, and query history) into in-memory caches before displaying `MainWindow`, ensuring instant rendering with zero startup query lag.
-
-#### Features:
-1. **Unified Startup Pre-cache (`PreloadStartupDataAsync`):** Executes all initialization queries inside the splash screen sequence in `DatabaseStorageService.cs`.
-2. **In-Memory Settings Caching:** `AppSettings` are read in a single batch query and served from an in-memory cache, eliminating multiple SQLite connection round-trips.
-3. **Instant Object Explorer & Connections:** Saved connections and query history are pre-cached, populating the database target dropdown and sidebar tree nodes instantly upon startup.
+* **Description:** Reusable frameless splash card with startup artwork and live SQLite initialization diagnostics. Pre-loads all core app configurations (theme, keyword syntax color, panel customizations, table dimensions, graphics mode, keyboard shortcuts, dialect keywords, saved connections, and query history) before displaying `MainWindow`.
 
 #### XAML Usage Example:
 ```xml
@@ -522,23 +411,30 @@ await mainVm.SettingsModal.SaveAsync();
 
 ## 4. MVVM Hierarchy & Data Flow
 
-```
+```text
 MainViewModel
 ├── Navbar: NavbarViewModel
 ├── Sidebar: SidebarViewModel
 ├── Editor: EditorViewModel
 │     ├── SelectedTab: EditorTabItem
 │     └── Tabs: ObservableCollection<EditorTabItem>
-├── Footer: FooterViewModel (Manages IsMaximized & Fullscreen layout)
+├── Footer: FooterViewModel (Manages IsMaximized, QueryResult, Schema & Terminal tabs)
+├── Terminal: TerminalViewModel
+│     └── Sessions: ObservableCollection<TerminalSessionViewModel>
 │
 ├── Modals:
 │   ├── ConnectModal: ConnectDatabaseModalViewModel
 │   ├── ConfirmModal: ConfirmActionModalViewModel
 │   ├── ExportModal: ExportDataModalViewModel
-│   └── SettingsModal: SettingsModalViewModel (Appearance & Theme preferences)
+│   ├── ImportModal: ImportDataModalViewModel
+│   ├── DiagramModal: DatabaseDiagramModalViewModel
+│   ├── SettingsModal: SettingsModalViewModel
+│   └── UpdateModal: UpdateModalViewModel
 │
 └── Tables:
     ├── SampleQueryResult: QueryResultTableViewModel
+    │     ├── EditCellModal: EditCellModalViewModel
+    │     └── ForeignKeyInspectorModal: ForeignKeyInspectorModalViewModel
     └── SampleSchema: SchemaPropertiesTableViewModel
 ```
 
@@ -546,17 +442,9 @@ MainViewModel
 
 ## 5. Verification & Test Suite
 
-Quell includes an automated layout, component, and autocomplete verification suite in `Program.cs`. To verify all components and behaviors:
+Quell includes an automated headless layout, component, theme, and database verification suite in [Program.cs](file:///c:/Users/ehsan/Desktop/Quell/Program.cs). Run after any component or styling change:
 
 ```powershell
-dotnet run -- --verify
+dotnet build Quell.csproj --configuration Release
+dotnet run --configuration Release --no-build -- --verify
 ```
-
-### Verified Checks:
-1. **Dynamic Layout & Fullscreen Transitions:** Verifies sidebar collapse, footer collapse, and footer fullscreen maximize (`1*` Star takeover).
-2. **Table Component Rendering:** Validates compact row heights (`25px`), alternating column striping, and `ROW #` numbering.
-3. **Modal Dialog Lifecycles:** Tests trigger, backdrop dismissal, test connection execution, and confirm modals.
-4. **Editor Tab State & Undo Isolation:** Verifies per-tab persistent undo history across tab switches.
-5. **IntelliSense Autocomplete Overlay:** Validates that typing `S` displays `SELECT` at the top of the suggestion card, and pressing `Enter`/`Tab` cleanly commits the selection.
-6. **Zero Emojis Enforced:** Scans all AXAML visual templates ensuring 100% compliance with Microsoft Fluent vector icons (`FASymbolIcon` / `PathIcon`).
-7. **SQLite Engine & Dialects:** Queries SQLite database verifying multi-dialect keyword caches (`MSSQL`, `PostgreSQL`, `MySQL`, `SQLite`).
