@@ -6,12 +6,12 @@ using System.Text;
 using Avalonia;
 using Avalonia.Collections;
 using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using FluentAvalonia.UI.Controls;
 using Quell.Services;
 using Quell.ViewModels;
 
@@ -19,6 +19,13 @@ namespace Quell.Components;
 
 public partial class QueryResultTableComponent : UserControl
 {
+    internal sealed record GridContextTarget(
+        QueryResultRow? Row,
+        string? ColumnName,
+        bool IsRowHeaderOnly,
+        bool CanCopy,
+        Control? PlacementControl);
+
     private const string SelectedClass = "excel-selected";
     private const string ActiveClass = "excel-active";
 
@@ -57,10 +64,13 @@ public partial class QueryResultTableComponent : UserControl
     private int _col1;
     private int _col2;
     private bool _hasSelection;
+    private bool _selectedViaRowHeader;
     private bool _dragging;
     private bool _dragRows;
     private bool _refreshQueued;
     private IPointer? _capturedPointer;
+    private IDisposable? _contextMenuSubscription;
+    private GridContextTarget? _pendingRightClickTarget;
 
     private int _spanRowStart = -1;
     private int _spanRowEnd = -1;
@@ -89,8 +99,27 @@ public partial class QueryResultTableComponent : UserControl
             OnGridKeyDown,
             RoutingStrategies.Tunnel);
 
+        _contextMenuSubscription = AttachGridContextMenu();
+        Loaded += (_, _) => _contextMenuSubscription ??= AttachGridContextMenu();
+        Unloaded += (_, _) =>
+        {
+            _contextMenuSubscription?.Dispose();
+            _contextMenuSubscription = null;
+        };
+
         ThemeService.Instance.TableCustomizationChanged += OnTableCustomizationChanged;
     }
+
+    // Handles keyboard Shift+F10 / Menu key via ContextRequestedEvent; mouse right-clicks
+    // are committed on CellPointerPressed and opened on PointerReleased (handledEventsToo:true)
+    // so DataGrid's internal cell handling never suppresses them.
+    private IDisposable AttachGridContextMenu() =>
+        ContextMenuService.Attach(
+            ResultsDataGrid,
+            request => request.IsPointerTriggered ? null : ResolveGridContext(request),
+            ConfigureGridContextMenu,
+            ctx => ctx.PlacementControl ?? ResultsDataGrid,
+            RoutingStrategies.Bubble);
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
@@ -100,6 +129,8 @@ public partial class QueryResultTableComponent : UserControl
             _viewModel.CopyFocusedRow = null;
             _viewModel.GetSelectedRowsCallback = null;
             _viewModel.GetSelectedColumnsCallback = null;
+            _viewModel.GetClipboardTextCallback = null;
+            _viewModel.ResolvePasteTargetsCallback = null;
             _viewModel.ColumnsChanged -= OnColumnsChanged;
         }
 
@@ -111,6 +142,8 @@ public partial class QueryResultTableComponent : UserControl
         _viewModel.CopyFocusedRow = BuildFocusedRowText;
         _viewModel.GetSelectedRowsCallback = GetSelectedRowsList;
         _viewModel.GetSelectedColumnsCallback = GetSelectedColumnsList;
+        _viewModel.GetClipboardTextCallback = () => ClipboardService.GetTextAsync(ResultsDataGrid);
+        _viewModel.ResolvePasteTargetsCallback = ResolvePasteTargets;
         _viewModel.ColumnsChanged -= OnColumnsChanged;
         _viewModel.ColumnsChanged += OnColumnsChanged;
 
@@ -145,18 +178,19 @@ public partial class QueryResultTableComponent : UserControl
         _cornerARow = null;
         _cornerBRow = null;
         _hasSelection = false;
+        _selectedViaRowHeader = false;
         _spanValid = false;
         _spanRowStart = -1;
         _spanRowEnd = -1;
         _dragging = false;
         _dragRows = false;
+        _pendingRightClickTarget = null;
         _capturedPointer?.Capture(null);
         _capturedPointer = null;
 
         if (ResultsDataGrid != null)
         {
             ResultsDataGrid.SelectedItem = null;
-            ResultsDataGrid.SelectedIndex = -1;
         }
         UpdateStatus();
     }
@@ -380,37 +414,6 @@ public partial class QueryResultTableComponent : UserControl
 
                             Grid.SetColumn(arrowBtn, 1);
                             cellGrid.Children.Add(arrowBtn);
-
-                            // Context Menu for cell
-                            var ctxMenu = new ContextMenu();
-                            var peekItem = new MenuItem { Header = $"Inspect Referenced Record in {relCopy.TargetTable}..." };
-                            peekItem.Click += async (s, e) =>
-                            {
-                                string val = row != null ? row[capturedCol] : string.Empty;
-                                if (string.IsNullOrWhiteSpace(val) || val.Equals("NULL", StringComparison.OrdinalIgnoreCase)) return;
-                                if (_viewModel != null) await _viewModel.InspectForeignKeyAsync(capturedCol, val);
-                            };
-                            var navItem = new MenuItem { Header = $"Open in {relCopy.TargetTable} Table View" };
-                            navItem.Click += async (s, e) =>
-                            {
-                                string val = row != null ? row[capturedCol] : string.Empty;
-                                if (string.IsNullOrWhiteSpace(val) || val.Equals("NULL", StringComparison.OrdinalIgnoreCase)) return;
-                                if (_viewModel != null) await _viewModel.NavigateToForeignKeyAsync(capturedCol, val);
-                            };
-                            var copyValItem = new MenuItem { Header = "Copy Foreign Key Value" };
-                            copyValItem.Click += async (s, e) =>
-                            {
-                                string val = row != null ? row[capturedCol] : string.Empty;
-                                if (!string.IsNullOrEmpty(val))
-                                {
-                                    await ClipboardService.CopyTextAsync(val);
-                                }
-                            };
-                            ctxMenu.Items.Add(peekItem);
-                            ctxMenu.Items.Add(navItem);
-                            ctxMenu.Items.Add(new Separator());
-                            ctxMenu.Items.Add(copyValItem);
-                            cellGrid.ContextMenu = ctxMenu;
 
                             return cellGrid;
                         });
@@ -644,15 +647,30 @@ public partial class QueryResultTableComponent : UserControl
 
             if (point.Properties.IsRightButtonPressed)
             {
+                // Commit selection on press; the ContextMenu itself opens on PointerReleased
+                // so releasing the right button cannot dismiss or mis-click the popup.
                 var alreadySelected = header
                     ? IsRowFullySelected(item)
                     : IsCellSelected(item, e.Column.DisplayIndex);
                 if (!alreadySelected)
                     BeginPointerSelection(item, e.Column, extend: false);
+                else
+                    _selectedViaRowHeader = header;
 
+                string? colName = header ? null : ExtractHeaderName(e.Column);
+                var cellCtrl = FindCellControl(item, e.Column);
+                _pendingRightClickTarget = new GridContextTarget(
+                    item,
+                    colName,
+                    header || string.IsNullOrWhiteSpace(colName),
+                    CanCopy: true,
+                    cellCtrl ?? (Control)ResultsDataGrid);
+
+                ResultsDataGrid.Focus();
                 return;
             }
 
+            _pendingRightClickTarget = null;
             if (!point.Properties.IsLeftButtonPressed)
                 return;
 
@@ -710,11 +728,33 @@ public partial class QueryResultTableComponent : UserControl
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        if (e.InitialPressMouseButton == MouseButton.Right)
+        {
+            var pending = _pendingRightClickTarget;
+            _pendingRightClickTarget = null;
+
+            var target = pending ?? ResolveGridContext(
+                new ContextMenuRequest(ResultsDataGrid, e.Source as Visual, IsPointerTriggered: true, e.GetPosition(ResultsDataGrid)));
+
+            if (target != null &&
+                ContextMenuService.Show(
+                    ResultsDataGrid,
+                    target,
+                    ConfigureGridContextMenu,
+                    target.PlacementControl ?? ResultsDataGrid,
+                    isPointer: true))
+            {
+                e.Handled = true;
+            }
+            return;
+        }
+
         if (!_dragging)
             return;
 
         _dragging = false;
         _dragRows = false;
+        _pendingRightClickTarget = null;
         _capturedPointer?.Capture(null);
         _capturedPointer = null;
     }
@@ -757,6 +797,16 @@ public partial class QueryResultTableComponent : UserControl
             return;
         }
 
+        if (ctrl && e.Key == Key.V)
+        {
+            if (!_selectedViaRowHeader && _viewModel?.HasRows == true && _viewModel.PasteCellCommand.CanExecute(null))
+            {
+                _ = _viewModel.PasteCellCommand.ExecuteAsync(null);
+                e.Handled = true;
+            }
+            return;
+        }
+
         if (ctrl && e.Key == Key.A)
         {
             SelectAll();
@@ -766,9 +816,19 @@ public partial class QueryResultTableComponent : UserControl
 
         if (e.Key == Key.F2)
         {
-            var targetRow = _activeRow ?? _viewModel?.SelectedRow;
+            if (_selectedViaRowHeader || _viewModel == null || !_viewModel.HasRows)
+            {
+                return;
+            }
+
+            var targetRow = _activeRow ?? _viewModel.SelectedRow;
             var colHeader = ExtractHeaderName(ResultsDataGrid.CurrentColumn ?? ResultsDataGrid.Columns.ElementAtOrDefault(_activeCol));
-            _viewModel?.OpenEditCell(targetRow, colHeader);
+            if (string.IsNullOrWhiteSpace(colHeader) || colHeader == "ROW #")
+            {
+                return;
+            }
+
+            _viewModel.OpenEditCell(targetRow, colHeader);
             e.Handled = true;
             return;
         }
@@ -883,6 +943,7 @@ public partial class QueryResultTableComponent : UserControl
         else
             SelectCell(row, data[colPos], scroll: true);
 
+        _selectedViaRowHeader = false;
         e.Handled = true;
     }
 
@@ -891,6 +952,7 @@ public partial class QueryResultTableComponent : UserControl
         if (IsRowHeader(column))
         {
             _dragRows = true;
+            _selectedViaRowHeader = true;
             if (extend && _anchorRow != null)
                 SelectRowSpan(_anchorRow, item, scroll: false);
             else
@@ -899,6 +961,7 @@ public partial class QueryResultTableComponent : UserControl
         }
 
         _dragRows = false;
+        _selectedViaRowHeader = false;
         if (extend && _anchorRow != null)
             ExtendTo(item, column.DisplayIndex, scroll: false);
         else
@@ -907,6 +970,7 @@ public partial class QueryResultTableComponent : UserControl
 
     private void SelectCell(QueryResultRow row, int column, bool scroll)
     {
+        _selectedViaRowHeader = false;
         ApplyState(row, row, column, column, row, column, row, column, scroll);
     }
 
@@ -942,6 +1006,7 @@ public partial class QueryResultTableComponent : UserControl
         if (view.GetItemAt(0) is not QueryResultRow first || view.GetItemAt(view.Count - 1) is not QueryResultRow last)
             return;
 
+        _selectedViaRowHeader = false;
         var activeRow = _activeRow ?? first;
         var activeCol = _activeRow == null ? data[0] : _activeCol;
         var anchorRow = _anchorRow ?? activeRow;
@@ -1211,9 +1276,15 @@ public partial class QueryResultTableComponent : UserControl
         return columnStart <= _dataMinCol && columnEnd >= _dataMaxCol;
     }
 
-    private (QueryResultRow Item, DataGridColumn Column)? HitTestCell(PointerEventArgs e)
+    private (QueryResultRow Item, DataGridColumn Column)? HitTestCell(PointerEventArgs e) =>
+        HitTestCellAt(e.GetPosition(ResultsDataGrid)) is { } hit ? (hit.Item, hit.Column) : null;
+
+    private (QueryResultRow Item, DataGridColumn Column, DataGridCell Cell)? HitTestCellAt(Point position)
     {
-        if (ResultsDataGrid.InputHitTest(e.GetPosition(ResultsDataGrid)) is not Visual visual)
+        if (ResultsDataGrid.InputHitTest(position) is not Visual visual)
+            return null;
+
+        if (visual.FindAncestorOfType<DataGridColumnHeader>(includeSelf: true) != null)
             return null;
 
         var cell = visual as DataGridCell ?? visual.FindAncestorOfType<DataGridCell>();
@@ -1225,7 +1296,193 @@ public partial class QueryResultTableComponent : UserControl
             return null;
 
         var column = ColumnOf(cell);
-        return column == null ? null : (item, column);
+        return column == null ? null : (item, column, cell);
+    }
+
+    internal GridContextTarget? ResolveGridContext(ContextMenuRequest request)
+    {
+        if (_viewModel == null || !_viewModel.HasRows)
+            return null;
+
+        if (request.IsPointerTriggered && request.Position is Point pos)
+        {
+            if (HitTestCellAt(pos) is not { } hit)
+                return null;
+
+            bool header = IsRowHeader(hit.Column);
+            bool alreadySelected = header
+                ? IsRowFullySelected(hit.Item)
+                : IsCellSelected(hit.Item, hit.Column.DisplayIndex);
+
+            if (!alreadySelected)
+            {
+                BeginPointerSelection(hit.Item, hit.Column, extend: false);
+            }
+            else
+            {
+                _selectedViaRowHeader = header;
+            }
+
+            string? colName = header ? null : ExtractHeaderName(hit.Column);
+            return new GridContextTarget(hit.Item, colName, header || string.IsNullOrWhiteSpace(colName), CanCopy: true, hit.Cell);
+        }
+
+        var activeRow = _activeRow ?? ResultsDataGrid.SelectedItem as QueryResultRow ?? _viewModel.SelectedRow;
+        if (activeRow == null)
+            return null;
+
+        var activeCol = ColumnAtDisplayIndex(_activeCol) ?? ResultsDataGrid.CurrentColumn;
+        bool rowHeaderOnly = _selectedViaRowHeader || (activeCol != null && IsRowHeader(activeCol));
+        string? activeColName = !rowHeaderOnly && activeCol != null ? ExtractHeaderName(activeCol) : null;
+        var placementCell = FindCellControl(activeRow, activeCol);
+
+        return new GridContextTarget(
+            activeRow,
+            activeColName,
+            rowHeaderOnly || string.IsNullOrWhiteSpace(activeColName),
+            CanCopy: true,
+            placementCell ?? (Control)ResultsDataGrid);
+    }
+
+    internal void ConfigureGridContextMenu(ContextMenuBuilder<GridContextTarget> builder, GridContextTarget context)
+    {
+        bool CanMutateCell(GridContextTarget ctx) =>
+            _viewModel?.HasRows == true && !ctx.IsRowHeaderOnly && ctx.Row != null && !string.IsNullOrWhiteSpace(ctx.ColumnName);
+
+        builder
+            .AddItem(
+                header: "Edit Cell",
+                command: _viewModel?.OpenEditSelectedCellCommand,
+                symbol: FASymbol.Edit,
+                gesture: "F2",
+                isEnabled: CanMutateCell)
+            .AddItem(
+                header: "Copy",
+                command: _viewModel?.CopyCellCommand,
+                symbol: FASymbol.Copy,
+                gesture: "Ctrl+C",
+                isEnabled: ctx => _viewModel?.HasRows == true && ctx.CanCopy)
+            .AddItem(
+                header: "Paste",
+                command: _viewModel?.PasteCellCommand,
+                symbol: FASymbol.Paste,
+                gesture: "Ctrl+V",
+                isEnabled: CanMutateCell);
+    }
+
+    private Control? FindCellControl(QueryResultRow row, DataGridColumn? column)
+    {
+        if (column == null)
+            return null;
+
+        foreach (var gridRow in ResultsDataGrid.GetVisualDescendants().OfType<DataGridRow>())
+        {
+            if (!ReferenceEquals(gridRow.DataContext, row))
+                continue;
+
+            foreach (var cell in gridRow.GetVisualDescendants().OfType<DataGridCell>())
+            {
+                if (ReferenceEquals(ColumnOf(cell), column))
+                    return cell;
+            }
+        }
+
+        return null;
+    }
+
+    private IReadOnlyList<PasteCellSlot> ResolvePasteTargets(int matrixRows, int matrixCols)
+    {
+        if (_selectedViaRowHeader)
+            return Array.Empty<PasteCellSlot>();
+
+        if (ResultsDataGrid.CollectionView is not DataGridCollectionView view || view.Count == 0)
+            return Array.Empty<PasteCellSlot>();
+
+        var orderedDataColumns = ResultsDataGrid.Columns
+            .Where(column => !IsRowHeader(column))
+            .OrderBy(column => column.DisplayIndex)
+            .ToList();
+
+        if (orderedDataColumns.Count == 0)
+            return Array.Empty<PasteCellSlot>();
+
+        if (matrixRows == 1 && matrixCols == 1)
+        {
+            if (TryGetSpan(out var r1, out var r2, out var c1, out var c2))
+            {
+                var selectedCols = orderedDataColumns
+                    .Where(column => column.DisplayIndex >= c1 && column.DisplayIndex <= c2)
+                    .ToList();
+                if (selectedCols.Count == 0)
+                    return Array.Empty<PasteCellSlot>();
+
+                var slots = new List<PasteCellSlot>();
+                for (int r = r1; r <= r2 && r < view.Count; r++)
+                {
+                    if (view.GetItemAt(r) is not QueryResultRow row)
+                        continue;
+
+                    foreach (var col in selectedCols)
+                    {
+                        string colName = ExtractHeaderName(col);
+                        if (!string.IsNullOrWhiteSpace(colName))
+                        {
+                            slots.Add(new PasteCellSlot(row, colName, 0, 0));
+                        }
+                    }
+                }
+                return slots;
+            }
+
+            var singleRow = _activeRow ?? ResultsDataGrid.SelectedItem as QueryResultRow;
+            var singleCol = ColumnAtDisplayIndex(_activeCol) ?? ResultsDataGrid.CurrentColumn;
+            if (singleRow == null || singleCol == null || IsRowHeader(singleCol))
+                return Array.Empty<PasteCellSlot>();
+
+            string singleColName = ExtractHeaderName(singleCol);
+            return string.IsNullOrWhiteSpace(singleColName)
+                ? Array.Empty<PasteCellSlot>()
+                : new[] { new PasteCellSlot(singleRow, singleColName, 0, 0) };
+        }
+
+        int startRowIdx;
+        int startDataColIdx;
+
+        if (TryGetSpan(out var spanRowStart, out _, out var spanColStart, out _))
+        {
+            startRowIdx = spanRowStart;
+            startDataColIdx = orderedDataColumns.FindIndex(c => c.DisplayIndex >= spanColStart);
+        }
+        else
+        {
+            var startRow = _activeRow ?? ResultsDataGrid.SelectedItem as QueryResultRow;
+            startRowIdx = startRow != null ? view.IndexOf(startRow) : -1;
+            var startCol = ColumnAtDisplayIndex(_activeCol) ?? ResultsDataGrid.CurrentColumn;
+            startDataColIdx = startCol != null && !IsRowHeader(startCol)
+                ? orderedDataColumns.IndexOf(startCol)
+                : -1;
+        }
+
+        if (startRowIdx < 0 || startDataColIdx < 0)
+            return Array.Empty<PasteCellSlot>();
+
+        var matrixSlots = new List<PasteCellSlot>();
+        for (int r = 0; r < matrixRows && startRowIdx + r < view.Count; r++)
+        {
+            if (view.GetItemAt(startRowIdx + r) is not QueryResultRow targetRow)
+                continue;
+
+            for (int c = 0; c < matrixCols && startDataColIdx + c < orderedDataColumns.Count; c++)
+            {
+                string colName = ExtractHeaderName(orderedDataColumns[startDataColIdx + c]);
+                if (!string.IsNullOrWhiteSpace(colName))
+                {
+                    matrixSlots.Add(new PasteCellSlot(targetRow, colName, r, c));
+                }
+            }
+        }
+
+        return matrixSlots;
     }
 
     private DataGridColumn? ColumnOf(DataGridCell cell)
