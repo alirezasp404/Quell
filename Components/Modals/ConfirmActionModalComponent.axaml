@@ -18,13 +18,7 @@
 
         <!-- Centered Dialog Window Card -->
         <Border Classes="modal-dialog-card"
-                Background="{DynamicResource AppWorkspaceBrush}" 
-                BorderBrush="{DynamicResource AppBorderBrush}" 
-                BorderThickness="1" 
-                CornerRadius="8" 
-                ClipToBounds="True"
-                Focusable="False" FocusAdorner="{x:Null}" 
-                BoxShadow="0 10 25 0 #33000000"
+                Focusable="False"
                 Width="420"
                 HorizontalAlignment="Center" 
                 VerticalAlignment="Center">
@@ -35,21 +29,16 @@
             <Grid RowDefinitions="Auto, *, Auto">
                 
                 <!-- 1. Header -->
-                <Border Grid.Row="0" 
-                        Background="{DynamicResource AppSurfaceBrush}" 
-                        BorderBrush="{DynamicResource AppBorderBrush}" 
-                        BorderThickness="0,0,0,1" 
-                        CornerRadius="8,8,0,0"
-                        Padding="16,12">
+                <Border Grid.Row="0" Classes="quell-modal-header">
                     <Grid ColumnDefinitions="Auto, *, Auto">
                         <Border Grid.Column="0" 
                                 Background="{DynamicResource AppDangerMutedBrush}" 
-                                CornerRadius="6" 
-                                Width="28" 
-                                Height="28" 
+                                CornerRadius="7" 
+                                Width="30" 
+                                Height="30" 
                                 Margin="0,0,10,0"
                                 VerticalAlignment="Center">
-                            <ui:FASymbolIcon Symbol="Important" FontSize="13" Foreground="#DC2626" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <ui:FASymbolIcon Symbol="Important" FontSize="13" Foreground="{DynamicResource AppDangerForegroundBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
 
                         <TextBlock Grid.Column="1" 
@@ -89,30 +78,25 @@
                                    FontFamily="Cascadia Code, Consolas, monospace" 
                                    FontSize="11" 
                                    FontWeight="SemiBold" 
-                                   Foreground="#DC2626"/>
+                                   Foreground="{DynamicResource AppDangerForegroundBrush}"/>
                     </Border>
                 </StackPanel>
 
                 <!-- 3. Footer -->
-                <Border Grid.Row="2" 
-                        Background="{DynamicResource AppSurfaceBrush}" 
-                        BorderBrush="{DynamicResource AppBorderBrush}" 
-                        BorderThickness="0,1,0,0" 
-                        CornerRadius="0,0,8,8"
-                        Padding="16,10">
+                <Border Grid.Row="2" Classes="quell-modal-footer">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
                         <Button Classes="classic-tool-btn" 
                                 Content="Cancel" 
                                 Command="{Binding CancelCommand}"/>
 
-                        <Button Background="#DC2626" 
-                                Foreground="White" 
-                                FontWeight="SemiBold" 
-                                FontSize="11" 
-                                CornerRadius="4" 
+                        <Button Classes="quell-btn-danger"
                                 Padding="16,6"
                                 Content="{Binding ConfirmButtonText}" 
-                                Command="{Binding ConfirmCommand}"/>
+                                Command="{Binding ConfirmCommand}">
+                            <i:Interaction.Behaviors>
+                                <b:GpuButtonPressBehavior PressScale="0.94" />
+                            </i:Interaction.Behaviors>
+                        </Button>
                     </StackPanel>
                 </Border>
             </Grid>

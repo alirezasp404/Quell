@@ -78,7 +78,7 @@
             <Setter Property="Foreground" Value="{DynamicResource AppChipActiveForegroundBrush}"/>
         </Style>
         <Style Selector="Button.panel-icon-btn.close-btn:pointerover">
-            <Setter Property="Foreground" Value="#F2677A"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppDangerForegroundBrush}"/>
         </Style>
 
         <!-- Compact Inline Row Action Button (.ib 22x22 in Saved Queries) -->
@@ -95,7 +95,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
         <Style Selector="Button.row-inline-btn:pointerover">
-            <Setter Property="Background" Value="#25FFFFFF"/>
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
         </Style>
 
         <!-- Filter Chip Pill Buttons (Tables / Views / Procs / All / Failed / This DB) -->
@@ -197,27 +197,27 @@
 
         <!-- History Action Buttons -->
         <Style Selector="Button.history-pri-btn">
-            <Setter Property="Height" Value="24"/>
+            <Setter Property="Height" Value="25"/>
             <Setter Property="Padding" Value="10,0"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Background" Value="#4F6FFF"/>
-            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="Background" Value="{DynamicResource AppAccentBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="11.5"/>
-            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
         <Style Selector="Button.history-pri-btn:pointerover">
             <Setter Property="Background" Value="{DynamicResource AppAccentHoverBrush}"/>
         </Style>
         <Style Selector="Button.history-ghost-btn">
-            <Setter Property="Height" Value="24"/>
+            <Setter Property="Height" Value="25"/>
             <Setter Property="Padding" Value="10,0"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
             <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AppButtonBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppButtonForegroundBrush}"/>
             <Setter Property="FontSize" Value="11.5"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
@@ -450,15 +450,10 @@
                         <!-- PANEL A: EXPLORER (Tables / Views / Procs + Right-Click Menu)     -->
                         <!-- ================================================================= -->
                         <Grid RowDefinitions="Auto, Auto, *" IsVisible="{Binding IsExplorerTab}">
-                            <!-- Search Bar (.srch) -->
+                            <!-- Search Bar (.srch -> quell-input-box) -->
                             <Border Grid.Row="0"
-                                    Margin="12,0,12,8"
-                                    Height="34"
-                                    Background="{DynamicResource AppWorkspaceBrush}"
-                                    BorderBrush="{DynamicResource AppBorderBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="8"
-                                    Padding="10,0">
+                                    Classes="quell-input-box"
+                                    Margin="12,0,12,8">
                                 <Grid ColumnDefinitions="Auto, *, Auto">
                                     <ic:SymbolIcon Grid.Column="0" Symbol="Search" FontSize="13" Foreground="{DynamicResource AppTextMutedBrush}" Margin="0,0,7,0" VerticalAlignment="Center"/>
                                     <TextBox Grid.Column="1"
@@ -480,34 +475,63 @@
                                 </Grid>
                             </Border>
 
-                            <!-- Object Type Filter Chips (Tables / Views / Procs) -->
-                            <WrapPanel Grid.Row="1" Orientation="Horizontal" Margin="12,0,12,8">
-                                <Button Classes="sidebar-chip-btn"
-                                        Classes.active="{Binding IsTablesCategory}"
-                                        Command="{Binding SelectExplorerCategoryCommand}"
-                                        CommandParameter="Tables"
-                                        Content="Tables"
-                                        Margin="0,0,6,2"/>
-                                <Button Classes="sidebar-chip-btn"
-                                        Classes.active="{Binding IsViewsCategory}"
-                                        Command="{Binding SelectExplorerCategoryCommand}"
-                                        CommandParameter="Views"
-                                        Content="Views"
-                                        Margin="0,0,6,2"/>
-                                <Button Classes="sidebar-chip-btn"
-                                        Classes.active="{Binding IsProcsCategory}"
-                                        Command="{Binding SelectExplorerCategoryCommand}"
-                                        CommandParameter="Procs"
-                                        Content="Procs"
-                                        Margin="0,0,6,2"/>
-                                <ToggleButton IsChecked="{Binding FilterActiveOnly}"
-                                              Classes="sidebar-chip-toggle"
-                                              IsVisible="{Binding IsConnected}"
-                                              ToolTip.Tip="Show only active connected database"
-                                              Margin="0,0,0,2">
-                                    <TextBlock Text="Active DB" FontSize="11"/>
-                                </ToggleButton>
-                            </WrapPanel>
+                            <!-- Unified Segmented Tab Control (Tables / Views / Procs) + Companion Active DB Scope Toggle -->
+                            <StackPanel Grid.Row="1" Spacing="6" Margin="12,0,12,8">
+                                <Border Classes="quell-segmented-track">
+                                    <UniformGrid Rows="1" Columns="3">
+                                        <Button Classes="quell-segmented-tab"
+                                                Classes.active="{Binding IsTablesCategory}"
+                                                Command="{Binding SelectExplorerCategoryCommand}"
+                                                CommandParameter="Tables"
+                                                ToolTip.Tip="Show tables in explorer">
+                                            <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <ic:SymbolIcon Classes="seg-icon" Symbol="Table" FontSize="12"/>
+                                                <TextBlock Classes="seg-label" Text="Tables"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Classes="quell-segmented-tab"
+                                                Classes.active="{Binding IsViewsCategory}"
+                                                Command="{Binding SelectExplorerCategoryCommand}"
+                                                CommandParameter="Views"
+                                                ToolTip.Tip="Show views in explorer">
+                                            <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <ic:SymbolIcon Classes="seg-icon" Symbol="LayerDiagonal" FontSize="12"/>
+                                                <TextBlock Classes="seg-label" Text="Views"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Classes="quell-segmented-tab"
+                                                Classes.active="{Binding IsProcsCategory}"
+                                                Command="{Binding SelectExplorerCategoryCommand}"
+                                                CommandParameter="Procs"
+                                                ToolTip.Tip="Show stored procedures &amp; functions">
+                                            <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <ic:SymbolIcon Classes="seg-icon" Symbol="Code" FontSize="12"/>
+                                                <TextBlock Classes="seg-label" Text="Procs"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </UniformGrid>
+                                </Border>
+
+                                <!-- Scope Metadata Bar (Status Count + Companion Active DB Toggle) -->
+                                <Grid ColumnDefinitions="*, Auto" IsVisible="{Binding IsConnected}">
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding StatusText}"
+                                               FontSize="11"
+                                               Foreground="{DynamicResource AppTextMutedBrush}"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"
+                                               Margin="2,0,6,0"/>
+                                    <ToggleButton Grid.Column="1"
+                                                  Classes="quell-filter-toggle"
+                                                  IsChecked="{Binding FilterActiveOnly}"
+                                                  ToolTip.Tip="Show only active connected database">
+                                        <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                            <Border Width="6" Height="6" CornerRadius="3" Background="{DynamicResource AppStatusActiveBrush}"/>
+                                            <TextBlock Text="Active DB" FontSize="11" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </ToggleButton>
+                                </Grid>
+                            </StackPanel>
 
                             <!-- Hierarchical Explorer TreeView -->
                             <Grid Grid.Row="2">
@@ -621,13 +645,8 @@
                         <Grid RowDefinitions="Auto, Auto, *, Auto" IsVisible="{Binding IsSavedQueriesTab}">
                             <!-- Search Bar -->
                             <Border Grid.Row="0"
-                                    Margin="12,0,12,8"
-                                    Height="34"
-                                    Background="{DynamicResource AppWorkspaceBrush}"
-                                    BorderBrush="{DynamicResource AppBorderBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="8"
-                                    Padding="10,0">
+                                    Classes="quell-input-box"
+                                    Margin="12,0,12,8">
                                 <Grid ColumnDefinitions="Auto, *, Auto">
                                     <ic:SymbolIcon Grid.Column="0" Symbol="Search" FontSize="13" Foreground="{DynamicResource AppTextMutedBrush}" Margin="0,0,7,0" VerticalAlignment="Center"/>
                                     <TextBox Grid.Column="1"
@@ -1001,13 +1020,8 @@
                         <Grid RowDefinitions="Auto, Auto, *, Auto" IsVisible="{Binding IsHistoryTab}">
                             <!-- Search Bar -->
                             <Border Grid.Row="0"
-                                    Margin="12,0,12,8"
-                                    Height="34"
-                                    Background="{DynamicResource AppWorkspaceBrush}"
-                                    BorderBrush="{DynamicResource AppBorderBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="8"
-                                    Padding="10,0">
+                                    Classes="quell-input-box"
+                                    Margin="12,0,12,8">
                                 <Grid ColumnDefinitions="Auto, *, Auto">
                                     <ic:SymbolIcon Grid.Column="0" Symbol="Search" FontSize="13" Foreground="{DynamicResource AppTextMutedBrush}" Margin="0,0,7,0" VerticalAlignment="Center"/>
                                     <TextBox Grid.Column="1"
@@ -1028,24 +1042,34 @@
                                 </Grid>
                             </Border>
 
-                            <!-- Filter Chips (All / Failed / This DB) -->
-                            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6" Margin="12,0,12,6">
-                                <Button Classes="sidebar-chip-btn"
-                                        Classes.active="{Binding IsHistoryAllFilter}"
-                                        Command="{Binding SelectHistoryFilterCommand}"
-                                        CommandParameter="All"
-                                        Content="All"/>
-                                <Button Classes="sidebar-chip-btn"
-                                        Classes.active="{Binding IsHistoryFailedFilter}"
-                                        Command="{Binding SelectHistoryFilterCommand}"
-                                        CommandParameter="Failed"
-                                        Content="Failed"/>
-                                <Button Classes="sidebar-chip-btn"
-                                        Classes.active="{Binding IsHistoryThisDbFilter}"
-                                        Command="{Binding SelectHistoryFilterCommand}"
-                                        CommandParameter="ThisDB"
-                                        Content="This DB"/>
-                            </StackPanel>
+                            <!-- Unified Segmented Filter Tabs (All / Failed / This DB) -->
+                            <Border Grid.Row="1"
+                                    Classes="quell-segmented-track"
+                                    Margin="12,0,12,8">
+                                <UniformGrid Rows="1" Columns="3">
+                                    <Button Classes="quell-segmented-tab"
+                                            Classes.active="{Binding IsHistoryAllFilter}"
+                                            Command="{Binding SelectHistoryFilterCommand}"
+                                            CommandParameter="All">
+                                        <TextBlock Classes="seg-label" Text="All"/>
+                                    </Button>
+                                    <Button Classes="quell-segmented-tab"
+                                            Classes.active="{Binding IsHistoryFailedFilter}"
+                                            Command="{Binding SelectHistoryFilterCommand}"
+                                            CommandParameter="Failed">
+                                        <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <Border Width="6" Height="6" CornerRadius="3" Background="{DynamicResource AppStatusDeletedBrush}"/>
+                                            <TextBlock Classes="seg-label" Text="Failed"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Classes="quell-segmented-tab"
+                                            Classes.active="{Binding IsHistoryThisDbFilter}"
+                                            Command="{Binding SelectHistoryFilterCommand}"
+                                            CommandParameter="ThisDB">
+                                        <TextBlock Classes="seg-label" Text="This DB"/>
+                                    </Button>
+                                </UniformGrid>
+                            </Border>
 
                             <!-- Grouped History Feed -->
                             <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">

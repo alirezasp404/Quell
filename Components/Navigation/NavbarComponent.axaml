@@ -213,26 +213,27 @@
             <Setter Property="RenderTransform" Value="scale(0.96)"/>
         </Style>
 
-        <!-- Dropdown Popup Border & Shadow Styling (Zero Black Corners) -->
+        <!-- Dropdown Popup Border & Shadow Styling (Zero Black Corners + GPU/CPU aware) -->
         <Style Selector="Menu.navbar-menu-strip MenuItem /template/ Popup#PART_Popup">
             <Setter Property="WindowManagerAddShadowHint" Value="False"/>
             <Setter Property="ShouldUseOverlayLayer" Value="True"/>
         </Style>
         <Style Selector="Menu.navbar-menu-strip MenuItem /template/ Popup#PART_Popup > Border">
-            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AppMenuBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppMenuBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="BoxShadow" Value="0 8 24 0 #40000000"/>
+            <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="ClipToBounds" Value="True"/>
         </Style>
         <Style Selector="Menu.navbar-menu-strip MenuItem /template/ Border#PART_Border">
-            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AppMenuBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppMenuBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="BoxShadow" Value="0 8 24 0 #40000000"/>
+            <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="ClipToBounds" Value="True"/>
+        </Style>
+        <Style Selector=":is(TopLevel).gpu-mode Menu.navbar-menu-strip MenuItem /template/ Popup#PART_Popup > Border, :is(TopLevel).gpu-mode Menu.navbar-menu-strip MenuItem /template/ Border#PART_Border">
+            <Setter Property="BoxShadow" Value="0 8 24 0 #40000000"/>
         </Style>
 
         <!-- Compact Action Button in Title Bar -->

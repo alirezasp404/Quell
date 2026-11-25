@@ -19,11 +19,9 @@
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="BoxShadow" Value="0 8 24 0 #35000000"/>
         </Style>
         <Style Selector="Border.canvas-card:pointerover">
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
-            <Setter Property="BoxShadow" Value="0 12 32 0 #50000000"/>
         </Style>
         <Style Selector="ComboBoxItem">
             <Setter Property="FontSize" Value="10.5"/>
@@ -51,14 +49,7 @@
 
         <!-- Centered Dialog Window Card -->
         <Border Classes="modal-dialog-card"
-                Background="{DynamicResource AppWorkspaceBrush}" 
-                BorderBrush="{DynamicResource AppBorderBrush}" 
-                BorderThickness="1" 
-                CornerRadius="8" 
-                ClipToBounds="True"
-                Focusable="False" 
-                FocusAdorner="{x:Null}" 
-                BoxShadow="0 18 45 0 #60000000"
+                Focusable="False"
                 Width="1050" MaxWidth="1600"
                 Height="740" MaxHeight="960"
                 HorizontalAlignment="Center" 
@@ -70,12 +61,7 @@
             <Grid RowDefinitions="Auto, Auto, *, Auto">
                 
                 <!-- 1. Header -->
-                <Border Grid.Row="0" 
-                        Background="{DynamicResource AppSurfaceBrush}" 
-                        BorderBrush="{DynamicResource AppBorderBrush}" 
-                        BorderThickness="0,0,0,1" 
-                        CornerRadius="8,8,0,0"
-                        Padding="16,10">
+                <Border Grid.Row="0" Classes="quell-modal-header">
                     <Grid ColumnDefinitions="Auto, *, Auto">
                         <Border Grid.Column="0" 
                                 Background="#10B981" 
@@ -218,43 +204,46 @@
                         <Grid ColumnDefinitions="*, Auto">
                             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
                                 <Button Classes="classic-tab-btn" 
-                                        Height="28" 
+                                        Classes.active="{Binding IsMappingTab}"
+                                        Height="30" 
                                         Padding="12,2" 
                                         Command="{Binding SetTabCommand}" 
                                         CommandParameter="Mapping">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <ui:FASymbolIcon Symbol="Link" FontSize="11" Foreground="{DynamicResource AppAccentBrush}"/>
-                                        <TextBlock Text="Visual Column Mapping" FontSize="11" FontWeight="SemiBold"/>
-                                        <Border Background="{DynamicResource AppBackgroundBrush}" CornerRadius="10" Padding="6,1" Margin="2,0,0,0">
-                                            <TextBlock Text="{Binding MappedColumnsCount, StringFormat='{}{0}'}" FontSize="10" FontWeight="Bold" Foreground="#10B981"/>
+                                        <TextBlock Text="Visual Column Mapping" FontSize="11.5" FontWeight="SemiBold"/>
+                                        <Border Background="{DynamicResource AppSuccessBackgroundBrush}" CornerRadius="10" Padding="6,1" Margin="2,0,0,0">
+                                            <TextBlock Text="{Binding MappedColumnsCount, StringFormat='{}{0}'}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AppSuccessForegroundBrush}"/>
                                         </Border>
                                     </StackPanel>
                                 </Button>
 
                                 <Button Classes="classic-tab-btn" 
-                                        Height="28" 
+                                        Classes.active="{Binding IsExcelPreviewTab}"
+                                        Height="30" 
                                         Padding="12,2" 
                                         Command="{Binding SetTabCommand}" 
                                         CommandParameter="ExcelPreview"
                                         IsEnabled="{Binding HasFileLoaded}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <ui:FASymbolIcon Symbol="Preview" FontSize="11"/>
-                                        <TextBlock Text="Excel Data Preview" FontSize="11"/>
+                                        <TextBlock Text="Excel Data Preview" FontSize="11.5"/>
                                         <Border Background="{DynamicResource AppBackgroundBrush}" CornerRadius="10" Padding="6,1" Margin="2,0,0,0" IsVisible="{Binding HasFileLoaded}">
-                                            <TextBlock Text="{Binding TotalExcelRowsCount, StringFormat='{}{0:N0} rows'}" FontSize="9" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                            <TextBlock Text="{Binding TotalExcelRowsCount, StringFormat='{}{0:N0} rows'}" FontSize="9.5" Foreground="{DynamicResource AppTextMutedBrush}"/>
                                         </Border>
                                     </StackPanel>
                                 </Button>
 
                                 <Button Classes="classic-tab-btn" 
-                                        Height="28" 
+                                        Classes.active="{Binding IsImportPreviewTab}"
+                                        Height="30" 
                                         Padding="12,2" 
                                         Command="{Binding SetTabCommand}" 
                                         CommandParameter="ImportPreview"
                                         IsEnabled="{Binding HasFileLoaded}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <ui:FASymbolIcon Symbol="Document" FontSize="11"/>
-                                        <TextBlock Text="Mapped Import Preview" FontSize="11"/>
+                                        <TextBlock Text="Mapped Import Preview" FontSize="11.5"/>
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
@@ -967,15 +956,18 @@
                                     </StackPanel>
                                 </Button>
 
-                                <Button Classes="primary-action-btn" 
+                                <Button Classes="quell-btn-primary" 
                                         Command="{Binding ExecuteImportCommand}" 
                                         IsEnabled="{Binding !IsImporting}"
                                         Height="30" 
                                         Padding="16,2" 
-                                        FontSize="11">
+                                        FontSize="11.5">
+                                    <i:Interaction.Behaviors>
+                                        <b:GpuButtonPressBehavior PressScale="0.94" />
+                                    </i:Interaction.Behaviors>
                                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                         <ui:FASymbolIcon Symbol="Upload" FontSize="11" Foreground="White"/>
-                                        <TextBlock Text="{Binding ImportButtonText}" FontSize="11" FontWeight="Bold" Foreground="White"/>
+                                        <TextBlock Text="{Binding ImportButtonText}" FontSize="11.5" FontWeight="Bold" Foreground="White"/>
                                     </StackPanel>
                                 </Button>
                             </StackPanel>

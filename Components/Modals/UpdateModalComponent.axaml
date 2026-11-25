@@ -19,13 +19,8 @@
 
         <!-- Centered Dialog Window Card -->
         <Border Classes="modal-dialog-card"
-                Background="{DynamicResource AppSurfaceBrush}" 
-                BorderBrush="{DynamicResource AppBorderBrush}" 
-                BorderThickness="1" 
-                CornerRadius="10" 
-                ClipToBounds="True"
-                Focusable="False" FocusAdorner="{x:Null}" 
-                BoxShadow="0 14 36 0 #55000000"
+                Background="{DynamicResource AppSurfaceBrush}"
+                Focusable="False"
                 Width="460"
                 HorizontalAlignment="Center" 
                 VerticalAlignment="Center">
@@ -116,14 +111,14 @@
                                 Content="Later"/>
 
                         <Button Grid.Column="3" 
+                                Classes="quell-btn-primary"
                                 Command="{Binding StartDownloadCommand}"
-                                Background="{DynamicResource AppAccentBrush}"
-                                Foreground="White"
-                                FontWeight="SemiBold"
-                                CornerRadius="6"
                                 Padding="16,6"
-                                Cursor="Hand"
-                                Content="Update now"/>
+                                Content="Update now">
+                            <i:Interaction.Behaviors>
+                                <b:GpuButtonPressBehavior PressScale="0.94" />
+                            </i:Interaction.Behaviors>
+                        </Button>
                     </Grid>
                 </StackPanel>
 
@@ -240,15 +235,15 @@
                     </StackPanel>
 
                     <!-- Query Warning Banner (if query running) -->
-                    <Border Background="#2B2014" 
-                            BorderBrush="#4D361E" 
+                    <Border Background="{DynamicResource AppWarningBackgroundBrush}" 
+                            BorderBrush="{DynamicResource AppWarningBorderBrush}" 
                             BorderThickness="1" 
-                            CornerRadius="6" 
+                            CornerRadius="7" 
                             Padding="12,10"
                             IsVisible="{Binding IsQueryRunning}">
                         <TextBlock Text="A query is still running. Restarting will stop it." 
                                    FontSize="12" 
-                                   Foreground="#F5A623" 
+                                   Foreground="{DynamicResource AppWarningForegroundBrush}" 
                                    TextWrapping="Wrap"/>
                     </Border>
 
@@ -264,14 +259,14 @@
                                 Content="Restart later"/>
 
                         <Button Grid.Column="2" 
+                                Classes="quell-btn-primary"
                                 Command="{Binding RestartNowCommand}"
-                                Background="{DynamicResource AppAccentBrush}"
-                                Foreground="White"
-                                FontWeight="SemiBold"
-                                CornerRadius="6"
                                 Padding="16,6"
-                                Cursor="Hand"
-                                Content="Restart now"/>
+                                Content="Restart now">
+                            <i:Interaction.Behaviors>
+                                <b:GpuButtonPressBehavior PressScale="0.94" />
+                            </i:Interaction.Behaviors>
+                        </Button>
                     </Grid>
                 </StackPanel>
 

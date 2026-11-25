@@ -26,24 +26,15 @@
                 MaxHeight="720"
                 HorizontalAlignment="Center" 
                 VerticalAlignment="Center"
-                Background="{DynamicResource AppSurfaceBrush}" 
-                BorderBrush="{DynamicResource AppBorderBrush}" 
-                BorderThickness="1" 
-                CornerRadius="8"
-                BoxShadow="0 12 36 #40000000"
-                Focusable="False" FocusAdorner="{x:Null}"
-                ClipToBounds="True">
+                Background="{DynamicResource AppSurfaceBrush}"
+                Focusable="False">
             <i:Interaction.Behaviors>
                 <b:GpuModalEntranceBehavior StartScale="0.94" DurationMs="240" />
             </i:Interaction.Behaviors>
             <Grid RowDefinitions="Auto, *, Auto">
                 
                 <!-- 1. Header Bar -->
-                <Border Grid.Row="0" 
-                        Background="{DynamicResource AppBackgroundBrush}" 
-                        BorderBrush="{DynamicResource AppBorderBrush}" 
-                        BorderThickness="0,0,0,1" 
-                        Padding="16,12">
+                <Border Grid.Row="0" Classes="quell-modal-header" Background="{DynamicResource AppBackgroundBrush}">
                     <Grid ColumnDefinitions="Auto, *, Auto">
                         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                             <ui:FASymbolIcon Symbol="Settings" FontSize="14" Foreground="{DynamicResource AppAccentBrush}"/>
@@ -121,11 +112,7 @@
                 </Grid>
 
                 <!-- 3. Bottom Action Buttons Bar -->
-                <Border Grid.Row="2" 
-                        Background="{DynamicResource AppBackgroundBrush}" 
-                        BorderBrush="{DynamicResource AppBorderBrush}" 
-                        BorderThickness="0,1,0,0" 
-                        Padding="16,10">
+                <Border Grid.Row="2" Classes="quell-modal-footer" Background="{DynamicResource AppBackgroundBrush}">
                     <Grid ColumnDefinitions="*, Auto">
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                             <Button Content="Cancel" 
@@ -133,14 +120,14 @@
                                     Classes="classic-tool-btn" 
                                     Padding="14,6"/>
 
-                            <Button Content="Save &amp; Apply" 
+                            <Button Classes="quell-btn-primary"
+                                    Content="Save &amp; Apply" 
                                     Command="{Binding SaveCommand}" 
-                                    Background="{DynamicResource AppAccentBrush}" 
-                                    Foreground="White" 
-                                    FontWeight="SemiBold" 
-                                    Padding="18,6" 
-                                    CornerRadius="4" 
-                                    BorderThickness="0"/>
+                                    Padding="18,6">
+                                <i:Interaction.Behaviors>
+                                    <b:GpuButtonPressBehavior PressScale="0.94" />
+                                </i:Interaction.Behaviors>
+                            </Button>
                         </StackPanel>
                     </Grid>
                 </Border>

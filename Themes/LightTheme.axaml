@@ -73,6 +73,13 @@
     <SolidColorBrush x:Key="AppToolHoverBorderBrush" Color="#CBD5E1" />
     <SolidColorBrush x:Key="AppModalOverlayBrush" Color="#66000000" />
     <SolidColorBrush x:Key="AppCardBackgroundBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="AppInputBackgroundBrush" Color="#FFFFFF" />
+
+    <!-- Segmented Control & Filter Toggle Tokens -->
+    <SolidColorBrush x:Key="AppSegmentedTrackBrush" Color="#F1F5F9" />
+    <SolidColorBrush x:Key="AppSegmentedTrackBorderBrush" Color="#E2E8F0" />
+    <SolidColorBrush x:Key="AppSegmentedItemActiveBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="AppSegmentedItemActiveBorderBrush" Color="#CBD5E1" />
 
     <!-- Terminal Component Semantic Brushes -->
     <SolidColorBrush x:Key="AppTerminalBackgroundBrush" Color="#FFFFFF" />
@@ -121,13 +128,23 @@
     <SolidColorBrush x:Key="AppTableFkBadgeForegroundBrush" Color="#475569" />
 
     <!-- Danger & Alert Muted Background -->
+    <SolidColorBrush x:Key="AppDangerBrush" Color="#DC2626" />
+    <SolidColorBrush x:Key="AppDangerHoverBrush" Color="#B91C1C" />
     <SolidColorBrush x:Key="AppDangerMutedBrush" Color="#FEE2E2" />
+    <SolidColorBrush x:Key="AppDangerBorderBrush" Color="#FCA5A5" />
+    <SolidColorBrush x:Key="AppDangerForegroundBrush" Color="#DC2626" />
+    <SolidColorBrush x:Key="AppSuccessBackgroundBrush" Color="#D1FAE5" />
+    <SolidColorBrush x:Key="AppSuccessBorderBrush" Color="#6EE7B7" />
+    <SolidColorBrush x:Key="AppSuccessForegroundBrush" Color="#047857" />
     <SolidColorBrush x:Key="AppStatusActiveBrush" Color="#059669" />
     <SolidColorBrush x:Key="AppStatusActiveBackgroundBrush" Color="#D1FAE5" />
     <SolidColorBrush x:Key="AppStatusDeletedBrush" Color="#E11D48" />
     <SolidColorBrush x:Key="AppStatusDeletedBackgroundBrush" Color="#FFE4E6" />
     <SolidColorBrush x:Key="AppStatusWarningBrush" Color="#D97706" />
     <SolidColorBrush x:Key="AppStatusWarningBackgroundBrush" Color="#FEF3C7" />
+    <SolidColorBrush x:Key="AppWarningBackgroundBrush" Color="#FEF3C7" />
+    <SolidColorBrush x:Key="AppWarningBorderBrush" Color="#FCD34D" />
+    <SolidColorBrush x:Key="AppWarningForegroundBrush" Color="#B45309" />
 
     <!-- IntelliSense & Overlay Component Semantic Brushes -->
     <SolidColorBrush x:Key="AppIntelliSenseHeaderBackgroundBrush" Color="#F8FAFC" />

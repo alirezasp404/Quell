@@ -15,12 +15,10 @@
     <Border Background="{DynamicResource AppSurfaceBrush}" Height="28" Padding="6,2">
         <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
             <!-- Primary Action: Run Query Button with GPU Spring Compression Behavior -->
-            <Button Background="{DynamicResource AppAccentBrush}" 
-                    Foreground="White" 
-                    FontWeight="SemiBold" 
-                    FontSize="11" 
-                    CornerRadius="4" 
-                    Padding="10,4"
+            <Button Classes="quell-btn-primary"
+                    MinHeight="24"
+                    Padding="10,3"
+                    FontSize="11"
                     Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ExecuteQueryCommand}"
                     ToolTip.Tip="Execute active SQL query (F5)">
                 <i:Interaction.Behaviors>
