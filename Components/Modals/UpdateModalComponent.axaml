@@ -6,197 +6,271 @@
              xmlns:i="using:Avalonia.Xaml.Interactivity"
              xmlns:b="using:Quell.Behaviors"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:ic="using:FluentIcons.Avalonia"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
              x:Class="Quell.Components.UpdateModalComponent"
              x:DataType="vm:UpdateModalViewModel"
              IsVisible="{Binding IsOpen}">
 
-    <!-- Reusable Software Update & GitHub Release Notification Modal Dialog -->
+    <!-- Reusable Software Update 3-Step Modern Dialog (Available -> Downloading -> Ready) -->
     <Grid>
         <!-- Backdrop (Click to dismiss) -->
         <Border Classes="modal-backdrop" Cursor="Hand" Focusable="False" FocusAdorner="{x:Null}" Background="{DynamicResource AppModalOverlayBrush}" PointerPressed="OnBackdropPointerPressed" />
 
         <!-- Centered Dialog Window Card -->
         <Border Classes="modal-dialog-card"
-                Background="{DynamicResource AppWorkspaceBrush}" 
-                BorderBrush="{DynamicResource AppBorderBrush}" 
-                BorderThickness="1" 
-                CornerRadius="8" 
-                ClipToBounds="True"
-                Focusable="False" FocusAdorner="{x:Null}" 
-                BoxShadow="0 10 25 0 #33000000"
-                Width="520"
+                Background="{DynamicResource AppSurfaceBrush}"
+                Focusable="False"
+                Width="460"
                 HorizontalAlignment="Center" 
                 VerticalAlignment="Center">
             <i:Interaction.Behaviors>
-                <b:GpuModalEntranceBehavior StartScale="0.93" DurationMs="220" />
+                <b:GpuModalEntranceBehavior StartScale="0.93" DurationMs="200" />
             </i:Interaction.Behaviors>
             
-            <Grid RowDefinitions="Auto, *, Auto">
-                
-                <!-- 1. Header -->
-                <Border Grid.Row="0" 
-                        Background="{DynamicResource AppSurfaceBrush}" 
-                        BorderBrush="{DynamicResource AppBorderBrush}" 
-                        BorderThickness="0,0,0,1" 
-                        CornerRadius="8,8,0,0"
-                        Padding="16,12">
-                    <Grid ColumnDefinitions="Auto, *, Auto">
-                        <Border Grid.Column="0" 
-                                Background="{DynamicResource AppAccentBrush}" 
-                                CornerRadius="6" 
-                                Width="28" 
-                                Height="28" 
-                                Margin="0,0,10,0"
-                                VerticalAlignment="Center">
-                            <ui:FASymbolIcon Symbol="Download" FontSize="13" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
+            <Panel Margin="24,22">
 
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="New Version Available" 
+                <!-- ======================================================== -->
+                <!-- STEP 1: UPDATE AVAILABLE                                  -->
+                <!-- ======================================================== -->
+                <StackPanel Spacing="16" IsVisible="{Binding IsStep1Available}">
+                    <!-- Header with Icon -->
+                    <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+                        <Border Background="{DynamicResource AppTablePkBadgeBackgroundBrush}" 
+                                CornerRadius="8" 
+                                Width="40" Height="40" 
+                                VerticalAlignment="Center">
+                            <ui:FASymbolIcon Symbol="Download" FontSize="18" Foreground="{DynamicResource AppAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="{Binding ReleaseTitle}" 
                                        Foreground="{DynamicResource AppTextPrimaryBrush}" 
-                                       FontSize="13" 
+                                       FontSize="15" 
                                        FontWeight="Bold"/>
-                            <TextBlock Text="A new release of Quell Studio is ready on GitHub" 
-                                       Foreground="{DynamicResource AppTextMutedBrush}" 
-                                       FontSize="11"/>
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <TextBlock Text="You have" FontSize="11.5" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                <TextBlock Text="{Binding CurrentVersion}" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                                <TextBlock Text="·" FontSize="11.5" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                <TextBlock Text="{Binding DownloadSize}" FontSize="11.5" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                <TextBlock Text="·" FontSize="11.5" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                <TextBlock Text="{Binding PublishedAt}" FontSize="11.5" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- What's New Section -->
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="WHAT'S NEW" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AppTextMutedBrush}" LetterSpacing="0.4"/>
+                        <StackPanel Spacing="6">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <ui:FASymbolIcon Symbol="Checkmark" FontSize="10" Foreground="{DynamicResource AppStatusActiveBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="Faster results grid for large tables" FontSize="12.5" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <ui:FASymbolIcon Symbol="Checkmark" FontSize="10" Foreground="{DynamicResource AppStatusActiveBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="Schema diagram with foreign-key navigation" FontSize="12.5" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <ui:FASymbolIcon Symbol="Checkmark" FontSize="10" Foreground="{DynamicResource AppStatusActiveBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="Export to Excel and Markdown" FontSize="12.5" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <ui:FASymbolIcon Symbol="Checkmark" FontSize="10" Foreground="{DynamicResource AppStatusActiveBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="Fixes for connection time-outs" FontSize="12.5" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                            </StackPanel>
                         </StackPanel>
 
-                        <!-- Dismiss (X) Button -->
+                        <!-- Release Notes Link -->
+                        <Button Background="Transparent" 
+                                BorderThickness="0" 
+                                Padding="0,4"
+                                Command="{Binding OpenReleaseUrlCommand}"
+                                Cursor="Hand" 
+                                HorizontalAlignment="Left">
+                            <TextBlock Text="Full release notes ↗" FontSize="12" Foreground="{DynamicResource AppAccentBrush}"/>
+                        </Button>
+                    </StackPanel>
+
+                    <!-- Actions Footer -->
+                    <Grid ColumnDefinitions="Auto, *, Auto, Auto" Margin="0,6,0,0">
+                        <Button Grid.Column="0" 
+                                Classes="classic-tool-btn" 
+                                Command="{Binding DismissCommand}"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="8,6"
+                                Content="Skip this version"/>
+                        
                         <Button Grid.Column="2" 
                                 Classes="classic-tool-btn" 
                                 Command="{Binding DismissCommand}"
-                                Padding="4"
-                                Width="26" Height="26"
-                                ToolTip.Tip="Remind me later (Dismiss)">
-                            <ui:FASymbolIcon Symbol="Dismiss" FontSize="10" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Margin="0,0,8,0"
+                                Padding="12,6"
+                                Content="Later"/>
+
+                        <Button Grid.Column="3" 
+                                Classes="quell-btn-primary"
+                                Command="{Binding StartDownloadCommand}"
+                                Padding="16,6"
+                                Content="Update now">
+                            <i:Interaction.Behaviors>
+                                <b:GpuButtonPressBehavior PressScale="0.94" />
+                            </i:Interaction.Behaviors>
                         </Button>
                     </Grid>
-                </Border>
+                </StackPanel>
 
-                <!-- 2. Body -->
-                <StackPanel Grid.Row="1" Spacing="14" Margin="18,16">
-                    
-                    <!-- Version Comparison Badges -->
-                    <Grid ColumnDefinitions="*, Auto, *">
-                        <!-- Current Installed Version -->
-                        <Border Grid.Column="0" 
-                                Background="{DynamicResource AppSurfaceBrush}" 
-                                BorderBrush="{DynamicResource AppBorderBrush}" 
-                                BorderThickness="1" 
-                                CornerRadius="6" 
-                                Padding="12,8">
-                            <StackPanel Spacing="3">
-                                <TextBlock Text="CURRENT VERSION" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AppTextMutedBrush}"/>
-                                <TextBlock Text="{Binding CurrentVersion}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                <!-- ======================================================== -->
+                <!-- STEP 2: DOWNLOADING PROGRESS                              -->
+                <!-- ======================================================== -->
+                <StackPanel Spacing="16" IsVisible="{Binding IsStep2Downloading}">
+                    <!-- Header with Icon -->
+                    <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+                        <Border Background="{DynamicResource AppTablePkBadgeBackgroundBrush}" 
+                                CornerRadius="8" 
+                                Width="40" Height="40" 
+                                VerticalAlignment="Center">
+                            <ui:FASymbolIcon Symbol="Download" FontSize="18" Foreground="{DynamicResource AppAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="Downloading Quell Update" 
+                                       Foreground="{DynamicResource AppTextPrimaryBrush}" 
+                                       FontSize="15" 
+                                       FontWeight="Bold"/>
+                            <TextBlock Text="You can keep working meanwhile" FontSize="11.5" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Progress Bar -->
+                    <StackPanel Spacing="6">
+                        <ProgressBar Value="{Binding DownloadProgress}" 
+                                     Minimum="0" Maximum="100" 
+                                     Height="6" 
+                                     CornerRadius="3"
+                                     Foreground="{DynamicResource AppAccentBrush}"
+                                     Background="{DynamicResource AppBackgroundBrush}"/>
+                        <Grid ColumnDefinitions="*, Auto">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="{Binding DownloadProgressText}" FontSize="11.5" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                                <TextBlock Text="·" FontSize="11.5" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                <TextBlock Text="{Binding DownloadSpeed}" FontSize="11.5" Foreground="{DynamicResource AppTextMutedBrush}"/>
                             </StackPanel>
-                        </Border>
+                            <TextBlock Grid.Column="1" Text="{Binding TimeRemaining}" FontSize="11.5" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                        </Grid>
+                    </StackPanel>
 
-                        <!-- Arrow Indicator -->
-                        <Border Grid.Column="1" Margin="10,0" VerticalAlignment="Center">
-                            <ui:FASymbolIcon Symbol="ChevronRight" FontSize="14" Foreground="{DynamicResource AppTextMutedBrush}"/>
-                        </Border>
-
-                        <!-- Latest Release Version -->
-                        <Border Grid.Column="2" 
-                                Background="{DynamicResource AppAccentBrush}" 
-                                CornerRadius="6" 
-                                Padding="12,8">
-                            <StackPanel Spacing="3">
-                                <Grid ColumnDefinitions="*, Auto">
-                                    <TextBlock Grid.Column="0" Text="LATEST RELEASE" FontSize="9" FontWeight="Bold" Foreground="#CCFFFFFF"/>
-                                    <Border Grid.Column="1" Background="#22C55E" CornerRadius="3" Padding="4,1" VerticalAlignment="Center">
-                                        <TextBlock Text="UPDATE" FontSize="8" FontWeight="Bold" Foreground="White"/>
-                                    </Border>
-                                </Grid>
-                                <TextBlock Text="{Binding LatestVersion}" FontSize="13" FontWeight="Bold" Foreground="White"/>
-                            </StackPanel>
-                        </Border>
-                    </Grid>
-
-                    <!-- Release Title -->
-                    <TextBlock Text="{Binding ReleaseTitle}" 
-                               FontSize="12" 
-                               FontWeight="Bold" 
-                               Foreground="{DynamicResource AppTextPrimaryBrush}"
-                               TextTrimming="CharacterEllipsis"/>
-
-                    <!-- Release Highlights / Notes Box -->
+                    <!-- State Notice -->
                     <Border Background="{DynamicResource AppSurfaceMutedBrush}" 
                             BorderBrush="{DynamicResource AppBorderBrush}" 
                             BorderThickness="1" 
                             CornerRadius="6" 
-                            Padding="10" 
-                            MaxHeight="140">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <TextBlock Text="{Binding ReleaseNotes}" 
-                                       FontSize="11" 
-                                       Foreground="{DynamicResource AppTextSecondaryBrush}" 
-                                       LineHeight="16"
-                                       TextWrapping="Wrap"/>
-                        </ScrollViewer>
+                            Padding="12,10">
+                        <TextBlock Text="Open tabs and unsaved queries are saved as drafts and restored after the restart." 
+                                   FontSize="12" 
+                                   Foreground="{DynamicResource AppTextSecondaryBrush}" 
+                                   TextWrapping="Wrap"/>
                     </Border>
 
-                    <!-- Optional Update Notice -->
-                    <Border Background="{DynamicResource AppSurfaceBrush}" 
-                            BorderBrush="{DynamicResource AppBorderBrush}" 
-                            BorderThickness="1" 
-                            CornerRadius="6" 
-                            Padding="10,8">
-                        <Grid ColumnDefinitions="Auto, *">
-                            <ui:FASymbolIcon Grid.Column="0" Symbol="Help" FontSize="13" Foreground="{DynamicResource AppAccentBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" 
-                                       Text="Updating is optional. You can download the new version now or continue working and update at any time from 'Get Update' in the status bar." 
-                                       FontSize="10.5" 
-                                       Foreground="{DynamicResource AppTextSecondaryBrush}" 
-                                       TextWrapping="Wrap" 
-                                       VerticalAlignment="Center"/>
-                        </Grid>
-                    </Border>
+                    <!-- Actions Footer -->
+                    <Grid ColumnDefinitions="Auto, *, Auto" Margin="0,6,0,0">
+                        <Button Grid.Column="0" 
+                                Classes="classic-tool-btn" 
+                                Command="{Binding CancelDownloadCommand}"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="8,6"
+                                Content="Cancel download"/>
+
+                        <Button Grid.Column="2" 
+                                Command="{Binding RunInBackgroundCommand}"
+                                Background="{DynamicResource AppBackgroundBrush}"
+                                BorderBrush="{DynamicResource AppBorderBrush}"
+                                BorderThickness="1"
+                                Foreground="{DynamicResource AppTextPrimaryBrush}"
+                                FontWeight="Medium"
+                                CornerRadius="6"
+                                Padding="14,6"
+                                Cursor="Hand"
+                                Content="Run in background"/>
+                    </Grid>
                 </StackPanel>
 
-                <!-- 3. Footer Actions -->
-                <Border Grid.Row="2" 
-                        Background="{DynamicResource AppSurfaceBrush}" 
-                        BorderBrush="{DynamicResource AppBorderBrush}" 
-                        BorderThickness="0,1,0,0" 
-                        CornerRadius="0,0,8,8"
-                        Padding="16,12">
-                    <Grid ColumnDefinitions="*, Auto, Auto">
-                        <TextBlock Grid.Column="0" 
-                                   Text="{Binding PublishedAt}" 
-                                   FontSize="10" 
-                                   Foreground="{DynamicResource AppTextMutedBrush}" 
-                                   VerticalAlignment="Center"/>
+                <!-- ======================================================== -->
+                <!-- STEP 3: READY TO RESTART                                  -->
+                <!-- ======================================================== -->
+                <StackPanel Spacing="16" IsVisible="{Binding IsStep3Ready}">
+                    <!-- Header with Icon -->
+                    <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+                        <Border Background="{DynamicResource AppStatusActiveBackgroundBrush}" 
+                                CornerRadius="8" 
+                                Width="40" Height="40" 
+                                VerticalAlignment="Center">
+                            <ui:FASymbolIcon Symbol="Checkmark" FontSize="18" Foreground="{DynamicResource AppStatusActiveBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="Update ready to install" 
+                                       Foreground="{DynamicResource AppTextPrimaryBrush}" 
+                                       FontSize="15" 
+                                       FontWeight="Bold"/>
+                            <TextBlock Text="Quell restart takes a few seconds" FontSize="11.5" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
 
-                        <!-- Secondary: Remind Me Later -->
+                    <!-- Checklist -->
+                    <StackPanel Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ui:FASymbolIcon Symbol="Checkmark" FontSize="11" Foreground="{DynamicResource AppStatusActiveBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="Unsaved queries saved as drafts" FontSize="12.5" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ui:FASymbolIcon Symbol="Checkmark" FontSize="11" Foreground="{DynamicResource AppStatusActiveBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="Active tabs will reopen after restart" FontSize="12.5" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ui:FASymbolIcon Symbol="Checkmark" FontSize="11" Foreground="{DynamicResource AppStatusActiveBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="Reconnects to database automatically" FontSize="12.5" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Query Warning Banner (if query running) -->
+                    <Border Background="{DynamicResource AppWarningBackgroundBrush}" 
+                            BorderBrush="{DynamicResource AppWarningBorderBrush}" 
+                            BorderThickness="1" 
+                            CornerRadius="7" 
+                            Padding="12,10"
+                            IsVisible="{Binding IsQueryRunning}">
+                        <TextBlock Text="A query is still running. Restarting will stop it." 
+                                   FontSize="12" 
+                                   Foreground="{DynamicResource AppWarningForegroundBrush}" 
+                                   TextWrapping="Wrap"/>
+                    </Border>
+
+                    <!-- Actions Footer -->
+                    <Grid ColumnDefinitions="*, Auto, Auto" Margin="0,6,0,0">
                         <Button Grid.Column="1" 
                                 Classes="classic-tool-btn" 
                                 Command="{Binding DismissCommand}"
-                                Content="Remind Me Later" 
-                                FontSize="11"
-                                Padding="12,6" 
+                                Background="Transparent"
+                                BorderThickness="0"
                                 Margin="0,0,8,0"
-                                Cursor="Hand"/>
+                                Padding="12,6"
+                                Content="Restart later"/>
 
-                        <!-- Primary: Download & Install / View Release -->
                         <Button Grid.Column="2" 
-                                Background="{DynamicResource AppAccentBrush}" 
-                                Foreground="White" 
-                                Command="{Binding OpenReleaseUrlCommand}"
-                                FontSize="11" 
-                                FontWeight="SemiBold"
-                                Padding="14,6" 
-                                CornerRadius="4"
-                                Cursor="Hand">
-                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                <ui:FASymbolIcon Symbol="Download" FontSize="11" Foreground="White" VerticalAlignment="Center"/>
-                                <TextBlock Text="Download Update" Foreground="White" VerticalAlignment="Center"/>
-                            </StackPanel>
+                                Classes="quell-btn-primary"
+                                Command="{Binding RestartNowCommand}"
+                                Padding="16,6"
+                                Content="Restart now">
+                            <i:Interaction.Behaviors>
+                                <b:GpuButtonPressBehavior PressScale="0.94" />
+                            </i:Interaction.Behaviors>
                         </Button>
                     </Grid>
-                </Border>
-            </Grid>
+                </StackPanel>
+
+            </Panel>
         </Border>
     </Grid>
 </UserControl>

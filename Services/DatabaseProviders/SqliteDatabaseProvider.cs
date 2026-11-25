@@ -48,60 +48,66 @@ public class SqliteDatabaseProvider : IDatabaseProvider
 
     public async Task<ConnectionTestResult> TestConnectionAsync(DatabaseConnectionConfig config, CancellationToken cancellationToken = default)
     {
-        var sw = Stopwatch.StartNew();
-        try
+        return await Task.Run(async () =>
         {
-            string source = ResolveSource(config);
-            if (source != ":memory:" && !File.Exists(source))
+            var sw = Stopwatch.StartNew();
+            try
             {
-                // Verify directory exists or can be created
-                string? dir = Path.GetDirectoryName(source);
-                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                string source = ResolveSource(config);
+                if (source != ":memory:" && !File.Exists(source))
                 {
-                    return new ConnectionTestResult
+                    // Verify directory exists or can be created
+                    string? dir = Path.GetDirectoryName(source);
+                    if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
                     {
-                        Success = false,
-                        Message = $"Directory does not exist: {dir}",
-                        LatencyMs = 0
-                    };
+                        return new ConnectionTestResult
+                        {
+                            Success = false,
+                            Message = $"Directory does not exist: {dir}",
+                            LatencyMs = 0
+                        };
+                    }
                 }
+
+                string connStr = BuildConnectionString(config);
+                await using var conn = new SqliteConnection(connStr);
+                await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT sqlite_version();";
+                var ver = await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+                sw.Stop();
+
+                return new ConnectionTestResult
+                {
+                    Success = true,
+                    Message = $"Connected to SQLite database in {sw.ElapsedMilliseconds} ms!",
+                    ServerVersion = $"SQLite v{ver}",
+                    LatencyMs = sw.ElapsedMilliseconds
+                };
             }
-
-            string connStr = BuildConnectionString(config);
-            await using var conn = new SqliteConnection(connStr);
-            await conn.OpenAsync(cancellationToken);
-
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT sqlite_version();";
-            var ver = await cmd.ExecuteScalarAsync(cancellationToken);
-            sw.Stop();
-
-            return new ConnectionTestResult
+            catch (Exception ex)
             {
-                Success = true,
-                Message = $"Connected to SQLite database in {sw.ElapsedMilliseconds} ms!",
-                ServerVersion = $"SQLite v{ver}",
-                LatencyMs = sw.ElapsedMilliseconds
-            };
-        }
-        catch (Exception ex)
-        {
-            sw.Stop();
-            return new ConnectionTestResult
-            {
-                Success = false,
-                Message = $"SQLite error: {ex.Message.Trim()}",
-                LatencyMs = sw.ElapsedMilliseconds,
-                Exception = ex
-            };
-        }
+                sw.Stop();
+                return new ConnectionTestResult
+                {
+                    Success = false,
+                    Message = $"SQLite error: {ex.Message.Trim()}",
+                    LatencyMs = sw.ElapsedMilliseconds,
+                    Exception = ex
+                };
+            }
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<IDbConnection> CreateOpenConnectionAsync(DatabaseConnectionConfig config, CancellationToken cancellationToken = default)
     {
-        string connStr = BuildConnectionString(config);
-        var conn = new SqliteConnection(connStr);
-        await conn.OpenAsync(cancellationToken);
-        return conn;
+        return await Task.Run(async () =>
+        {
+            string connStr = BuildConnectionString(config);
+            var conn = new SqliteConnection(connStr);
+            await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
+            return (IDbConnection)conn;
+        }, cancellationToken).ConfigureAwait(false);
     }
 }

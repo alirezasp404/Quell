@@ -328,8 +328,21 @@ public partial class QueryResultTableComponent : UserControl
                                 FontSize = 11,
                                 VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
                             };
-                            cellText.Bind(TextBlock.TextProperty, new Avalonia.Data.Binding($"[{capturedCol}]"));
                             cellText[!TextBlock.ForegroundProperty] = new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("AppAccentBrush");
+
+                            void UpdateFkText(object? dc)
+                            {
+                                if (dc is QueryResultRow r)
+                                {
+                                    cellText.Text = r[capturedCol];
+                                }
+                                else
+                                {
+                                    cellText.Text = string.Empty;
+                                }
+                            }
+                            UpdateFkText(row);
+                            cellGrid.DataContextChanged += (s, e) => UpdateFkText(cellGrid.DataContext);
 
                             valueStack.Children.Add(linkIcon);
                             valueStack.Children.Add(cellText);
@@ -410,13 +423,110 @@ public partial class QueryResultTableComponent : UserControl
                         continue;
                     }
 
-                    var col = new DataGridTextColumn
+                    var col = new DataGridTemplateColumn
                     {
                         Tag = colName,
-                        Binding = new Avalonia.Data.Binding($"[{colName}]"),
                         CanUserResize = true,
-                        CanUserSort = true
+                        CanUserSort = true,
+                        SortMemberPath = $"['{colName}']"
                     };
+
+                    string currentCol = colName;
+                    bool isStatusCol = currentCol.Equals("STATUS", StringComparison.OrdinalIgnoreCase);
+
+                    col.CellTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<QueryResultRow>((row, ns) =>
+                    {
+                        if (isStatusCol)
+                        {
+                            var badgeBorder = new Border
+                            {
+                                CornerRadius = new CornerRadius(999),
+                                Padding = new Thickness(8, 2),
+                                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+                                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                            };
+                            var badgeText = new TextBlock
+                            {
+                                FontSize = 11,
+                                FontWeight = FontWeight.Medium,
+                                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                            };
+                            badgeBorder.Child = badgeText;
+
+                            void UpdateBadge(object? dc)
+                            {
+                                if (dc is QueryResultRow r)
+                                {
+                                    string val = r[currentCol];
+                                    badgeText.Text = val;
+                                    if (val.Equals("Active", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        badgeBorder.Background = Brush.Parse("#15281F");
+                                        badgeText.Foreground = Brush.Parse("#3DD68C");
+                                    }
+                                    else if (val.Equals("Inactive", StringComparison.OrdinalIgnoreCase) || val.Equals("Deleted", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        badgeBorder.Background = Brush.Parse("#2F161C");
+                                        badgeText.Foreground = Brush.Parse("#F2677A");
+                                    }
+                                    else if (val.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        badgeBorder.Background = Brush.Parse("#2B2314");
+                                        badgeText.Foreground = Brush.Parse("#F59E0B");
+                                    }
+                                    else
+                                    {
+                                        badgeBorder.Background = Brushes.Transparent;
+                                        badgeText[!TextBlock.ForegroundProperty] = new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("AppTableCellForegroundBrush");
+                                    }
+                                }
+                                else
+                                {
+                                    badgeText.Text = string.Empty;
+                                    badgeBorder.Background = Brushes.Transparent;
+                                }
+                            }
+
+                            UpdateBadge(row);
+                            badgeBorder.DataContextChanged += (s, e) => UpdateBadge(badgeBorder.DataContext);
+                            return badgeBorder;
+                        }
+
+                        var textBlock = new TextBlock
+                        {
+                            FontSize = 11,
+                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                            Margin = new Thickness(8, 2)
+                        };
+                        textBlock[!TextBlock.ForegroundProperty] = new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("AppTableCellForegroundBrush");
+
+                        void UpdateText(object? dc)
+                        {
+                            if (dc is QueryResultRow r)
+                            {
+                                string val = r[currentCol];
+                                textBlock.Text = val;
+                                if (val.Equals("NULL", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    textBlock.Opacity = 0.45;
+                                    textBlock.FontStyle = FontStyle.Italic;
+                                }
+                                else
+                                {
+                                    textBlock.Opacity = 1.0;
+                                    textBlock.FontStyle = FontStyle.Normal;
+                                }
+                            }
+                            else
+                            {
+                                textBlock.Text = string.Empty;
+                            }
+                        }
+
+                        UpdateText(row);
+                        textBlock.DataContextChanged += (s, e) => UpdateText(textBlock.DataContext);
+                        return textBlock;
+                    });
 
                     if (isPk)
                     {
@@ -497,7 +607,7 @@ public partial class QueryResultTableComponent : UserControl
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[QueryResultTableComponent] Error updating columns: {ex.Message}");
+                Console.WriteLine($"[QueryResultTableComponent] Error updating columns: {ex}");
             }
         }
 

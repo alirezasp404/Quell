@@ -146,6 +146,18 @@ public partial class QueryResultTableViewModel : ViewModelBase
     [ObservableProperty]
     private string _loadingMessage = "Loading table data...";
 
+    [ObservableProperty]
+    private string _loadingElapsedText = "0.0 s";
+
+    public Action? CancelQueryCallback { get; set; }
+
+    [RelayCommand]
+    private void CancelQuery()
+    {
+        LoadingMessage = "Cancelling query...";
+        CancelQueryCallback?.Invoke();
+    }
+
     public bool CanInteractWithTable => !IsLoading && !IsRefreshing;
 
     public Func<Task>? RefreshCallback { get; set; }
@@ -300,6 +312,15 @@ public partial class QueryResultTableViewModel : ViewModelBase
         {
             ColumnsChanged?.Invoke(_lastColumns);
         }
+    }
+
+    /// <summary>
+    /// Applies PK/FK metadata silently before SetResults runs so DataGrid columns are only built once.
+    /// </summary>
+    public void PrepareTableMetadata(IEnumerable<string> pks, IEnumerable<ForeignKeyRelation> fks)
+    {
+        ApplyPrimaryKeys(pks);
+        ApplyForeignKeyRelations(fks);
     }
 
     private void ApplyForeignKeyRelations(IEnumerable<ForeignKeyRelation> fks)
@@ -518,10 +539,13 @@ public partial class QueryResultTableViewModel : ViewModelBase
 
     public void SetResults(IReadOnlyList<string> columns, IReadOnlyList<QueryResultRow> newRows, string execTime)
     {
+        IsLoading = false;
+
         void Apply()
         {
             try
             {
+                IsLoading = false;
                 _lastColumns = columns;
                 _allRows.Clear();
                 _allRows.AddRange(newRows);
@@ -575,18 +599,18 @@ public partial class QueryResultTableViewModel : ViewModelBase
             }
         }
 
-        try
+        if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
         {
             Apply();
         }
-        catch (Exception ex)
+        else if (ColumnsChanged == null || Avalonia.Application.Current?.ApplicationLifetime == null)
         {
-            Console.WriteLine($"[QueryResultTableViewModel] SetResults error: {ex.Message}");
-            try
-            {
-                Avalonia.Threading.Dispatcher.UIThread.Post(Apply);
-            }
-            catch { }
+            // Headless verification or background unit run with no active UI message pump
+            Apply();
+        }
+        else
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(Apply);
         }
     }
 
@@ -1081,6 +1105,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
     public void LoadSampleReferencedTable(string tableName, string? filterColumn = null, string? filterValue = null)
     {
         if (HasLiveConnection) return;
+        IsLoading = false;
 
         var (dataset, matchedRow) = DemoDataProvider.GetSampleTable(tableName, filterColumn, filterValue);
         CurrentTableName = dataset.TableName;
@@ -1098,6 +1123,7 @@ public partial class QueryResultTableViewModel : ViewModelBase
     public void ResetToSampleData()
     {
         if (HasLiveConnection) return;
+        IsLoading = false;
 
         var dataset = DemoDataProvider.GetDefaultUsersDataset();
         CurrentTableName = dataset.TableName;

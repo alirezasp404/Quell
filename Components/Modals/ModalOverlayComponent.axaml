@@ -3,6 +3,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:components="using:Quell.Components"
+             xmlns:i="using:Avalonia.Xaml.Interactivity"
+             xmlns:b="using:Quell.Behaviors"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
              x:Class="Quell.Components.ModalOverlayComponent"
@@ -16,26 +18,18 @@
 
         <!-- 2. Centered Modal Dialog Card -->
         <Border Classes="modal-dialog-card"
-                Background="{DynamicResource AppWorkspaceBrush}" 
-                BorderBrush="{DynamicResource AppBorderBrush}" 
-                BorderThickness="1" 
-                CornerRadius="8" 
-                ClipToBounds="True"
-                Focusable="False" FocusAdorner="{x:Null}" 
-                BoxShadow="0 10 25 0 #33000000"
+                Focusable="False"
                 Width="{Binding $parent[components:ModalOverlayComponent].DialogWidth}"
                 HorizontalAlignment="Center" 
                 VerticalAlignment="Center">
+            <i:Interaction.Behaviors>
+                <b:GpuModalEntranceBehavior StartScale="0.94" DurationMs="220" />
+            </i:Interaction.Behaviors>
             
             <Grid RowDefinitions="Auto, *, Auto">
                 
                 <!-- Modal Header -->
-                <Border Grid.Row="0" 
-                        Background="{DynamicResource AppSurfaceBrush}" 
-                        BorderBrush="{DynamicResource AppBorderBrush}" 
-                        BorderThickness="0,0,0,1" 
-                        CornerRadius="8,8,0,0"
-                        Padding="16,12">
+                <Border Grid.Row="0" Classes="quell-modal-header">
                     <Grid ColumnDefinitions="Auto, *, Auto">
                         <!-- Icon -->
                         <Border Grid.Column="0" 
@@ -85,12 +79,7 @@
                                   Margin="16" />
 
                 <!-- Modal Footer Actions -->
-                <Border Grid.Row="2" 
-                        Background="{DynamicResource AppSurfaceBrush}" 
-                        BorderBrush="{DynamicResource AppBorderBrush}" 
-                        BorderThickness="0,1,0,0" 
-                        CornerRadius="0,0,8,8"
-                        Padding="16,10">
+                <Border Grid.Row="2" Classes="quell-modal-footer">
                     <Grid ColumnDefinitions="Auto, *, Auto">
                         <!-- Left Action (Optional) -->
                         <Button Grid.Column="0" 
@@ -105,15 +94,15 @@
                                     Content="{Binding $parent[components:ModalOverlayComponent].CancelButtonText}" 
                                     Command="{Binding $parent[components:ModalOverlayComponent].CloseCommand}"/>
 
-                            <Button Background="{DynamicResource AppAccentBrush}" 
-                                    Foreground="White" 
-                                    FontWeight="SemiBold" 
-                                    FontSize="11" 
-                                    CornerRadius="4" 
+                            <Button Classes="quell-btn-primary"
                                     Padding="14,6"
                                     Content="{Binding $parent[components:ModalOverlayComponent].PrimaryButtonText}" 
                                     Command="{Binding $parent[components:ModalOverlayComponent].PrimaryCommand}"
-                                    IsVisible="{Binding $parent[components:ModalOverlayComponent].PrimaryButtonText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                    IsVisible="{Binding $parent[components:ModalOverlayComponent].PrimaryButtonText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                <i:Interaction.Behaviors>
+                                    <b:GpuButtonPressBehavior PressScale="0.94" />
+                                </i:Interaction.Behaviors>
+                            </Button>
                         </StackPanel>
                     </Grid>
                 </Border>

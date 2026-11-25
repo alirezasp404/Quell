@@ -4,11 +4,7 @@
              x:Class="Quell.Components.ActionButtonComponent">
 
     <Button x:Name="InnerButton"
-            Background="{DynamicResource AppAccentBrush}"
-            Foreground="White"
-            FontWeight="SemiBold"
-            FontSize="11"
-            CornerRadius="4"
+            Classes="quell-btn-primary"
             Padding="12,5"
             VerticalAlignment="Center">
         <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">

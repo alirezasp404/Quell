@@ -27,6 +27,15 @@ public partial class FooterViewModel : ViewModelBase
     private bool _isMaximized;
 
     [ObservableProperty]
+    private QueryResultTableViewModel? _queryResult;
+
+    [ObservableProperty]
+    private SchemaPropertiesTableViewModel? _schema;
+
+    [ObservableProperty]
+    private TerminalViewModel? _terminal;
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsResultsTabSelected))]
     [NotifyPropertyChangedFor(nameof(IsTerminalTabSelected))]
     [NotifyPropertyChangedFor(nameof(IsSchemaTabSelected))]

@@ -46,72 +46,78 @@ public class PostgreSqlDatabaseProvider : IDatabaseProvider
 
     public async Task<ConnectionTestResult> TestConnectionAsync(DatabaseConnectionConfig config, CancellationToken cancellationToken = default)
     {
-        var sw = Stopwatch.StartNew();
-        try
+        return await Task.Run(async () =>
         {
-            string connStr = BuildConnectionString(config);
-            await using var conn = new NpgsqlConnection(connStr);
-
-            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Min(8, config.TimeoutSeconds)));
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
-
-            await conn.OpenAsync(linkedCts.Token);
-
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT version();";
-            var ver = await cmd.ExecuteScalarAsync(linkedCts.Token);
-            sw.Stop();
-
-            string versionStr = ver?.ToString() ?? "PostgreSQL";
-            string firstPart = versionStr.Split(',')[0].Trim();
-
-            return new ConnectionTestResult
+            var sw = Stopwatch.StartNew();
+            try
             {
-                Success = true,
-                Message = $"Connected to PostgreSQL in {sw.ElapsedMilliseconds} ms!",
-                ServerVersion = firstPart,
-                LatencyMs = sw.ElapsedMilliseconds
-            };
-        }
-        catch (NpgsqlException ex)
-        {
-            sw.Stop();
-            return new ConnectionTestResult
+                string connStr = BuildConnectionString(config);
+                await using var conn = new NpgsqlConnection(connStr);
+
+                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Min(8, config.TimeoutSeconds)));
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+                await conn.OpenAsync(linkedCts.Token).ConfigureAwait(false);
+
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT version();";
+                var ver = await cmd.ExecuteScalarAsync(linkedCts.Token).ConfigureAwait(false);
+                sw.Stop();
+
+                string versionStr = ver?.ToString() ?? "PostgreSQL";
+                string firstPart = versionStr.Split(',')[0].Trim();
+
+                return new ConnectionTestResult
+                {
+                    Success = true,
+                    Message = $"Connected to PostgreSQL in {sw.ElapsedMilliseconds} ms!",
+                    ServerVersion = firstPart,
+                    LatencyMs = sw.ElapsedMilliseconds
+                };
+            }
+            catch (NpgsqlException ex)
             {
-                Success = false,
-                Message = $"PostgreSQL Error: {ex.Message.Trim()}",
-                LatencyMs = sw.ElapsedMilliseconds,
-                Exception = ex
-            };
-        }
-        catch (OperationCanceledException)
-        {
-            sw.Stop();
-            return new ConnectionTestResult
+                sw.Stop();
+                return new ConnectionTestResult
+                {
+                    Success = false,
+                    Message = $"PostgreSQL Error: {ex.Message.Trim()}",
+                    LatencyMs = sw.ElapsedMilliseconds,
+                    Exception = ex
+                };
+            }
+            catch (OperationCanceledException)
             {
-                Success = false,
-                Message = $"Connection timed out after {sw.ElapsedMilliseconds} ms. Ensure PostgreSQL is running on port {config.Port}.",
-                LatencyMs = sw.ElapsedMilliseconds
-            };
-        }
-        catch (Exception ex)
-        {
-            sw.Stop();
-            return new ConnectionTestResult
+                sw.Stop();
+                return new ConnectionTestResult
+                {
+                    Success = false,
+                    Message = $"Connection timed out after {sw.ElapsedMilliseconds} ms. Ensure PostgreSQL is running on port {config.Port}.",
+                    LatencyMs = sw.ElapsedMilliseconds
+                };
+            }
+            catch (Exception ex)
             {
-                Success = false,
-                Message = $"Connection failed ({sw.ElapsedMilliseconds} ms): {ex.Message.Trim()}",
-                LatencyMs = sw.ElapsedMilliseconds,
-                Exception = ex
-            };
-        }
+                sw.Stop();
+                return new ConnectionTestResult
+                {
+                    Success = false,
+                    Message = $"Connection failed ({sw.ElapsedMilliseconds} ms): {ex.Message.Trim()}",
+                    LatencyMs = sw.ElapsedMilliseconds,
+                    Exception = ex
+                };
+            }
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<IDbConnection> CreateOpenConnectionAsync(DatabaseConnectionConfig config, CancellationToken cancellationToken = default)
     {
-        string connStr = BuildConnectionString(config);
-        var conn = new NpgsqlConnection(connStr);
-        await conn.OpenAsync(cancellationToken);
-        return conn;
+        return await Task.Run(async () =>
+        {
+            string connStr = BuildConnectionString(config);
+            var conn = new NpgsqlConnection(connStr);
+            await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
+            return (IDbConnection)conn;
+        }, cancellationToken).ConfigureAwait(false);
     }
 }

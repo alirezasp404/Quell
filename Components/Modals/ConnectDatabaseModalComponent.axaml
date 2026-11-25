@@ -19,13 +19,7 @@
 
         <!-- Centered Dialog Window Card -->
         <Border Classes="modal-dialog-card"
-                Background="{DynamicResource AppWorkspaceBrush}" 
-                BorderBrush="{DynamicResource AppBorderBrush}" 
-                BorderThickness="1" 
-                CornerRadius="8" 
-                ClipToBounds="True"
-                Focusable="False" FocusAdorner="{x:Null}" 
-                BoxShadow="0 10 25 0 #33000000"
+                Focusable="False"
                 Width="530"
                 HorizontalAlignment="Center" 
                 VerticalAlignment="Center">
@@ -36,12 +30,7 @@
             <Grid RowDefinitions="Auto, *, Auto">
                 
                 <!-- 1. Dialog Header -->
-                <Border Grid.Row="0" 
-                        Background="{DynamicResource AppSurfaceBrush}" 
-                        BorderBrush="{DynamicResource AppBorderBrush}" 
-                        BorderThickness="0,0,0,1" 
-                        CornerRadius="8,8,0,0"
-                        Padding="16,12">
+                <Border Grid.Row="0" Classes="quell-modal-header">
                     <Grid ColumnDefinitions="Auto, *, Auto">
                         <Border Grid.Column="0" 
                                 Background="{DynamicResource AppAccentBrush}" 
@@ -322,12 +311,7 @@
                 </ScrollViewer>
 
                 <!-- 3. Dialog Footer -->
-                <Border Grid.Row="2" 
-                        Background="{DynamicResource AppSurfaceBrush}" 
-                        BorderBrush="{DynamicResource AppBorderBrush}" 
-                        BorderThickness="0,1,0,0" 
-                        CornerRadius="0,0,8,8"
-                        Padding="16,10">
+                <Border Grid.Row="2" Classes="quell-modal-footer">
                     <Grid ColumnDefinitions="Auto, *, Auto">
                         <Button Grid.Column="0" 
                                 Classes="classic-tool-btn" 
@@ -344,15 +328,15 @@
                                     Content="Cancel" 
                                     Command="{Binding CloseCommand}"/>
 
-                            <Button Background="{DynamicResource AppAccentBrush}" 
-                                    Foreground="White" 
-                                    FontWeight="SemiBold" 
-                                    FontSize="11" 
-                                    CornerRadius="4" 
+                            <Button Classes="quell-btn-primary"
                                     Padding="16,6"
                                     Content="{Binding ConnectButtonText}" 
                                     Command="{Binding ConnectCommand}"
-                                    IsEnabled="{Binding !IsConnecting}"/>
+                                    IsEnabled="{Binding !IsConnecting}">
+                                <i:Interaction.Behaviors>
+                                    <b:GpuButtonPressBehavior PressScale="0.94" />
+                                </i:Interaction.Behaviors>
+                            </Button>
                         </StackPanel>
                     </Grid>
                 </Border>

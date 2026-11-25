@@ -297,4 +297,23 @@ public partial class NavbarComponent : UserControl
     {
         GetHostWindow()?.Close();
     }
+
+    private void OnDatabaseSwitcherFlyoutOpened(object? sender, EventArgs e)
+    {
+        var mainVm = TopLevel.GetTopLevel(this)?.DataContext as MainViewModel
+            ?? _hostWindow?.DataContext as MainViewModel;
+        var panel = this.FindControl<Border>("DatabaseSwitcherFlyoutPanel");
+        if (panel != null && mainVm != null)
+        {
+            panel.DataContext = mainVm;
+            mainVm.SwitcherSearchFilter = string.Empty;
+            _ = mainVm.RefreshServerDatabasesForSwitcherAsync();
+        }
+    }
+
+    private void OnSwitcherItemClicked(object? sender, RoutedEventArgs e)
+    {
+        var btn = this.FindControl<Button>("DatabaseSwitcherButton");
+        btn?.Flyout?.Hide();
+    }
 }

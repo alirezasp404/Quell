@@ -12,13 +12,14 @@
 
     <!-- Reusable SQL IntelliSense Floating Card -->
     <Border Name="CardContainer"
+            Classes="intellisense-card"
             Width="340"
             MaxHeight="280"
             Background="{DynamicResource AppSurfaceBrush}"
             BorderBrush="{DynamicResource AppKeywordBrush}"
             BorderThickness="1.5"
-            CornerRadius="6"
-            BoxShadow="0 6 24 #30000000"
+            CornerRadius="8"
+            ClipToBounds="True"
             Padding="1">
         <i:Interaction.Behaviors>
             <b:GpuSlideEntranceBehavior StartOffsetY="-8" DurationMs="160" />
