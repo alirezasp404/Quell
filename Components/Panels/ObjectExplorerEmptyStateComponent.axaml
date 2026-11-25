@@ -9,24 +9,22 @@
               x:Class="Quell.Components.ObjectExplorerEmptyStateComponent">
 
     <!-- Reusable Object Explorer Empty State Card (Shown when disconnected) -->
-    <Border Background="{DynamicResource AppWorkspaceBrush}" 
-            BorderBrush="{DynamicResource AppBorderBrush}" 
-            BorderThickness="1" 
-            CornerRadius="4" 
-            Margin="6">
+    <Border Classes="quell-card"
+            Background="{DynamicResource AppWorkspaceBrush}"
+            Margin="8">
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" Margin="16">
             <ic:SymbolIcon Symbol="Database" FontSize="36" Foreground="{DynamicResource AppTextMutedBrush}" HorizontalAlignment="Center"/>
             <TextBlock Text="No Active Connection" 
                        Foreground="{DynamicResource AppTextSecondaryBrush}" 
-                       FontSize="11" 
+                       FontSize="12" 
                        FontWeight="SemiBold" 
                        HorizontalAlignment="Center" 
                        TextAlignment="Center"/>
-            <Button Classes="classic-tool-btn" 
+            <Button Classes="quell-btn-primary" 
                     Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ConnectModal.OpenCommand}" 
                     HorizontalAlignment="Center">
                 <StackPanel Orientation="Horizontal" Spacing="6">
-                    <ui:FASymbolIcon Symbol="Link" FontSize="11" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                    <ui:FASymbolIcon Symbol="Link" FontSize="11" Foreground="White" VerticalAlignment="Center"/>
                     <TextBlock Text="Connect..." VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>

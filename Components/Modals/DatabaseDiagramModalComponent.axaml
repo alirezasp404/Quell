@@ -18,26 +18,11 @@
             <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="7"/>
+            <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Width" Value="260"/>
-            <Setter Property="BoxShadow" Value="0 6 18 0 #28000000"/>
         </Style>
         <Style Selector="Border.diagram-table-card:pointerover">
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
-            <Setter Property="BoxShadow" Value="0 10 28 0 #45000000"/>
-        </Style>
-        <!-- Animated 360-degree Rotating Spinner -->
-        <Style Selector="Border.spin-indicator">
-            <Style.Animations>
-                <Animation Duration="0:0:1.0" IterationCount="Infinite">
-                    <KeyFrame Cue="0%">
-                        <Setter Property="RotateTransform.Angle" Value="0.0"/>
-                    </KeyFrame>
-                    <KeyFrame Cue="100%">
-                        <Setter Property="RotateTransform.Angle" Value="360.0"/>
-                    </KeyFrame>
-                </Animation>
-            </Style.Animations>
         </Style>
         <!-- Quick Filter Toggle Buttons -->
         <Style Selector="Button.filter-pill-btn">
@@ -45,8 +30,8 @@
             <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="4"/>
-            <Setter Property="Padding" Value="7,3"/>
+            <Setter Property="CornerRadius" Value="7"/>
+            <Setter Property="Padding" Value="9,4"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
@@ -56,8 +41,8 @@
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
         </Style>
         <Style Selector="Button.filter-pill-btn.active">
-            <Setter Property="Background" Value="{DynamicResource AppAccentBrush}"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource AppChipActiveBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppChipActiveForegroundBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
@@ -69,15 +54,9 @@
                 Background="{DynamicResource AppModalOverlayBrush}" 
                 PointerPressed="OnBackdropPointerPressed" />
 
-        <!-- Centered Dialog Window Card (Zero Black Edges with ClipToBounds) -->
+        <!-- Centered Dialog Window Card (GPU-only Shadow via Design System) -->
         <Border Classes="modal-dialog-card"
-                Background="{DynamicResource AppWorkspaceBrush}" 
-                BorderBrush="{DynamicResource AppBorderBrush}" 
-                BorderThickness="1" 
-                CornerRadius="8" 
-                ClipToBounds="True"
-                Focusable="False" FocusAdorner="{x:Null}" 
-                BoxShadow="0 16 36 0 #50000000"
+                Focusable="False"
                 Width="1100" MaxWidth="1600"
                 Height="700" MaxHeight="950"
                 Margin="20"
@@ -90,9 +69,7 @@
             <Grid RowDefinitions="Auto, Auto, *, Auto">
                 
                 <!-- 1. Header -->
-                <Border Grid.Row="0" 
-                        Background="{DynamicResource AppSurfaceBrush}" 
-                        BorderBrush="{DynamicResource AppBorderBrush}" 
+                <Border Grid.Row="0" Classes="quell-modal-header"
                         BorderThickness="0,0,0,1" 
                         Padding="16,12">
                     <Grid ColumnDefinitions="Auto, *, Auto">

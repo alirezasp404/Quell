@@ -213,26 +213,27 @@
             <Setter Property="RenderTransform" Value="scale(0.96)"/>
         </Style>
 
-        <!-- Dropdown Popup Border & Shadow Styling (Zero Black Corners) -->
+        <!-- Dropdown Popup Border & Shadow Styling (Zero Black Corners + GPU/CPU aware) -->
         <Style Selector="Menu.navbar-menu-strip MenuItem /template/ Popup#PART_Popup">
             <Setter Property="WindowManagerAddShadowHint" Value="False"/>
             <Setter Property="ShouldUseOverlayLayer" Value="True"/>
         </Style>
         <Style Selector="Menu.navbar-menu-strip MenuItem /template/ Popup#PART_Popup > Border">
-            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AppMenuBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppMenuBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="BoxShadow" Value="0 8 24 0 #40000000"/>
+            <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="ClipToBounds" Value="True"/>
         </Style>
         <Style Selector="Menu.navbar-menu-strip MenuItem /template/ Border#PART_Border">
-            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AppMenuBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppMenuBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="BoxShadow" Value="0 8 24 0 #40000000"/>
+            <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="ClipToBounds" Value="True"/>
+        </Style>
+        <Style Selector=":is(TopLevel).gpu-mode Menu.navbar-menu-strip MenuItem /template/ Popup#PART_Popup > Border, :is(TopLevel).gpu-mode Menu.navbar-menu-strip MenuItem /template/ Border#PART_Border">
+            <Setter Property="BoxShadow" Value="0 8 24 0 #40000000"/>
         </Style>
 
         <!-- Compact Action Button in Title Bar -->
@@ -254,6 +255,54 @@
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorderDarkBrush}"/>
         </Style>
 
+        <!-- Database Switcher Styles (Panel D from 04 design) -->
+        <Style Selector="Button.db-switcher-btn">
+            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="7"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="Padding" Value="9,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusAdorner" Value="{x:Null}"/>
+        </Style>
+        <Style Selector="Button.db-switcher-btn:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+        </Style>
+        <Style Selector="Button.db-switcher-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+        </Style>
+
+        <Style Selector="Button.switcher-menu-item">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.switcher-menu-item:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppSidebarHoverBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+        </Style>
+        <Style Selector="Button.switcher-menu-item:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppSidebarHoverBrush}"/>
+        </Style>
+        <Style Selector="Button.switcher-menu-item.active">
+            <Setter Property="Background" Value="#4F6FFF"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+        </Style>
+        <Style Selector="Button.switcher-menu-item.active /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4F6FFF"/>
+        </Style>
+
         <!-- ========================================================================= -->
         <!-- Responsive Adaptive Layout Styles                                         -->
         <!-- ========================================================================= -->
@@ -262,9 +311,8 @@
         <Style Selector="UserControl.responsive-medium TextBlock.action-btn-text">
             <Setter Property="IsVisible" Value="False"/>
         </Style>
-        <Style Selector="UserControl.responsive-medium Border.target-db-pill ComboBox">
-            <Setter Property="MinWidth" Value="120"/>
-            <Setter Property="MaxWidth" Value="140"/>
+        <Style Selector="UserControl.responsive-medium TextBlock.db-server-summary">
+            <Setter Property="MaxWidth" Value="90"/>
         </Style>
 
         <!-- 2. Compact Breakpoint: Compact DB selector and icon-only connection dot -->
@@ -274,9 +322,8 @@
         <Style Selector="UserControl.responsive-compact TextBlock.conn-status-text">
             <Setter Property="IsVisible" Value="False"/>
         </Style>
-        <Style Selector="UserControl.responsive-compact Border.target-db-pill ComboBox">
-            <Setter Property="MinWidth" Value="85"/>
-            <Setter Property="MaxWidth" Value="110"/>
+        <Style Selector="UserControl.responsive-compact TextBlock.db-server-summary">
+            <Setter Property="IsVisible" Value="False"/>
         </Style>
 
         <!-- 3. Minimal Breakpoint: Minimal title & hide secondary buttons -->
@@ -289,15 +336,14 @@
         <Style Selector="UserControl.responsive-minimal TextBlock.conn-status-text">
             <Setter Property="IsVisible" Value="False"/>
         </Style>
-        <Style Selector="UserControl.responsive-minimal TextBlock.db-label-text">
+        <Style Selector="UserControl.responsive-minimal TextBlock.db-server-summary">
+            <Setter Property="IsVisible" Value="False"/>
+        </Style>
+        <Style Selector="UserControl.responsive-minimal Border.db-dialect-badge">
             <Setter Property="IsVisible" Value="False"/>
         </Style>
         <Style Selector="UserControl.responsive-minimal Button.disconnect-btn">
             <Setter Property="IsVisible" Value="False"/>
-        </Style>
-        <Style Selector="UserControl.responsive-minimal Border.target-db-pill ComboBox">
-            <Setter Property="MinWidth" Value="70"/>
-            <Setter Property="MaxWidth" Value="90"/>
         </Style>
     </UserControl.Styles>
 
@@ -589,12 +635,15 @@
                                 <MenuItem Header="Explorer" 
                                           Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreSidebarTabCommand}" 
                                           CommandParameter="Explorer" />
-                                <MenuItem Header="Databases" 
+                                <MenuItem Header="Saved Queries" 
                                           Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreSidebarTabCommand}" 
-                                          CommandParameter="Databases" />
+                                          CommandParameter="SavedQueries" />
                                 <MenuItem Header="History" 
                                           Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreSidebarTabCommand}" 
                                           CommandParameter="History" />
+                                <MenuItem Header="Databases" 
+                                          Command="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).RestoreSidebarTabCommand}" 
+                                          CommandParameter="Databases" />
                             </MenuItem>
                             <Separator />
                             <MenuItem Header="Reset Window Layout" 
@@ -664,41 +713,188 @@
 
                     <Border Width="1" Height="14" Background="{DynamicResource AppBorderBrush}" Margin="4,0" VerticalAlignment="Center"/>
 
-                    <!-- Target Database Selector ComboBox -->
-                    <Border Classes="target-db-pill"
-                            Background="{DynamicResource AppSurfaceBrush}" 
-                            BorderBrush="{DynamicResource AppBorderBrush}" 
-                            BorderThickness="1" 
-                            CornerRadius="4" 
-                            Height="24" 
-                            Padding="4,0" 
-                            VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                            <ic:SymbolIcon Symbol="Database" FontSize="11" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Classes="db-label-text" Text="DB:" FontSize="9" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
-                            <ComboBox ItemsSource="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).AvailableTargetDatabases}"
-                                      SelectedItem="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).SelectedTargetDatabase}"
-                                      PlaceholderText="No Active Database"
-                                      FontSize="11"
-                                      Height="22"
-                                      Padding="4,0"
-                                      BorderThickness="0"
-                                      Background="Transparent"
-                                      MinWidth="160"
-                                      VerticalAlignment="Center">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Spacing="6">
-                                            <Border Background="{Binding BadgeColor}" CornerRadius="3" Padding="4,1">
-                                                <TextBlock Text="{Binding DatabaseType}" FontSize="9" FontWeight="Bold" Foreground="White"/>
-                                            </Border>
-                                            <TextBlock Text="{Binding FullDisplayName}" FontSize="11" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
+                    <!-- Database Switcher Pill (Panel D from 04 design) -->
+                    <Button x:Name="DatabaseSwitcherButton"
+                            Classes="db-switcher-btn"
+                            VerticalAlignment="Center"
+                            ToolTip.Tip="Switch active database or connection">
+                        <Button.Flyout>
+                            <Flyout Placement="BottomEdgeAlignedLeft"
+                                    Opened="OnDatabaseSwitcherFlyoutOpened">
+                                <Border x:Name="DatabaseSwitcherFlyoutPanel"
+                                        x:DataType="vm:MainViewModel"
+                                        Width="288"
+                                        Background="{DynamicResource AppMenuBackgroundBrush}"
+                                        BorderBrush="{DynamicResource AppMenuBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="12"
+                                        Padding="8">
+                                    <StackPanel Spacing="2">
+                                        <!-- Find database search input -->
+                                        <Border Height="32"
+                                                Background="{DynamicResource AppWorkspaceBrush}"
+                                                BorderBrush="{DynamicResource AppBorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="7"
+                                                Padding="8,0"
+                                                Margin="0,0,0,6">
+                                            <Grid ColumnDefinitions="Auto, *">
+                                                <ic:SymbolIcon Grid.Column="0" Symbol="Search" FontSize="13" Foreground="{DynamicResource AppTextMutedBrush}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                <TextBox Grid.Column="1"
+                                                         Text="{Binding SwitcherSearchFilter, Mode=TwoWay}"
+                                                         PlaceholderText="Find database…"
+                                                         Background="Transparent"
+                                                         BorderThickness="0"
+                                                         Padding="0"
+                                                         FontSize="12"
+                                                         VerticalAlignment="Center"
+                                                         MinHeight="24"/>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Databases on active server -->
+                                        <TextBlock Text="{Binding ActiveServerGroupTitle}"
+                                                   FontSize="10"
+                                                   FontWeight="SemiBold"
+                                                   LetterSpacing="1"
+                                                   Foreground="{DynamicResource AppTextMutedBrush}"
+                                                   Padding="8,4,8,4"
+                                                   IsVisible="{Binding FilteredServerDatabases.Count}"/>
+
+                                        <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto">
+                                            <ItemsControl ItemsSource="{Binding FilteredServerDatabases}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Button Classes="switcher-menu-item"
+                                                                Classes.active="{Binding IsCurrent}"
+                                                                Click="OnSwitcherItemClicked"
+                                                                Command="{Binding #DatabaseSwitcherFlyoutPanel.((vm:MainViewModel)DataContext).SwitchDatabaseOnActiveServerCommand}"
+                                                                CommandParameter="{Binding Name}">
+                                                            <Grid ColumnDefinitions="*, Auto">
+                                                                <TextBlock Grid.Column="0"
+                                                                           Text="{Binding Name}"
+                                                                           FontSize="12.5"
+                                                                           VerticalAlignment="Center"
+                                                                           TextTrimming="CharacterEllipsis"/>
+                                                                <ic:SymbolIcon Grid.Column="1"
+                                                                               Symbol="Checkmark"
+                                                                               FontSize="13"
+                                                                               IsVisible="{Binding IsCurrent}"
+                                                                               VerticalAlignment="Center"/>
+                                                            </Grid>
+                                                        </Button>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+
+                                        <Border Height="1" Background="{DynamicResource AppBorderBrush}" Margin="4,5"
+                                                IsVisible="{Binding FilteredServerDatabases.Count}"/>
+
+                                        <!-- Other saved connections -->
+                                        <TextBlock Text="OTHER CONNECTIONS"
+                                                   FontSize="10"
+                                                   FontWeight="SemiBold"
+                                                   LetterSpacing="1"
+                                                   Foreground="{DynamicResource AppTextMutedBrush}"
+                                                   Padding="8,4,8,4"
+                                                   IsVisible="{Binding FilteredOtherConnections.Count}"/>
+
+                                        <ScrollViewer MaxHeight="160" VerticalScrollBarVisibility="Auto">
+                                            <ItemsControl ItemsSource="{Binding FilteredOtherConnections}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Button Classes="switcher-menu-item"
+                                                                Click="OnSwitcherItemClicked"
+                                                                Command="{Binding #DatabaseSwitcherFlyoutPanel.((vm:MainViewModel)DataContext).SelectTargetFromSwitcherCommand}"
+                                                                CommandParameter="{Binding}">
+                                                            <Grid ColumnDefinitions="*, Auto">
+                                                                <TextBlock Grid.Column="0"
+                                                                           Text="{Binding FullDisplayName}"
+                                                                           FontSize="12.5"
+                                                                           VerticalAlignment="Center"
+                                                                           TextTrimming="CharacterEllipsis"/>
+                                                                <TextBlock Grid.Column="1"
+                                                                           Text="{Binding ServerSummary}"
+                                                                           FontSize="11"
+                                                                           Foreground="{DynamicResource AppTextMutedBrush}"
+                                                                           VerticalAlignment="Center"
+                                                                           Margin="8,0,0,0"/>
+                                                            </Grid>
+                                                        </Button>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+
+                                        <Border Height="1" Background="{DynamicResource AppBorderBrush}" Margin="4,5"
+                                                IsVisible="{Binding FilteredOtherConnections.Count}"/>
+
+                                        <!-- Footer actions -->
+                                        <Button Classes="switcher-menu-item"
+                                                Click="OnSwitcherItemClicked"
+                                                Command="{Binding ManageConnectionsCommand}">
+                                            <TextBlock Text="Manage connections…"
+                                                       Foreground="{DynamicResource AppAccentBrush}"
+                                                       FontSize="12.5"
+                                                       VerticalAlignment="Center"/>
+                                        </Button>
+                                        <Button Classes="switcher-menu-item"
+                                                Click="OnSwitcherItemClicked"
+                                                Command="{Binding ConnectModal.OpenCommand}">
+                                            <Grid ColumnDefinitions="*, Auto">
+                                                <TextBlock Grid.Column="0"
+                                                           Text="New connection"
+                                                           Foreground="{DynamicResource AppAccentBrush}"
+                                                           FontSize="12.5"
+                                                           VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="1"
+                                                           Text="Ctrl O"
+                                                           FontSize="11"
+                                                           Foreground="{DynamicResource AppTextMutedBrush}"
+                                                           VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                            </Flyout>
+                        </Button.Flyout>
+                        <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
+                            <Ellipse Width="7" Height="7"
+                                     Fill="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ActiveTargetStatusDotColor}"
+                                     VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ActiveTargetName}"
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource AppTextPrimaryBrush}"
+                                       VerticalAlignment="Center"
+                                       MaxWidth="160"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Classes="db-server-summary"
+                                       Text="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ActiveTargetServerSummary}"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource AppTextMutedBrush}"
+                                       VerticalAlignment="Center"
+                                       MaxWidth="140"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <Border Classes="db-dialect-badge"
+                                    Background="{DynamicResource AppChipActiveBackgroundBrush}"
+                                    CornerRadius="4"
+                                    Padding="5,1"
+                                    VerticalAlignment="Center"
+                                    IsVisible="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).HasActiveTargetDialect}">
+                                <TextBlock Text="{Binding $parent[TopLevel].((vm:MainViewModel)DataContext).ActiveTargetDialect}"
+                                           FontSize="9.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource AppChipActiveForegroundBrush}"
+                                           VerticalAlignment="Center"/>
+                            </Border>
+                            <PathIcon Data="M6 9l6 6 6-6"
+                                      Width="10" Height="10"
+                                      Foreground="{DynamicResource AppTextMutedBrush}"
+                                      VerticalAlignment="Center"/>
                         </StackPanel>
-                    </Border>
+                    </Button>
 
                     <Border Width="1" Height="14" Background="{DynamicResource AppBorderBrush}" Margin="4,0" VerticalAlignment="Center"/>
 

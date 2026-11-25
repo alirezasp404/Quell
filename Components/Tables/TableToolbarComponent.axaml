@@ -17,44 +17,48 @@
         <Grid ColumnDefinitions="Auto, *, Auto">
             <!-- Left: Search Filter & Refresh -->
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                <TextBox Width="180" 
-                         Height="23" 
-                         FontSize="11" 
-                         Padding="6,2" 
-                         CornerRadius="4" 
+                <TextBox Width="184" 
+                         Height="25" 
+                         MinHeight="25"
+                         FontSize="11.5" 
+                         Padding="8,2" 
+                         CornerRadius="6" 
                          PlaceholderText="Filter table rows..." 
                          Text="{Binding SearchFilter}"/>
                 <Button Classes="classic-tool-btn" 
                         Command="{Binding RefreshCommand}" 
                         IsEnabled="{Binding CanInteractWithTable}"
-                        Height="23" 
-                        Padding="6,2" 
+                        Height="25" 
+                        MinHeight="25"
+                        Padding="8,2" 
                         ToolTip.Tip="Refresh table data from database (F5)">
                     <StackPanel Orientation="Horizontal" Spacing="5">
                         <ui:FASymbolIcon Symbol="Refresh" FontSize="11" VerticalAlignment="Center"/>
-                        <TextBlock Text="Refresh" VerticalAlignment="Center"/>
+                        <TextBlock Text="Refresh" FontSize="11" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
                 <Button Classes="classic-tool-btn" 
                         Command="{Binding OpenEditSelectedCellCommand}" 
                         IsEnabled="{Binding CanInteractWithTable}"
-                        Height="23" 
-                        Padding="6,2" 
+                        Height="25" 
+                        MinHeight="25"
+                        Padding="8,2" 
                         ToolTip.Tip="Edit selected cell graphically &amp; execute UPDATE (F2)">
                     <StackPanel Orientation="Horizontal" Spacing="5">
                         <ui:FASymbolIcon Symbol="Edit" FontSize="11" VerticalAlignment="Center"/>
-                        <TextBlock Text="Edit Cell..." VerticalAlignment="Center"/>
+                        <TextBlock Text="Edit Cell..." FontSize="11" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
                 <Button Classes="classic-tool-btn" 
                         Command="{Binding DeleteSelectedRowCommand}" 
                         IsEnabled="{Binding CanInteractWithTable}"
-                        Height="23" 
-                        Padding="6,2" 
+                        Height="25" 
+                        MinHeight="25"
+                        Padding="8,2" 
                         ToolTip.Tip="Delete selected rows or columns with safety confirmation (Del)">
                     <StackPanel Orientation="Horizontal" Spacing="5">
-                        <ui:FASymbolIcon Symbol="Delete" FontSize="11" Foreground="#EF4444" VerticalAlignment="Center"/>
-                        <TextBlock Text="Delete" Foreground="#EF4444" VerticalAlignment="Center"/>
+                        <ui:FASymbolIcon Symbol="Delete" FontSize="11" Foreground="{DynamicResource AppDangerForegroundBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="Delete" FontSize="11" Foreground="{DynamicResource AppDangerForegroundBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
             </StackPanel>

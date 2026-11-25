@@ -15,17 +15,16 @@
             <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Padding" Value="6,2" />
-            <Setter Property="BoxShadow" Value="0 1 2 #20000000" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Padding" Value="7,2" />
         </Style>
 
         <Style Selector="Button.cat-filter-btn">
             <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="12" />
-            <Setter Property="Padding" Value="10,3" />
+            <Setter Property="CornerRadius" Value="999" />
+            <Setter Property="Padding" Value="11,4" />
             <Setter Property="FontSize" Value="11" />
             <Setter Property="Cursor" Value="Hand" />
         </Style>
@@ -34,15 +33,15 @@
             <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}" />
         </Style>
         <Style Selector="Button.cat-filter-btn.active">
-            <Setter Property="Background" Value="{DynamicResource AppAccentBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AppChipActiveBackgroundBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
         </Style>
         <Style Selector="Button.cat-filter-btn.active /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppAccentBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AppChipActiveBackgroundBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
         </Style>
         <Style Selector="Button.cat-filter-btn.active TextBlock">
-            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Foreground" Value="{DynamicResource AppChipActiveForegroundBrush}" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
     </UserControl.Styles>

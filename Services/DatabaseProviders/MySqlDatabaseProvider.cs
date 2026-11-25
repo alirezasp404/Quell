@@ -45,69 +45,75 @@ public class MySqlDatabaseProvider : IDatabaseProvider
 
     public async Task<ConnectionTestResult> TestConnectionAsync(DatabaseConnectionConfig config, CancellationToken cancellationToken = default)
     {
-        var sw = Stopwatch.StartNew();
-        try
+        return await Task.Run(async () =>
         {
-            string connStr = BuildConnectionString(config);
-            await using var conn = new MySqlConnection(connStr);
-
-            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Min(8, config.TimeoutSeconds)));
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
-
-            await conn.OpenAsync(linkedCts.Token);
-
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT VERSION();";
-            var ver = await cmd.ExecuteScalarAsync(linkedCts.Token);
-            sw.Stop();
-
-            return new ConnectionTestResult
+            var sw = Stopwatch.StartNew();
+            try
             {
-                Success = true,
-                Message = $"Connected to MySQL in {sw.ElapsedMilliseconds} ms!",
-                ServerVersion = $"MySQL {ver}",
-                LatencyMs = sw.ElapsedMilliseconds
-            };
-        }
-        catch (MySqlException ex)
-        {
-            sw.Stop();
-            return new ConnectionTestResult
+                string connStr = BuildConnectionString(config);
+                await using var conn = new MySqlConnection(connStr);
+
+                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Min(8, config.TimeoutSeconds)));
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+                await conn.OpenAsync(linkedCts.Token).ConfigureAwait(false);
+
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT VERSION();";
+                var ver = await cmd.ExecuteScalarAsync(linkedCts.Token).ConfigureAwait(false);
+                sw.Stop();
+
+                return new ConnectionTestResult
+                {
+                    Success = true,
+                    Message = $"Connected to MySQL in {sw.ElapsedMilliseconds} ms!",
+                    ServerVersion = $"MySQL {ver}",
+                    LatencyMs = sw.ElapsedMilliseconds
+                };
+            }
+            catch (MySqlException ex)
             {
-                Success = false,
-                Message = $"MySQL Error ({ex.Number}): {ex.Message.Trim()}",
-                LatencyMs = sw.ElapsedMilliseconds,
-                Exception = ex
-            };
-        }
-        catch (OperationCanceledException)
-        {
-            sw.Stop();
-            return new ConnectionTestResult
+                sw.Stop();
+                return new ConnectionTestResult
+                {
+                    Success = false,
+                    Message = $"MySQL Error ({ex.Number}): {ex.Message.Trim()}",
+                    LatencyMs = sw.ElapsedMilliseconds,
+                    Exception = ex
+                };
+            }
+            catch (OperationCanceledException)
             {
-                Success = false,
-                Message = $"Connection timed out after {sw.ElapsedMilliseconds} ms. Ensure MySQL is running on port {config.Port}.",
-                LatencyMs = sw.ElapsedMilliseconds
-            };
-        }
-        catch (Exception ex)
-        {
-            sw.Stop();
-            return new ConnectionTestResult
+                sw.Stop();
+                return new ConnectionTestResult
+                {
+                    Success = false,
+                    Message = $"Connection timed out after {sw.ElapsedMilliseconds} ms. Ensure MySQL is running on port {config.Port}.",
+                    LatencyMs = sw.ElapsedMilliseconds
+                };
+            }
+            catch (Exception ex)
             {
-                Success = false,
-                Message = $"Connection failed ({sw.ElapsedMilliseconds} ms): {ex.Message.Trim()}",
-                LatencyMs = sw.ElapsedMilliseconds,
-                Exception = ex
-            };
-        }
+                sw.Stop();
+                return new ConnectionTestResult
+                {
+                    Success = false,
+                    Message = $"Connection failed ({sw.ElapsedMilliseconds} ms): {ex.Message.Trim()}",
+                    LatencyMs = sw.ElapsedMilliseconds,
+                    Exception = ex
+                };
+            }
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<IDbConnection> CreateOpenConnectionAsync(DatabaseConnectionConfig config, CancellationToken cancellationToken = default)
     {
-        string connStr = BuildConnectionString(config);
-        var conn = new MySqlConnection(connStr);
-        await conn.OpenAsync(cancellationToken);
-        return conn;
+        return await Task.Run(async () =>
+        {
+            string connStr = BuildConnectionString(config);
+            var conn = new MySqlConnection(connStr);
+            await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
+            return (IDbConnection)conn;
+        }, cancellationToken).ConfigureAwait(false);
     }
 }

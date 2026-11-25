@@ -3,6 +3,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:Quell.ViewModels"
+             xmlns:i="using:Avalonia.Xaml.Interactivity"
+             xmlns:b="using:Quell.Behaviors"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
              x:Class="Quell.Components.ForeignKeyInspectorModalComponent"
@@ -21,28 +23,19 @@
 
         <!-- 2. Centered Modal Dialog Card -->
         <Border Classes="modal-dialog-card"
-                Background="{DynamicResource AppWorkspaceBrush}" 
-                BorderBrush="{DynamicResource AppBorderBrush}" 
-                BorderThickness="1" 
-                CornerRadius="8" 
-                ClipToBounds="True"
-                Focusable="False" 
-                FocusAdorner="{x:Null}" 
-                BoxShadow="0 10 25 0 #33000000"
+                Focusable="False"
                 Width="560"
                 MaxHeight="620"
                 HorizontalAlignment="Center" 
                 VerticalAlignment="Center">
+            <i:Interaction.Behaviors>
+                <b:GpuModalEntranceBehavior StartScale="0.94" DurationMs="220" />
+            </i:Interaction.Behaviors>
             
             <Grid RowDefinitions="Auto, *, Auto">
                 
                 <!-- 1. Modal Header -->
-                <Border Grid.Row="0" 
-                        Background="{DynamicResource AppSurfaceBrush}" 
-                        BorderBrush="{DynamicResource AppBorderBrush}" 
-                        BorderThickness="0,0,0,1" 
-                        CornerRadius="8,8,0,0"
-                        Padding="16,12">
+                <Border Grid.Row="0" Classes="quell-modal-header">
                     <Grid ColumnDefinitions="Auto, *, Auto">
                         <Border Grid.Column="0" 
                                 Background="{DynamicResource AppAccentBrush}" 
@@ -294,12 +287,7 @@
                 </ScrollViewer>
 
                 <!-- 3. Modal Footer Actions -->
-                <Border Grid.Row="2" 
-                        Background="{DynamicResource AppSurfaceBrush}" 
-                        BorderBrush="{DynamicResource AppBorderBrush}" 
-                        BorderThickness="0,1,0,0" 
-                        CornerRadius="0,0,8,8" 
-                        Padding="16,10">
+                <Border Grid.Row="2" Classes="quell-modal-footer">
                     <Grid ColumnDefinitions="Auto, *, Auto, Auto">
                         
                         <!-- Left: Copy Row as JSON -->
@@ -307,8 +295,8 @@
                                 Classes="classic-tool-btn" 
                                 Command="{Binding CopyRecordJsonCommand}" 
                                 IsEnabled="{Binding RecordFound}"
-                                Height="26" 
-                                Padding="8,2" 
+                                Height="28" 
+                                Padding="10,2" 
                                 ToolTip.Tip="Copy entire record as JSON to clipboard">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <ui:FASymbolIcon Symbol="Copy" FontSize="11" VerticalAlignment="Center"/>
@@ -321,18 +309,21 @@
                                 Classes="classic-tool-btn" 
                                 Content="Close" 
                                 Command="{Binding CloseCommand}" 
-                                Height="26" 
+                                Height="28" 
                                 Padding="12,2" 
                                 Margin="0,0,8,0"/>
 
                         <!-- Right: Open in Table View (Primary) -->
                         <Button Grid.Column="3" 
-                                Classes="classic-action-btn" 
+                                Classes="quell-btn-primary" 
                                 Command="{Binding OpenInTableViewCommand}" 
                                 IsEnabled="{Binding RecordFound}"
-                                Height="26" 
-                                Padding="12,2" 
+                                Height="28" 
+                                Padding="14,2" 
                                 ToolTip.Tip="Navigate main table results to this referenced record">
+                            <i:Interaction.Behaviors>
+                                <b:GpuButtonPressBehavior PressScale="0.94" />
+                            </i:Interaction.Behaviors>
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <PathIcon Data="M14 5l7 7m0 0l-7 7m7-7H3" Width="10" Height="10" Foreground="White" VerticalAlignment="Center"/>
                                 <TextBlock Text="Open in Table View" FontWeight="SemiBold" VerticalAlignment="Center"/>

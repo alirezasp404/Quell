@@ -59,9 +59,40 @@ public partial class MainViewModel : ViewModelBase
     private SchemaPropertiesTableViewModel _sampleSchema;
 
     public ObservableCollection<TargetDatabaseItem> AvailableTargetDatabases { get; } = new();
+    public ObservableCollection<TargetDatabaseItem> FilteredOtherConnections { get; } = new();
+    public ObservableCollection<DatabaseSwitcherDbItem> FilteredServerDatabases { get; } = new();
+    private readonly List<string> _activeServerDatabaseNames = new();
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveServerGroupTitle))]
+    [NotifyPropertyChangedFor(nameof(HasSelectedTargetDatabase))]
+    [NotifyPropertyChangedFor(nameof(ActiveTargetName))]
+    [NotifyPropertyChangedFor(nameof(ActiveTargetServerSummary))]
+    [NotifyPropertyChangedFor(nameof(ActiveTargetDialect))]
+    [NotifyPropertyChangedFor(nameof(ActiveTargetStatusDotColor))]
     private TargetDatabaseItem? _selectedTargetDatabase;
+
+    [ObservableProperty]
+    private string _switcherSearchFilter = string.Empty;
+
+    public bool HasSelectedTargetDatabase => SelectedTargetDatabase != null || HasActiveDatabaseConnection();
+    public string ActiveTargetName => SelectedTargetDatabase?.FullDisplayName
+        ?? (DatabaseSessionService.Instance.IsConnected ? DatabaseSessionService.Instance.ConnectionDisplayText : "Select database…");
+    public string ActiveTargetServerSummary => SelectedTargetDatabase?.ServerSummary
+        ?? (DatabaseSessionService.Instance.IsConnected ? $"{DatabaseSessionService.Instance.ActiveConfig?.Server}" : "Not connected");
+    public string ActiveTargetDialect => SelectedTargetDatabase?.DialectTag
+        ?? DatabaseSessionService.Instance.ActiveConfig?.DatabaseType.ToDialectString()
+        ?? "";
+    public bool HasActiveTargetDialect => !string.IsNullOrEmpty(ActiveTargetDialect);
+    public string ActiveTargetStatusDotColor => HasActiveDatabaseConnection() ? "#3DD68C" : "#8A93A3";
+    public string ActiveServerGroupTitle => SelectedTargetDatabase != null
+        ? $"DATABASES ON {SelectedTargetDatabase.ServerSummary.ToUpperInvariant()}"
+        : "ACTIVE DATABASES";
+
+    partial void OnSwitcherSearchFilterChanged(string value)
+    {
+        ApplySwitcherFilter();
+    }
 
     public MainViewModel()
     {
@@ -83,6 +114,9 @@ public partial class MainViewModel : ViewModelBase
         };
         _sampleQueryResult = new QueryResultTableViewModel();
         _sampleSchema = new SchemaPropertiesTableViewModel();
+        _footer.QueryResult = _sampleQueryResult;
+        _footer.Schema = _sampleSchema;
+        _footer.Terminal = _terminal;
 
         _exportModal.PerformExportCallback = async (source, tableName, includeHeaders, filePath) =>
         {
@@ -183,8 +217,9 @@ public partial class MainViewModel : ViewModelBase
         };
         _sampleQueryResult.ExecuteQueryCallback = _sampleQueryResult.EditCellModal.ExecuteQueryCallback;
         _sampleQueryResult.InsertQueryToEditorCallback = _sampleQueryResult.EditCellModal.InsertQueryToEditorCallback;
-                _sampleQueryResult.RefreshCallback = RefreshQueryResultAsync;
+        _sampleQueryResult.RefreshCallback = RefreshQueryResultAsync;
         _sampleQueryResult.NavigateToForeignKeyCallback = NavigateToForeignKeyTableAsync;
+        _sampleQueryResult.CancelQueryCallback = () => _activeQueryCts?.Cancel();
 
         _sampleQueryResult.ForeignKeyInspectorModal.FetchRecordCallback = async (tgtTable, tgtCol, val) =>
         {
@@ -275,6 +310,43 @@ public partial class MainViewModel : ViewModelBase
 
         _sidebar.OpenConnectModal = () => _connectModal.Open();
 
+        _sidebar.OpenQueryInNewTab = (title, sql) =>
+        {
+            Editor.AddTab();
+            if (Editor.SelectedTab != null)
+            {
+                Editor.SelectedTab.Title = title;
+                Editor.SelectedTab.Text = sql;
+            }
+        };
+
+        _sidebar.GetCurrentEditorQuery = () => Editor.SelectedTab?.Text ?? string.Empty;
+        _sidebar.GetCurrentEditorTitle = () => Editor.SelectedTab?.Title ?? string.Empty;
+
+        _sidebar.ViewTableStructureCallback = async tableName =>
+        {
+            if (string.IsNullOrWhiteSpace(tableName)) return;
+            await LoadTablePropertiesAsync(tableName);
+            ShowSchemaPropertiesFooter();
+        };
+
+        _sidebar.ShowTableInDiagramCallback = async _ =>
+        {
+            await OpenDiagramModal();
+        };
+
+        _sidebar.GenerateTableScriptCallback = GenerateTableScriptAsync;
+
+        _sidebar.RequestTruncateConfirmationCallback = (title, msg, target, onConfirm) =>
+        {
+            _confirmModal.Show(title, msg, target, isDestructive: true, confirmText: "Truncate", onConfirmed: onConfirm);
+        };
+
+        _sidebar.RequestClearHistoryConfirmationCallback = (title, msg, onConfirm) =>
+        {
+            _confirmModal.Show(title, msg, "Query History", isDestructive: true, confirmText: "Clear All", onConfirmed: onConfirm);
+        };
+
         _sidebar.RequestActivateConnection = rec =>
         {
             _ = ActivateDatabaseConnectionAsync(rec);
@@ -311,6 +383,7 @@ public partial class MainViewModel : ViewModelBase
             SampleQueryResult.IsConnectedToDatabase = HasActiveDatabaseConnection();
             Navbar.UpdateConnectionStatus();
             Terminal.UpdateConnectionContext(DatabaseSessionService.Instance.ActiveConfig);
+            NotifyTargetSwitcherProperties();
             _ = RefreshAvailableDatabasesAsync();
         };
 
@@ -382,6 +455,7 @@ public partial class MainViewModel : ViewModelBase
                 DatabaseName = c.DatabaseName,
                 AuthType = c.AuthType,
                 Username = c.Username,
+                Password = c.Password ?? string.Empty,
                 IsLocalSqlite = false,
                 IsConnected = isOpen
             };
@@ -428,6 +502,156 @@ public partial class MainViewModel : ViewModelBase
         }
 
         SampleQueryResult.IsConnectedToDatabase = HasActiveDatabaseConnection();
+        NotifyTargetSwitcherProperties();
+        _ = RefreshServerDatabasesForSwitcherAsync();
+    }
+
+    private void NotifyTargetSwitcherProperties()
+    {
+        OnPropertyChanged(nameof(HasSelectedTargetDatabase));
+        OnPropertyChanged(nameof(ActiveTargetName));
+        OnPropertyChanged(nameof(ActiveTargetServerSummary));
+        OnPropertyChanged(nameof(ActiveTargetDialect));
+        OnPropertyChanged(nameof(HasActiveTargetDialect));
+        OnPropertyChanged(nameof(ActiveTargetStatusDotColor));
+        OnPropertyChanged(nameof(ActiveServerGroupTitle));
+    }
+
+    public async Task RefreshServerDatabasesForSwitcherAsync()
+    {
+        try
+        {
+            string? key = ResolveActiveSessionKey();
+            _activeServerDatabaseNames.Clear();
+
+            if (!string.IsNullOrEmpty(key) && DatabaseSessionService.Instance.IsSessionOpen(key))
+            {
+                var dbs = await Task.Run(() => DatabaseSessionService.Instance.GetServerDatabasesAsync(key));
+                _activeServerDatabaseNames.AddRange(dbs);
+            }
+            else if (SelectedTargetDatabase != null && !string.IsNullOrWhiteSpace(SelectedTargetDatabase.DatabaseName))
+            {
+                _activeServerDatabaseNames.Add(SelectedTargetDatabase.DatabaseName);
+            }
+
+            ApplySwitcherFilter();
+        }
+        catch
+        {
+            ApplySwitcherFilter();
+        }
+    }
+
+    private void ApplySwitcherFilter()
+    {
+        string term = SwitcherSearchFilter?.Trim().ToLowerInvariant() ?? string.Empty;
+        string currentDb = SelectedTargetDatabase?.DatabaseName
+            ?? DatabaseSessionService.Instance.ActiveConfig?.Database
+            ?? string.Empty;
+
+        FilteredServerDatabases.Clear();
+        foreach (var db in _activeServerDatabaseNames)
+        {
+            if (string.IsNullOrEmpty(term) || db.ToLowerInvariant().Contains(term))
+            {
+                FilteredServerDatabases.Add(new DatabaseSwitcherDbItem
+                {
+                    Name = db,
+                    IsCurrent = string.Equals(db, currentDb, StringComparison.OrdinalIgnoreCase)
+                });
+            }
+        }
+
+        FilteredOtherConnections.Clear();
+        foreach (var conn in AvailableTargetDatabases)
+        {
+            if (SelectedTargetDatabase != null && conn.Key == SelectedTargetDatabase.Key)
+                continue;
+
+            if (string.IsNullOrEmpty(term) ||
+                conn.FullDisplayName.ToLowerInvariant().Contains(term) ||
+                conn.ServerSummary.ToLowerInvariant().Contains(term) ||
+                conn.DialectTag.ToLowerInvariant().Contains(term))
+            {
+                FilteredOtherConnections.Add(conn);
+            }
+        }
+    }
+
+    [RelayCommand]
+    public async Task SwitchDatabaseOnActiveServerAsync(string? databaseName)
+    {
+        if (string.IsNullOrWhiteSpace(databaseName)) return;
+
+        string? key = ResolveActiveSessionKey();
+        if (!string.IsNullOrEmpty(key) && DatabaseSessionService.Instance.IsSessionOpen(key))
+        {
+            bool switched = await Task.Run(() => DatabaseSessionService.Instance.SwitchActiveDatabaseCatalogAsync(databaseName, key));
+            if (switched)
+            {
+                if (SelectedTargetDatabase != null &&
+                    (SelectedTargetDatabase.DatabaseType == DatabaseType.MSSQL || SelectedTargetDatabase.DatabaseType == DatabaseType.MySQL))
+                {
+                    SelectedTargetDatabase.DatabaseName = databaseName;
+                    SelectedTargetDatabase.DisplayName = databaseName;
+                }
+                await RefreshAvailableDatabasesAsync();
+                NotifyTargetSwitcherProperties();
+                ApplySwitcherFilter();
+                SampleQueryResult.TargetDatabaseName = SelectedTargetDatabase?.FullDisplayName ?? databaseName;
+                Navbar.UpdateConnectionStatus();
+                await Sidebar.RefreshAsync();
+            }
+            return;
+        }
+
+        var current = SelectedTargetDatabase;
+        if (current == null) return;
+
+        var config = new DatabaseConnectionConfig
+        {
+            Id = 0,
+            DatabaseType = current.DatabaseType,
+            Server = current.Server,
+            Port = current.Port,
+            Database = databaseName,
+            AuthType = current.AuthType,
+            Username = current.Username,
+            Password = current.Password ?? string.Empty,
+            FilePath = current.Server,
+            TrustServerCertificate = true
+        };
+
+        await Task.Run(() => DatabaseSessionService.Instance.ConnectAsync(config));
+        await RefreshAvailableDatabasesAsync();
+        await Sidebar.RefreshAsync();
+    }
+
+    [RelayCommand]
+    public async Task SelectTargetFromSwitcherAsync(TargetDatabaseItem? item)
+    {
+        if (item == null) return;
+        SelectedTargetDatabase = item;
+        var rec = new ConnectionRecord
+        {
+            Id = item.ConnectionId ?? 0,
+            DatabaseType = item.DatabaseType,
+            Server = item.Server,
+            Port = item.Port,
+            DatabaseName = item.DatabaseName,
+            AuthType = item.AuthType,
+            Username = item.Username,
+            Password = item.Password
+        };
+        await ActivateDatabaseConnectionAsync(rec);
+    }
+
+    [RelayCommand]
+    public void ManageConnections()
+    {
+        Sidebar.IsVisible = true;
+        Sidebar.SelectedTab = "Databases";
+        Sidebar.IsDockExpanded = true;
     }
 
     partial void OnSelectedTargetDatabaseChanged(TargetDatabaseItem? value)
@@ -438,6 +662,8 @@ public partial class MainViewModel : ViewModelBase
         {
             SampleQueryResult.TargetDatabaseName = "(No Connection)";
             SampleQueryResult.IsConnectedToDatabase = HasActiveDatabaseConnection();
+            NotifyTargetSwitcherProperties();
+            ApplySwitcherFilter();
             return;
         }
 
@@ -448,6 +674,8 @@ public partial class MainViewModel : ViewModelBase
             DatabaseSessionService.Instance.SetActiveSession(value.Key);
         }
         SampleQueryResult.IsConnectedToDatabase = HasActiveDatabaseConnection();
+        NotifyTargetSwitcherProperties();
+        ApplySwitcherFilter();
     }
 
     public async Task ActivateDatabaseConnectionAsync(ConnectionRecord record)
@@ -487,6 +715,39 @@ public partial class MainViewModel : ViewModelBase
     }
 
     private CancellationTokenSource? _activeQueryCts;
+    private Avalonia.Threading.DispatcherTimer? _queryLoadingTimer;
+    private System.Diagnostics.Stopwatch? _queryLoadingSw;
+
+    private void StartQueryLoadingTimer()
+    {
+        StopQueryLoadingTimer();
+        SampleQueryResult.LoadingElapsedText = "0.0 s";
+        if (!Avalonia.Threading.Dispatcher.UIThread.CheckAccess()) return;
+        _queryLoadingSw = System.Diagnostics.Stopwatch.StartNew();
+        _queryLoadingTimer = new Avalonia.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(100)
+        };
+        _queryLoadingTimer.Tick += (_, _) =>
+        {
+            if (_queryLoadingSw != null)
+            {
+                SampleQueryResult.LoadingElapsedText = $"{_queryLoadingSw.Elapsed.TotalSeconds:0.0} s";
+            }
+        };
+        _queryLoadingTimer.Start();
+    }
+
+    private void StopQueryLoadingTimer()
+    {
+        if (_queryLoadingTimer != null)
+        {
+            _queryLoadingTimer.Stop();
+            _queryLoadingTimer = null;
+        }
+        _queryLoadingSw?.Stop();
+        _queryLoadingSw = null;
+    }
 
     [RelayCommand]
     public async Task ExecuteQuery()
@@ -507,6 +768,8 @@ public partial class MainViewModel : ViewModelBase
         SampleQueryResult.LoadingMessage = !string.IsNullOrWhiteSpace(inferredTable) 
             ? $"Loading {inferredTable}..." 
             : "Executing query...";
+        StartQueryLoadingTimer();
+        ShowQueryResultFooter();
 
         try
         {
@@ -527,11 +790,12 @@ public partial class MainViewModel : ViewModelBase
             {
                 SampleQueryResult.IsConnectedToDatabase = false;
                 string? checkTable = ExtractTableNameFromQuery(query);
-                if (DemoDataProvider.IsSampleTableName(checkTable))
+                string normTable = DemoDataProvider.NormalizeTableName(checkTable);
+                if (DemoDataProvider.IsSampleTableName(normTable))
                 {
-                    SampleQueryResult.LoadSampleReferencedTable(checkTable!, null, null);
+                    SampleQueryResult.LoadSampleReferencedTable(normTable, null, null);
                     SampleQueryResult.LastExecutedQuery = query;
-                    SampleQueryResult.LastQueryMessage = $"Loaded sample data for '{checkTable}' ({SampleQueryResult.TotalRows} rows)";
+                    SampleQueryResult.LastQueryMessage = $"Loaded sample data for '{normTable}' ({SampleQueryResult.TotalRows} rows)";
                     SampleQueryResult.HasLastQueryMessage = true;
                     SampleQueryResult.TargetDatabaseName = "Sample DB";
                     ShowQueryResultFooter();
@@ -559,24 +823,62 @@ public partial class MainViewModel : ViewModelBase
 
             targetDbName = SelectedTargetDatabase?.FullDisplayName ?? DatabaseSessionService.Instance.TargetDisplayName;
             string key = ResolveActiveSessionKey() ?? string.Empty;
+            var targetSnapshot = SelectedTargetDatabase;
 
-            if (!string.IsNullOrEmpty(key) && !DatabaseSessionService.Instance.IsSessionOpen(key) && SelectedTargetDatabase != null)
+            if (!string.IsNullOrEmpty(key) && !DatabaseSessionService.Instance.IsSessionOpen(key) && targetSnapshot != null)
             {
-                var config = new DatabaseConnectionConfig
+                SampleQueryResult.LoadingMessage = $"Connecting to {targetSnapshot.FullDisplayName}...";
+                var connResult = await Task.Run(async () =>
                 {
-                    Id = SelectedTargetDatabase.ConnectionId ?? 0,
-                    DatabaseType = SelectedTargetDatabase.DatabaseType,
-                    Server = SelectedTargetDatabase.Server,
-                    Port = SelectedTargetDatabase.Port,
-                    Database = SelectedTargetDatabase.DatabaseName,
-                    AuthType = SelectedTargetDatabase.AuthType,
-                    Username = SelectedTargetDatabase.Username,
-                    FilePath = SelectedTargetDatabase.Server,
-                    TrustServerCertificate = true
-                };
-                var connResult = await DatabaseSessionService.Instance.ConnectAsync(config, ct);
+                    string pass = targetSnapshot.Password ?? string.Empty;
+                    if (string.IsNullOrEmpty(pass) && (targetSnapshot.ConnectionId ?? 0) > 0)
+                    {
+                        try
+                        {
+                            var savedRec = await Quell.Services.DatabaseStorageService.Instance.GetConnectionByIdAsync(targetSnapshot.ConnectionId!.Value).ConfigureAwait(false);
+                            if (savedRec != null && !string.IsNullOrEmpty(savedRec.Password))
+                            {
+                                pass = savedRec.Password;
+                                targetSnapshot.Password = pass;
+                            }
+                        }
+                        catch { }
+                    }
+
+                    var config = new DatabaseConnectionConfig
+                    {
+                        Id = targetSnapshot.ConnectionId ?? 0,
+                        DatabaseType = targetSnapshot.DatabaseType,
+                        Server = targetSnapshot.Server,
+                        Port = targetSnapshot.Port,
+                        Database = targetSnapshot.DatabaseName,
+                        AuthType = targetSnapshot.AuthType,
+                        Username = targetSnapshot.Username,
+                        Password = pass,
+                        FilePath = targetSnapshot.Server,
+                        TrustServerCertificate = true
+                    };
+                    return await DatabaseSessionService.Instance.ConnectAsync(config, ct).ConfigureAwait(false);
+                }, ct);
+
+                if (ct.IsCancellationRequested) return;
+
                 if (!connResult.Success)
                 {
+                    // Fallback to sample data if user is querying a sample table
+                    string? fallbackTable = ExtractTableNameFromQuery(query);
+                    string normFallback = DemoDataProvider.NormalizeTableName(fallbackTable);
+                    if (DemoDataProvider.IsSampleTableName(normFallback))
+                    {
+                        SampleQueryResult.LoadSampleReferencedTable(normFallback, null, null);
+                        SampleQueryResult.LastExecutedQuery = query;
+                        SampleQueryResult.LastQueryMessage = $"Loaded sample data for '{normFallback}' ({SampleQueryResult.TotalRows} rows)";
+                        SampleQueryResult.HasLastQueryMessage = true;
+                        SampleQueryResult.TargetDatabaseName = "Sample DB";
+                        ShowQueryResultFooter();
+                        return;
+                    }
+
                     SampleQueryResult.IsConnectedToDatabase = HasActiveDatabaseConnection();
                     SampleQueryResult.CurrentTableName = string.Empty;
                     SampleQueryResult.ClearMetadata();
@@ -596,6 +898,10 @@ public partial class MainViewModel : ViewModelBase
                     ShowQueryResultFooter();
                     return;
                 }
+
+                SampleQueryResult.LoadingMessage = !string.IsNullOrWhiteSpace(inferredTable)
+                    ? $"Loading {inferredTable}..."
+                    : "Executing query...";
             }
             else
             {
@@ -607,40 +913,60 @@ public partial class MainViewModel : ViewModelBase
                 ?? DatabaseSessionService.Instance.ActiveSession?.Config.DatabaseType
                 ?? DatabaseType.MSSQL;
 
-            var result = await DatabaseSessionService.Instance.ExecuteQueryAsync(query, key, ct);
+            // Execute query + optional PK/FK metadata completely off the UI thread so UI stays 100% responsive
+            var bgExec = await Task.Run(async () =>
+            {
+                var qResult = await DatabaseSessionService.Instance.ExecuteQueryAsync(query, key, ct).ConfigureAwait(false);
+                if (ct.IsCancellationRequested)
+                {
+                    return (Result: qResult, TableName: (string?)null, Pks: new List<string>(), Fks: new List<ForeignKeyRelation>());
+                }
+
+                string? table = qResult.Success && qResult.ColumnNames.Count > 0
+                    ? ExtractTableNameFromQuery(query)
+                    : null;
+
+                var pks = new List<string>();
+                var fks = new List<ForeignKeyRelation>();
+
+                if (!string.IsNullOrWhiteSpace(table))
+                {
+                    try
+                    {
+                        var pkTask = DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(table, key, ct);
+                        var fkTask = DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(table, key, ct);
+                        await Task.WhenAll(pkTask, fkTask).ConfigureAwait(false);
+                        pks = await pkTask.ConfigureAwait(false);
+                        fks = await fkTask.ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[MainViewModel] Metadata lookup failed for '{table}': {ex.Message}");
+                    }
+                }
+
+                return (Result: qResult, TableName: table, Pks: pks, Fks: fks);
+            }, ct);
+
             if (ct.IsCancellationRequested) return;
 
+            var result = bgExec.Result;
             execTime = result.ExecutionTime;
             status = result.Success ? "Success" : "Failed";
+            inferredTable = bgExec.TableName;
 
-            inferredTable = result.Success && result.ColumnNames.Count > 0
-                ? ExtractTableNameFromQuery(query)
-                : null;
             SampleQueryResult.CurrentTableName = inferredTable ?? string.Empty;
             SampleQueryResult.ClearMetadata();
 
             if (result.Success && result.ColumnNames.Count > 0)
             {
+                if (!string.IsNullOrWhiteSpace(inferredTable))
+                {
+                    SampleQueryResult.PrepareTableMetadata(bgExec.Pks, bgExec.Fks);
+                }
                 SampleQueryResult.SetResults(result.ColumnNames, result.Rows, result.ExecutionTime);
                 SampleQueryResult.LastExecutedQuery = query;
                 rowCount = result.Rows.Count;
-
-                if (!string.IsNullOrWhiteSpace(inferredTable))
-                {
-                    try
-                    {
-                        var pks = await DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(inferredTable, key, ct);
-                        var fks = await DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(inferredTable, key, ct);
-                        if (!ct.IsCancellationRequested && string.Equals(SampleQueryResult.CurrentTableName, inferredTable, StringComparison.OrdinalIgnoreCase))
-                        {
-                            SampleQueryResult.SetTableMetadata(pks, fks);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[MainViewModel] Metadata lookup failed for '{inferredTable}': {ex.Message}");
-                    }
-                }
             }
             else if (result.Success && result.ColumnNames.Count == 0)
             {
@@ -677,15 +1003,19 @@ public partial class MainViewModel : ViewModelBase
 
             SampleQueryResult.TargetDatabaseName = targetDbName;
 
-            await Quell.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
-                query, execTime, rowCount, status);
+            await Task.Run(() => Quell.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
+                query, execTime, rowCount, status, targetDbName));
 
-            _ = Sidebar.RefreshAsync();
+            _ = Sidebar.RefreshHistoryAsync();
             ShowQueryResultFooter();
         }
         catch (OperationCanceledException)
         {
-            // Superseded by newer query
+            if (ReferenceEquals(_activeQueryCts, cts))
+            {
+                SampleQueryResult.LastQueryMessage = "Query cancelled.";
+                SampleQueryResult.HasLastQueryMessage = true;
+            }
         }
         catch (Exception ex)
         {
@@ -708,8 +1038,9 @@ public partial class MainViewModel : ViewModelBase
         }
         finally
         {
-            if (_activeQueryCts == cts)
+            if (ReferenceEquals(_activeQueryCts, cts))
             {
+                StopQueryLoadingTimer();
                 SampleQueryResult.IsLoading = false;
             }
         }
@@ -724,6 +1055,8 @@ public partial class MainViewModel : ViewModelBase
 
         SampleQueryResult.IsLoading = true;
         SampleQueryResult.LoadingMessage = $"Loading {targetTable}...";
+        StartQueryLoadingTimer();
+        ShowQueryResultFooter();
 
         try
         {
@@ -759,33 +1092,38 @@ public partial class MainViewModel : ViewModelBase
             {
                 SampleQueryResult.IsConnectedToDatabase = true;
                 SampleQueryResult.CurrentDatabaseType = dbType;
-                var result = await DatabaseSessionService.Instance.ExecuteQueryAsync(query, activeKey);
+                var bgFk = await Task.Run(async () =>
+                {
+                    var res = await DatabaseSessionService.Instance.ExecuteQueryAsync(query, activeKey).ConfigureAwait(false);
+                    var pks = new List<string>();
+                    var fks = new List<ForeignKeyRelation>();
+                    if (res.Success && res.ColumnNames.Count > 0)
+                    {
+                        try
+                        {
+                            var pkTask = DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(targetTable, activeKey);
+                            var fkTask = DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(targetTable, activeKey);
+                            await Task.WhenAll(pkTask, fkTask).ConfigureAwait(false);
+                            pks = await pkTask.ConfigureAwait(false);
+                            fks = await fkTask.ConfigureAwait(false);
+                        }
+                        catch { }
+                    }
+                    return (Result: res, Pks: pks, Fks: fks);
+                });
 
+                var result = bgFk.Result;
                 if (result.Success && result.ColumnNames.Count > 0)
                 {
                     SampleQueryResult.CurrentTableName = targetTable;
                     SampleQueryResult.ClearMetadata();
+                    SampleQueryResult.PrepareTableMetadata(bgFk.Pks, bgFk.Fks);
                     SampleQueryResult.SetResults(result.ColumnNames, result.Rows, result.ExecutionTime);
                     SampleQueryResult.LastExecutedQuery = query;
                     SampleQueryResult.LastQueryMessage = result.Rows.Count == 0
                         ? $"Navigated to {targetTable} via FK [{sourceColumn} -> {targetTable}.{targetColumn}] — No matching records found (0 rows)"
                         : $"Navigated to {targetTable} via FK [{sourceColumn} -> {targetTable}.{targetColumn}] ({result.Rows.Count} rows)";
                     SampleQueryResult.HasLastQueryMessage = true;
-
-                    try
-                    {
-                        var pks = await DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(targetTable, activeKey);
-                        var fks = await DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(targetTable, activeKey);
-                        if (string.Equals(SampleQueryResult.CurrentTableName, targetTable, StringComparison.OrdinalIgnoreCase))
-                        {
-                            SampleQueryResult.SetTableMetadata(pks, fks);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[MainViewModel] Metadata lookup failed for FK target '{targetTable}': {ex.Message}");
-                    }
-
                     ShowQueryResultFooter();
                     return;
                 }
@@ -827,6 +1165,7 @@ public partial class MainViewModel : ViewModelBase
         }
         finally
         {
+            StopQueryLoadingTimer();
             SampleQueryResult.IsLoading = false;
         }
     }
@@ -835,6 +1174,8 @@ public partial class MainViewModel : ViewModelBase
     {
         SampleQueryResult.IsLoading = true;
         SampleQueryResult.LoadingMessage = "Refreshing table data...";
+        StartQueryLoadingTimer();
+        ShowQueryResultFooter();
 
         try
         {
@@ -884,34 +1225,44 @@ public partial class MainViewModel : ViewModelBase
                 return;
             }
 
-            var result = await DatabaseSessionService.Instance.ExecuteQueryAsync(queryToRun, activeKey);
+            string capturedQuery = queryToRun;
+            string currentTableFallback = SampleQueryResult.CurrentTableName;
+            var bgRef = await Task.Run(async () =>
+            {
+                var res = await DatabaseSessionService.Instance.ExecuteQueryAsync(capturedQuery, activeKey).ConfigureAwait(false);
+                string? tbl = res.Success && res.ColumnNames.Count > 0
+                    ? (ExtractTableNameFromQuery(capturedQuery) ?? (string.IsNullOrWhiteSpace(currentTableFallback) ? null : currentTableFallback))
+                    : null;
+                var pks = new List<string>();
+                var fks = new List<ForeignKeyRelation>();
+                if (!string.IsNullOrWhiteSpace(tbl))
+                {
+                    try
+                    {
+                        var pkTask = DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(tbl, activeKey);
+                        var fkTask = DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(tbl, activeKey);
+                        await Task.WhenAll(pkTask, fkTask).ConfigureAwait(false);
+                        pks = await pkTask.ConfigureAwait(false);
+                        fks = await fkTask.ConfigureAwait(false);
+                    }
+                    catch { }
+                }
+                return (Result: res, InferredTable: tbl, Pks: pks, Fks: fks);
+            });
+
+            var result = bgRef.Result;
             if (result.Success && result.ColumnNames.Count > 0)
             {
-                string? inferredTable = ExtractTableNameFromQuery(queryToRun)
-                    ?? (string.IsNullOrWhiteSpace(SampleQueryResult.CurrentTableName) ? null : SampleQueryResult.CurrentTableName);
-                SampleQueryResult.CurrentTableName = inferredTable ?? string.Empty;
+                SampleQueryResult.CurrentTableName = bgRef.InferredTable ?? string.Empty;
                 SampleQueryResult.ClearMetadata();
+                if (!string.IsNullOrWhiteSpace(bgRef.InferredTable))
+                {
+                    SampleQueryResult.PrepareTableMetadata(bgRef.Pks, bgRef.Fks);
+                }
                 SampleQueryResult.SetResults(result.ColumnNames, result.Rows, result.ExecutionTime);
                 SampleQueryResult.LastExecutedQuery = queryToRun;
                 SampleQueryResult.LastQueryMessage = $"Table refreshed ({result.Rows.Count} rows) · {result.ExecutionTime}";
                 SampleQueryResult.HasLastQueryMessage = true;
-
-                if (!string.IsNullOrWhiteSpace(inferredTable))
-                {
-                    try
-                    {
-                        var pks = await DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(inferredTable, activeKey);
-                        var fks = await DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(inferredTable, activeKey);
-                        if (string.Equals(SampleQueryResult.CurrentTableName, inferredTable, StringComparison.OrdinalIgnoreCase))
-                        {
-                            SampleQueryResult.SetTableMetadata(pks, fks);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[MainViewModel] Metadata refresh failed for '{inferredTable}': {ex.Message}");
-                    }
-                }
             }
             else if (!result.Success)
             {
@@ -927,6 +1278,7 @@ public partial class MainViewModel : ViewModelBase
         }
         finally
         {
+            StopQueryLoadingTimer();
             SampleQueryResult.IsLoading = false;
         }
     }
@@ -936,9 +1288,11 @@ public partial class MainViewModel : ViewModelBase
     {
         if (Editor.SelectedTab != null)
         {
+            string dbName = SelectedTargetDatabase?.FullDisplayName ?? DatabaseSessionService.Instance.TargetDisplayName;
+            await Sidebar.QuickSaveQueryAsync(Editor.SelectedTab.Text, Editor.SelectedTab.Title);
             await Quell.Services.DatabaseStorageService.Instance.SaveQueryHistoryAsync(
-                Editor.SelectedTab.Text, "0 ms", 0, "Saved");
-            _ = Sidebar.RefreshAsync();
+                Editor.SelectedTab.Text, "0 ms", 0, "Saved", dbName);
+            await Sidebar.RefreshHistoryAsync();
         }
     }
 
@@ -1134,8 +1488,9 @@ public partial class MainViewModel : ViewModelBase
         Sidebar.IsVisible = true;
         Sidebar.Tabs.Clear();
         Sidebar.Tabs.Add("Explorer");
-        Sidebar.Tabs.Add("Databases");
+        Sidebar.Tabs.Add("SavedQueries");
         Sidebar.Tabs.Add("History");
+        Sidebar.Tabs.Add("Databases");
         Sidebar.SelectedTab = "Explorer";
 
         // Restore Footer
@@ -2234,6 +2589,91 @@ public partial class MainViewModel : ViewModelBase
         ShowQueryResultFooter();
     }
 
+    private async Task GenerateTableScriptAsync(string tableName, string sessionKey, string mode)
+    {
+        string key = !string.IsNullOrEmpty(sessionKey) ? sessionKey : (ResolveActiveSessionKey() ?? string.Empty);
+        bool isConnected = !string.IsNullOrEmpty(key) && DatabaseSessionService.Instance.IsSessionOpen(key);
+        DatabaseType dbType = SelectedTargetDatabase?.DatabaseType
+            ?? DatabaseSessionService.Instance.ActiveSession?.Config.DatabaseType
+            ?? DatabaseType.MSSQL;
+
+        var (cols, pks) = await Task.Run(async () =>
+        {
+            var c = isConnected ? await DatabaseSessionService.Instance.GetColumnsAsync(tableName, key).ConfigureAwait(false) : new List<(string ColumnName, string DataType)>();
+            var p = isConnected ? await DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(tableName, key).ConfigureAwait(false) : new List<string>();
+            return (c, p);
+        });
+
+        string formattedTable = QueryResultTableViewModel.FormatIdentifier(tableName, dbType);
+        string clean = tableName.Trim('[', ']', '"', '`');
+        var sb = new System.Text.StringBuilder();
+
+        string upperMode = mode.ToUpperInvariant();
+        if (upperMode == "DDL")
+        {
+            sb.AppendLine($"-- DDL Script generated by Quell for {clean}");
+            sb.AppendLine($"CREATE TABLE {formattedTable} (");
+            if (cols.Count > 0)
+            {
+                for (int i = 0; i < cols.Count; i++)
+                {
+                    var col = cols[i];
+                    string pkStr = pks.Contains(col.ColumnName, StringComparer.OrdinalIgnoreCase) ? " PRIMARY KEY" : "";
+                    string comma = (i < cols.Count - 1) ? "," : "";
+                    sb.AppendLine($"    {QueryResultTableViewModel.FormatIdentifier(col.ColumnName, dbType)} {col.DataType}{pkStr}{comma}");
+                }
+            }
+            sb.AppendLine(");");
+        }
+        else if (upperMode == "INSERT")
+        {
+            string colList = cols.Count > 0
+                ? string.Join(", ", cols.Select(c => QueryResultTableViewModel.FormatIdentifier(c.ColumnName, dbType)))
+                : "col1, col2";
+            string valList = cols.Count > 0
+                ? string.Join(", ", cols.Select(c => $"<{c.ColumnName}:{c.DataType}>"))
+                : "'val1', 'val2'";
+            sb.AppendLine($"INSERT INTO {formattedTable} ({colList})");
+            sb.AppendLine($"VALUES ({valList});");
+        }
+        else if (upperMode == "UPDATE")
+        {
+            var setCols = cols.Where(c => !pks.Contains(c.ColumnName, StringComparer.OrdinalIgnoreCase)).ToList();
+            if (setCols.Count == 0) setCols = cols;
+            sb.AppendLine($"UPDATE {formattedTable}");
+            sb.AppendLine("SET");
+            for (int i = 0; i < setCols.Count; i++)
+            {
+                string comma = i < setCols.Count - 1 ? "," : "";
+                sb.AppendLine($"    {QueryResultTableViewModel.FormatIdentifier(setCols[i].ColumnName, dbType)} = <{setCols[i].ColumnName}>{comma}");
+            }
+            string pkCol = pks.FirstOrDefault() ?? cols.FirstOrDefault().ColumnName ?? "Id";
+            sb.AppendLine($"WHERE {QueryResultTableViewModel.FormatIdentifier(pkCol, dbType)} = <{pkCol}>;");
+        }
+        else if (upperMode == "DELETE")
+        {
+            string pkCol = pks.FirstOrDefault() ?? cols.FirstOrDefault().ColumnName ?? "Id";
+            sb.AppendLine($"DELETE FROM {formattedTable}");
+            sb.AppendLine($"WHERE {QueryResultTableViewModel.FormatIdentifier(pkCol, dbType)} = <{pkCol}>;");
+        }
+        else
+        {
+            string colList = cols.Count > 0
+                ? string.Join(",\n    ", cols.Select(c => QueryResultTableViewModel.FormatIdentifier(c.ColumnName, dbType)))
+                : "*";
+            sb.AppendLine(dbType == DatabaseType.MSSQL ? "SELECT TOP 100" : "SELECT");
+            sb.AppendLine($"    {colList}");
+            sb.AppendLine($"FROM {formattedTable}{(dbType == DatabaseType.MSSQL ? ";" : "\nLIMIT 100;")}");
+        }
+
+        Editor.AddTab();
+        if (Editor.SelectedTab != null)
+        {
+            Editor.SelectedTab.Title = $"{clean}_{upperMode}.sql";
+            Editor.SelectedTab.Text = sb.ToString();
+        }
+    }
+
     private void GenerateTableDdlFor(string tableName)
     {
         bool isConnected = HasActiveDatabaseConnection();
@@ -2288,15 +2728,16 @@ public partial class MainViewModel : ViewModelBase
         string clean = tableName.Trim('[', ']', '"');
         SampleSchema.TableName = clean;
 
-        var cols = isConnected
-            ? await DatabaseSessionService.Instance.GetColumnsAsync(clean, sessionKey)
-            : new List<(string ColumnName, string DataType)>();
-        var pks = isConnected
-            ? await DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(clean, sessionKey)
-            : new List<string>();
-        var fks = isConnected
-            ? await DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(clean, sessionKey)
-            : new List<ForeignKeyRelation>();
+        var (cols, pks, fks) = isConnected
+            ? await Task.Run(async () =>
+            {
+                var colsTask = DatabaseSessionService.Instance.GetColumnsAsync(clean, sessionKey);
+                var pksTask = DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(clean, sessionKey);
+                var fksTask = DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(clean, sessionKey);
+                await Task.WhenAll(colsTask, pksTask, fksTask).ConfigureAwait(false);
+                return (await colsTask.ConfigureAwait(false), await pksTask.ConfigureAwait(false), await fksTask.ConfigureAwait(false));
+            })
+            : (new List<(string ColumnName, string DataType)>(), new List<string>(), new List<ForeignKeyRelation>());
 
         if (cols.Count > 0)
         {

@@ -147,6 +147,13 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
     public FolderTreeNode? TablesFolder { get; set; }
 
     public List<TableTreeNode> AllTableNodes { get; } = new();
+    public List<TableTreeNode> AllRoutineNodes { get; } = new();
+
+    public Func<TableTreeNode, Task>? OpenTableDataAction { get; set; }
+    public Func<TableTreeNode, Task>? ViewStructureAction { get; set; }
+    public Func<TableTreeNode, Task>? ShowInDiagramAction { get; set; }
+    public Func<TableTreeNode, string, Task>? GenerateScriptAction { get; set; }
+    public Func<TableTreeNode, Task>? TruncateTableAction { get; set; }
 
     public DatabaseConnectionTreeNode(ConnectionRecord record)
     {
@@ -169,12 +176,21 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
         };
     }
 
-    public void LoadTables(System.Collections.Generic.IEnumerable<TableMetadata> tables, Func<TableTreeNode, Task>? executeAction = null)
+    private void WireTableNodeActions(TableTreeNode node, Func<TableTreeNode, Task>? executeAction)
     {
-        var tableList = tables is System.Collections.Generic.List<TableMetadata> list ? list : new System.Collections.Generic.List<TableMetadata>(tables);
-        TableCount = tableList.Count;
+        node.ExecuteAction = executeAction;
+        node.OpenTableDataAction = OpenTableDataAction ?? executeAction;
+        node.ViewStructureAction = ViewStructureAction;
+        node.ShowInDiagramAction = ShowInDiagramAction;
+        node.GenerateScriptAction = GenerateScriptAction;
+        node.TruncateTableAction = TruncateTableAction;
+    }
 
-        // If TablesFolder already exists, reconcile existing nodes to preserve state (like IsActive)!
+    public void LoadTables(IEnumerable<TableMetadata> tables, Func<TableTreeNode, Task>? executeAction = null)
+    {
+        var tableList = tables is List<TableMetadata> list ? list : new List<TableMetadata>(tables);
+        TableCount = tableList.Count(t => !t.IsProcedure);
+
         if (TablesFolder != null && AllTableNodes.Count > 0)
         {
             var existingMap = AllTableNodes.ToDictionary(n => n.FullName, StringComparer.OrdinalIgnoreCase);
@@ -184,15 +200,14 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
             {
                 if (existingMap.TryGetValue(table.FullName, out var existingNode))
                 {
-                    existingNode.ExecuteAction = executeAction;
+                    existingNode.UpdateMetadata(table);
+                    WireTableNodeActions(existingNode, executeAction);
                     updatedNodes.Add(existingNode);
                 }
                 else
                 {
-                    var newNode = new TableTreeNode(table, this)
-                    {
-                        ExecuteAction = executeAction
-                    };
+                    var newNode = new TableTreeNode(table, this);
+                    WireTableNodeActions(newNode, executeAction);
                     updatedNodes.Add(newNode);
                 }
             }
@@ -201,11 +216,11 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
             AllTableNodes.AddRange(updatedNodes);
 
             TablesFolder.Children.Clear();
-            foreach (var node in AllTableNodes)
+            foreach (var node in AllTableNodes.Where(n => !n.IsView))
             {
                 TablesFolder.Children.Add(node);
             }
-            TablesFolder.Title = $"Tables ({TableCount})";
+            TablesFolder.Title = $"Tables ({TablesFolder.Children.Count})";
             Subtitle = $"{TableCount} table(s) found";
             return;
         }
@@ -220,37 +235,60 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
 
         foreach (var table in tableList)
         {
-            var node = new TableTreeNode(table, this)
-            {
-                ExecuteAction = executeAction
-            };
+            var node = new TableTreeNode(table, this);
+            WireTableNodeActions(node, executeAction);
             AllTableNodes.Add(node);
-            folder.Children.Add(node);
+            if (!node.IsView)
+            {
+                folder.Children.Add(node);
+            }
         }
 
+        folder.Title = $"Tables ({folder.Children.Count})";
         Children.Add(folder);
         TablesFolder = folder;
         Subtitle = $"{TableCount} table(s) found";
     }
 
-    public int FilterTables(string? filter)
+    public void LoadRoutines(IEnumerable<TableMetadata> routines, Func<TableTreeNode, Task>? executeAction = null)
+    {
+        AllRoutineNodes.Clear();
+        foreach (var routine in routines)
+        {
+            var node = new TableTreeNode(routine, this);
+            WireTableNodeActions(node, executeAction);
+            AllRoutineNodes.Add(node);
+        }
+    }
+
+    public int FilterTables(string? filter) => FilterObjects(filter, "Tables");
+
+    public int FilterObjects(string? filter, string category = "Tables")
     {
         if (TablesFolder == null) return 0;
+
+        IEnumerable<TableTreeNode> source = category switch
+        {
+            "Views" => AllTableNodes.Where(n => n.IsView),
+            "Procs" => AllRoutineNodes,
+            _ => AllTableNodes.Where(n => !n.IsView)
+        };
+        var sourceList = source.ToList();
 
         TablesFolder.Children.Clear();
         var normalizedFilter = filter?.Trim().ToLowerInvariant();
 
         if (string.IsNullOrEmpty(normalizedFilter))
         {
-            foreach (var node in AllTableNodes)
+            foreach (var node in sourceList)
             {
                 TablesFolder.Children.Add(node);
             }
-            TablesFolder.Title = $"Tables ({AllTableNodes.Count})";
-            return AllTableNodes.Count;
+            TablesFolder.Title = $"{category} ({sourceList.Count})";
+            return sourceList.Count;
         }
 
-        var matches = AllTableNodes.Where(n =>
+        var matches = sourceList.Where(n =>
             n.FullName.ToLowerInvariant().Contains(normalizedFilter) ||
             n.TableName.ToLowerInvariant().Contains(normalizedFilter) ||
             n.SchemaName.ToLowerInvariant().Contains(normalizedFilter)
@@ -261,7 +299,7 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
             TablesFolder.Children.Add(node);
         }
 
-        TablesFolder.Title = $"Tables ({matches.Count}/{AllTableNodes.Count})";
+        TablesFolder.Title = $"{category} ({matches.Count}/{sourceList.Count})";
         if (matches.Count > 0)
         {
             IsExpanded = true;
@@ -275,6 +313,7 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
     {
         Children.Clear();
         AllTableNodes.Clear();
+        AllRoutineNodes.Clear();
         TablesFolder = null;
         TableCount = 0;
         Subtitle = DatabaseType.ToDialectString();
@@ -303,18 +342,37 @@ public partial class FolderTreeNode : SidebarTreeNodeBase
 
 public partial class TableTreeNode : SidebarTreeNodeBase
 {
-    public TableMetadata Table { get; }
+    public TableMetadata Table { get; private set; }
     public DatabaseConnectionTreeNode DatabaseNode { get; }
 
     public string TableName => Table.TableName;
     public string SchemaName => Table.SchemaName;
     public string FullName => Table.FullName;
     public string DisplayType => Table.DisplayType;
+    public bool IsView => Table.IsView;
+    public bool IsProcedure => Table.IsProcedure;
+    public bool IsTable => Table.IsTable;
+    public string FormattedRowCount => Table.FormattedRowCount;
+    public bool HasRowCount => !string.IsNullOrEmpty(Table.FormattedRowCount);
 
     public Func<TableTreeNode, Task>? ExecuteAction { get; set; }
+    public Func<TableTreeNode, Task>? OpenTableDataAction { get; set; }
+    public Func<TableTreeNode, Task>? ViewStructureAction { get; set; }
+    public Func<TableTreeNode, Task>? ShowInDiagramAction { get; set; }
+    public Func<TableTreeNode, string, Task>? GenerateScriptAction { get; set; }
+    public Func<TableTreeNode, Task>? TruncateTableAction { get; set; }
 
     [ObservableProperty]
     private bool _isActive;
+
+    public void UpdateMetadata(TableMetadata metadata)
+    {
+        Table = metadata;
+        OnPropertyChanged(nameof(Table));
+        OnPropertyChanged(nameof(FormattedRowCount));
+        OnPropertyChanged(nameof(HasRowCount));
+        OnPropertyChanged(nameof(DisplayType));
+    }
 
     [RelayCommand]
     public async Task ExecuteTop100Async()
@@ -326,14 +384,74 @@ public partial class TableTreeNode : SidebarTreeNodeBase
     }
 
     [RelayCommand]
+    public async Task OpenTableDataAsync()
+    {
+        if (OpenTableDataAction != null)
+        {
+            await OpenTableDataAction(this);
+        }
+        else if (ExecuteAction != null)
+        {
+            await ExecuteAction(this);
+        }
+    }
+
+    [RelayCommand]
+    public async Task ViewStructureAsync()
+    {
+        if (ViewStructureAction != null)
+        {
+            await ViewStructureAction(this);
+        }
+    }
+
+    [RelayCommand]
+    public async Task ShowInDiagramAsync()
+    {
+        if (ShowInDiagramAction != null)
+        {
+            await ShowInDiagramAction(this);
+        }
+    }
+
+    [RelayCommand]
+    public async Task GenerateScriptAsync(string mode)
+    {
+        if (GenerateScriptAction != null)
+        {
+            await GenerateScriptAction(this, mode);
+        }
+    }
+
+    [RelayCommand]
     public async Task CopyTableNameAsync()
+    {
+        await CopyTextAsync(TableName);
+    }
+
+    [RelayCommand]
+    public async Task CopyQualifiedNameAsync()
+    {
+        await CopyTextAsync(FullName);
+    }
+
+    [RelayCommand]
+    public async Task TruncateTableAsync()
+    {
+        if (TruncateTableAction != null)
+        {
+            await TruncateTableAction(this);
+        }
+    }
+
+    private static async Task CopyTextAsync(string text)
     {
         if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
         {
             var clipboard = desktop.MainWindow?.Clipboard;
             if (clipboard != null)
             {
-                await clipboard.SetTextAsync(FullName);
+                await clipboard.SetTextAsync(text);
             }
         }
     }

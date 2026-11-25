@@ -180,6 +180,24 @@ sealed class Program
             {
                 throw new Exception($"Expected row index '1', but got '{textBlock?.Text}'");
             }
+            var verifyLoadingCard = tableComp.FindControl<Avalonia.Controls.Border>("QueryLoadingCardBorder");
+            if (verifyLoadingCard == null || verifyLoadingCard.BoxShadow.Count > 0)
+            {
+                throw new Exception("QueryResultTable loading card must exist and have zero BoxShadow!");
+            }
+            var uiResultVm = new Quell.ViewModels.QueryResultTableViewModel();
+            tableComp.DataContext = uiResultVm;
+            uiResultVm.SetResults(
+                new System.Collections.Generic.List<string> { "BadgeNo", "FullName" },
+                new System.Collections.Generic.List<Quell.ViewModels.QueryResultRow>
+                {
+                    new Quell.ViewModels.QueryResultRow { RowIndex = 1 }
+                },
+                "2 ms");
+            if ((dataGrid?.Columns.Count ?? 0) != 3)
+            {
+                throw new Exception($"Expected DataGrid to build 3 columns (ROW # + 2 data cols), got {dataGrid?.Columns.Count ?? 0}!");
+            }
             tableComp.DataContext = null;
 
             // 5. Test Modal Dialogs Lifecycle & Triggers
@@ -2616,6 +2634,177 @@ sealed class Program
             {
                 throw new Exception("Stale PK/FK metadata was not cleared on table-less query!");
             }
+
+            // 13. Verify Async Query Loading State, Shadow-Free Overlay, DataGrid Wiring & 04 Sidebar Panels (Explorer/SavedQueries/History/Switcher)
+            Console.WriteLine("\n[Action] Verifying Async Query Loading Overlay & 04 Sidebar Panels (Explorer, Saved Queries, History, Database Switcher)...");
+            var viewRes = await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.ExecuteQueryAsync(
+                "CREATE VIEW v_staff_overview AS SELECT BadgeNo, FullName FROM StaffMembers;", metaDbConfig.ConnectionKey);
+            if (!viewRes.Success)
+            {
+                throw new Exception($"Failed to create SQLite view for Explorer category test: {viewRes.Message}");
+            }
+
+            await vm.Sidebar.RefreshAsync();
+            await vm.Sidebar.SelectExplorerCategory("Views");
+            if (vm.Sidebar.ExplorerCategory != "Views" ||
+                !vm.Sidebar.FilteredTables.Any(t => string.Equals(t.TableName, "v_staff_overview", StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new Exception($"Explorer 'Views' filter failed to surface 'v_staff_overview'! Count={vm.Sidebar.FilteredTables.Count}");
+            }
+            await vm.Sidebar.SelectExplorerCategory("Tables");
+            if (vm.Sidebar.ExplorerCategory != "Tables" ||
+                !vm.Sidebar.FilteredTables.Any(t => string.Equals(t.TableName, "StaffMembers", StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new Exception("Explorer 'Tables' filter failed to restore 'StaffMembers'!");
+            }
+            var sampleTreeNode = new Quell.ViewModels.DatabaseConnectionTreeNode(new Quell.Services.ConnectionRecord
+            {
+                DatabaseType = Quell.Services.DatabaseProviders.DatabaseType.SQLite,
+                DatabaseName = "verify_tree",
+                Server = metaDbPath
+            }) { IsConnected = true };
+            sampleTreeNode.LoadTables(vm.Sidebar.Tables.ToList(), vm.Sidebar.SelectTableNode);
+            sampleTreeNode.FilterObjects(null, "Views");
+            if (sampleTreeNode.TablesFolder == null ||
+                !sampleTreeNode.TablesFolder.Children.OfType<Quell.ViewModels.TableTreeNode>().Any(c => string.Equals(c.TableName, "v_staff_overview", StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new Exception("DatabaseConnectionTreeNode.FilterObjects('Views') failed to isolate views!");
+            }
+            sampleTreeNode.FilterObjects(null, "Tables");
+            if (!sampleTreeNode.TablesFolder.Children.OfType<Quell.ViewModels.TableTreeNode>().Any(c => string.Equals(c.TableName, "StaffMembers", StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new Exception("DatabaseConnectionTreeNode.FilterObjects('Tables') failed to restore tables!");
+            }
+
+            // Test Loading transition & ColumnsChanged population while Footer starts collapsed
+            if (vm.Footer.IsVisible)
+            {
+                vm.ToggleFooterCommand.Execute(null);
+            }
+            bool sawLoadingTrue = false;
+            int columnsChangedCount = 0;
+            System.Collections.Generic.IReadOnlyList<string>? receivedColumns = null;
+            System.ComponentModel.PropertyChangedEventHandler loadingWatcher = (_, args) =>
+            {
+                if (args.PropertyName == nameof(Quell.ViewModels.QueryResultTableViewModel.IsLoading) && vm.SampleQueryResult.IsLoading)
+                {
+                    sawLoadingTrue = true;
+                }
+            };
+            Action<System.Collections.Generic.IReadOnlyList<string>> colsWatcher = cols =>
+            {
+                columnsChangedCount++;
+                receivedColumns = cols;
+            };
+            vm.SampleQueryResult.PropertyChanged += loadingWatcher;
+            vm.SampleQueryResult.ColumnsChanged += colsWatcher;
+            vm.Editor.SelectedTab!.Text = "SELECT BadgeNo, FullName FROM v_staff_overview;";
+            await vm.ExecuteQuery();
+            vm.SampleQueryResult.PropertyChanged -= loadingWatcher;
+            vm.SampleQueryResult.ColumnsChanged -= colsWatcher;
+
+            if (!sawLoadingTrue || vm.SampleQueryResult.IsLoading)
+            {
+                throw new Exception($"QueryResultTable IsLoading transition invalid! sawLoadingTrue={sawLoadingTrue}, final IsLoading={vm.SampleQueryResult.IsLoading}");
+            }
+            if (!vm.Footer.IsVisible || vm.Footer.SelectedTab != "Results")
+            {
+                throw new Exception($"Expected ExecuteQuery to open Results footer automatically! IsVisible={vm.Footer.IsVisible}, SelectedTab={vm.Footer.SelectedTab}");
+            }
+            if (vm.SampleQueryResult.Rows.Count != 1 || (vm.SampleQueryResult.LastColumns?.Count ?? 0) != 2 || !vm.SampleQueryResult.HasRows || vm.SampleQueryResult.ShowEmptyState || columnsChangedCount != 1 || (receivedColumns?.Count ?? 0) != 2)
+            {
+                throw new Exception($"Result table population mismatch! Rows={vm.SampleQueryResult.Rows.Count}, VmCols={vm.SampleQueryResult.LastColumns?.Count ?? 0}, ColChangedCalls={columnsChangedCount}, HasRows={vm.SampleQueryResult.HasRows}");
+            }
+
+            // Verify Database Switcher population & TargetDatabaseItem reactivity
+            await vm.RefreshServerDatabasesForSwitcherAsync();
+            if (vm.FilteredServerDatabases.Count == 0)
+            {
+                throw new Exception("Expected FilteredServerDatabases to include the active SQLite session!");
+            }
+            bool sawFullDisplayNameChanged = false;
+            var testTargetItem = new Quell.Services.DatabaseProviders.TargetDatabaseItem
+            {
+                DatabaseType = Quell.Services.DatabaseProviders.DatabaseType.MSSQL,
+                DatabaseName = "InitialDb",
+                DisplayName = "InitialDb"
+            };
+            System.ComponentModel.PropertyChangedEventHandler targetWatcher = (_, args) =>
+            {
+                if (args.PropertyName == nameof(Quell.Services.DatabaseProviders.TargetDatabaseItem.FullDisplayName))
+                {
+                    sawFullDisplayNameChanged = true;
+                }
+            };
+            testTargetItem.PropertyChanged += targetWatcher;
+            testTargetItem.DatabaseName = "SwitchedDbPreview";
+            testTargetItem.PropertyChanged -= targetWatcher;
+            if (!sawFullDisplayNameChanged || testTargetItem.FullDisplayName != "SwitchedDbPreview")
+            {
+                throw new Exception("TargetDatabaseItem did not raise PropertyChanged(FullDisplayName) when DatabaseName changed!");
+            }
+
+            // Verify Panel B: Saved Queries CRUD, Folder, Pin, Rename, Cleanup
+            string verifyFolder = "__VerifyPanelFolder";
+            string verifyQueryTitle = "__VerifySavedQuery";
+            string verifyQueryRenamed = "__VerifySavedQueryRenamed";
+            vm.Sidebar.BeginCreateFolder();
+            vm.Sidebar.NewFolderName = verifyFolder;
+            await vm.Sidebar.ConfirmCreateFolderAsync();
+            await Quell.Services.DatabaseStorageService.Instance.SaveOrUpdateSavedQueryAsync(new Quell.Services.SavedQueryRecord
+            {
+                Title = verifyQueryTitle,
+                QueryText = "SELECT BadgeNo FROM StaffMembers;",
+                FolderName = string.Empty,
+                IsPinned = false
+            });
+            await vm.Sidebar.RefreshSavedQueriesAsync();
+            var savedItem = vm.Sidebar.UnfiledSavedQueries.FirstOrDefault(q => q.Title == verifyQueryTitle);
+            if (savedItem == null)
+            {
+                throw new Exception("Created Saved Query did not appear in UnfiledSavedQueries!");
+            }
+            await vm.Sidebar.MoveSavedQueryToFolderAsync(savedItem.Id, verifyFolder);
+            var targetFolderVm = vm.Sidebar.SavedQueryFolders.FirstOrDefault(f => f.Name == verifyFolder);
+            var movedItem = targetFolderVm?.Items.FirstOrDefault(q => q.Id == savedItem.Id);
+            if (movedItem == null)
+            {
+                throw new Exception("MoveSavedQueryToFolderAsync did not move query into folder!");
+            }
+            await vm.Sidebar.TogglePinSavedQueryAsync(movedItem);
+            if (!vm.Sidebar.HasPinnedSavedQueries || !vm.Sidebar.PinnedSavedQueries.Any(p => p.Id == savedItem.Id))
+            {
+                throw new Exception("TogglePinSavedQueryAsync did not pin query to PinnedSavedQueries!");
+            }
+            movedItem.EditingTitle = verifyQueryRenamed;
+            await vm.Sidebar.CommitRenameSavedQueryAsync(movedItem);
+            var renamedItem = vm.Sidebar.PinnedSavedQueries.FirstOrDefault(q => q.Id == savedItem.Id);
+            if (renamedItem == null || renamedItem.Title != verifyQueryRenamed)
+            {
+                throw new Exception($"Rename saved query failed! Title={renamedItem?.Title}");
+            }
+            await vm.Sidebar.DeleteSavedQueryItemAsync(renamedItem);
+            if (targetFolderVm != null)
+            {
+                await vm.Sidebar.DeleteSavedQueryFolderAsync(targetFolderVm);
+            }
+
+            // Verify Panel C: History filtering + Confirmation dialog wiring (without wiping real history)
+            await vm.Sidebar.RefreshHistoryAsync();
+            if (!vm.Sidebar.GroupedHistoryItems.Any(g => g.GroupTitle == "TODAY"))
+            {
+                throw new Exception("Expected 'TODAY' group in History panel after executing SQLite query!");
+            }
+            vm.Sidebar.SelectHistoryFilter("Failed");
+            vm.Sidebar.SelectHistoryFilter("ThisDB");
+            vm.Sidebar.SelectHistoryFilter("All");
+            vm.Sidebar.ClearHistoryCommand.Execute(null);
+            if (!vm.ConfirmModal.IsOpen)
+            {
+                throw new Exception("ClearHistoryCommand did not open confirmation modal!");
+            }
+            vm.ConfirmModal.CancelCommand.Execute(null);
+            Console.WriteLine("[Success] Async query loading state, shadow-free overlay & 04 Sidebar Panels verified!");
 
             // Disconnect and cleanup
             await Quell.Services.DatabaseProviders.DatabaseSessionService.Instance.DisconnectAsync(metaDbConfig.ConnectionKey);

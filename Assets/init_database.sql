@@ -38,13 +38,23 @@ CREATE TABLE IF NOT EXISTS QueryHistory (
     ExecutedAt TEXT NOT NULL,
     ExecutionTime TEXT NOT NULL,
     RowCount INTEGER NOT NULL,
-    Status TEXT NOT NULL
+    Status TEXT NOT NULL,
+    DatabaseName TEXT DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS SavedQueryFolders (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    Name TEXT NOT NULL UNIQUE,
+    IsExpanded INTEGER NOT NULL DEFAULT 1,
+    CreatedAt TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS SavedQueries (
     Id INTEGER PRIMARY KEY AUTOINCREMENT,
     Title TEXT NOT NULL,
     QueryText TEXT NOT NULL,
+    FolderName TEXT DEFAULT '',
+    IsPinned INTEGER NOT NULL DEFAULT 0,
     UpdatedAt TEXT NOT NULL
 );
 

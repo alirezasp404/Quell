@@ -17,7 +17,7 @@
             <Setter Property="Background" Value="{DynamicResource AppTerminalTabBackgroundBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppTerminalTabBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="CornerRadius" Value="7"/>
             <Setter Property="Padding" Value="10,3,6,3"/>
             <Setter Property="Height" Value="28"/>
             <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}"/>
@@ -30,9 +30,9 @@
             <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
         </Style>
         <Style Selector="Button.modern-terminal-tab.active">
-            <Setter Property="Background" Value="{DynamicResource AppTerminalTabActiveBackgroundBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AppTerminalTabActiveBorderBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AppChipActiveBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppChipActiveForegroundBrush}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
 
@@ -41,7 +41,7 @@
             <Setter Property="Background" Value="{DynamicResource AppButtonBackgroundBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppButtonBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="5"/>
+            <Setter Property="CornerRadius" Value="7"/>
             <Setter Property="Padding" Value="8,2"/>
             <Setter Property="Height" Value="26"/>
             <Setter Property="Foreground" Value="{DynamicResource AppButtonForegroundBrush}"/>
@@ -142,21 +142,18 @@
                                         <ui:FASymbolIcon Symbol="Play" FontSize="10" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center" />
 
                                         <!-- Title -->
-                                        <TextBlock Text="{Binding Title}" FontSize="11" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding Title}" FontSize="11.5" VerticalAlignment="Center" />
 
                                         <!-- Live Status Dot -->
-                                        <Ellipse Width="6" Height="6" Fill="#10B981" VerticalAlignment="Center" IsVisible="{Binding IsRunning}" ToolTip.Tip="Running" />
-                                        <Ellipse Width="6" Height="6" Fill="#64748B" VerticalAlignment="Center" IsVisible="{Binding !IsRunning}" ToolTip.Tip="Stopped" />
+                                        <Ellipse Width="6" Height="6" Fill="{DynamicResource AppStatusActiveBrush}" VerticalAlignment="Center" IsVisible="{Binding IsRunning}" ToolTip.Tip="Running" />
+                                        <Ellipse Width="6" Height="6" Fill="{DynamicResource AppTextMutedBrush}" VerticalAlignment="Center" IsVisible="{Binding !IsRunning}" ToolTip.Tip="Stopped" />
 
-                                        <!-- Circular Close Button -->
-                                        <Button Classes="terminal-action-btn"
-                                                Width="16" Height="16" Padding="0" CornerRadius="8"
-                                                BorderThickness="0"
-                                                Background="Transparent"
+                                        <!-- Close Button -->
+                                        <Button Classes="quell-tab-close-btn"
                                                 ToolTip.Tip="Close session"
                                                 Command="{Binding CloseSessionCommand}"
                                                 VerticalAlignment="Center">
-                                            <ui:FASymbolIcon Symbol="Dismiss" FontSize="8" Foreground="{DynamicResource AppTextMutedBrush}" />
+                                            <ui:FASymbolIcon Symbol="Dismiss" FontSize="8" />
                                         </Button>
                                     </StackPanel>
                                 </Button>
