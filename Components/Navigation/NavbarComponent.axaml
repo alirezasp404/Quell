@@ -213,7 +213,19 @@
             <Setter Property="RenderTransform" Value="scale(0.96)"/>
         </Style>
 
-        <!-- Dropdown Popup Border & Shadow Styling -->
+        <!-- Dropdown Popup Border & Shadow Styling (Zero Black Corners) -->
+        <Style Selector="Menu.navbar-menu-strip MenuItem /template/ Popup#PART_Popup">
+            <Setter Property="WindowManagerAddShadowHint" Value="False"/>
+            <Setter Property="ShouldUseOverlayLayer" Value="True"/>
+        </Style>
+        <Style Selector="Menu.navbar-menu-strip MenuItem /template/ Popup#PART_Popup > Border">
+            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="BoxShadow" Value="0 8 24 0 #40000000"/>
+            <Setter Property="ClipToBounds" Value="True"/>
+        </Style>
         <Style Selector="Menu.navbar-menu-strip MenuItem /template/ Border#PART_Border">
             <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>

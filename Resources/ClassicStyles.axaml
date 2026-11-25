@@ -163,6 +163,7 @@
     </Style>
     <Style Selector="Popup">
         <Setter Property="WindowManagerAddShadowHint" Value="False"/>
+        <Setter Property="ShouldUseOverlayLayer" Value="True"/>
     </Style>
 
     <!-- Dropdown Popup and Flyout Presenters (Theme-Colored Borders, No Black Outline) -->
@@ -171,6 +172,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="ClipToBounds" Value="True"/>
         <Setter Property="Padding" Value="2"/>
         <Setter Property="MinWidth" Value="110"/>
         <Setter Property="FocusAdorner" Value="{x:Null}"/>
@@ -180,6 +182,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="ClipToBounds" Value="True"/>
         <Setter Property="Padding" Value="2"/>
         <Setter Property="MinWidth" Value="110"/>
         <Setter Property="FocusAdorner" Value="{x:Null}"/>
@@ -208,6 +211,26 @@
     </Style>
 
     <!-- Top-Level Menu and MenuItem Dropdown Popup Borders (Zero Black Corners) -->
+    <Style Selector="MenuItem /template/ Popup#PART_Popup">
+        <Setter Property="WindowManagerAddShadowHint" Value="False"/>
+        <Setter Property="ShouldUseOverlayLayer" Value="True"/>
+    </Style>
+    <Style Selector="MenuItem /template/ Popup#PART_Popup > Border">
+        <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="BoxShadow" Value="0 8 24 0 #40000000"/>
+        <Setter Property="ClipToBounds" Value="True"/>
+    </Style>
+    <Style Selector="Menu > MenuItem /template/ Popup#PART_Popup > Border">
+        <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="BoxShadow" Value="0 8 24 0 #40000000"/>
+        <Setter Property="ClipToBounds" Value="True"/>
+    </Style>
     <Style Selector="MenuItem /template/ Border#PART_Border">
         <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
@@ -241,7 +264,9 @@
         <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="ClipToBounds" Value="True"/>
         <Setter Property="Padding" Value="8,4"/>
+        <Setter Property="ToolTip.ShouldUseOverlayLayer" Value="True"/>
     </Style>
 
     <!-- CheckBoxes & RadioButtons -->

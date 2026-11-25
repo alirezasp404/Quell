@@ -194,7 +194,15 @@ public class HardwareGraphicsService
                     {
                         Win32CompositionMode.LowLatencyDxgiSwapChain,
                         Win32CompositionMode.RedirectionSurface
-                    }
+                    },
+                    OverlayPopups = true
+                });
+            }
+            else if (OperatingSystem.IsLinux())
+            {
+                builder.With(new X11PlatformOptions
+                {
+                    OverlayPopups = true
                 });
             }
 
@@ -214,7 +222,15 @@ public class HardwareGraphicsService
                     RenderingMode = new[]
                     {
                         Win32RenderingMode.Software // Force lightweight CPU rasterization
-                    }
+                    },
+                    OverlayPopups = true
+                });
+            }
+            else if (OperatingSystem.IsLinux())
+            {
+                builder.With(new X11PlatformOptions
+                {
+                    OverlayPopups = true
                 });
             }
 
