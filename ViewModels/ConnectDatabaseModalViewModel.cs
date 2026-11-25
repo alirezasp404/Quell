@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Controls;
+using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Quell.Services;
@@ -59,15 +62,19 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
     private ConnectionRecord? _selectedSavedConnection;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ConnectionPreviewSummary))]
     private string _server = "localhost";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ConnectionPreviewSummary))]
     private int _port = 1433;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ConnectionPreviewSummary))]
     private string _database = "master";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ConnectionPreviewSummary))]
     private string _filePath = string.Empty;
 
     [ObservableProperty]
@@ -87,13 +94,31 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
     private string _password = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPasswordHidden))]
+    private bool _isPasswordRevealed;
+
+    public bool IsPasswordHidden => !IsPasswordRevealed;
+
+    [ObservableProperty]
     private bool _trustServerCertificate = true;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsStatusSuccess))]
+    [NotifyPropertyChangedFor(nameof(IsStatusError))]
+    [NotifyPropertyChangedFor(nameof(IsStatusInfo))]
     private string? _statusMessage;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsStatusSuccess))]
+    [NotifyPropertyChangedFor(nameof(IsStatusError))]
+    [NotifyPropertyChangedFor(nameof(IsStatusInfo))]
     private bool? _isSuccess;
+
+    public bool IsStatusSuccess => IsSuccess == true;
+    public bool IsStatusError => IsSuccess == false;
+    public bool IsStatusInfo => IsSuccess == null && !string.IsNullOrWhiteSpace(StatusMessage);
+
+    public bool HasSavedConnections => SavedConnections.Count > 0;
 
     [ObservableProperty]
     private bool _isTesting;
@@ -106,6 +131,29 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
     public bool SupportsWindowsAuth => SelectedDatabaseType == DatabaseType.MSSQL;
     public bool SupportsTrustCertificate => SelectedDatabaseType == DatabaseType.MSSQL;
     public bool IsCredentialsEnabled => AuthType != "Windows Authentication" || IsFileBased;
+
+    public string ConnectionPreviewSummary
+    {
+        get
+        {
+            if (IsFileBased)
+            {
+                string pathDisplay = string.IsNullOrWhiteSpace(FilePath) ? ":memory:" : System.IO.Path.GetFileName(FilePath.Trim());
+                return $"SQLite  •  {pathDisplay}";
+            }
+
+            string hostDisplay = string.IsNullOrWhiteSpace(Server) ? "localhost" : Server.Trim();
+            string dbDisplay = string.IsNullOrWhiteSpace(Database) ? "default" : Database.Trim();
+            string engineTag = SelectedDatabaseType switch
+            {
+                DatabaseType.MSSQL => "MSSQL",
+                DatabaseType.PostgreSQL => "PostgreSQL",
+                DatabaseType.MySQL => "MySQL",
+                _ => SelectedDatabaseType.ToString()
+            };
+            return $"{engineTag}  •  {hostDisplay}:{Port}  •  {dbDisplay}";
+        }
+    }
 
     public string ModalSubtitle => SelectedDatabaseType switch
     {
@@ -142,6 +190,47 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
         OnPropertyChanged(nameof(SupportsTrustCertificate));
         OnPropertyChanged(nameof(IsCredentialsEnabled));
         OnPropertyChanged(nameof(ModalSubtitle));
+        OnPropertyChanged(nameof(ConnectionPreviewSummary));
+    }
+
+    [RelayCommand]
+    public void TogglePasswordVisibility()
+    {
+        IsPasswordRevealed = !IsPasswordRevealed;
+    }
+
+    [RelayCommand]
+    public void UseInMemorySqlite()
+    {
+        FilePath = ":memory:";
+    }
+
+    [RelayCommand]
+    public async Task BrowseSqliteFileAsync(TopLevel? topLevel)
+    {
+        if (topLevel?.StorageProvider == null) return;
+
+        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Select SQLite Database File",
+            AllowMultiple = false,
+            FileTypeFilter = new List<FilePickerFileType>
+            {
+                new("SQLite Databases (*.db, *.sqlite, *.sqlite3)")
+                {
+                    Patterns = new[] { "*.db", "*.sqlite", "*.sqlite3", "*.db3" }
+                },
+                new("All Files (*.*)")
+                {
+                    Patterns = new[] { "*.*" }
+                }
+            }
+        });
+
+        if (files.Count > 0)
+        {
+            FilePath = files[0].Path.LocalPath;
+        }
     }
 
     [RelayCommand]
@@ -211,6 +300,10 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
         {
             Console.WriteLine($"[ConnectModal] LoadSavedConnections error: {ex.Message}");
         }
+        finally
+        {
+            OnPropertyChanged(nameof(HasSavedConnections));
+        }
     }
 
     [RelayCommand]
@@ -218,6 +311,7 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
     {
         EditingConnectionId = null;
         IsOpen = true;
+        IsPasswordRevealed = false;
         StatusMessage = null;
         IsSuccess = null;
         _ = LoadSavedConnectionsAsync();
@@ -232,6 +326,7 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
         Port = record.Port;
         Database = record.DatabaseName;
         Password = record.Password ?? string.Empty;
+        IsPasswordRevealed = false;
         if (!string.IsNullOrEmpty(record.AuthType)) AuthType = record.AuthType;
         if (!string.IsNullOrEmpty(record.Username)) Username = record.Username;
         if (record.DatabaseType == DatabaseType.SQLite) FilePath = record.Server;
@@ -245,6 +340,7 @@ public partial class ConnectDatabaseModalViewModel : ViewModelBase
     public void Close()
     {
         IsOpen = false;
+        IsPasswordRevealed = false;
         StatusMessage = null;
         IsSuccess = null;
         IsTesting = false;

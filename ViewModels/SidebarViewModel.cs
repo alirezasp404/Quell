@@ -183,14 +183,6 @@ public partial class SidebarViewModel : ViewModelBase
 
     public bool HasSearchFilter => !string.IsNullOrWhiteSpace(TableSearchFilter);
 
-    [ObservableProperty]
-    private bool _filterActiveOnly;
-
-    partial void OnFilterActiveOnlyChanged(bool value)
-    {
-        ApplyFilter();
-    }
-
     public string SearchPlaceholderText
     {
         get
@@ -440,17 +432,7 @@ public partial class SidebarViewModel : ViewModelBase
             foreach (var node in DatabaseNodes)
             {
                 node.FilterObjects(null, ExplorerCategory);
-                if (FilterActiveOnly)
-                {
-                    if (node.IsActive)
-                    {
-                        FilteredDatabaseNodes.Add(node);
-                    }
-                }
-                else
-                {
-                    FilteredDatabaseNodes.Add(node);
-                }
+                FilteredDatabaseNodes.Add(node);
             }
 
             var active = DatabaseNodes.FirstOrDefault(n => n.IsActive);
@@ -472,11 +454,6 @@ public partial class SidebarViewModel : ViewModelBase
         int totalMatchingTables = 0;
         foreach (var node in DatabaseNodes)
         {
-            if (FilterActiveOnly && !node.IsActive)
-            {
-                continue;
-            }
-
             int matchingCount = node.FilterObjects(filter, ExplorerCategory);
             bool dbMatch = node.Title.ToLowerInvariant().Contains(filter) ||
                            node.DatabaseType.ToDialectString().ToLowerInvariant().Contains(filter) ||
