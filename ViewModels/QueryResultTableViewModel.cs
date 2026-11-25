@@ -1,17 +1,18 @@
+using Quell.Services;
 using Quell.Services.DatabaseProviders;
 using Quell.Services.DemoData;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
-using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Input.Platform;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace Quell.ViewModels;
+
+public sealed record PasteCellSlot(QueryResultRow Row, string ColumnName, int MatrixRow, int MatrixCol);
 
 public partial class QueryResultRow : ObservableObject
 {
@@ -490,11 +491,17 @@ public partial class QueryResultTableViewModel : ViewModelBase
 
     public Func<string, Task<bool>>? ExecuteQueryCallback { get; set; }
 
+    public Func<string, Task<(bool Success, string? ErrorMessage)>>? ExecuteQueryDetailedCallback { get; set; }
+
     public Action<string>? InsertQueryToEditorCallback { get; set; }
 
     public Func<IReadOnlyList<QueryResultRow>>? GetSelectedRowsCallback { get; set; }
 
     public Func<IReadOnlyList<string>>? GetSelectedColumnsCallback { get; set; }
+
+    public Func<Task<string?>>? GetClipboardTextCallback { get; set; }
+
+    public Func<int, int, IReadOnlyList<PasteCellSlot>>? ResolvePasteTargetsCallback { get; set; }
 
     public event Action<IReadOnlyList<string>>? ColumnsChanged;
 
@@ -585,14 +592,18 @@ public partial class QueryResultTableViewModel : ViewModelBase
 
     public void OpenEditCell(QueryResultRow? row, string? columnName = null)
     {
+        if (!HasRows) return;
+
         var selectedRows = GetSelectedRowsCallback?.Invoke();
         var selectedCols = GetSelectedColumnsCallback?.Invoke();
 
         if (selectedRows != null && selectedRows.Count > 1)
         {
-            var cols = !string.IsNullOrWhiteSpace(columnName) && columnName != "ROW #" 
-                ? new[] { columnName } 
-                : (selectedCols != null && selectedCols.Count > 0 ? selectedCols : new[] { "Name" });
+            var cols = !string.IsNullOrWhiteSpace(columnName) && columnName != "ROW #"
+                ? new[] { columnName }
+                : (selectedCols != null && selectedCols.Count > 0 ? selectedCols : Array.Empty<string>());
+            if (cols.Count == 0) return;
+
             EditCellModal.OpenBatch(selectedRows, cols, CurrentTableName, CurrentDatabaseType, PrimaryKeyColumns);
             return;
         }
@@ -600,27 +611,33 @@ public partial class QueryResultTableViewModel : ViewModelBase
         var targetRow = row ?? selectedRows?.FirstOrDefault() ?? SelectedRow ?? Rows.FirstOrDefault();
         if (targetRow == null) return;
 
-        string col = string.IsNullOrWhiteSpace(columnName) || columnName == "ROW #" 
-            ? (selectedCols?.FirstOrDefault() ?? "Name") 
-            : columnName;
+        string? col = !string.IsNullOrWhiteSpace(columnName) && columnName != "ROW #"
+            ? columnName
+            : selectedCols?.FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(col) || col == "ROW #") return;
+
         EditCellModal.Open(targetRow, col, CurrentTableName, CurrentDatabaseType, PrimaryKeyColumns);
     }
 
     [RelayCommand]
     public void OpenEditSelectedCell()
     {
+        if (!HasRows) return;
+
         var selectedRows = GetSelectedRowsCallback?.Invoke();
         var selectedCols = GetSelectedColumnsCallback?.Invoke();
 
         if (selectedRows != null && selectedRows.Count > 1)
         {
-            var cols = selectedCols != null && selectedCols.Count > 0 ? selectedCols : new[] { "Name" };
-            EditCellModal.OpenBatch(selectedRows, cols, CurrentTableName, CurrentDatabaseType, PrimaryKeyColumns);
+            if (selectedCols == null || selectedCols.Count == 0) return;
+            EditCellModal.OpenBatch(selectedRows, selectedCols, CurrentTableName, CurrentDatabaseType, PrimaryKeyColumns);
             return;
         }
 
         var row = selectedRows?.FirstOrDefault() ?? SelectedRow ?? Rows.FirstOrDefault();
         string? col = selectedCols?.FirstOrDefault();
+        if (row == null || string.IsNullOrWhiteSpace(col) || col == "ROW #") return;
+
         OpenEditCell(row, col);
     }
 
@@ -1098,15 +1115,314 @@ public partial class QueryResultTableViewModel : ViewModelBase
     [RelayCommand]
     private Task CopyRow() => WriteClipboardAsync(CopyFocusedRow?.Invoke());
 
+    [RelayCommand]
+    private async Task PasteCell()
+    {
+        if (!HasRows)
+        {
+            return;
+        }
+
+        string? clipboardText = GetClipboardTextCallback != null
+            ? await GetClipboardTextCallback.Invoke()
+            : await ClipboardService.GetTextAsync();
+
+        if (string.IsNullOrEmpty(clipboardText))
+        {
+            LastQueryMessage = "Clipboard is empty or contains no text.";
+            HasLastQueryMessage = true;
+            return;
+        }
+
+        var matrix = ParseClipboardTsv(clipboardText);
+        if (matrix.Count == 0 || matrix[0].Count == 0)
+        {
+            LastQueryMessage = "Clipboard is empty or contains no text.";
+            HasLastQueryMessage = true;
+            return;
+        }
+
+        int matrixRows = matrix.Count;
+        int matrixCols = matrix.Max(r => r.Count);
+        var slots = ResolvePasteSlots(matrixRows, matrixCols);
+        if (slots.Count == 0)
+        {
+            return;
+        }
+
+        var edits = new List<(QueryResultRow Row, string ColumnName, string OldValue, string NewValue)>();
+        foreach (var slot in slots)
+        {
+            if (slot.Row == null || string.IsNullOrWhiteSpace(slot.ColumnName) || slot.ColumnName == "ROW #")
+            {
+                continue;
+            }
+
+            if (slot.MatrixRow < 0 || slot.MatrixRow >= matrix.Count)
+            {
+                continue;
+            }
+
+            var rowValues = matrix[slot.MatrixRow];
+            if (slot.MatrixCol < 0 || slot.MatrixCol >= rowValues.Count)
+            {
+                continue;
+            }
+
+            string normalizedValue = NormalizePastedValue(rowValues[slot.MatrixCol]);
+            edits.Add((slot.Row, slot.ColumnName, slot.Row[slot.ColumnName], normalizedValue));
+        }
+
+        if (edits.Count == 0)
+        {
+            return;
+        }
+
+        if (!HasLiveConnection)
+        {
+            foreach (var edit in edits)
+            {
+                edit.Row[edit.ColumnName] = edit.NewValue;
+            }
+
+            LastQueryMessage = edits.Count == 1
+                ? $"Pasted value into {edits[0].ColumnName} (offline mode)"
+                : $"Pasted {edits.Count} cells locally (offline mode)";
+            HasLastQueryMessage = true;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(CurrentTableName))
+        {
+            LastQueryMessage = "Cannot paste to database: query result has no single target table.";
+            HasLastQueryMessage = true;
+            return;
+        }
+
+        // Build SQL UPDATE per row using pre-paste row state BEFORE mutating any cell values.
+        var rowGroups = new List<(QueryResultRow Row, List<(string ColumnName, string OldValue, string NewValue)> Cells, string Sql)>();
+        var rowIndexMap = new Dictionary<QueryResultRow, int>(ReferenceEqualityComparer.Instance);
+
+        foreach (var edit in edits)
+        {
+            if (!rowIndexMap.TryGetValue(edit.Row, out int groupIdx))
+            {
+                groupIdx = rowGroups.Count;
+                rowIndexMap[edit.Row] = groupIdx;
+                rowGroups.Add((edit.Row, new List<(string, string, string)>(), string.Empty));
+            }
+            rowGroups[groupIdx].Cells.Add((edit.ColumnName, edit.OldValue, edit.NewValue));
+        }
+
+        string escapedTable = FormatIdentifier(CurrentTableName, CurrentDatabaseType);
+        for (int i = 0; i < rowGroups.Count; i++)
+        {
+            var group = rowGroups[i];
+            var setClauses = group.Cells.Select(c =>
+                $"{FormatIdentifier(c.ColumnName, CurrentDatabaseType)} = {EditCellModalViewModel.FormatLiteral(c.NewValue, CurrentDatabaseType)}");
+            string whereClause = BuildWhereClause(group.Row, CurrentDatabaseType);
+            string sql = $"UPDATE {escapedTable}\nSET {string.Join(", ", setClauses)}\nWHERE {whereClause};";
+            rowGroups[i] = (group.Row, group.Cells, sql);
+        }
+
+        int appliedCells = 0;
+        string? errorMsg = null;
+
+        foreach (var group in rowGroups)
+        {
+            bool success = true;
+            string? rowError = null;
+
+            if (ExecuteQueryDetailedCallback != null)
+            {
+                (success, rowError) = await ExecuteQueryDetailedCallback.Invoke(group.Sql);
+            }
+            else if (ExecuteQueryCallback != null)
+            {
+                success = await ExecuteQueryCallback.Invoke(group.Sql);
+            }
+
+            if (!success)
+            {
+                errorMsg = rowError ?? "Database rejected UPDATE (check column type, constraints, or connection).";
+                break;
+            }
+
+            foreach (var cell in group.Cells)
+            {
+                group.Row[cell.ColumnName] = cell.NewValue;
+                group.Row.OriginalValues[cell.ColumnName] = cell.NewValue;
+                appliedCells++;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(errorMsg))
+        {
+            LastQueryMessage = appliedCells > 0
+                ? $"Paste partially failed after {appliedCells} cell(s) (reverted failed row): {errorMsg}"
+                : $"Paste failed (reverted): {errorMsg}";
+            HasLastQueryMessage = true;
+            return;
+        }
+
+        LastQueryMessage = appliedCells == 1
+            ? $"Pasted & saved 1 cell in {CurrentTableName}.{edits[0].ColumnName}"
+            : $"Pasted & saved {appliedCells} cells in {CurrentTableName}";
+        HasLastQueryMessage = true;
+    }
+
+    private IReadOnlyList<PasteCellSlot> ResolvePasteSlots(int matrixRows, int matrixCols)
+    {
+        if (ResolvePasteTargetsCallback != null)
+        {
+            return ResolvePasteTargetsCallback.Invoke(matrixRows, matrixCols);
+        }
+
+        var selectedRows = GetSelectedRowsCallback?.Invoke();
+        var selectedCols = GetSelectedColumnsCallback?.Invoke();
+        var cleanSelectedCols = selectedCols?
+            .Where(c => !string.IsNullOrWhiteSpace(c) && c != "ROW #")
+            .ToList() ?? new List<string>();
+
+        if (matrixRows == 1 && matrixCols == 1)
+        {
+            var rows = selectedRows != null && selectedRows.Count > 0
+                ? selectedRows
+                : (SelectedRow != null ? new[] { SelectedRow } : Array.Empty<QueryResultRow>());
+            if (rows.Count == 0 || cleanSelectedCols.Count == 0)
+            {
+                return Array.Empty<PasteCellSlot>();
+            }
+
+            var singleValueSlots = new List<PasteCellSlot>(rows.Count * cleanSelectedCols.Count);
+            foreach (var row in rows)
+            {
+                foreach (var col in cleanSelectedCols)
+                {
+                    singleValueSlots.Add(new PasteCellSlot(row, col, 0, 0));
+                }
+            }
+            return singleValueSlots;
+        }
+
+        var allDataCols = (_lastColumns ?? Rows.FirstOrDefault()?.Values.Keys.ToList() ?? new List<string>())
+            .Where(c => !string.IsNullOrWhiteSpace(c) && !string.Equals(c, "ROW #", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        var startRow = selectedRows?.FirstOrDefault() ?? SelectedRow ?? Rows.FirstOrDefault();
+        int startRowIdx = startRow != null ? Rows.IndexOf(startRow) : -1;
+        string? startCol = cleanSelectedCols.FirstOrDefault() ?? allDataCols.FirstOrDefault();
+        int startColIdx = !string.IsNullOrEmpty(startCol)
+            ? allDataCols.FindIndex(c => string.Equals(c, startCol, StringComparison.OrdinalIgnoreCase))
+            : -1;
+
+        if (startRowIdx < 0 || startColIdx < 0)
+        {
+            return Array.Empty<PasteCellSlot>();
+        }
+
+        var matrixSlots = new List<PasteCellSlot>();
+        for (int r = 0; r < matrixRows && startRowIdx + r < Rows.Count; r++)
+        {
+            var row = Rows[startRowIdx + r];
+            for (int c = 0; c < matrixCols && startColIdx + c < allDataCols.Count; c++)
+            {
+                matrixSlots.Add(new PasteCellSlot(row, allDataCols[startColIdx + c], r, c));
+            }
+        }
+        return matrixSlots;
+    }
+
+    public static string NormalizePastedValue(string value)
+    {
+        return string.Equals(value, "NULL", StringComparison.OrdinalIgnoreCase)
+            ? "NULL"
+            : value;
+    }
+
+    public static List<List<string>> ParseClipboardTsv(string text)
+    {
+        var rows = new List<List<string>>();
+        var currentRow = new List<string>();
+        var cell = new StringBuilder();
+        bool inQuotes = false;
+        bool atCellStart = true;
+
+        for (int i = 0; i < text.Length; i++)
+        {
+            char ch = text[i];
+
+            if (inQuotes)
+            {
+                if (ch == '"')
+                {
+                    if (i + 1 < text.Length && text[i + 1] == '"')
+                    {
+                        cell.Append('"');
+                        i++;
+                    }
+                    else
+                    {
+                        inQuotes = false;
+                    }
+                }
+                else
+                {
+                    cell.Append(ch);
+                }
+                continue;
+            }
+
+            if (atCellStart && ch == '"')
+            {
+                inQuotes = true;
+                atCellStart = false;
+                continue;
+            }
+
+            if (ch == '\t')
+            {
+                currentRow.Add(cell.ToString());
+                cell.Clear();
+                atCellStart = true;
+                continue;
+            }
+
+            if (ch == '\r' || ch == '\n')
+            {
+                if (ch == '\r' && i + 1 < text.Length && text[i + 1] == '\n')
+                {
+                    i++;
+                }
+
+                currentRow.Add(cell.ToString());
+                rows.Add(currentRow);
+                currentRow = new List<string>();
+                cell.Clear();
+                atCellStart = true;
+                continue;
+            }
+
+            cell.Append(ch);
+            atCellStart = false;
+        }
+
+        // Ignore a single trailing phantom row created by a final unquoted newline (e.g. Excel copy).
+        bool endedWithUnquotedNewline = !inQuotes && atCellStart && currentRow.Count == 0 && cell.Length == 0 && rows.Count > 0;
+        if (!endedWithUnquotedNewline)
+        {
+            currentRow.Add(cell.ToString());
+            rows.Add(currentRow);
+        }
+
+        return rows;
+    }
+
     private static async Task WriteClipboardAsync(string? text)
     {
         if (string.IsNullOrEmpty(text))
             return;
 
-        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            && desktop.MainWindow?.Clipboard is { } clipboard)
-        {
-            await clipboard.SetTextAsync(text);
-        }
+        await ClipboardService.CopyTextAsync(text);
     }
 }
