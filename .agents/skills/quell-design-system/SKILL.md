@@ -70,7 +70,7 @@ Defined across `Themes/ThemeTokens.axaml`, `Themes/LightTheme.axaml`, and `Theme
 
 ## 4. Standardized Component Primitives (`Resources/ClassicStyles.axaml`)
 
-Every view and modal MUST compose using these shared style classes instead of ad-hoc inline button/border styling. Full markup patterns are in [Tabs, Controls & Modals Reference](references/tabs_and_controls.md).
+Every view and modal MUST compose using these shared style classes and the reusable `UserControl` catalog in [COMPONENTS.md](../../../COMPONENTS.md) (via the [`quell-components`](../quell-components/SKILL.md) skill) instead of ad-hoc inline button/border styling. Full markup patterns are in [Tabs, Controls & Modals Reference](references/tabs_and_controls.md).
 
 ### 4.1 Segmented Tab Controls (`quell-segmented-track` + `quell-segmented-tab`)
 Used for compact switchable views & filters such as **`Tables | Views | Procs`**, **`All | Failed | This DB`**, **`Dark | Light | System`**, and **`Canvas | List`**.
