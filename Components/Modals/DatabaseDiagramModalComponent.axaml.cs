@@ -249,8 +249,9 @@ public partial class DatabaseDiagramModalComponent : UserControl
 
     private void OnTableCardPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        // Don't drag if clicking buttons inside header
-        if (e.Source is Button || (e.Source is Visual v && v.FindAncestorOfType<Button>() != null))
+        // Don't drag if clicking buttons or scrollbar inside the card
+        if (e.Source is Button || e.Source is Avalonia.Controls.Primitives.ScrollBar ||
+            (e.Source is Visual v && (v.FindAncestorOfType<Button>() != null || v.FindAncestorOfType<Avalonia.Controls.Primitives.ScrollBar>() != null)))
         {
             return;
         }
@@ -307,6 +308,8 @@ public partial class DatabaseDiagramModalComponent : UserControl
                 if (rel.SourceTable == table || rel.TargetTable == table)
                 {
                     rel.IsHighlighted = true;
+                    if (rel.SourceTable != table) rel.SourceTable.IsRelatedHighlighted = true;
+                    if (rel.TargetTable != table) rel.TargetTable.IsRelatedHighlighted = true;
                 }
             }
             DiagramSurface?.InvalidateVisual();
@@ -318,6 +321,10 @@ public partial class DatabaseDiagramModalComponent : UserControl
         if (sender is Visual visual && visual.DataContext is DiagramTableItem table && _viewModel != null)
         {
             table.IsHighlighted = false;
+            foreach (var t in _viewModel.FilteredTables)
+            {
+                t.IsRelatedHighlighted = false;
+            }
             foreach (var rel in _viewModel.Relations)
             {
                 if (rel.SourceTable == table || rel.TargetTable == table)

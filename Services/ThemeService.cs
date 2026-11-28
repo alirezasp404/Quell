@@ -335,22 +335,71 @@ public class ThemeService
         SetOrRemoveBrushOverride("AppTableGutterBackgroundBrush", custom.GutterBackground);
         SetOrRemoveBrushOverride("AppTableGutterForegroundBrush", custom.GutterTextColor);
 
-        // 7. Grid Lines
-        if (custom.ShowGridLines)
-        {
-            SetOrRemoveBrushOverride("AppTableGridLinesHorizontalBrush", custom.GridLinesColor);
-            SetOrRemoveBrushOverride("AppTableGridLinesVerticalBrush", custom.GridLinesColor);
-            SetOrRemoveBrushOverride("AppTableCellBorderBrush", custom.GridLinesColor);
-        }
-        else
+        // 7. Grid Lines (respects both ShowGridLines and GridLinesMode: All, Horizontal, Vertical, None)
+        string gridMode = (custom.GridLinesMode ?? "All").ToUpperInvariant();
+        if (!custom.ShowGridLines || gridMode == "NONE")
         {
             Application.Current.Resources["AppTableGridLinesHorizontalBrush"] = Brushes.Transparent;
             Application.Current.Resources["AppTableGridLinesVerticalBrush"] = Brushes.Transparent;
             Application.Current.Resources["AppTableCellBorderBrush"] = Brushes.Transparent;
         }
+        else if (gridMode == "HORIZONTAL")
+        {
+            SetOrRemoveBrushOverride("AppTableGridLinesHorizontalBrush", custom.GridLinesColor);
+            Application.Current.Resources["AppTableGridLinesVerticalBrush"] = Brushes.Transparent;
+            SetOrRemoveBrushOverride("AppTableCellBorderBrush", custom.GridLinesColor);
+        }
+        else if (gridMode == "VERTICAL")
+        {
+            Application.Current.Resources["AppTableGridLinesHorizontalBrush"] = Brushes.Transparent;
+            SetOrRemoveBrushOverride("AppTableGridLinesVerticalBrush", custom.GridLinesColor);
+            SetOrRemoveBrushOverride("AppTableCellBorderBrush", custom.GridLinesColor);
+        }
+        else
+        {
+            SetOrRemoveBrushOverride("AppTableGridLinesHorizontalBrush", custom.GridLinesColor);
+            SetOrRemoveBrushOverride("AppTableGridLinesVerticalBrush", custom.GridLinesColor);
+            SetOrRemoveBrushOverride("AppTableCellBorderBrush", custom.GridLinesColor);
+        }
 
-        // 8. Selection / Active Cell Highlight
-        SetOrRemoveBrushOverride("AppTableSelectedBackgroundBrush", custom.SelectionColor);
-        SetOrRemoveBrushOverride("AppTableActiveBackgroundBrush", custom.SelectionColor);
+        // 8. Selection / Active Cell / Active Header Highlight (Unified cohesive color)
+        if (!string.IsNullOrWhiteSpace(custom.SelectionColor) &&
+            !custom.SelectionColor.Equals("Default", StringComparison.OrdinalIgnoreCase) &&
+            Color.TryParse(custom.SelectionColor, out var selCol))
+        {
+            var selBrush = new SolidColorBrush(selCol);
+            Application.Current.Resources["AppTableSelectedBackgroundBrush"] = selBrush;
+            Application.Current.Resources["AppTableActiveBackgroundBrush"] = selBrush;
+            Application.Current.Resources["AppTableHeaderActiveBackgroundBrush"] = selBrush;
+            Application.Current.Resources["AppTableActiveBorderBrush"] = selBrush;
+
+            // Compute readable contrast foreground for both selected cells and active headers
+            double lum = (0.299 * selCol.R + 0.587 * selCol.G + 0.114 * selCol.B) / 255.0;
+            var fgBrush = new SolidColorBrush(lum < 0.55 ? Color.Parse("#FFFFFF") : Color.Parse("#0F172A"));
+            Application.Current.Resources["AppTableSelectedForegroundBrush"] = fgBrush;
+            Application.Current.Resources["AppTableActiveForegroundBrush"] = fgBrush;
+            Application.Current.Resources["AppTableHeaderActiveForegroundBrush"] = fgBrush;
+        }
+        else
+        {
+            Application.Current.Resources.Remove("AppTableSelectedBackgroundBrush");
+            Application.Current.Resources.Remove("AppTableActiveBackgroundBrush");
+            Application.Current.Resources.Remove("AppTableHeaderActiveBackgroundBrush");
+            Application.Current.Resources.Remove("AppTableSelectedForegroundBrush");
+            Application.Current.Resources.Remove("AppTableActiveForegroundBrush");
+            Application.Current.Resources.Remove("AppTableHeaderActiveForegroundBrush");
+
+            // Respect Color Maker ButtonAccentColor if customized, otherwise restore theme default blue
+            if (!string.IsNullOrWhiteSpace(CurrentPanelCustomization.ButtonAccentColor) &&
+                !CurrentPanelCustomization.ButtonAccentColor.Equals("Default", StringComparison.OrdinalIgnoreCase) &&
+                Color.TryParse(CurrentPanelCustomization.ButtonAccentColor, out var panelAccent))
+            {
+                Application.Current.Resources["AppTableActiveBorderBrush"] = new SolidColorBrush(panelAccent);
+            }
+            else
+            {
+                Application.Current.Resources.Remove("AppTableActiveBorderBrush");
+            }
+        }
     }
 }

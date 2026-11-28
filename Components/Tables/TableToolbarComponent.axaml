@@ -43,7 +43,7 @@
                         Height="25" 
                         MinHeight="25"
                         Padding="8,2" 
-                        ToolTip.Tip="Edit selected cell graphically &amp; execute UPDATE (F2)">
+                        ToolTip.Tip="Edit selected cell graphically &amp; execute UPDATE (F2 / F12)">
                     <StackPanel Orientation="Horizontal" Spacing="5">
                         <ui:FASymbolIcon Symbol="Edit" FontSize="11" VerticalAlignment="Center"/>
                         <TextBlock Text="Edit Cell..." FontSize="11" VerticalAlignment="Center"/>

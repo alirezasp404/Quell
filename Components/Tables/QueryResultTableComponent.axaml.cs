@@ -13,6 +13,7 @@ using Avalonia.Media;
 using Avalonia.VisualTree;
 using FluentAvalonia.UI.Controls;
 using Quell.Services;
+using Quell.Services.DatabaseProviders;
 using Quell.ViewModels;
 
 namespace Quell.Components;
@@ -28,6 +29,10 @@ public partial class QueryResultTableComponent : UserControl
 
     private const string SelectedClass = "excel-selected";
     private const string ActiveClass = "excel-active";
+    private const string GutterActiveClass = "excel-gutter-active";
+    private const string HeaderActiveClass = "excel-header-active";
+    private const string RowEvenClass = "excel-row-even";
+    private const string RowOddClass = "excel-row-odd";
 
     private static readonly PropertyInfo? OwningColumnProperty =
         typeof(DataGridCell).GetProperty(
@@ -100,7 +105,11 @@ public partial class QueryResultTableComponent : UserControl
             RoutingStrategies.Tunnel);
 
         _contextMenuSubscription = AttachGridContextMenu();
-        Loaded += (_, _) => _contextMenuSubscription ??= AttachGridContextMenu();
+        Loaded += (_, _) =>
+        {
+            _contextMenuSubscription ??= AttachGridContextMenu();
+            ApplyTableCustomizationToGrid(ThemeService.Instance.CurrentTableCustomization);
+        };
         Unloaded += (_, _) =>
         {
             _contextMenuSubscription?.Dispose();
@@ -108,6 +117,12 @@ public partial class QueryResultTableComponent : UserControl
         };
 
         ThemeService.Instance.TableCustomizationChanged += OnTableCustomizationChanged;
+    }
+
+    private void OnSelectAllCornerClick(object? sender, RoutedEventArgs e)
+    {
+        SelectAll();
+        ResultsDataGrid?.Focus();
     }
 
     // Handles keyboard Shift+F10 / Menu key via ContextRequestedEvent; mouse right-clicks
@@ -131,6 +146,8 @@ public partial class QueryResultTableComponent : UserControl
             _viewModel.GetSelectedColumnsCallback = null;
             _viewModel.GetClipboardTextCallback = null;
             _viewModel.ResolvePasteTargetsCallback = null;
+            _viewModel.CopyActiveCellCallback = null;
+            _viewModel.EditActiveCellCallback = null;
             _viewModel.ColumnsChanged -= OnColumnsChanged;
         }
 
@@ -144,8 +161,25 @@ public partial class QueryResultTableComponent : UserControl
         _viewModel.GetSelectedColumnsCallback = GetSelectedColumnsList;
         _viewModel.GetClipboardTextCallback = () => ClipboardService.GetTextAsync(ResultsDataGrid);
         _viewModel.ResolvePasteTargetsCallback = ResolvePasteTargets;
+        _viewModel.CopyActiveCellCallback = () =>
+        {
+            if (_viewModel.CopyCellCommand.CanExecute(null))
+                _viewModel.CopyCellCommand.Execute(null);
+        };
+        _viewModel.EditActiveCellCallback = () =>
+        {
+            if (_selectedViaRowHeader || _viewModel == null || !_viewModel.HasRows) return;
+            var targetRow = _activeRow ?? _viewModel.SelectedRow;
+            var colHeader = ExtractHeaderName(ResultsDataGrid.CurrentColumn ?? ResultsDataGrid.Columns.ElementAtOrDefault(_activeCol));
+            if (targetRow != null && !string.IsNullOrWhiteSpace(colHeader) && colHeader != "ROW #")
+            {
+                _viewModel.OpenEditCell(targetRow, colHeader);
+            }
+        };
         _viewModel.ColumnsChanged -= OnColumnsChanged;
         _viewModel.ColumnsChanged += OnColumnsChanged;
+
+        ApplyTableCustomizationToGrid(ThemeService.Instance.CurrentTableCustomization);
 
         if (_viewModel.LastColumns != null && _viewModel.LastColumns.Count > 0)
         {
@@ -155,19 +189,35 @@ public partial class QueryResultTableComponent : UserControl
 
     private void OnTableCustomizationChanged(object? sender, TableCustomizationRecord custom)
     {
-        if (ResultsDataGrid != null)
+        ApplyTableCustomizationToGrid(custom);
+    }
+
+    private void ApplyTableCustomizationToGrid(TableCustomizationRecord custom)
+    {
+        if (ResultsDataGrid == null) return;
+
+        if (custom.RowHeight >= 18)
         {
-            if (custom.RowHeight >= 18)
+            ResultsDataGrid.RowHeight = custom.RowHeight;
+        }
+        if (ResultsDataGrid.Columns.Count > 0 && custom.GutterWidth >= 30)
+        {
+            ResultsDataGrid.Columns[0].Width = new DataGridLength(custom.GutterWidth);
+        }
+
+        if (!custom.ShowGridLines)
+        {
+            ResultsDataGrid.GridLinesVisibility = DataGridGridLinesVisibility.None;
+        }
+        else
+        {
+            ResultsDataGrid.GridLinesVisibility = (custom.GridLinesMode ?? "All").ToUpperInvariant() switch
             {
-                ResultsDataGrid.RowHeight = custom.RowHeight;
-            }
-            if (ResultsDataGrid.Columns.Count > 0 && custom.GutterWidth >= 30)
-            {
-                ResultsDataGrid.Columns[0].Width = new DataGridLength(custom.GutterWidth);
-            }
-            ResultsDataGrid.GridLinesVisibility = custom.ShowGridLines 
-                ? DataGridGridLinesVisibility.All 
-                : DataGridGridLinesVisibility.None;
+                "NONE" => DataGridGridLinesVisibility.None,
+                "HORIZONTAL" => DataGridGridLinesVisibility.Horizontal,
+                "VERTICAL" => DataGridGridLinesVisibility.Vertical,
+                _ => DataGridGridLinesVisibility.All
+            };
         }
     }
 
@@ -208,13 +258,22 @@ public partial class QueryResultTableComponent : UserControl
                     ResultsDataGrid.Columns.RemoveAt(ResultsDataGrid.Columns.Count - 1);
                 }
 
+                string stripingMode = (_viewModel?.StripingMode ?? "Rows").ToUpperInvariant();
+                bool showDataTypes = _viewModel?.ShowColumnDataTypes == true;
+
                 for (int i = 0; i < columns.Count; i++)
                 {
                     var colName = columns[i];
                     var isPk = _viewModel?.IsColumnPrimaryKey(colName) == true;
                     var fkRel = _viewModel?.GetForeignKeyRelation(colName);
                     var isFk = fkRel != null;
-                    var styleClass = isPk ? "pk-col" : (isFk ? "fk-col" : ((i % 2 == 0) ? "white-col" : "alt-col"));
+
+                    string stripeClass = stripingMode switch
+                    {
+                        "ROWS" => "stripe-row",
+                        "NONE" => "flat-col",
+                        _ => (i % 2 == 0) ? "white-col" : "alt-col"
+                    };
 
                     if (isFk && fkRel != null)
                     {
@@ -223,66 +282,9 @@ public partial class QueryResultTableComponent : UserControl
                             Tag = colName,
                             CanUserResize = true,
                             CanUserSort = true,
-                            SortMemberPath = $"[{colName}]"
+                            SortMemberPath = $"[{colName}]",
+                            Header = BuildExcelColumnHeader(colName, isPk, fkRel, showDataTypes)
                         };
-
-                        var headerPanel = new StackPanel
-                        {
-                            Orientation = Avalonia.Layout.Orientation.Horizontal,
-                            Spacing = 4,
-                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-                        };
-                        ToolTip.SetTip(headerPanel, $"Foreign Key -> References {fkRel.TargetTable}({fkRel.TargetColumn})");
-
-                        var fkBadge = new Border
-                        {
-                            Background = ResolveThemeBrush("AppTableFkBadgeBackgroundBrush", "#F1F5F9"),
-                            BorderBrush = ResolveThemeBrush("AppTableFkBadgeBorderBrush", "#CBD5E1"),
-                            BorderThickness = new Avalonia.Thickness(1),
-                            CornerRadius = new Avalonia.CornerRadius(3),
-                            Padding = new Avalonia.Thickness(3, 1),
-                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-                        };
-
-                        var fkStack = new StackPanel
-                        {
-                            Orientation = Avalonia.Layout.Orientation.Horizontal,
-                            Spacing = 2
-                        };
-
-                        var linkIcon = new Avalonia.Controls.PathIcon
-                        {
-                            Data = Avalonia.Media.Geometry.Parse("M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"),
-                            Width = 9,
-                            Height = 9,
-                            Foreground = ResolveThemeBrush("AppTableFkBadgeForegroundBrush", "#475569"),
-                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-                        };
-
-                        var fkText = new TextBlock
-                        {
-                            Text = "FK",
-                            FontSize = 9,
-                            FontWeight = Avalonia.Media.FontWeight.Bold,
-                            Foreground = ResolveThemeBrush("AppTableFkBadgeForegroundBrush", "#475569"),
-                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-                        };
-
-                        fkStack.Children.Add(linkIcon);
-                        fkStack.Children.Add(fkText);
-                        fkBadge.Child = fkStack;
-
-                        var titleBlock = new TextBlock
-                        {
-                            Text = colName.ToUpperInvariant(),
-                            FontWeight = Avalonia.Media.FontWeight.Bold,
-                            Foreground = ResolveThemeBrush("AppTableHeaderForegroundBrush", "#0F172A"),
-                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-                        };
-
-                        headerPanel.Children.Add(fkBadge);
-                        headerPanel.Children.Add(titleBlock);
-                        fkCol.Header = headerPanel;
 
                         string capturedCol = colName;
                         var relCopy = fkRel;
@@ -418,7 +420,8 @@ public partial class QueryResultTableComponent : UserControl
                             return cellGrid;
                         });
 
-                        fkCol.CellStyleClasses.Add(styleClass);
+                        fkCol.CellStyleClasses.Add("fk-col");
+                        fkCol.CellStyleClasses.Add(stripeClass);
                         ResultsDataGrid.Columns.Add(fkCol);
                         continue;
                     }
@@ -428,7 +431,8 @@ public partial class QueryResultTableComponent : UserControl
                         Tag = colName,
                         CanUserResize = true,
                         CanUserSort = true,
-                        SortMemberPath = $"['{colName}']"
+                        SortMemberPath = $"['{colName}']",
+                        Header = BuildExcelColumnHeader(colName, isPk, fkRel: null, showDataTypes)
                     };
 
                     string currentCol = colName;
@@ -530,69 +534,9 @@ public partial class QueryResultTableComponent : UserControl
 
                     if (isPk)
                     {
-                        var headerPanel = new StackPanel
-                        {
-                            Orientation = Avalonia.Layout.Orientation.Horizontal,
-                            Spacing = 4,
-                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-                        };
-
-                        var pkBadge = new Border
-                        {
-                            Background = ResolveThemeBrush("AppTablePkBadgeBackgroundBrush", "#F1F5F9"),
-                            BorderBrush = ResolveThemeBrush("AppTablePkBadgeBorderBrush", "#CBD5E1"),
-                            BorderThickness = new Avalonia.Thickness(1),
-                            CornerRadius = new Avalonia.CornerRadius(3),
-                            Padding = new Avalonia.Thickness(3, 1),
-                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-                        };
-
-                        var pkStack = new StackPanel
-                        {
-                            Orientation = Avalonia.Layout.Orientation.Horizontal,
-                            Spacing = 2
-                        };
-
-                        var keyIcon = new Avalonia.Controls.PathIcon
-                        {
-                            Data = Avalonia.Media.Geometry.Parse("M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"),
-                            Width = 9,
-                            Height = 9,
-                            Foreground = ResolveThemeBrush("AppTablePkBadgeForegroundBrush", "#64748B"),
-                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-                        };
-
-                        var pkText = new TextBlock
-                        {
-                            Text = "PK",
-                            FontSize = 9,
-                            FontWeight = Avalonia.Media.FontWeight.Bold,
-                            Foreground = ResolveThemeBrush("AppTablePkBadgeForegroundBrush", "#64748B"),
-                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-                        };
-
-                        pkStack.Children.Add(keyIcon);
-                        pkStack.Children.Add(pkText);
-                        pkBadge.Child = pkStack;
-
-                        var titleBlock = new TextBlock
-                        {
-                            Text = colName.ToUpperInvariant(),
-                            FontWeight = Avalonia.Media.FontWeight.Bold,
-                            Foreground = ResolveThemeBrush("AppTableHeaderForegroundBrush", "#0F172A"),
-                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-                        };
-
-                        headerPanel.Children.Add(pkBadge);
-                        headerPanel.Children.Add(titleBlock);
-                        col.Header = headerPanel;
+                        col.CellStyleClasses.Add("pk-col");
                     }
-                    else
-                    {
-                        col.Header = colName.ToUpperInvariant();
-                    }
-
-                    col.CellStyleClasses.Add(styleClass);
+                    col.CellStyleClasses.Add(stripeClass);
                     ResultsDataGrid.Columns.Add(col);
                 }
 
@@ -619,6 +563,116 @@ public partial class QueryResultTableComponent : UserControl
         {
             Dispatcher.UIThread.Post(UpdateColumns);
         }
+    }
+
+    private StackPanel BuildExcelColumnHeader(
+        string colName,
+        bool isPk,
+        ForeignKeyRelation? fkRel,
+        bool showDataTypes)
+    {
+        var headerPanel = new StackPanel
+        {
+            Orientation = Avalonia.Layout.Orientation.Horizontal,
+            Spacing = 5,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+        };
+
+        var tip = _viewModel?.GetColumnHeaderTooltip(colName);
+        if (!string.IsNullOrWhiteSpace(tip))
+        {
+            ToolTip.SetTip(headerPanel, tip);
+        }
+
+        if (isPk)
+        {
+            var pkBadge = new Border
+            {
+                Background = ResolveThemeBrush("AppTablePkBadgeBackgroundBrush", "#F1F5F9"),
+                BorderBrush = ResolveThemeBrush("AppTablePkBadgeBorderBrush", "#CBD5E1"),
+                BorderThickness = new Avalonia.Thickness(1),
+                CornerRadius = new Avalonia.CornerRadius(3),
+                Padding = new Avalonia.Thickness(3, 1),
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+            };
+            var pkStack = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 2 };
+            pkStack.Children.Add(new Avalonia.Controls.PathIcon
+            {
+                Data = Avalonia.Media.Geometry.Parse("M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"),
+                Width = 9,
+                Height = 9,
+                Foreground = ResolveThemeBrush("AppTablePkBadgeForegroundBrush", "#64748B"),
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+            });
+            pkStack.Children.Add(new TextBlock
+            {
+                Text = "PK",
+                FontSize = 9,
+                FontWeight = Avalonia.Media.FontWeight.Bold,
+                Foreground = ResolveThemeBrush("AppTablePkBadgeForegroundBrush", "#64748B"),
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+            });
+            pkBadge.Child = pkStack;
+            headerPanel.Children.Add(pkBadge);
+        }
+        else if (fkRel != null)
+        {
+            var fkBadge = new Border
+            {
+                Background = ResolveThemeBrush("AppTableFkBadgeBackgroundBrush", "#F1F5F9"),
+                BorderBrush = ResolveThemeBrush("AppTableFkBadgeBorderBrush", "#CBD5E1"),
+                BorderThickness = new Avalonia.Thickness(1),
+                CornerRadius = new Avalonia.CornerRadius(3),
+                Padding = new Avalonia.Thickness(3, 1),
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+            };
+            var fkStack = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 2 };
+            fkStack.Children.Add(new Avalonia.Controls.PathIcon
+            {
+                Data = Avalonia.Media.Geometry.Parse("M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"),
+                Width = 9,
+                Height = 9,
+                Foreground = ResolveThemeBrush("AppTableFkBadgeForegroundBrush", "#475569"),
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+            });
+            fkStack.Children.Add(new TextBlock
+            {
+                Text = "FK",
+                FontSize = 9,
+                FontWeight = Avalonia.Media.FontWeight.Bold,
+                Foreground = ResolveThemeBrush("AppTableFkBadgeForegroundBrush", "#475569"),
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+            });
+            fkBadge.Child = fkStack;
+            headerPanel.Children.Add(fkBadge);
+        }
+
+        headerPanel.Children.Add(new TextBlock
+        {
+            Text = colName.ToUpperInvariant(),
+            FontWeight = Avalonia.Media.FontWeight.Bold,
+            Foreground = ResolveThemeBrush("AppTableHeaderForegroundBrush", "#0F172A"),
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+        });
+
+        if (showDataTypes)
+        {
+            string? dataType = _viewModel?.GetColumnDataType(colName);
+            if (!string.IsNullOrWhiteSpace(dataType))
+            {
+                headerPanel.Children.Add(new TextBlock
+                {
+                    Text = dataType.ToLowerInvariant(),
+                    FontSize = 9.5,
+                    FontWeight = Avalonia.Media.FontWeight.Normal,
+                    Opacity = 0.72,
+                    Foreground = ResolveThemeBrush("AppTextMutedBrush", "#64748B"),
+                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                });
+            }
+        }
+
+        return headerPanel;
     }
 
     private IBrush ResolveThemeBrush(string key, string fallbackHex)
@@ -814,7 +868,7 @@ public partial class QueryResultTableComponent : UserControl
             return;
         }
 
-        if (e.Key == Key.F2)
+        if (e.Key == Key.F2 || e.Key == Key.F12)
         {
             if (_selectedViaRowHeader || _viewModel == null || !_viewModel.HasRows)
             {
@@ -1097,6 +1151,25 @@ public partial class QueryResultTableComponent : UserControl
     {
         foreach (var row in ResultsDataGrid.GetVisualDescendants().OfType<DataGridRow>())
             ApplyRow(row);
+
+        foreach (var colHeader in ResultsDataGrid.GetVisualDescendants().OfType<DataGridColumnHeader>())
+        {
+            var matchedCol = ResultsDataGrid.Columns.FirstOrDefault(c =>
+                !IsRowHeader(c) && ReferenceEquals(c.Header, colHeader.Content));
+            bool isColActive = _hasSelection && matchedCol != null &&
+                matchedCol.DisplayIndex >= _col1 && matchedCol.DisplayIndex <= _col2;
+
+            if (isColActive)
+            {
+                if (!colHeader.Classes.Contains(HeaderActiveClass))
+                    colHeader.Classes.Add(HeaderActiveClass);
+            }
+            else
+            {
+                if (colHeader.Classes.Contains(HeaderActiveClass))
+                    colHeader.Classes.Remove(HeaderActiveClass);
+            }
+        }
     }
 
     private void ApplyRow(DataGridRow row)
@@ -1106,6 +1179,18 @@ public partial class QueryResultTableComponent : UserControl
 
         try
         {
+            bool isEven = row.Index % 2 == 0;
+            if (isEven)
+            {
+                if (!row.Classes.Contains(RowEvenClass)) row.Classes.Add(RowEvenClass);
+                if (row.Classes.Contains(RowOddClass)) row.Classes.Remove(RowOddClass);
+            }
+            else
+            {
+                if (!row.Classes.Contains(RowOddClass)) row.Classes.Add(RowOddClass);
+                if (row.Classes.Contains(RowEvenClass)) row.Classes.Remove(RowEvenClass);
+            }
+
             if (!_hasSelection)
             {
                 foreach (var cell in row.GetVisualDescendants().OfType<DataGridCell>())
@@ -1114,6 +1199,8 @@ public partial class QueryResultTableComponent : UserControl
                         cell.Classes.Remove(SelectedClass);
                     if (cell.Classes.Contains(ActiveClass))
                         cell.Classes.Remove(ActiveClass);
+                    if (cell.Classes.Contains(GutterActiveClass))
+                        cell.Classes.Remove(GutterActiveClass);
                 }
                 return;
             }
@@ -1132,6 +1219,8 @@ public partial class QueryResultTableComponent : UserControl
                         cell.Classes.Remove(SelectedClass);
                     if (cell.Classes.Contains(ActiveClass))
                         cell.Classes.Remove(ActiveClass);
+                    if (cell.Classes.Contains(GutterActiveClass))
+                        cell.Classes.Remove(GutterActiveClass);
                     continue;
                 }
 
@@ -1141,6 +1230,21 @@ public partial class QueryResultTableComponent : UserControl
                 bool selected = !active && (header
                     ? isRowFullySelected
                     : (isRowInSpan && colIndex >= _col1 && colIndex <= _col2));
+
+                if (header)
+                {
+                    bool gutterActive = isRowInSpan || isRowActive;
+                    if (gutterActive)
+                    {
+                        if (!cell.Classes.Contains(GutterActiveClass))
+                            cell.Classes.Add(GutterActiveClass);
+                    }
+                    else
+                    {
+                        if (cell.Classes.Contains(GutterActiveClass))
+                            cell.Classes.Remove(GutterActiveClass);
+                    }
+                }
 
                 if (selected)
                 {
@@ -1179,14 +1283,74 @@ public partial class QueryResultTableComponent : UserControl
         if (!TryGetSpan(out var r1, out var r2, out var c1, out var c2))
         {
             _viewModel.SelectionStatus = "Click a cell to select it · drag or Shift-click for a range";
+            _viewModel.ClearActiveCellInfo();
             return;
         }
 
         var rows = r2 - r1 + 1;
-        var cols = ResultsDataGrid.Columns.Count(column => column.DisplayIndex >= c1 && column.DisplayIndex <= c2);
+        var selectedDataCols = ResultsDataGrid.Columns
+            .Where(column => !IsRowHeader(column) && column.DisplayIndex >= c1 && column.DisplayIndex <= c2)
+            .OrderBy(column => column.DisplayIndex)
+            .ToList();
+        int cols = selectedDataCols.Count;
+
         _viewModel.SelectionStatus = rows == 1 && cols == 1
             ? "1 cell selected"
-            : $"{rows} × {cols} cells selected";
+            : $"{rows}R × {cols}C selected";
+
+        var dataIndexes = DataColumnIndexes();
+        int oneBasedExcelCol = dataIndexes.IndexOf(_activeCol) + 1;
+        string colLetter = oneBasedExcelCol > 0 ? QueryResultTableViewModel.ToExcelColumnName(oneBasedExcelCol) : "?";
+        int rowNumber = _activeRow != null ? _activeRow.RowIndex : (r1 + 1);
+        string cellRef = $"{colLetter}{rowNumber}";
+
+        var activeColObj = ColumnAtDisplayIndex(_activeCol);
+        string activeColName = activeColObj != null ? ExtractHeaderName(activeColObj) : string.Empty;
+        string activeVal = (_activeRow != null && !string.IsNullOrEmpty(activeColName))
+            ? _activeRow[activeColName]
+            : string.Empty;
+
+        string statsText = string.Empty;
+        if (_viewModel.ShowExcelStatusStats && (rows * cols) > 1 &&
+            ResultsDataGrid.CollectionView is DataGridCollectionView view &&
+            (rows * cols) <= 10_000)
+        {
+            int nonNullCount = 0;
+            int numericCount = 0;
+            double sum = 0;
+
+            for (int ri = r1; ri <= r2 && ri < view.Count; ri++)
+            {
+                if (view.GetItemAt(ri) is not QueryResultRow rowItem) continue;
+                foreach (var col in selectedDataCols)
+                {
+                    string name = ExtractHeaderName(col);
+                    if (string.IsNullOrEmpty(name)) continue;
+                    string v = rowItem[name];
+                    if (string.IsNullOrWhiteSpace(v) || v.Equals("NULL", StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    nonNullCount++;
+                    if (double.TryParse(v, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double num))
+                    {
+                        numericCount++;
+                        sum += num;
+                    }
+                }
+            }
+
+            if (numericCount > 0)
+            {
+                double avg = sum / numericCount;
+                statsText = $"Avg: {avg:0.##}  |  Count: {nonNullCount}  |  Sum: {sum:0.##}";
+            }
+            else if (nonNullCount > 0)
+            {
+                statsText = $"Count: {nonNullCount}";
+            }
+        }
+
+        _viewModel.UpdateActiveCellInfo(cellRef, activeColName, activeVal, statsText);
     }
 
     private string? BuildSelectionText()
@@ -1518,7 +1682,9 @@ public partial class QueryResultTableComponent : UserControl
     }
 
     private static bool IsRowHeader(DataGridColumn column) =>
-        column.Header?.ToString() == "ROW #";
+        (column.Tag is string tag && tag == "ROW #") ||
+        column.Header?.ToString() == "ROW #" ||
+        column.DisplayIndex == 0;
 
     public IReadOnlyList<QueryResultRow> GetSelectedRowsList()
     {

@@ -211,6 +211,11 @@ public partial class QueryResultTableViewModel : ViewModelBase
     public bool HasRows => Rows != null && Rows.Count > 0;
     public bool ShowEmptyState => !HasRows && !IsLoading;
 
+    partial void OnTotalRowsChanged(int value)
+    {
+        OnPropertyChanged(nameof(IsFormulaBarVisible));
+    }
+
     partial void OnSearchFilterChanged(string value)
     {
         ApplyFilter(value);
@@ -271,6 +276,10 @@ public partial class QueryResultTableViewModel : ViewModelBase
 
     public Dictionary<string, ForeignKeyRelation> ForeignKeyRelations { get; } = new(StringComparer.OrdinalIgnoreCase);
 
+    public TableSchemaDetail? CurrentTableSchema { get; private set; }
+
+    public Dictionary<string, ColumnMetadata> ColumnMetadataMap { get; } = new(StringComparer.OrdinalIgnoreCase);
+
     public Func<string, string, string?, string?, Task>? NavigateToForeignKeyCallback { get; set; }
 
     public bool IsColumnForeignKey(string? columnName)
@@ -285,12 +294,56 @@ public partial class QueryResultTableViewModel : ViewModelBase
         return ForeignKeyRelations.TryGetValue(columnName, out var rel) ? rel : null;
     }
 
+    public ColumnMetadata? GetColumnMetadata(string? columnName)
+    {
+        if (string.IsNullOrWhiteSpace(columnName)) return null;
+        return ColumnMetadataMap.TryGetValue(columnName, out var col) ? col : null;
+    }
+
+    public string? GetColumnDataType(string? columnName)
+        => GetColumnMetadata(columnName)?.FormattedDataType;
+
+    public bool IsColumnNullable(string? columnName)
+        => GetColumnMetadata(columnName)?.IsNullable ?? true;
+
+    public bool IsColumnIdentity(string? columnName)
+        => GetColumnMetadata(columnName)?.IsIdentity ?? false;
+
+    public string GetColumnHeaderTooltip(string columnName)
+    {
+        var meta = GetColumnMetadata(columnName);
+        var fk = GetForeignKeyRelation(columnName);
+        bool isPk = IsColumnPrimaryKey(columnName);
+
+        var parts = new List<string>();
+        if (meta != null)
+        {
+            parts.Add($"{meta.Name}: {meta.FormattedDataType}");
+            parts.Add(meta.IsNullable ? "NULL" : "NOT NULL");
+            if (meta.IsIdentity) parts.Add("IDENTITY");
+            if (meta.IsUnique && !isPk) parts.Add("UNIQUE");
+            if (!string.IsNullOrWhiteSpace(meta.DefaultValue)) parts.Add($"DEFAULT {meta.DefaultValue}");
+        }
+        else
+        {
+            parts.Add(columnName);
+        }
+
+        if (isPk) parts.Add("Primary Key");
+        if (fk != null) parts.Add($"FK -> {fk.TargetTable}({fk.TargetColumn})");
+        if (!string.IsNullOrWhiteSpace(meta?.Description)) parts.Add(meta.Description);
+
+        return string.Join(" • ", parts);
+    }
+
     public void ClearMetadata()
     {
         PrimaryKeyColumns.Clear();
         PrimaryKeyColumnName = string.Empty;
         HasPrimaryKey = false;
         ForeignKeyRelations.Clear();
+        ColumnMetadataMap.Clear();
+        CurrentTableSchema = null;
     }
 
     public void SetForeignKeyRelations(IEnumerable<ForeignKeyRelation> fks)
@@ -315,12 +368,73 @@ public partial class QueryResultTableViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Applies full table schema metadata from DatabaseMetadataService and refreshes columns if already bound.
+    /// </summary>
+    public void SetTableSchema(TableSchemaDetail? schema)
+    {
+        PrepareTableSchema(schema);
+
+        if (_lastColumns != null)
+        {
+            ColumnsChanged?.Invoke(_lastColumns);
+        }
+    }
+
+    /// <summary>
     /// Applies PK/FK metadata silently before SetResults runs so DataGrid columns are only built once.
     /// </summary>
     public void PrepareTableMetadata(IEnumerable<string> pks, IEnumerable<ForeignKeyRelation> fks)
     {
         ApplyPrimaryKeys(pks);
         ApplyForeignKeyRelations(fks);
+    }
+
+    /// <summary>
+    /// Applies full table schema metadata silently before SetResults runs so DataGrid columns are only built once.
+    /// </summary>
+    public void PrepareTableSchema(TableSchemaDetail? schema)
+    {
+        CurrentTableSchema = schema;
+        ColumnMetadataMap.Clear();
+
+        if (schema == null)
+        {
+            PrimaryKeyColumns.Clear();
+            PrimaryKeyColumnName = string.Empty;
+            HasPrimaryKey = false;
+            ForeignKeyRelations.Clear();
+            return;
+        }
+
+        foreach (var col in schema.Columns)
+        {
+            if (!string.IsNullOrWhiteSpace(col.Name) && !ColumnMetadataMap.ContainsKey(col.Name))
+            {
+                ColumnMetadataMap[col.Name] = col;
+            }
+        }
+
+        ApplyPrimaryKeys(schema.PrimaryKeyColumns);
+        ApplyForeignKeyRelations(schema.ForeignKeys);
+    }
+
+    /// <summary>
+    /// Loads and applies table metadata directly via DatabaseMetadataService.
+    /// </summary>
+    public async Task<TableSchemaDetail?> LoadTableMetadataAsync(
+        string tableName,
+        string? sessionKey = null,
+        bool forceRefresh = false)
+    {
+        if (string.IsNullOrWhiteSpace(tableName)) return null;
+        var schema = await DatabaseMetadataService.Instance
+            .GetTableSchemaAsync(tableName, sessionKey, forceRefresh)
+            .ConfigureAwait(false);
+        if (schema != null)
+        {
+            SetTableSchema(schema);
+        }
+        return schema;
     }
 
     private void ApplyForeignKeyRelations(IEnumerable<ForeignKeyRelation> fks)
@@ -343,7 +457,8 @@ public partial class QueryResultTableViewModel : ViewModelBase
         string ExecutionTime,
         string SourceDescription,
         Dictionary<string, ForeignKeyRelation> FkRelations,
-        HashSet<string> PrimaryKeys);
+        HashSet<string> PrimaryKeys,
+        TableSchemaDetail? Schema = null);
 
     private readonly Stack<TableNavigationState> _navigationHistory = new();
 
@@ -374,7 +489,8 @@ public partial class QueryResultTableViewModel : ViewModelBase
                 ExecutionTime,
                 sourceDescription,
                 fksCopy,
-                pksCopy);
+                pksCopy,
+                CurrentTableSchema);
 
             _navigationHistory.Push(state);
             CanNavigateBack = true;
@@ -391,9 +507,15 @@ public partial class QueryResultTableViewModel : ViewModelBase
             var prev = _navigationHistory.Pop();
             CurrentTableName = prev.TableName;
             LastExecutedQuery = prev.ExecutedQuery;
+            if (prev.Schema != null)
+            {
+                PrepareTableSchema(prev.Schema);
+            }
+            else
+            {
+                PrepareTableMetadata(prev.PrimaryKeys, prev.FkRelations.Values);
+            }
             SetResults(prev.Columns, prev.Rows, prev.ExecutionTime);
-            SetPrimaryKeys(prev.PrimaryKeys);
-            SetForeignKeyRelations(prev.FkRelations.Values);
 
             LastQueryMessage = $"Returned to {prev.TableName} ({prev.Rows.Count} rows)";
             HasLastQueryMessage = true;
@@ -502,6 +624,123 @@ public partial class QueryResultTableViewModel : ViewModelBase
     [ObservableProperty]
     private string _selectionStatus = "Click a cell to select it · drag or Shift-click for a range";
 
+    [ObservableProperty]
+    private string _uiModel = "ExcelClassic";
+
+    [ObservableProperty]
+    private bool _showFormulaBar = true;
+
+    [ObservableProperty]
+    private bool _showExcelColumnLetters = true;
+
+    [ObservableProperty]
+    private bool _showColumnDataTypes;
+
+    [ObservableProperty]
+    private bool _showExcelStatusStats = true;
+
+    [ObservableProperty]
+    private string _stripingMode = "Rows";
+
+    [ObservableProperty]
+    private string _gridLinesMode = "All";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasActiveCell))]
+    private string _activeCellReference = "—";
+
+    [ObservableProperty]
+    private string _activeCellColumnName = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasActiveCellDataType))]
+    private string _activeCellDataType = string.Empty;
+
+    [ObservableProperty]
+    private string _activeCellFormulaText = string.Empty;
+
+    [ObservableProperty]
+    private bool _activeCellIsNull;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasExcelStats))]
+    private string _excelStatsText = string.Empty;
+
+    public bool HasActiveCell => !string.IsNullOrEmpty(ActiveCellReference) && ActiveCellReference != "—";
+    public bool HasActiveCellDataType => !string.IsNullOrEmpty(ActiveCellDataType);
+    public bool HasExcelStats => ShowExcelStatusStats && !string.IsNullOrEmpty(ExcelStatsText);
+    public bool IsFormulaBarVisible => ShowFormulaBar && HasRows;
+
+    public Action? CopyActiveCellCallback { get; set; }
+    public Action? EditActiveCellCallback { get; set; }
+
+    [RelayCommand]
+    private void CopyActiveCellFromFormulaBar() => CopyActiveCellCallback?.Invoke();
+
+    [RelayCommand]
+    private void EditActiveCellFromFormulaBar() => EditActiveCellCallback?.Invoke();
+
+    public static string ToExcelColumnName(int oneBasedColumn)
+    {
+        if (oneBasedColumn <= 0) return "?";
+        var chars = new Stack<char>();
+        int n = oneBasedColumn;
+        while (n > 0)
+        {
+            n--;
+            chars.Push((char)('A' + (n % 26)));
+            n /= 26;
+        }
+        return new string(chars.ToArray());
+    }
+
+    public void UpdateActiveCellInfo(string cellRef, string columnName, string? value, string? statsText)
+    {
+        ActiveCellReference = cellRef;
+        ActiveCellColumnName = columnName;
+        ActiveCellDataType = GetColumnDataType(columnName) ?? string.Empty;
+        ActiveCellIsNull = value == null || value.Equals("NULL", StringComparison.OrdinalIgnoreCase);
+        ActiveCellFormulaText = value ?? string.Empty;
+        ExcelStatsText = statsText ?? string.Empty;
+        OnPropertyChanged(nameof(IsFormulaBarVisible));
+    }
+
+    public void ClearActiveCellInfo()
+    {
+        ActiveCellReference = "—";
+        ActiveCellColumnName = string.Empty;
+        ActiveCellDataType = string.Empty;
+        ActiveCellFormulaText = string.Empty;
+        ActiveCellIsNull = false;
+        ExcelStatsText = string.Empty;
+        OnPropertyChanged(nameof(IsFormulaBarVisible));
+    }
+
+    public void ApplyTableCustomization(TableCustomizationRecord custom)
+    {
+        bool rebuildColumns =
+            ShowExcelColumnLetters != custom.ShowExcelColumnLetters ||
+            ShowColumnDataTypes != custom.ShowColumnDataTypes ||
+            !string.Equals(StripingMode, custom.StripingMode, StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(UiModel, custom.UiModel, StringComparison.OrdinalIgnoreCase);
+
+        UiModel = custom.UiModel;
+        ShowFormulaBar = custom.ShowFormulaBar;
+        ShowExcelColumnLetters = custom.ShowExcelColumnLetters;
+        ShowColumnDataTypes = custom.ShowColumnDataTypes;
+        ShowExcelStatusStats = custom.ShowExcelStatusStats;
+        StripingMode = custom.StripingMode;
+        GridLinesMode = custom.GridLinesMode;
+
+        OnPropertyChanged(nameof(IsFormulaBarVisible));
+        OnPropertyChanged(nameof(HasExcelStats));
+
+        if (rebuildColumns && _lastColumns != null && _lastColumns.Count > 0)
+        {
+            ColumnsChanged?.Invoke(_lastColumns);
+        }
+    }
+
     public Func<string?>? CopySelection { get; set; }
 
     public Func<string?>? CopyFocusedRow { get; set; }
@@ -534,6 +773,12 @@ public partial class QueryResultTableViewModel : ViewModelBase
         {
             LastQueryMessage = msg;
             HasLastQueryMessage = true;
+        };
+
+        ApplyTableCustomization(ThemeService.Instance.CurrentTableCustomization);
+        ThemeService.Instance.TableCustomizationChanged += (_, custom) =>
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => ApplyTableCustomization(custom));
         };
     }
 

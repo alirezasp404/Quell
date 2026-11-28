@@ -424,6 +424,60 @@ public partial class SettingsModalViewModel : ObservableObject
     [ObservableProperty]
     private bool _tableShowAlternatingRowColors = true;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsExcelClassicModel))]
+    [NotifyPropertyChangedFor(nameof(IsExcelModernModel))]
+    [NotifyPropertyChangedFor(nameof(IsMinimalistFlatModel))]
+    [NotifyPropertyChangedFor(nameof(IsCompactDataModel))]
+    [NotifyPropertyChangedFor(nameof(IsHighContrastModel))]
+    private string _tableUiModel = "ExcelClassic";
+
+    public bool IsExcelClassicModel => string.Equals(TableUiModel, "ExcelClassic", StringComparison.OrdinalIgnoreCase);
+    public bool IsExcelModernModel => string.Equals(TableUiModel, "ExcelModern", StringComparison.OrdinalIgnoreCase);
+    public bool IsMinimalistFlatModel => string.Equals(TableUiModel, "MinimalistFlat", StringComparison.OrdinalIgnoreCase);
+    public bool IsCompactDataModel => string.Equals(TableUiModel, "CompactData", StringComparison.OrdinalIgnoreCase);
+    public bool IsHighContrastModel => string.Equals(TableUiModel, "HighContrast", StringComparison.OrdinalIgnoreCase);
+
+    [ObservableProperty]
+    private bool _tableShowFormulaBar = true;
+
+    [ObservableProperty]
+    private bool _tableShowExcelColumnLetters = true;
+
+    [ObservableProperty]
+    private bool _tableShowColumnDataTypes = false;
+
+    [ObservableProperty]
+    private bool _tableShowExcelStatusStats = true;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsRowsStriping))]
+    [NotifyPropertyChangedFor(nameof(IsColumnsStriping))]
+    [NotifyPropertyChangedFor(nameof(IsNoStriping))]
+    private string _tableStripingMode = "Rows";
+
+    public bool IsRowsStriping => string.Equals(TableStripingMode, "Rows", StringComparison.OrdinalIgnoreCase);
+    public bool IsColumnsStriping => string.Equals(TableStripingMode, "Columns", StringComparison.OrdinalIgnoreCase);
+    public bool IsNoStriping => string.Equals(TableStripingMode, "None", StringComparison.OrdinalIgnoreCase);
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsGridAll))]
+    [NotifyPropertyChangedFor(nameof(IsGridHorizontal))]
+    [NotifyPropertyChangedFor(nameof(IsGridVertical))]
+    [NotifyPropertyChangedFor(nameof(IsGridNone))]
+    private string _tableGridLinesMode = "All";
+
+    public bool IsGridAll => string.Equals(TableGridLinesMode, "All", StringComparison.OrdinalIgnoreCase);
+    public bool IsGridHorizontal => string.Equals(TableGridLinesMode, "Horizontal", StringComparison.OrdinalIgnoreCase);
+    public bool IsGridVertical => string.Equals(TableGridLinesMode, "Vertical", StringComparison.OrdinalIgnoreCase);
+    public bool IsGridNone => string.Equals(TableGridLinesMode, "None", StringComparison.OrdinalIgnoreCase);
+
+    partial void OnTableShowFormulaBarChanged(bool value) => LivePreviewTableCustomization();
+    partial void OnTableShowExcelColumnLettersChanged(bool value) => LivePreviewTableCustomization();
+    partial void OnTableShowColumnDataTypesChanged(bool value) => LivePreviewTableCustomization();
+    partial void OnTableShowExcelStatusStatsChanged(bool value) => LivePreviewTableCustomization();
+
+    private bool _isLoadingTableSettings;
     private TableCustomizationRecord _initialTableCustomization = new();
 
     public IBrush PreviewTableMainRowBrush
@@ -626,22 +680,37 @@ public partial class SettingsModalViewModel : ObservableObject
             TerminalForeground = _initialPanelCustomization.TerminalForeground;
 
             // 3. Load Table Customizations from SQLite
-            _initialTableCustomization = await DatabaseStorageService.Instance.GetTableCustomizationAsync().ConfigureAwait(false);
-            TableRowHeight = _initialTableCustomization.RowHeight;
-            TableHeaderHeight = _initialTableCustomization.HeaderHeight;
-            TableGutterWidth = _initialTableCustomization.GutterWidth;
-            TableCellFontSize = _initialTableCustomization.FontSize;
-            TableBackground = _initialTableCustomization.TableBackground;
-            TableAlternatingRowColor = _initialTableCustomization.AlternatingRowColor;
-            TableCellTextColor = _initialTableCustomization.CellTextColor;
-            TableHeaderBackground = _initialTableCustomization.HeaderBackground;
-            TableHeaderTextColor = _initialTableCustomization.HeaderTextColor;
-            TableGutterBackground = _initialTableCustomization.GutterBackground;
-            TableGutterTextColor = _initialTableCustomization.GutterTextColor;
-            TableGridLinesColor = _initialTableCustomization.GridLinesColor;
-            TableSelectionColor = _initialTableCustomization.SelectionColor;
-            TableShowGridLines = _initialTableCustomization.ShowGridLines;
-            TableShowAlternatingRowColors = _initialTableCustomization.ShowAlternatingRowColors;
+            _isLoadingTableSettings = true;
+            try
+            {
+                _initialTableCustomization = await DatabaseStorageService.Instance.GetTableCustomizationAsync().ConfigureAwait(false);
+                TableRowHeight = _initialTableCustomization.RowHeight;
+                TableHeaderHeight = _initialTableCustomization.HeaderHeight;
+                TableGutterWidth = _initialTableCustomization.GutterWidth;
+                TableCellFontSize = _initialTableCustomization.FontSize;
+                TableBackground = _initialTableCustomization.TableBackground;
+                TableAlternatingRowColor = _initialTableCustomization.AlternatingRowColor;
+                TableCellTextColor = _initialTableCustomization.CellTextColor;
+                TableHeaderBackground = _initialTableCustomization.HeaderBackground;
+                TableHeaderTextColor = _initialTableCustomization.HeaderTextColor;
+                TableGutterBackground = _initialTableCustomization.GutterBackground;
+                TableGutterTextColor = _initialTableCustomization.GutterTextColor;
+                TableGridLinesColor = _initialTableCustomization.GridLinesColor;
+                TableSelectionColor = _initialTableCustomization.SelectionColor;
+                TableShowGridLines = _initialTableCustomization.ShowGridLines;
+                TableShowAlternatingRowColors = _initialTableCustomization.ShowAlternatingRowColors;
+                TableUiModel = _initialTableCustomization.UiModel;
+                TableShowFormulaBar = _initialTableCustomization.ShowFormulaBar;
+                TableShowExcelColumnLetters = _initialTableCustomization.ShowExcelColumnLetters;
+                TableShowColumnDataTypes = _initialTableCustomization.ShowColumnDataTypes;
+                TableShowExcelStatusStats = _initialTableCustomization.ShowExcelStatusStats;
+                TableStripingMode = _initialTableCustomization.StripingMode;
+                TableGridLinesMode = _initialTableCustomization.GridLinesMode;
+            }
+            finally
+            {
+                _isLoadingTableSettings = false;
+            }
 
             // 4. Load Dynamic Shortcuts from SQLite
             await ShortcutService.Instance.InitializeAsync().ConfigureAwait(false);
@@ -1335,79 +1404,271 @@ public partial class SettingsModalViewModel : ObservableObject
     }
 
     [RelayCommand]
+    public void SetTableStripingMode(string mode)
+    {
+        TableStripingMode = string.IsNullOrWhiteSpace(mode) ? "Rows" : mode;
+        TableShowAlternatingRowColors = !string.Equals(TableStripingMode, "None", StringComparison.OrdinalIgnoreCase);
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
+    public void SetTableGridLinesMode(string mode)
+    {
+        TableGridLinesMode = string.IsNullOrWhiteSpace(mode) ? "All" : mode;
+        TableShowGridLines = !string.Equals(TableGridLinesMode, "None", StringComparison.OrdinalIgnoreCase);
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
+    public void ApplyTableUiModel(string model)
+    {
+        _isLoadingTableSettings = true;
+        try
+        {
+            switch (model?.ToLowerInvariant())
+            {
+                case "excelclassic":
+                    TableUiModel = "ExcelClassic";
+                    TableRowHeight = 23.0;
+                    TableHeaderHeight = 28.0;
+                    TableGutterWidth = 52.0;
+                    TableCellFontSize = 11.0;
+                    TableShowFormulaBar = true;
+                    TableShowExcelColumnLetters = true;
+                    TableShowColumnDataTypes = false;
+                    TableShowExcelStatusStats = true;
+                    TableStripingMode = "Rows";
+                    TableGridLinesMode = "All";
+                    TableShowGridLines = true;
+                    TableShowAlternatingRowColors = true;
+                    TableBackground = "Default";
+                    TableAlternatingRowColor = "Default";
+                    TableCellTextColor = "Default";
+                    TableHeaderBackground = "Default";
+                    TableHeaderTextColor = "Default";
+                    TableGutterBackground = "Default";
+                    TableGutterTextColor = "Default";
+                    TableGridLinesColor = "Default";
+                    TableSelectionColor = "Default";
+                    break;
+                case "excelmodern":
+                    TableUiModel = "ExcelModern";
+                    TableRowHeight = 26.0;
+                    TableHeaderHeight = 30.0;
+                    TableGutterWidth = 56.0;
+                    TableCellFontSize = 11.5;
+                    TableShowFormulaBar = true;
+                    TableShowExcelColumnLetters = true;
+                    TableShowColumnDataTypes = true;
+                    TableShowExcelStatusStats = true;
+                    TableStripingMode = "Rows";
+                    TableGridLinesMode = "All";
+                    TableShowGridLines = true;
+                    TableShowAlternatingRowColors = true;
+                    TableBackground = "Default";
+                    TableAlternatingRowColor = "Default";
+                    TableCellTextColor = "Default";
+                    TableHeaderBackground = "Default";
+                    TableHeaderTextColor = "Default";
+                    TableGutterBackground = "Default";
+                    TableGutterTextColor = "Default";
+                    TableGridLinesColor = "Default";
+                    TableSelectionColor = "Default";
+                    break;
+                case "minimalistflat":
+                    TableUiModel = "MinimalistFlat";
+                    TableRowHeight = 30.0;
+                    TableHeaderHeight = 32.0;
+                    TableGutterWidth = 48.0;
+                    TableCellFontSize = 12.0;
+                    TableShowFormulaBar = false;
+                    TableShowExcelColumnLetters = false;
+                    TableShowColumnDataTypes = true;
+                    TableShowExcelStatusStats = true;
+                    TableStripingMode = "None";
+                    TableGridLinesMode = "Horizontal";
+                    TableShowGridLines = true;
+                    TableShowAlternatingRowColors = false;
+                    TableBackground = "Default";
+                    TableAlternatingRowColor = "Default";
+                    TableCellTextColor = "Default";
+                    TableHeaderBackground = "Default";
+                    TableHeaderTextColor = "Default";
+                    TableGutterBackground = "Default";
+                    TableGutterTextColor = "Default";
+                    TableGridLinesColor = "Default";
+                    TableSelectionColor = "Default";
+                    break;
+                case "compactdata":
+                    TableUiModel = "CompactData";
+                    TableRowHeight = 20.0;
+                    TableHeaderHeight = 25.0;
+                    TableGutterWidth = 44.0;
+                    TableCellFontSize = 10.5;
+                    TableShowFormulaBar = true;
+                    TableShowExcelColumnLetters = false;
+                    TableShowColumnDataTypes = true;
+                    TableShowExcelStatusStats = true;
+                    TableStripingMode = "Columns";
+                    TableGridLinesMode = "All";
+                    TableShowGridLines = true;
+                    TableShowAlternatingRowColors = true;
+                    TableBackground = "Default";
+                    TableAlternatingRowColor = "Default";
+                    TableCellTextColor = "Default";
+                    TableHeaderBackground = "Default";
+                    TableHeaderTextColor = "Default";
+                    TableGutterBackground = "Default";
+                    TableGutterTextColor = "Default";
+                    TableGridLinesColor = "Default";
+                    TableSelectionColor = "Default";
+                    break;
+                case "highcontrast":
+                    TableUiModel = "HighContrast";
+                    TableRowHeight = 26.0;
+                    TableHeaderHeight = 28.0;
+                    TableGutterWidth = 56.0;
+                    TableCellFontSize = 11.5;
+                    TableShowFormulaBar = true;
+                    TableShowExcelColumnLetters = true;
+                    TableShowColumnDataTypes = false;
+                    TableShowExcelStatusStats = true;
+                    TableStripingMode = "Rows";
+                    TableGridLinesMode = "All";
+                    TableShowGridLines = true;
+                    TableShowAlternatingRowColors = true;
+                    TableBackground = "#000000";
+                    TableAlternatingRowColor = "#111827";
+                    TableCellTextColor = "#FFFFFF";
+                    TableHeaderBackground = "#000000";
+                    TableHeaderTextColor = "#FFFFFF";
+                    TableGutterBackground = "#000000";
+                    TableGutterTextColor = "#FFFFFF";
+                    TableGridLinesColor = "#FFFFFF";
+                    TableSelectionColor = "#2563EB";
+                    break;
+                default:
+                    ApplyTableUiModel("ExcelClassic");
+                    return;
+            }
+        }
+        finally
+        {
+            _isLoadingTableSettings = false;
+        }
+        LivePreviewTableCustomization();
+    }
+
+    [RelayCommand]
     public void ApplyTablePreset(string preset)
     {
-        switch (preset?.ToLowerInvariant())
+        _isLoadingTableSettings = true;
+        try
         {
-            case "excel":
-                TableRowHeight = 25.0;
-                TableHeaderHeight = 26.0;
-                TableGutterWidth = 56.0;
-                TableCellFontSize = 11.0;
-                TableBackground = "#FFFFFF";
-                TableAlternatingRowColor = "#F8FAFC";
-                TableCellTextColor = "#0F172A";
-                TableHeaderBackground = "#F1F5F9";
-                TableHeaderTextColor = "#0F172A";
-                TableGutterBackground = "#F1F5F9";
-                TableGutterTextColor = "#0F172A";
-                TableGridLinesColor = "#CBD5E1";
-                TableSelectionColor = "#DBEAFE";
-                TableShowGridLines = true;
-                TableShowAlternatingRowColors = true;
-                break;
-            case "darkpro":
-                TableRowHeight = 26.0;
-                TableHeaderHeight = 28.0;
-                TableGutterWidth = 56.0;
-                TableCellFontSize = 11.0;
-                TableBackground = "#1E293B";
-                TableAlternatingRowColor = "#141E2E";
-                TableCellTextColor = "#F8FAFC";
-                TableHeaderBackground = "#1E293B";
-                TableHeaderTextColor = "#F8FAFC";
-                TableGutterBackground = "#1E293B";
-                TableGutterTextColor = "#94A3B8";
-                TableGridLinesColor = "#334155";
-                TableSelectionColor = "#1E3A5F";
-                TableShowGridLines = true;
-                TableShowAlternatingRowColors = true;
-                break;
-            case "compact":
-                TableRowHeight = 20.0;
-                TableHeaderHeight = 24.0;
-                TableGutterWidth = 44.0;
-                TableCellFontSize = 10.0;
-                TableShowGridLines = true;
-                TableShowAlternatingRowColors = true;
-                break;
-            case "comfortable":
-                TableRowHeight = 32.0;
-                TableHeaderHeight = 32.0;
-                TableGutterWidth = 60.0;
-                TableCellFontSize = 12.0;
-                TableShowGridLines = true;
-                TableShowAlternatingRowColors = true;
-                break;
-            case "highcontrast":
-                TableRowHeight = 26.0;
-                TableHeaderHeight = 28.0;
-                TableCellFontSize = 11.0;
-                TableBackground = "#000000";
-                TableAlternatingRowColor = "#111827";
-                TableCellTextColor = "#FFFFFF";
-                TableHeaderBackground = "#000000";
-                TableHeaderTextColor = "#FFFFFF";
-                TableGutterBackground = "#000000";
-                TableGutterTextColor = "#FFFFFF";
-                TableGridLinesColor = "#FFFFFF";
-                TableSelectionColor = "#2563EB";
-                TableShowGridLines = true;
-                TableShowAlternatingRowColors = true;
-                break;
-            default:
-                ResetTableCustomization();
-                return;
+            switch (preset?.ToLowerInvariant())
+            {
+                case "excel":
+                    TableUiModel = "ExcelClassic";
+                    TableRowHeight = 25.0;
+                    TableHeaderHeight = 26.0;
+                    TableGutterWidth = 56.0;
+                    TableCellFontSize = 11.0;
+                    TableBackground = "#FFFFFF";
+                    TableAlternatingRowColor = "#F8FAFC";
+                    TableCellTextColor = "#0F172A";
+                    TableHeaderBackground = "#F1F5F9";
+                    TableHeaderTextColor = "#0F172A";
+                    TableGutterBackground = "#F1F5F9";
+                    TableGutterTextColor = "#0F172A";
+                    TableGridLinesColor = "#CBD5E1";
+                    TableSelectionColor = "#DBEAFE";
+                    TableShowGridLines = true;
+                    TableShowAlternatingRowColors = true;
+                    TableShowFormulaBar = true;
+                    TableShowExcelColumnLetters = true;
+                    TableShowExcelStatusStats = true;
+                    TableStripingMode = "Rows";
+                    TableGridLinesMode = "All";
+                    break;
+                case "darkpro":
+                    TableUiModel = "ExcelModern";
+                    TableRowHeight = 26.0;
+                    TableHeaderHeight = 28.0;
+                    TableGutterWidth = 56.0;
+                    TableCellFontSize = 11.0;
+                    TableBackground = "#1E293B";
+                    TableAlternatingRowColor = "#141E2E";
+                    TableCellTextColor = "#F8FAFC";
+                    TableHeaderBackground = "#1E293B";
+                    TableHeaderTextColor = "#F8FAFC";
+                    TableGutterBackground = "#1E293B";
+                    TableGutterTextColor = "#94A3B8";
+                    TableGridLinesColor = "#334155";
+                    TableSelectionColor = "#1E3A5F";
+                    TableShowGridLines = true;
+                    TableShowAlternatingRowColors = true;
+                    TableShowFormulaBar = true;
+                    TableShowExcelColumnLetters = true;
+                    TableShowColumnDataTypes = true;
+                    TableShowExcelStatusStats = true;
+                    TableStripingMode = "Rows";
+                    TableGridLinesMode = "All";
+                    break;
+                case "compact":
+                    TableUiModel = "CompactData";
+                    TableRowHeight = 20.0;
+                    TableHeaderHeight = 24.0;
+                    TableGutterWidth = 44.0;
+                    TableCellFontSize = 10.0;
+                    TableShowGridLines = true;
+                    TableShowAlternatingRowColors = true;
+                    TableShowExcelColumnLetters = false;
+                    TableShowColumnDataTypes = true;
+                    TableStripingMode = "Columns";
+                    TableGridLinesMode = "All";
+                    break;
+                case "comfortable":
+                    TableUiModel = "MinimalistFlat";
+                    TableRowHeight = 32.0;
+                    TableHeaderHeight = 32.0;
+                    TableGutterWidth = 60.0;
+                    TableCellFontSize = 12.0;
+                    TableShowGridLines = true;
+                    TableShowAlternatingRowColors = false;
+                    TableShowFormulaBar = false;
+                    TableShowExcelColumnLetters = false;
+                    TableStripingMode = "None";
+                    TableGridLinesMode = "Horizontal";
+                    break;
+                case "highcontrast":
+                    TableUiModel = "HighContrast";
+                    TableRowHeight = 26.0;
+                    TableHeaderHeight = 28.0;
+                    TableCellFontSize = 11.0;
+                    TableBackground = "#000000";
+                    TableAlternatingRowColor = "#111827";
+                    TableCellTextColor = "#FFFFFF";
+                    TableHeaderBackground = "#000000";
+                    TableHeaderTextColor = "#FFFFFF";
+                    TableGutterBackground = "#000000";
+                    TableGutterTextColor = "#FFFFFF";
+                    TableGridLinesColor = "#FFFFFF";
+                    TableSelectionColor = "#2563EB";
+                    TableShowGridLines = true;
+                    TableShowAlternatingRowColors = true;
+                    TableShowFormulaBar = true;
+                    TableShowExcelColumnLetters = true;
+                    TableStripingMode = "Rows";
+                    TableGridLinesMode = "All";
+                    break;
+                default:
+                    ResetTableCustomization();
+                    return;
+            }
+        }
+        finally
+        {
+            _isLoadingTableSettings = false;
         }
         LivePreviewTableCustomization();
     }
@@ -1415,44 +1676,70 @@ public partial class SettingsModalViewModel : ObservableObject
     [RelayCommand]
     public void ResetTableCustomization()
     {
-        TableRowHeight = 20.0;
-        TableHeaderHeight = 26.0;
-        TableGutterWidth = 56.0;
-        TableCellFontSize = 11.0;
-        TableBackground = "Default";
-        TableAlternatingRowColor = "Default";
-        TableCellTextColor = "Default";
-        TableHeaderBackground = "Default";
-        TableHeaderTextColor = "Default";
-        TableGutterBackground = "Default";
-        TableGutterTextColor = "Default";
-        TableGridLinesColor = "Default";
-        TableSelectionColor = "Default";
-        TableShowGridLines = true;
-        TableShowAlternatingRowColors = true;
+        _isLoadingTableSettings = true;
+        try
+        {
+            TableUiModel = "ExcelClassic";
+            TableRowHeight = 20.0;
+            TableHeaderHeight = 26.0;
+            TableGutterWidth = 56.0;
+            TableCellFontSize = 11.0;
+            TableBackground = "Default";
+            TableAlternatingRowColor = "Default";
+            TableCellTextColor = "Default";
+            TableHeaderBackground = "Default";
+            TableHeaderTextColor = "Default";
+            TableGutterBackground = "Default";
+            TableGutterTextColor = "Default";
+            TableGridLinesColor = "Default";
+            TableSelectionColor = "Default";
+            TableShowGridLines = true;
+            TableShowAlternatingRowColors = true;
+            TableShowFormulaBar = true;
+            TableShowExcelColumnLetters = true;
+            TableShowColumnDataTypes = false;
+            TableShowExcelStatusStats = true;
+            TableStripingMode = "Rows";
+            TableGridLinesMode = "All";
+        }
+        finally
+        {
+            _isLoadingTableSettings = false;
+        }
         LivePreviewTableCustomization();
     }
 
+    private TableCustomizationRecord BuildCurrentTableCustomizationRecord() => new()
+    {
+        UiModel = TableUiModel,
+        RowHeight = TableRowHeight,
+        HeaderHeight = TableHeaderHeight,
+        GutterWidth = TableGutterWidth,
+        FontSize = TableCellFontSize,
+        TableBackground = TableBackground,
+        AlternatingRowColor = TableAlternatingRowColor,
+        CellTextColor = TableCellTextColor,
+        HeaderBackground = TableHeaderBackground,
+        HeaderTextColor = TableHeaderTextColor,
+        GutterBackground = TableGutterBackground,
+        GutterTextColor = TableGutterTextColor,
+        GridLinesColor = TableGridLinesColor,
+        SelectionColor = TableSelectionColor,
+        ShowGridLines = TableShowGridLines,
+        ShowAlternatingRowColors = TableShowAlternatingRowColors,
+        ShowFormulaBar = TableShowFormulaBar,
+        ShowExcelColumnLetters = TableShowExcelColumnLetters,
+        ShowColumnDataTypes = TableShowColumnDataTypes,
+        ShowExcelStatusStats = TableShowExcelStatusStats,
+        StripingMode = TableStripingMode,
+        GridLinesMode = TableGridLinesMode
+    };
+
     private void LivePreviewTableCustomization()
     {
-        var record = new TableCustomizationRecord
-        {
-            RowHeight = TableRowHeight,
-            HeaderHeight = TableHeaderHeight,
-            GutterWidth = TableGutterWidth,
-            FontSize = TableCellFontSize,
-            TableBackground = TableBackground,
-            AlternatingRowColor = TableAlternatingRowColor,
-            CellTextColor = TableCellTextColor,
-            HeaderBackground = TableHeaderBackground,
-            HeaderTextColor = TableHeaderTextColor,
-            GutterBackground = TableGutterBackground,
-            GutterTextColor = TableGutterTextColor,
-            GridLinesColor = TableGridLinesColor,
-            SelectionColor = TableSelectionColor,
-            ShowGridLines = TableShowGridLines,
-            ShowAlternatingRowColors = TableShowAlternatingRowColors
-        };
+        if (_isLoadingTableSettings) return;
+
+        var record = BuildCurrentTableCustomizationRecord();
         ThemeService.Instance.ApplyTableCustomization(record);
 
         OnPropertyChanged(nameof(PreviewTableMainRowBrush));
@@ -1669,24 +1956,7 @@ public partial class SettingsModalViewModel : ObservableObject
             _initialPanelCustomization = panelRecord;
 
             // 3. Save Table Customization
-            var tableRecord = new TableCustomizationRecord
-            {
-                RowHeight = TableRowHeight,
-                HeaderHeight = TableHeaderHeight,
-                GutterWidth = TableGutterWidth,
-                FontSize = TableCellFontSize,
-                TableBackground = TableBackground,
-                AlternatingRowColor = TableAlternatingRowColor,
-                CellTextColor = TableCellTextColor,
-                HeaderBackground = TableHeaderBackground,
-                HeaderTextColor = TableHeaderTextColor,
-                GutterBackground = TableGutterBackground,
-                GutterTextColor = TableGutterTextColor,
-                GridLinesColor = TableGridLinesColor,
-                SelectionColor = TableSelectionColor,
-                ShowGridLines = TableShowGridLines,
-                ShowAlternatingRowColors = TableShowAlternatingRowColors
-            };
+            var tableRecord = BuildCurrentTableCustomizationRecord();
             await DatabaseStorageService.Instance.SaveTableCustomizationAsync(tableRecord).ConfigureAwait(false);
             ThemeService.Instance.ApplyTableCustomization(tableRecord);
             _initialTableCustomization = tableRecord;

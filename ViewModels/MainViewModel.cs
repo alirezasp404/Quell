@@ -257,16 +257,14 @@ public partial class MainViewModel : ViewModelBase
             string? key = ResolveActiveSessionKey();
             if (!string.IsNullOrEmpty(key) && DatabaseSessionService.Instance.IsSessionOpen(key))
             {
-                var colsTask = DatabaseSessionService.Instance.GetColumnsAsync(tgtTable, key);
-                var pksTask = DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(tgtTable, key);
-                var fksTask = DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(tgtTable, key);
-
-                await Task.WhenAll(colsTask, pksTask, fksTask);
-
-                return new TableSchemaMetadata(
-                    await colsTask,
-                    await pksTask,
-                    await fksTask);
+                var schema = await DatabaseMetadataService.Instance.GetTableSchemaAsync(tgtTable, key);
+                if (schema != null)
+                {
+                    return new TableSchemaMetadata(
+                        schema.ToColumnTuples(),
+                        schema.PrimaryKeyColumns.ToList(),
+                        schema.ForeignKeys.ToList());
+                }
             }
 
             return DemoDataProvider.GetSampleTableMetadata(tgtTable);
@@ -330,6 +328,8 @@ public partial class MainViewModel : ViewModelBase
             await LoadTablePropertiesAsync(tableName);
             ShowSchemaPropertiesFooter();
         };
+
+        _sidebar.ShowTableMetadataInResultCallback = ShowTableMetadataInResultAsync;
 
         _sidebar.ShowTableInDiagramCallback = async _ =>
         {
@@ -920,25 +920,22 @@ public partial class MainViewModel : ViewModelBase
                 var qResult = await DatabaseSessionService.Instance.ExecuteQueryAsync(query, key, ct).ConfigureAwait(false);
                 if (ct.IsCancellationRequested)
                 {
-                    return (Result: qResult, TableName: (string?)null, Pks: new List<string>(), Fks: new List<ForeignKeyRelation>());
+                    return (Result: qResult, TableName: (string?)null, Schema: (TableSchemaDetail?)null);
                 }
 
                 string? table = qResult.Success && qResult.ColumnNames.Count > 0
                     ? ExtractTableNameFromQuery(query)
                     : null;
 
-                var pks = new List<string>();
-                var fks = new List<ForeignKeyRelation>();
+                TableSchemaDetail? schema = null;
 
                 if (!string.IsNullOrWhiteSpace(table))
                 {
                     try
                     {
-                        var pkTask = DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(table, key, ct);
-                        var fkTask = DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(table, key, ct);
-                        await Task.WhenAll(pkTask, fkTask).ConfigureAwait(false);
-                        pks = await pkTask.ConfigureAwait(false);
-                        fks = await fkTask.ConfigureAwait(false);
+                        schema = await DatabaseMetadataService.Instance
+                            .GetTableSchemaAsync(table, key, cancellationToken: ct)
+                            .ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
@@ -946,7 +943,7 @@ public partial class MainViewModel : ViewModelBase
                     }
                 }
 
-                return (Result: qResult, TableName: table, Pks: pks, Fks: fks);
+                return (Result: qResult, TableName: table, Schema: schema);
             }, ct);
 
             if (ct.IsCancellationRequested) return;
@@ -961,9 +958,9 @@ public partial class MainViewModel : ViewModelBase
 
             if (result.Success && result.ColumnNames.Count > 0)
             {
-                if (!string.IsNullOrWhiteSpace(inferredTable))
+                if (bgExec.Schema != null)
                 {
-                    SampleQueryResult.PrepareTableMetadata(bgExec.Pks, bgExec.Fks);
+                    SampleQueryResult.PrepareTableSchema(bgExec.Schema);
                 }
                 SampleQueryResult.SetResults(result.ColumnNames, result.Rows, result.ExecutionTime);
                 SampleQueryResult.LastExecutedQuery = query;
@@ -1096,21 +1093,18 @@ public partial class MainViewModel : ViewModelBase
                 var bgFk = await Task.Run(async () =>
                 {
                     var res = await DatabaseSessionService.Instance.ExecuteQueryAsync(query, activeKey).ConfigureAwait(false);
-                    var pks = new List<string>();
-                    var fks = new List<ForeignKeyRelation>();
+                    TableSchemaDetail? schema = null;
                     if (res.Success && res.ColumnNames.Count > 0)
                     {
                         try
                         {
-                            var pkTask = DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(targetTable, activeKey);
-                            var fkTask = DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(targetTable, activeKey);
-                            await Task.WhenAll(pkTask, fkTask).ConfigureAwait(false);
-                            pks = await pkTask.ConfigureAwait(false);
-                            fks = await fkTask.ConfigureAwait(false);
+                            schema = await DatabaseMetadataService.Instance
+                                .GetTableSchemaAsync(targetTable, activeKey)
+                                .ConfigureAwait(false);
                         }
                         catch { }
                     }
-                    return (Result: res, Pks: pks, Fks: fks);
+                    return (Result: res, Schema: schema);
                 });
 
                 var result = bgFk.Result;
@@ -1118,7 +1112,7 @@ public partial class MainViewModel : ViewModelBase
                 {
                     SampleQueryResult.CurrentTableName = targetTable;
                     SampleQueryResult.ClearMetadata();
-                    SampleQueryResult.PrepareTableMetadata(bgFk.Pks, bgFk.Fks);
+                    SampleQueryResult.PrepareTableSchema(bgFk.Schema);
                     SampleQueryResult.SetResults(result.ColumnNames, result.Rows, result.ExecutionTime);
                     SampleQueryResult.LastExecutedQuery = query;
                     SampleQueryResult.LastQueryMessage = result.Rows.Count == 0
@@ -1234,21 +1228,18 @@ public partial class MainViewModel : ViewModelBase
                 string? tbl = res.Success && res.ColumnNames.Count > 0
                     ? (ExtractTableNameFromQuery(capturedQuery) ?? (string.IsNullOrWhiteSpace(currentTableFallback) ? null : currentTableFallback))
                     : null;
-                var pks = new List<string>();
-                var fks = new List<ForeignKeyRelation>();
+                TableSchemaDetail? schema = null;
                 if (!string.IsNullOrWhiteSpace(tbl))
                 {
                     try
                     {
-                        var pkTask = DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(tbl, activeKey);
-                        var fkTask = DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(tbl, activeKey);
-                        await Task.WhenAll(pkTask, fkTask).ConfigureAwait(false);
-                        pks = await pkTask.ConfigureAwait(false);
-                        fks = await fkTask.ConfigureAwait(false);
+                        schema = await DatabaseMetadataService.Instance
+                            .GetTableSchemaAsync(tbl, activeKey)
+                            .ConfigureAwait(false);
                     }
                     catch { }
                 }
-                return (Result: res, InferredTable: tbl, Pks: pks, Fks: fks);
+                return (Result: res, InferredTable: tbl, Schema: schema);
             });
 
             var result = bgRef.Result;
@@ -1256,9 +1247,9 @@ public partial class MainViewModel : ViewModelBase
             {
                 SampleQueryResult.CurrentTableName = bgRef.InferredTable ?? string.Empty;
                 SampleQueryResult.ClearMetadata();
-                if (!string.IsNullOrWhiteSpace(bgRef.InferredTable))
+                if (bgRef.Schema != null)
                 {
-                    SampleQueryResult.PrepareTableMetadata(bgRef.Pks, bgRef.Fks);
+                    SampleQueryResult.PrepareTableSchema(bgRef.Schema);
                 }
                 SampleQueryResult.SetResults(result.ColumnNames, result.Rows, result.ExecutionTime);
                 SampleQueryResult.LastExecutedQuery = queryToRun;
@@ -1811,15 +1802,9 @@ public partial class MainViewModel : ViewModelBase
                 await semaphore.WaitAsync();
                 try
                 {
-                    var pksTask = DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(t.FullName, sessionKey);
-                    var fksTask = DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(t.FullName, sessionKey);
-                    var colsTask = DatabaseSessionService.Instance.GetColumnsAsync(t.FullName, sessionKey);
-
-                    await Task.WhenAll(pksTask, fksTask, colsTask);
-
-                    var pks = await pksTask;
-                    var fks = await fksTask;
-                    var cols = await colsTask;
+                    var schema = await DatabaseMetadataService.Instance
+                        .GetTableSchemaAsync(t.FullName, sessionKey)
+                        .ConfigureAwait(false);
 
                     var item = new DiagramTableItem
                     {
@@ -1828,24 +1813,24 @@ public partial class MainViewModel : ViewModelBase
                         DatabaseType = dbType
                     };
 
-                    foreach (var c in cols)
+                    if (schema != null)
                     {
-                        bool isPk = pks.Contains(c.ColumnName, StringComparer.OrdinalIgnoreCase);
-                        var fk = fks.FirstOrDefault(f => f.ColumnName.Equals(c.ColumnName, StringComparison.OrdinalIgnoreCase));
-
-                        item.Columns.Add(new DiagramColumnItem
+                        foreach (var c in schema.Columns)
                         {
-                            ColumnName = c.ColumnName,
-                            DataType = c.DataType,
-                            IsPrimaryKey = isPk,
-                            IsForeignKey = fk != null,
-                            ReferencedTable = fk?.TargetTable,
-                            ReferencedColumn = fk?.TargetColumn
-                        });
+                            item.Columns.Add(new DiagramColumnItem
+                            {
+                                ColumnName = c.Name,
+                                DataType = c.FormattedDataType,
+                                IsPrimaryKey = c.IsPrimaryKey,
+                                IsForeignKey = c.IsForeignKey,
+                                ReferencedTable = c.ForeignKey?.TargetTable,
+                                ReferencedColumn = c.ForeignKey?.TargetColumn
+                            });
 
-                        if (fk != null)
-                        {
-                            item.OutgoingRelations.Add($"{item.TableName}.{c.ColumnName} -> {fk.TargetTable}.{fk.TargetColumn}");
+                            if (c.ForeignKey != null)
+                            {
+                                item.OutgoingRelations.Add($"{item.TableName}.{c.Name} -> {c.ForeignKey.TargetTable}.{c.ForeignKey.TargetColumn}");
+                            }
                         }
                     }
 
@@ -1857,7 +1842,7 @@ public partial class MainViewModel : ViewModelBase
                     void UpdateProgress()
                     {
                         DiagramModal.LoadingMessage = $"Analyzing schema: {t.TableName} ({current} of {total})";
-                        DiagramModal.LoadingDetailText = $"Loaded {cols.Count} columns for {t.TableName}";
+                        DiagramModal.LoadingDetailText = $"Loaded {item.Columns.Count} columns for {t.TableName}";
                         DiagramModal.LoadingProgress = progress;
                     }
 
@@ -2722,6 +2707,68 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
+    private Task ShowTableMetadataInResultAsync(TableSchemaDetail schema, string groupType)
+    {
+        var columns = new List<string>();
+        var rows = new List<QueryResultRow>();
+        int idx = 1;
+
+        if (groupType.Equals("Columns", StringComparison.OrdinalIgnoreCase))
+        {
+            columns.AddRange(new[] { "Ordinal", "ColumnName", "DataType", "Nullable", "PrimaryKey", "ForeignKey", "Unique", "Identity", "DefaultValue", "Description" });
+            foreach (var col in schema.Columns)
+            {
+                var row = new QueryResultRow { RowIndex = idx++ };
+                row.SetRawValue("Ordinal", col.Ordinal.ToString());
+                row.SetRawValue("ColumnName", col.Name);
+                row.SetRawValue("DataType", col.FormattedDataType);
+                row.SetRawValue("Nullable", col.IsNullable ? "YES" : "NO");
+                row.SetRawValue("PrimaryKey", col.IsPrimaryKey ? "YES" : "NO");
+                row.SetRawValue("ForeignKey", col.ForeignKey != null ? $"{col.ForeignKey.TargetTable}({col.ForeignKey.TargetColumn})" : string.Empty);
+                row.SetRawValue("Unique", col.IsUnique ? "YES" : "NO");
+                row.SetRawValue("Identity", col.IsIdentity ? "YES" : "NO");
+                row.SetRawValue("DefaultValue", col.DefaultValue ?? string.Empty);
+                row.SetRawValue("Description", col.Description ?? string.Empty);
+                rows.Add(row);
+            }
+        }
+        else if (groupType.Equals("Indexes", StringComparison.OrdinalIgnoreCase))
+        {
+            columns.AddRange(new[] { "IndexName", "PrimaryKey", "Unique", "Columns" });
+            foreach (var index in schema.Indexes)
+            {
+                var row = new QueryResultRow { RowIndex = idx++ };
+                row.SetRawValue("IndexName", index.Name);
+                row.SetRawValue("PrimaryKey", index.IsPrimaryKey ? "YES" : "NO");
+                row.SetRawValue("Unique", index.IsUnique ? "YES" : "NO");
+                row.SetRawValue("Columns", string.Join(", ", index.Columns));
+                rows.Add(row);
+            }
+        }
+        else if (groupType.Equals("ForeignKeys", StringComparison.OrdinalIgnoreCase))
+        {
+            columns.AddRange(new[] { "ConstraintName", "ColumnName", "TargetTable", "TargetColumn" });
+            foreach (var fk in schema.ForeignKeys)
+            {
+                var row = new QueryResultRow { RowIndex = idx++ };
+                row.SetRawValue("ConstraintName", fk.ConstraintName);
+                row.SetRawValue("ColumnName", fk.ColumnName);
+                row.SetRawValue("TargetTable", fk.TargetTable);
+                row.SetRawValue("TargetColumn", fk.TargetColumn);
+                rows.Add(row);
+            }
+        }
+
+        SampleQueryResult.CurrentTableName = string.Empty;
+        SampleQueryResult.ClearMetadata();
+        SampleQueryResult.SetResults(columns, rows, "0 ms");
+        SampleQueryResult.LastExecutedQuery = $"-- Metadata: {schema.FullName} ({groupType})";
+        SampleQueryResult.LastQueryMessage = $"{schema.FullName} • {groupType} ({rows.Count} items)";
+        SampleQueryResult.HasLastQueryMessage = true;
+
+        return Task.CompletedTask;
+    }
+
     private async Task LoadTablePropertiesAsync(string tableName)
     {
         bool isConnected = HasActiveDatabaseConnection();
@@ -2729,35 +2776,26 @@ public partial class MainViewModel : ViewModelBase
         string clean = tableName.Trim('[', ']', '"');
         SampleSchema.TableName = clean;
 
-        var (cols, pks, fks) = isConnected
-            ? await Task.Run(async () =>
-            {
-                var colsTask = DatabaseSessionService.Instance.GetColumnsAsync(clean, sessionKey);
-                var pksTask = DatabaseSessionService.Instance.GetPrimaryKeyColumnsAsync(clean, sessionKey);
-                var fksTask = DatabaseSessionService.Instance.GetForeignKeyRelationsAsync(clean, sessionKey);
-                await Task.WhenAll(colsTask, pksTask, fksTask).ConfigureAwait(false);
-                return (await colsTask.ConfigureAwait(false), await pksTask.ConfigureAwait(false), await fksTask.ConfigureAwait(false));
-            })
-            : (new List<(string ColumnName, string DataType)>(), new List<string>(), new List<ForeignKeyRelation>());
+        var schema = isConnected
+            ? await DatabaseMetadataService.Instance.GetTableSchemaAsync(clean, sessionKey)
+            : null;
 
-        if (cols.Count > 0)
+        if (schema != null && schema.Columns.Count > 0)
         {
             SampleSchema.Columns.Clear();
-            int ord = 1;
-            foreach (var col in cols)
+            foreach (var col in schema.Columns)
             {
-                bool isPk = pks.Contains(col.ColumnName, StringComparer.OrdinalIgnoreCase);
-                var fk = fks.FirstOrDefault(f => f.ColumnName.Equals(col.ColumnName, StringComparison.OrdinalIgnoreCase));
-
                 SampleSchema.Columns.Add(new Quell.Models.TableColumnItem
                 {
-                    Name = col.ColumnName,
-                    DataType = col.DataType,
-                    IsNullable = !isPk,
-                    IsPrimaryKey = isPk,
-                    IsForeignKey = fk != null,
-                    DefaultValue = string.Empty,
-                    Ordinal = ord++
+                    Name = col.Name,
+                    DataType = col.FormattedDataType,
+                    MaxLength = col.MaxLength,
+                    IsNullable = col.IsNullable,
+                    IsPrimaryKey = col.IsPrimaryKey,
+                    IsForeignKey = col.IsForeignKey,
+                    DefaultValue = col.DefaultValue ?? string.Empty,
+                    Description = col.Description,
+                    Ordinal = col.Ordinal
                 });
             }
         }

@@ -7,22 +7,35 @@
               x:Class="Quell.Components.TablePaginationComponent"
               x:DataType="vm:QueryResultTableViewModel">
 
-    <!-- Reusable Table Pagination & Selection Status Bar Component -->
+    <!-- Reusable Excel-Grade Table Status & Pagination Bar Component -->
     <Border Background="{DynamicResource AppSurfaceBrush}" 
             BorderBrush="{DynamicResource AppBorderBrush}" 
             BorderThickness="0,1,0,0" 
-            Height="22" 
-            Padding="8,0">
+            Height="24" 
+            Padding="10,0">
         <Grid ColumnDefinitions="Auto, *, Auto">
-            <TextBlock Grid.Column="0" 
-                       Text="{Binding SelectionStatus}" 
-                       Foreground="{DynamicResource AppTextMutedBrush}" 
-                       FontSize="11" 
+            <TextBlock Grid.Column="0"
+                       Text="{Binding SelectionStatus}"
+                       Foreground="{DynamicResource AppTextMutedBrush}"
+                       FontSize="11"
                        VerticalAlignment="Center"/>
 
-            <!-- Pagination Navigation -->
-            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                <TextBlock Text="{Binding PaginationStatusText}" Foreground="{DynamicResource AppTextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="4,0"/>
+            <!-- Excel Selection Aggregations (Count / Sum / Avg) + Row Total -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <Border IsVisible="{Binding HasExcelStats}"
+                        Background="{DynamicResource AppTableFormulaBarBackgroundBrush}"
+                        BorderBrush="{DynamicResource AppBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="3"
+                        Padding="7,1"
+                        VerticalAlignment="Center">
+                    <TextBlock Text="{Binding ExcelStatsText}"
+                               FontFamily="{DynamicResource AppFontFamilyMonospace}"
+                               FontSize="10.5"
+                               Foreground="{DynamicResource AppTextPrimaryBrush}"
+                               VerticalAlignment="Center"/>
+                </Border>
+                <TextBlock Text="{Binding PaginationStatusText}" Foreground="{DynamicResource AppTextSecondaryBrush}" FontSize="11" FontWeight="Medium" VerticalAlignment="Center"/>
             </StackPanel>
         </Grid>
     </Border>

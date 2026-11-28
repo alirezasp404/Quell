@@ -75,6 +75,7 @@ For complete API details, directory layout, and copy-pasteable XAML/C# examples,
 All bind to `SettingsModalViewModel` inside `SettingsModalComponent`:
 - `SettingsCategoriesNavComponent` — Left category navigation list
 - `ThemeSelectionCardsComponent` — Light / Dark / System theme selector cards
+- `TableAppearanceModelsComponent` — Excel / Flat / Compact / High-Contrast table UI models & grid settings
 - `SyntaxColorSelectorComponent` — 6 SQL keyword color presets
 - `TableCustomizationComponent` — Row height, font size, gutter, and color presets
 - `PanelCustomizationComponent` — Color Maker (RGB/Hex), borders, sidebar, editor, and quick bundles

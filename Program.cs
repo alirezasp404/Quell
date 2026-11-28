@@ -673,14 +673,30 @@ sealed class Program
                 throw new Exception("ThemeService failed to dynamically update CurrentTableCustomization!");
             }
 
+            // Test UI Model switching & Excel settings persistence
+            vm.SettingsModal.ApplyTableUiModel("MinimalistFlat");
+            vm.SettingsModal.SetTableStripingMode("Columns");
+            vm.SettingsModal.SetTableGridLinesMode("Horizontal");
+            vm.SettingsModal.TableShowColumnDataTypes = true;
+            await vm.SettingsModal.SaveAsync();
+
+            var savedUiModelCustom = await Quell.Services.DatabaseStorageService.Instance.GetTableCustomizationAsync();
+            if (savedUiModelCustom.UiModel != "MinimalistFlat" ||
+                savedUiModelCustom.StripingMode != "Columns" ||
+                savedUiModelCustom.GridLinesMode != "Horizontal" ||
+                !savedUiModelCustom.ShowColumnDataTypes)
+            {
+                throw new Exception("Table UI model and Excel feature settings failed to persist to SQLite!");
+            }
+
             // Test Reset Table Customization
             await vm.SettingsModal.OpenAsync();
             vm.SettingsModal.ResetTableCustomization();
             await vm.SettingsModal.SaveAsync();
 
             var resetTableCustom = await Quell.Services.DatabaseStorageService.Instance.GetTableCustomizationAsync();
-            Console.WriteLine($"SQLite Restored Table Customization: RowHeight={resetTableCustom.RowHeight}, FontSize={resetTableCustom.FontSize}, TableBg={resetTableCustom.TableBackground}");
-            if (resetTableCustom.RowHeight != 20.0 || resetTableCustom.FontSize != 11.0 || resetTableCustom.TableBackground != "Default")
+            Console.WriteLine($"SQLite Restored Table Customization: RowHeight={resetTableCustom.RowHeight}, FontSize={resetTableCustom.FontSize}, TableBg={resetTableCustom.TableBackground}, UiModel={resetTableCustom.UiModel}");
+            if (resetTableCustom.RowHeight != 20.0 || resetTableCustom.FontSize != 11.0 || resetTableCustom.TableBackground != "Default" || resetTableCustom.UiModel != "ExcelClassic")
             {
                 throw new Exception("Reset table customization failed to restore defaults!");
             }
@@ -1138,21 +1154,39 @@ sealed class Program
                 throw new Exception($"Expected TableName 'Users', got '{tableItem?.TableName}'!");
             }
 
-            // Test clicking table node: Automatically generates TOP 100 query, executes it and populates TOP 100 items into table
+            // Test single-clicking table node: Expands table metadata leaf nodes (Columns, Indexes, Foreign Keys)
             await vm.Sidebar.SelectTableNode(tableItem);
-            Console.WriteLine($"Editor text after clicking table: {vm.Editor.SelectedTab!.Text}");
-            Console.WriteLine($"Auto-executed Table Rows Count: {vm.SampleQueryResult.TotalRows}, Footer.IsVisible: {vm.Footer.IsVisible}");
-            if (!vm.Editor.SelectedTab.Text.Contains("Users") || !vm.Editor.SelectedTab.Text.Contains("100"))
+            await vm.Sidebar.LoadTableMetadataNodeAsync(tableItem);
+            if (!tableItem.IsExpanded || tableItem.Children.Count < 3)
             {
-                throw new Exception("Clicking table in tree failed to generate TOP/LIMIT 100 query in editor!");
+                throw new Exception("Single-clicking table node must expand metadata group leaves (Columns, Indexes, Foreign Keys)!");
+            }
+            var colsGroup = tableItem.Children.OfType<Quell.ViewModels.TableMetadataGroupNode>().FirstOrDefault(g => g.GroupType == "Columns");
+            if (colsGroup == null || colsGroup.Children.Count != 0)
+            {
+                throw new Exception("Columns metadata group must be a leaf node with no nested sub-items in sidebar!");
+            }
+            await vm.Sidebar.OpenTableMetadataGroupAsync(colsGroup);
+            if (vm.SampleQueryResult.TotalRows != 2 || vm.SampleQueryResult.Rows[0]["ColumnName"] != "Id")
+            {
+                throw new Exception("Clicking Columns metadata group failed to display table columns in QueryResultTable!");
+            }
+
+            // Test double-clicking table node: Automatically generates Last-100 query (ORDER BY PK DESC), executes it and populates items into table
+            await vm.Sidebar.ExecuteTableLast100Async(tableItem);
+            Console.WriteLine($"Editor text after double-clicking table: {vm.Editor.SelectedTab!.Text}");
+            Console.WriteLine($"Auto-executed Table Rows Count: {vm.SampleQueryResult.TotalRows}, Footer.IsVisible: {vm.Footer.IsVisible}");
+            if (!vm.Editor.SelectedTab.Text.Contains("Users") || !vm.Editor.SelectedTab.Text.Contains("100") || !vm.Editor.SelectedTab.Text.Contains("DESC"))
+            {
+                throw new Exception("Double-clicking table in tree failed to generate Last-100 (DESC) query in editor!");
             }
             if (vm.SampleQueryResult.TotalRows != 2)
             {
                 throw new Exception($"Expected 2 rows from auto-executed table query, got {vm.SampleQueryResult.TotalRows}!");
             }
-            if (vm.SampleQueryResult.Rows[0]["Name"] != "Alice" || vm.SampleQueryResult.Rows[1]["Name"] != "Bob")
+            if (vm.SampleQueryResult.Rows[0]["Name"] != "Bob" || vm.SampleQueryResult.Rows[1]["Name"] != "Alice")
             {
-                throw new Exception("Auto-executed table query returned unexpected row data!");
+                throw new Exception("Auto-executed Last-100 table query returned unexpected row order/data!");
             }
 
             // Verify Active/Highlighted state on clicked TableTreeNode

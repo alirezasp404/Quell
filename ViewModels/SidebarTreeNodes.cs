@@ -150,6 +150,7 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
     public List<TableTreeNode> AllRoutineNodes { get; } = new();
 
     public Func<TableTreeNode, Task>? OpenTableDataAction { get; set; }
+    public Func<TableTreeNode, Task>? LoadMetadataAction { get; set; }
     public Func<TableTreeNode, Task>? ViewStructureAction { get; set; }
     public Func<TableTreeNode, Task>? ShowInDiagramAction { get; set; }
     public Func<TableTreeNode, string, Task>? GenerateScriptAction { get; set; }
@@ -180,6 +181,7 @@ public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
     {
         node.ExecuteAction = executeAction;
         node.OpenTableDataAction = OpenTableDataAction ?? executeAction;
+        node.LoadMetadataAction = LoadMetadataAction;
         node.ViewStructureAction = ViewStructureAction;
         node.ShowInDiagramAction = ShowInDiagramAction;
         node.GenerateScriptAction = GenerateScriptAction;
@@ -357,6 +359,7 @@ public partial class TableTreeNode : SidebarTreeNodeBase
 
     public Func<TableTreeNode, Task>? ExecuteAction { get; set; }
     public Func<TableTreeNode, Task>? OpenTableDataAction { get; set; }
+    public Func<TableTreeNode, Task>? LoadMetadataAction { get; set; }
     public Func<TableTreeNode, Task>? ViewStructureAction { get; set; }
     public Func<TableTreeNode, Task>? ShowInDiagramAction { get; set; }
     public Func<TableTreeNode, string, Task>? GenerateScriptAction { get; set; }
@@ -365,6 +368,11 @@ public partial class TableTreeNode : SidebarTreeNodeBase
     [ObservableProperty]
     private bool _isActive;
 
+    public bool HasLoadedMetadata { get; private set; }
+    private bool _isLoadingMetadata;
+
+    public TableSchemaDetail? CachedSchema { get; private set; }
+
     public void UpdateMetadata(TableMetadata metadata)
     {
         Table = metadata;
@@ -372,6 +380,35 @@ public partial class TableTreeNode : SidebarTreeNodeBase
         OnPropertyChanged(nameof(FormattedRowCount));
         OnPropertyChanged(nameof(HasRowCount));
         OnPropertyChanged(nameof(DisplayType));
+    }
+
+    public void ResetMetadata()
+    {
+        HasLoadedMetadata = false;
+        CachedSchema = null;
+        Children.Clear();
+        if (!IsProcedure)
+        {
+            Children.Add(new PlaceholderTreeNode());
+        }
+    }
+
+    public void PopulateMetadata(TableSchemaDetail? schema)
+    {
+        CachedSchema = schema;
+        HasLoadedMetadata = true;
+        IsLoading = false;
+        Children.Clear();
+
+        if (schema == null)
+        {
+            Children.Add(new TableMetadataItemNode("No metadata available", string.Empty, string.Empty, "#64748B", "Empty"));
+            return;
+        }
+
+        Children.Add(new TableMetadataGroupNode(this, $"Columns ({schema.Columns.Count})", "Columns", "#3B82F6"));
+        Children.Add(new TableMetadataGroupNode(this, $"Indexes ({schema.Indexes.Count})", "Indexes", "#8B5CF6"));
+        Children.Add(new TableMetadataGroupNode(this, $"Foreign Keys ({schema.ForeignKeys.Count})", "ForeignKeys", "#10B981"));
     }
 
     [RelayCommand]
@@ -462,6 +499,62 @@ public partial class TableTreeNode : SidebarTreeNodeBase
         DatabaseNode = dbNode;
         Title = table.FullName;
         Subtitle = table.DisplayType;
+
+        if (!table.IsProcedure)
+        {
+            Children.Add(new PlaceholderTreeNode());
+        }
+
+        PropertyChanged += async (_, e) =>
+        {
+            if (e.PropertyName == nameof(IsExpanded) && IsExpanded && !HasLoadedMetadata && !_isLoadingMetadata && !IsProcedure && LoadMetadataAction != null)
+            {
+                _isLoadingMetadata = true;
+                IsLoading = true;
+                try
+                {
+                    await LoadMetadataAction(this);
+                }
+                finally
+                {
+                    _isLoadingMetadata = false;
+                    IsLoading = false;
+                }
+            }
+        };
+    }
+}
+
+public partial class TableMetadataGroupNode : SidebarTreeNodeBase
+{
+    public TableTreeNode ParentTable { get; }
+    public string GroupType { get; }
+    public string AccentColor { get; }
+
+    public TableMetadataGroupNode(TableTreeNode parentTable, string title, string groupType, string accentColor = "#64748B")
+    {
+        ParentTable = parentTable;
+        Title = title;
+        GroupType = groupType;
+        AccentColor = accentColor;
+    }
+}
+
+public partial class TableMetadataItemNode : SidebarTreeNodeBase
+{
+    public string BadgeText { get; }
+    public string BadgeColor { get; }
+    public string ItemKind { get; }
+    public bool HasBadge => !string.IsNullOrEmpty(BadgeText);
+    public bool HasSubtitle => !string.IsNullOrEmpty(Subtitle);
+
+    public TableMetadataItemNode(string title, string subtitle, string badgeText, string badgeColor, string itemKind)
+    {
+        Title = title;
+        Subtitle = subtitle;
+        BadgeText = badgeText;
+        BadgeColor = badgeColor;
+        ItemKind = itemKind;
     }
 }
 

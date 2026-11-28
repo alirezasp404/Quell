@@ -7,342 +7,492 @@
              xmlns:i="using:Avalonia.Xaml.Interactivity"
              xmlns:b="using:Quell.Behaviors"
              xmlns:ic="using:FluentIcons.Avalonia"
-              xmlns:ui="using:FluentAvalonia.UI.Controls"
-             mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="700"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             mc:Ignorable="d" d:DesignWidth="1120" d:DesignHeight="720"
              x:Class="Quell.Components.DatabaseDiagramModalComponent"
              x:DataType="vm:DatabaseDiagramModalViewModel"
              IsVisible="{Binding IsOpen}">
 
     <UserControl.Styles>
+        <!-- Table Entity Card -->
         <Style Selector="Border.diagram-table-card">
             <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="CornerRadius" Value="10"/>
             <Setter Property="Width" Value="260"/>
         </Style>
         <Style Selector="Border.diagram-table-card:pointerover">
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
         </Style>
-        <!-- Quick Filter Toggle Buttons -->
-        <Style Selector="Button.filter-pill-btn">
+        <Style Selector="Border.diagram-table-card.highlighted">
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+        </Style>
+        <Style Selector="Border.diagram-table-card.related">
+            <Setter Property="BorderBrush" Value="{DynamicResource AppSegmentedItemActiveBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+        </Style>
+
+        <!-- Search Input Inside Shell -->
+        <Style Selector="TextBox.diagram-search-input">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="TextBox.diagram-search-input:focus /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style Selector="TextBox.diagram-search-input:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+
+        <!-- Column Row Hover -->
+        <Style Selector="Border.diagram-col-row">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="CornerRadius" Value="5"/>
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="Padding" Value="6,0"/>
+        </Style>
+        <Style Selector="Border.diagram-col-row:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
+        </Style>
+
+        <!-- Floating Canvas Pills (GPU-gated shadows) -->
+        <Style Selector="Border.diagram-floating-pill">
+            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="7"/>
-            <Setter Property="Padding" Value="9,4"/>
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="CornerRadius" Value="8"/>
         </Style>
-        <Style Selector="Button.filter-pill-btn:pointerover">
-            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+        <Style Selector=":is(TopLevel).gpu-mode Border.diagram-floating-pill">
+            <Setter Property="BoxShadow" Value="0 6 18 0 #30000000"/>
         </Style>
-        <Style Selector="Button.filter-pill-btn.active">
-            <Setter Property="Background" Value="{DynamicResource AppChipActiveBackgroundBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource AppChipActiveForegroundBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
+        <Style Selector=":is(TopLevel):not(.gpu-mode) Border.diagram-floating-pill">
+            <Setter Property="BoxShadow" Value="0 0 0 0 #00000000"/>
         </Style>
     </UserControl.Styles>
 
     <Grid>
         <!-- Backdrop (Click to dismiss) -->
-        <Border Classes="modal-backdrop" Cursor="Hand" Focusable="False" FocusAdorner="{x:Null}" 
-                Background="{DynamicResource AppModalOverlayBrush}" 
+        <Border Classes="modal-backdrop"
+                Focusable="False"
+                FocusAdorner="{x:Null}"
+                Background="{DynamicResource AppModalOverlayBrush}"
                 PointerPressed="OnBackdropPointerPressed" />
 
-        <!-- Centered Dialog Window Card (GPU-only Shadow via Design System) -->
+        <!-- Centered Dialog Card -->
         <Border Classes="modal-dialog-card"
                 Focusable="False"
-                Width="1100" MaxWidth="1600"
-                Height="700" MaxHeight="950"
+                Width="1120" MaxWidth="1600"
+                Height="720" MaxHeight="950"
                 Margin="20"
-                HorizontalAlignment="Center" 
+                HorizontalAlignment="Center"
                 VerticalAlignment="Center">
             <i:Interaction.Behaviors>
                 <b:GpuModalEntranceBehavior StartScale="0.94" DurationMs="220" />
             </i:Interaction.Behaviors>
-            
+
             <Grid RowDefinitions="Auto, Auto, *, Auto">
-                
-                <!-- 1. Header -->
-                <Border Grid.Row="0" Classes="quell-modal-header"
-                        BorderThickness="0,0,0,1" 
-                        Padding="16,12">
+
+                <!-- 1. Unified Modal Header -->
+                <Border Grid.Row="0" Classes="quell-modal-header">
                     <Grid ColumnDefinitions="Auto, *, Auto">
-                        <Border Grid.Column="0" 
-                                Background="{DynamicResource AppAccentBrush}" 
-                                CornerRadius="6" 
-                                Width="28" 
-                                Height="28" 
-                                Margin="0,0,10,0"
+                        <Border Grid.Column="0"
+                                Background="{DynamicResource AppAccentBrush}"
+                                CornerRadius="8"
+                                Width="32"
+                                Height="32"
+                                Margin="0,0,12,0"
                                 VerticalAlignment="Center">
-                            <ic:SymbolIcon Symbol="TableMultiple" FontSize="14" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <ic:SymbolIcon Symbol="TableMultiple"
+                                           FontSize="16"
+                                           Foreground="White"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
                         </Border>
 
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <TextBlock Text="Database ER Diagram &amp; Schema Relations" 
-                                           Foreground="{DynamicResource AppTextPrimaryBrush}" 
-                                           FontSize="13" 
-                                           FontWeight="Bold"/>
-                                <Border Background="{DynamicResource AppAccentBrush}" CornerRadius="3" Padding="5,1" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding DatabaseType}" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <TextBlock Text="Database ER Diagram"
+                                           Foreground="{DynamicResource AppTextPrimaryBrush}"
+                                           FontSize="13.5"
+                                           FontWeight="Bold"
+                                           VerticalAlignment="Center"/>
+                                <Border Background="{DynamicResource AppChipActiveBackgroundBrush}"
+                                        CornerRadius="999"
+                                        Padding="8,1"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding DatabaseType}"
+                                               FontSize="9.5"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource AppChipActiveForegroundBrush}"/>
                                 </Border>
-                                <Border Background="#10B981" CornerRadius="3" Padding="5,1" VerticalAlignment="Center" IsVisible="{Binding IsLoadedFromCache}" ToolTip.Tip="Diagram served instantly from in-memory cache">
-                                    <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
-                                        <ui:FASymbolIcon Symbol="Sync" FontSize="8" Foreground="White" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Cached" FontSize="9" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                                <Border Background="{DynamicResource AppSuccessBackgroundBrush}"
+                                        BorderBrush="{DynamicResource AppSuccessBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="999"
+                                        Padding="7,1"
+                                        VerticalAlignment="Center"
+                                        IsVisible="{Binding IsLoadedFromCache}"
+                                        ToolTip.Tip="Diagram served instantly from in-memory cache">
+                                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                        <Border Width="5" Height="5" CornerRadius="3" Background="{DynamicResource AppStatusActiveBrush}"/>
+                                        <TextBlock Text="Cached" FontSize="9.5" FontWeight="SemiBold" Foreground="{DynamicResource AppSuccessForegroundBrush}"/>
                                     </StackPanel>
                                 </Border>
-                                <TextBlock Text="{Binding DatabaseTitle}" 
-                                           Foreground="{DynamicResource AppTextSecondaryBrush}" 
-                                           FontSize="12" 
+                                <TextBlock Text="{Binding DatabaseTitle}"
+                                           Foreground="{DynamicResource AppTextSecondaryBrush}"
+                                           FontSize="12"
+                                           FontWeight="Medium"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
-                            <TextBlock Text="Interactive canvas with orthogonal relations, pan &amp; zoom navigation, and draggable table entities" 
-                                       Foreground="{DynamicResource AppTextMutedBrush}" 
-                                       FontSize="11" 
-                                       Margin="0,2,0,0"/>
+                            <TextBlock Text="Interactive entity-relationship canvas with smart layer layout, orthogonal routing, pan &amp; zoom, and DDL export"
+                                       Foreground="{DynamicResource AppTextMutedBrush}"
+                                       FontSize="11"/>
                         </StackPanel>
 
-                        <Button Grid.Column="2" 
-                                Classes="classic-menu-btn" 
+                        <Button Grid.Column="2"
+                                Classes="panel-icon-btn"
                                 Command="{Binding CloseCommand}"
-                                Padding="6,2" 
-                                MinHeight="22"
+                                Width="28"
+                                Height="28"
                                 ToolTip.Tip="Close (Esc)">
-                            <ui:FASymbolIcon Symbol="Dismiss" FontSize="10"/>
+                            <ui:FASymbolIcon Symbol="Dismiss" FontSize="11"/>
                         </Button>
                     </Grid>
                 </Border>
 
-                <!-- 2. Controls Toolbar & Statistics Strip -->
-                <Border Grid.Row="1" 
-                        Background="{DynamicResource AppBackgroundBrush}" 
-                        BorderBrush="{DynamicResource AppBorderBrush}" 
-                        BorderThickness="0,0,0,1" 
-                        Padding="14,7">
+                <!-- 2. Controls Toolbar & Filter Strip -->
+                <Border Grid.Row="1"
+                        Background="{DynamicResource AppSurfaceMutedBrush}"
+                        BorderBrush="{DynamicResource AppBorderBrush}"
+                        BorderThickness="0,0,0,1"
+                        Padding="16,8">
                     <Grid ColumnDefinitions="Auto, Auto, *, Auto">
-                        <!-- Search / Filter -->
-                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <TextBox Width="200" 
-                                     Height="27" 
-                                     FontSize="11" 
-                                     Padding="6,3"
-                                     CornerRadius="4" 
-                                     IsEnabled="{Binding !IsLoading}"
-                                     PlaceholderText="Filter tables &amp; columns..." 
-                                     Text="{Binding SearchFilter}" />
-                        </StackPanel>
+                        <!-- Search Shell -->
+                        <Border Grid.Column="0"
+                                Classes="quell-input-box"
+                                Width="210"
+                                Height="30"
+                                CornerRadius="7"
+                                Padding="8,0"
+                                IsEnabled="{Binding !IsLoading}">
+                            <Grid ColumnDefinitions="Auto, *, Auto">
+                                <ic:SymbolIcon Grid.Column="0"
+                                               Symbol="Search"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource AppTextMutedBrush}"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,6,0"/>
+                                <TextBox Grid.Column="1"
+                                         Classes="diagram-search-input"
+                                         MinHeight="26"
+                                         PlaceholderText="Filter tables &amp; columns..."
+                                         Text="{Binding SearchFilter}"/>
+                                <Button Grid.Column="2"
+                                        Classes="quell-tab-close-btn"
+                                        Width="18"
+                                        Height="18"
+                                        Command="{Binding ClearSearchFilterCommand}"
+                                        IsVisible="{Binding HasSearchFilter}"
+                                        ToolTip.Tip="Clear search">
+                                    <ui:FASymbolIcon Symbol="Dismiss" FontSize="9"/>
+                                </Button>
+                            </Grid>
+                        </Border>
 
-                        <!-- Quick Filter Pills -->
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" Margin="12,0,0,0">
-                            <Button Classes="filter-pill-btn" 
-                                     Height="27"
-                                     IsEnabled="{Binding !IsLoading}"
-                                     Command="{Binding SetFilterModeCommand}"
-                                     CommandParameter="All"
-                                     ToolTip.Tip="Show all discovered tables">
-                                <StackPanel Orientation="Horizontal" Spacing="4">
-                                    <TextBlock Text="All Tables"/>
-                                    <TextBlock Text="{Binding TotalTablesCount, StringFormat='({0})'}" FontWeight="Bold"/>
-                                </StackPanel>
-                            </Button>
+                        <!-- Unified Segmented Filter Track -->
+                        <Border Grid.Column="1"
+                                Classes="quell-segmented-track"
+                                CornerRadius="8"
+                                Padding="3"
+                                Margin="10,0,0,0"
+                                IsEnabled="{Binding !IsLoading}">
+                            <UniformGrid Rows="1" Columns="3">
+                                <Button Classes="quell-segmented-tab"
+                                        Classes.active="{Binding IsFilterAll}"
+                                        Height="24"
+                                        MinHeight="24"
+                                        Padding="10,0"
+                                        Command="{Binding SetFilterModeCommand}"
+                                        CommandParameter="All"
+                                        ToolTip.Tip="Show all discovered tables">
+                                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                        <TextBlock Classes="seg-label" Text="All" FontSize="11"/>
+                                        <TextBlock Classes="seg-label" Text="{Binding TotalTablesCount}" FontSize="10.5" FontWeight="Bold"/>
+                                    </StackPanel>
+                                </Button>
 
-                            <Button Classes="filter-pill-btn" 
-                                     Height="27"
-                                     IsEnabled="{Binding !IsLoading}"
-                                     Command="{Binding SetFilterModeCommand}"
-                                     CommandParameter="Relations"
-                                     ToolTip.Tip="Show tables having Foreign Key relationships">
-                                <StackPanel Orientation="Horizontal" Spacing="4">
-                                    <ui:FASymbolIcon Symbol="Link" FontSize="9" Foreground="#38BDF8" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Relations"/>
-                                    <TextBlock Text="{Binding TablesWithRelationsCount, StringFormat='({0})'}" FontWeight="Bold" Foreground="#38BDF8"/>
-                                </StackPanel>
-                            </Button>
+                                <Button Classes="quell-segmented-tab"
+                                        Classes.active="{Binding IsFilterRelations}"
+                                        Height="24"
+                                        MinHeight="24"
+                                        Padding="10,0"
+                                        Command="{Binding SetFilterModeCommand}"
+                                        CommandParameter="Relations"
+                                        ToolTip.Tip="Show tables participating in Foreign Key relations">
+                                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                        <ui:FASymbolIcon Classes="seg-icon" Symbol="Link" FontSize="10"/>
+                                        <TextBlock Classes="seg-label" Text="Relations" FontSize="11"/>
+                                        <TextBlock Classes="seg-label" Text="{Binding TablesWithRelationsCount}" FontSize="10.5" FontWeight="Bold"/>
+                                    </StackPanel>
+                                </Button>
 
-                            <Button Classes="filter-pill-btn" 
-                                     Height="27"
-                                     IsEnabled="{Binding !IsLoading}"
-                                     Command="{Binding SetFilterModeCommand}"
-                                     CommandParameter="PK"
-                                     ToolTip.Tip="Show tables with Primary Keys">
-                                <StackPanel Orientation="Horizontal" Spacing="4">
-                                    <TextBlock Text="PK Only"/>
-                                    <TextBlock Text="{Binding TablesWithPkCount, StringFormat='({0})'}" FontWeight="Bold" Foreground="#F59E0B"/>
-                                </StackPanel>
-                            </Button>
-                        </StackPanel>
+                                <Button Classes="quell-segmented-tab"
+                                        Classes.active="{Binding IsFilterPk}"
+                                        Height="24"
+                                        MinHeight="24"
+                                        Padding="10,0"
+                                        Command="{Binding SetFilterModeCommand}"
+                                        CommandParameter="PK"
+                                        ToolTip.Tip="Show tables with Primary Keys">
+                                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                        <ic:SymbolIcon Classes="seg-icon" Symbol="Key" FontSize="11"/>
+                                        <TextBlock Classes="seg-label" Text="PK" FontSize="11"/>
+                                        <TextBlock Classes="seg-label" Text="{Binding TablesWithPkCount}" FontSize="10.5" FontWeight="Bold"/>
+                                    </StackPanel>
+                                </Button>
+                            </UniformGrid>
+                        </Border>
 
-                        <!-- Status Message -->
-                        <TextBlock Grid.Column="2" 
-                                   Text="{Binding StatusMessage}" 
-                                   IsVisible="{Binding HasStatusMessage}"
-                                   Foreground="#10B981" 
-                                   FontSize="11" 
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center" 
-                                   HorizontalAlignment="Center"
-                                   Margin="8,0"/>
+                        <!-- Status Message Pill -->
+                        <Border Grid.Column="2"
+                                IsVisible="{Binding HasStatusMessage}"
+                                Background="{DynamicResource AppSuccessBackgroundBrush}"
+                                BorderBrush="{DynamicResource AppSuccessBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="999"
+                                Height="26"
+                                Padding="10,0"
+                                Margin="10,0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <ui:FASymbolIcon Symbol="Checkmark" FontSize="10" Foreground="{DynamicResource AppSuccessForegroundBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding StatusMessage}"
+                                           FontSize="11"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource AppTextPrimaryBrush}"
+                                           MaxWidth="240"
+                                           TextTrimming="CharacterEllipsis"
+                                           VerticalAlignment="Center"/>
+                                <Button Classes="quell-tab-close-btn"
+                                        Width="16"
+                                        Height="16"
+                                        Command="{Binding DismissStatusMessageCommand}">
+                                    <ui:FASymbolIcon Symbol="Dismiss" FontSize="8"/>
+                                </Button>
+                            </StackPanel>
+                        </Border>
 
-                        <!-- Action Buttons: Zoom & Auto-Layout & Export & Refresh -->
+                        <!-- Right Action Controls -->
                         <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                            <!-- Zoom Controls -->
-                            <Border Background="{DynamicResource AppSurfaceBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="4" Height="27">
-                                <StackPanel Orientation="Horizontal" Spacing="1">
-                                    <Button Classes="classic-menu-btn" Height="25" Padding="6,1" Command="{Binding ZoomOutCommand}" ToolTip.Tip="Zoom Out (Mouse Wheel Down)">
-                                        <TextBlock Text="-" FontSize="12" FontWeight="Bold"/>
+                            <!-- Zoom Pill -->
+                            <Border Background="{DynamicResource AppSurfaceBrush}"
+                                    BorderBrush="{DynamicResource AppBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="7"
+                                    Height="28"
+                                    Padding="2,0">
+                                <StackPanel Orientation="Horizontal" Spacing="1" VerticalAlignment="Center">
+                                    <Button Classes="classic-menu-btn"
+                                            Height="24"
+                                            MinHeight="24"
+                                            Padding="7,0"
+                                            Command="{Binding ZoomOutCommand}"
+                                            ToolTip.Tip="Zoom Out (Mouse Wheel Down)">
+                                        <TextBlock Text="−" FontSize="12" FontWeight="Bold"/>
                                     </Button>
-                                    <Button Classes="classic-menu-btn" Height="25" Padding="6,1" Command="{Binding ResetZoomCommand}" ToolTip.Tip="Reset Zoom (100%)">
-                                        <TextBlock Text="{Binding ZoomLevel, StringFormat='{}{0:P0}'}" FontSize="10" FontWeight="SemiBold"/>
+                                    <Button Classes="classic-menu-btn"
+                                            Height="24"
+                                            MinHeight="24"
+                                            Padding="7,0"
+                                            Command="{Binding ResetZoomCommand}"
+                                            ToolTip.Tip="Reset Zoom to 100%">
+                                        <TextBlock Text="{Binding ZoomLevel, StringFormat='{}{0:P0}'}"
+                                                   FontFamily="{DynamicResource AppFontFamilyMonospace}"
+                                                   FontSize="10.5"
+                                                   FontWeight="SemiBold"/>
                                     </Button>
-                                    <Button Classes="classic-menu-btn" Height="25" Padding="6,1" Command="{Binding ZoomInCommand}" ToolTip.Tip="Zoom In (Mouse Wheel Up)">
+                                    <Button Classes="classic-menu-btn"
+                                            Height="24"
+                                            MinHeight="24"
+                                            Padding="7,0"
+                                            Command="{Binding ZoomInCommand}"
+                                            ToolTip.Tip="Zoom In (Mouse Wheel Up)">
                                         <TextBlock Text="+" FontSize="12" FontWeight="Bold"/>
                                     </Button>
                                 </StackPanel>
                             </Border>
 
-                            <!-- Auto-Layout Button -->
+                            <!-- Layout -->
                             <Button Classes="classic-tool-btn"
-                                    Height="27"
-                                    Padding="8,2"
+                                    Height="28"
+                                    MinHeight="28"
+                                    CornerRadius="7"
+                                    Padding="10,0"
                                     IsEnabled="{Binding !IsLoading}"
                                     Command="{Binding AutoLayoutCommand}"
-                                    ToolTip.Tip="Automatically arrange tables into an organized grid">
-                                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                                    <ui:FASymbolIcon Symbol="Sync" FontSize="10" Foreground="{DynamicResource AppAccentBrush}"/>
+                                    ToolTip.Tip="Automatically arrange tables by foreign-key hierarchy">
+                                <i:Interaction.Behaviors>
+                                    <b:GpuButtonPressBehavior PressScale="0.95"/>
+                                </i:Interaction.Behaviors>
+                                <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                    <ui:FASymbolIcon Symbol="ViewAll" FontSize="10.5" Foreground="{DynamicResource AppAccentBrush}"/>
                                     <TextBlock Text="Layout" FontSize="11"/>
                                 </StackPanel>
                             </Button>
 
-                            <!-- Fit to View Button -->
+                            <!-- Fit -->
                             <Button Classes="classic-tool-btn"
-                                    Height="27"
-                                    Padding="8,2"
+                                    Height="28"
+                                    MinHeight="28"
+                                    CornerRadius="7"
+                                    Padding="10,0"
                                     IsEnabled="{Binding !IsLoading}"
                                     Command="{Binding FitToViewCommand}"
                                     ToolTip.Tip="Center and fit all tables in view (Double-click canvas)">
-                                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                                    <ui:FASymbolIcon Symbol="FullScreen" FontSize="10" Foreground="#38BDF8"/>
+                                <i:Interaction.Behaviors>
+                                    <b:GpuButtonPressBehavior PressScale="0.95"/>
+                                </i:Interaction.Behaviors>
+                                <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                    <ui:FASymbolIcon Symbol="FullScreen" FontSize="10.5" Foreground="{DynamicResource AppAccentBrush}"/>
                                     <TextBlock Text="Fit" FontSize="11"/>
                                 </StackPanel>
                             </Button>
 
-                            <!-- Refresh Diagram Button -->
-                            <Button Classes="classic-tool-btn" 
-                                    Height="27" 
-                                    Padding="8,2"
+                            <!-- Reload -->
+                            <Button Classes="classic-tool-btn"
+                                    Height="28"
+                                    MinHeight="28"
+                                    CornerRadius="7"
+                                    Padding="10,0"
                                     IsEnabled="{Binding !IsLoading}"
                                     Command="{Binding RefreshDiagramCommand}"
                                     ToolTip.Tip="Re-analyze database schema and refresh cache">
-                                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                                    <ui:FASymbolIcon Symbol="Sync" FontSize="10"/>
+                                <i:Interaction.Behaviors>
+                                    <b:GpuButtonPressBehavior PressScale="0.95"/>
+                                </i:Interaction.Behaviors>
+                                <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                    <ui:FASymbolIcon Symbol="Sync" FontSize="10.5"/>
                                     <TextBlock Text="Reload" FontSize="11"/>
                                 </StackPanel>
                             </Button>
 
-                            <!-- Clear Cache Button -->
-                            <Button Classes="classic-tool-btn" 
-                                    Height="27" 
-                                    Padding="8,2"
+                            <!-- Clear Cache -->
+                            <Button Classes="classic-tool-btn"
+                                    Height="28"
+                                    MinHeight="28"
+                                    CornerRadius="7"
+                                    Padding="9,0"
                                     IsEnabled="{Binding !IsLoading}"
                                     Command="{Binding ClearCacheAndReloadCommand}"
-                                    ToolTip.Tip="Clear cached diagram and force fresh schema re-analysis">
-                                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                                    <ui:FASymbolIcon Symbol="Dismiss" FontSize="9" Foreground="#EF4444"/>
-                                    <TextBlock Text="Clear Cache" FontSize="11" Foreground="#EF4444"/>
+                                    ToolTip.Tip="Clear cached diagram and force fresh schema analysis">
+                                <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                    <ui:FASymbolIcon Symbol="Dismiss" FontSize="9.5" Foreground="{DynamicResource AppDangerForegroundBrush}"/>
+                                    <TextBlock Text="Clear Cache" FontSize="11" Foreground="{DynamicResource AppDangerForegroundBrush}"/>
                                 </StackPanel>
                             </Button>
 
-                            <!-- Copy Mermaid Code Button -->
-                            <Button Classes="classic-tool-btn" 
-                                    Height="27" 
-                                    Padding="10,2"
+                            <!-- Copy Mermaid -->
+                            <Button Classes="quell-btn-primary"
+                                    Height="28"
+                                    MinHeight="28"
+                                    CornerRadius="7"
+                                    Padding="11,0"
                                     IsEnabled="{Binding !IsLoading}"
                                     Command="{Binding CopyMermaidDiagramCommand}"
-                                    ToolTip.Tip="Generate and copy Mermaid ER diagram syntax for documentation">
+                                    ToolTip.Tip="Generate and copy Mermaid ER diagram syntax">
+                                <i:Interaction.Behaviors>
+                                    <b:GpuButtonPressBehavior PressScale="0.94"/>
+                                </i:Interaction.Behaviors>
                                 <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-                                    <ui:FASymbolIcon Symbol="Copy" FontSize="11" Foreground="{DynamicResource AppAccentBrush}"/>
-                                    <TextBlock Text="Mermaid" FontSize="11"/>
+                                    <ui:FASymbolIcon Symbol="Copy" FontSize="10.5" Foreground="White"/>
+                                    <TextBlock Text="Mermaid" FontSize="11" Foreground="White"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
                     </Grid>
                 </Border>
 
-                <!-- 3. Visual Entity-Relationship Canvas OR Loading State -->
+                <!-- 3. Visual Entity-Relationship Canvas OR Loading / Empty State -->
                 <Panel Grid.Row="2" Background="{DynamicResource AppWorkspaceBrush}">
-                    
-                    <!-- A. Active Loading Indicator State (With Rotating Spinner Animation) -->
-                    <Border Background="{DynamicResource AppWorkspaceBrush}" 
+
+                    <!-- A. Loading State -->
+                    <Border Background="{DynamicResource AppWorkspaceBrush}"
                             IsVisible="{Binding IsLoading}"
                             Padding="32">
-                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="18" Width="400">
-                            <!-- Animated 360-degree Rotating Spinner -->
-                            <Border Classes="spin-indicator"
-                                    Background="{DynamicResource AppSurfaceBrush}"
-                                    BorderBrush="{DynamicResource AppAccentBrush}"
-                                    BorderThickness="1.5"
-                                    CornerRadius="30"
-                                    Width="56"
-                                    Height="56"
-                                    HorizontalAlignment="Center"
-                                    RenderTransformOrigin="50%,50%">
-                                <Border.RenderTransform>
-                                    <RotateTransform Angle="0"/>
-                                </Border.RenderTransform>
-                                <ui:FASymbolIcon Symbol="Sync" 
-                                                 FontSize="24" 
-                                                 Foreground="{DynamicResource AppAccentBrush}" 
-                                                 HorizontalAlignment="Center" 
-                                                 VerticalAlignment="Center"/>
-                            </Border>
+                        <Border Classes="quell-card"
+                                CornerRadius="12"
+                                Padding="28,24"
+                                Width="420"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+                            <StackPanel Spacing="16">
+                                <Border Classes="spin-indicator"
+                                        Background="{DynamicResource AppAccentMutedBrush}"
+                                        BorderBrush="{DynamicResource AppAccentBrush}"
+                                        BorderThickness="1.5"
+                                        CornerRadius="26"
+                                        Width="52"
+                                        Height="52"
+                                        HorizontalAlignment="Center"
+                                        RenderTransformOrigin="50%,50%">
+                                    <Border.RenderTransform>
+                                        <RotateTransform Angle="0"/>
+                                    </Border.RenderTransform>
+                                    <ui:FASymbolIcon Symbol="Sync"
+                                                     FontSize="22"
+                                                     Foreground="{DynamicResource AppAccentBrush}"
+                                                     HorizontalAlignment="Center"
+                                                     VerticalAlignment="Center"/>
+                                </Border>
 
-                            <!-- Loading Titles -->
-                            <StackPanel Spacing="5" HorizontalAlignment="Center">
-                                <TextBlock Text="Analyzing Database Schema &amp; Relations" 
-                                           FontSize="14" 
-                                           FontWeight="Bold" 
-                                           Foreground="{DynamicResource AppTextPrimaryBrush}" 
-                                           HorizontalAlignment="Center"/>
-                                <TextBlock Text="{Binding LoadingMessage}" 
-                                           FontSize="11" 
-                                           Foreground="{DynamicResource AppTextSecondaryBrush}" 
-                                           HorizontalAlignment="Center"
-                                           TextAlignment="Center"
-                                           TextWrapping="Wrap"/>
+                                <StackPanel Spacing="4" HorizontalAlignment="Center">
+                                    <TextBlock Text="Analyzing Database Schema &amp; Relations"
+                                               FontSize="13.5"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource AppTextPrimaryBrush}"
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding LoadingMessage}"
+                                               FontSize="11.5"
+                                               Foreground="{DynamicResource AppTextSecondaryBrush}"
+                                               HorizontalAlignment="Center"
+                                               TextAlignment="Center"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <ProgressBar Height="5"
+                                             CornerRadius="2"
+                                             Minimum="0" Maximum="100"
+                                             Value="{Binding LoadingProgress}"
+                                             IsIndeterminate="{Binding IsIndeterminate}"
+                                             Foreground="{DynamicResource AppAccentBrush}"
+                                             Background="{DynamicResource AppBorderBrush}"
+                                             HorizontalAlignment="Stretch"/>
+
+                                <Grid ColumnDefinitions="*, Auto">
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding LoadingDetailText}"
+                                               FontSize="10.5"
+                                               Foreground="{DynamicResource AppTextMutedBrush}"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding LoadingProgress, StringFormat='{}{0:0}%'}"
+                                               FontFamily="{DynamicResource AppFontFamilyMonospace}"
+                                               FontSize="10.5"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource AppAccentBrush}"
+                                               IsVisible="{Binding !IsIndeterminate}"/>
+                                </Grid>
                             </StackPanel>
-
-                            <!-- Smooth Progress Bar -->
-                            <ProgressBar Height="5" 
-                                         CornerRadius="2" 
-                                         Minimum="0" Maximum="100" 
-                                         Value="{Binding LoadingProgress}" 
-                                         IsIndeterminate="{Binding IsIndeterminate}" 
-                                         Foreground="{DynamicResource AppAccentBrush}" 
-                                         Background="{DynamicResource AppBorderBrush}" 
-                                         HorizontalAlignment="Stretch"/>
-
-                            <!-- Progress Detail & Percentage -->
-                            <Grid ColumnDefinitions="*, Auto">
-                                <TextBlock Grid.Column="0" 
-                                           Text="{Binding LoadingDetailText}" 
-                                           FontSize="10" 
-                                           Foreground="{DynamicResource AppTextMutedBrush}"
-                                           TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Grid.Column="1" 
-                                           Text="{Binding LoadingProgress, StringFormat='{}{0:0}%'}" 
-                                           FontSize="10" 
-                                           FontWeight="Bold" 
-                                           Foreground="{DynamicResource AppAccentBrush}"
-                                           IsVisible="{Binding !IsIndeterminate}"/>
-                            </Grid>
-                        </StackPanel>
+                        </Border>
                     </Border>
 
                     <!-- B. Interactive Pan & Zoom Canvas Viewport -->
@@ -356,14 +506,14 @@
                           PointerWheelChanged="OnCanvasPointerWheelChanged"
                           DoubleTapped="OnCanvasDoubleTapped">
 
-                        <!-- World Canvas (Panned via PanX/PanY and Scaled via ZoomLevel) -->
+                        <!-- World Canvas -->
                         <Canvas x:Name="WorldCanvas"
                                 Width="5000" Height="4000"
                                 HorizontalAlignment="Left"
                                 VerticalAlignment="Top"
                                 RenderTransformOrigin="0%,0%">
 
-                            <!-- 1. Background Grid & Connecting Lines Surface -->
+                            <!-- 1. Dot Grid & Connecting Lines Surface -->
                             <components:DiagramSurfaceControl x:Name="DiagramSurface"
                                                               Width="5000" Height="4000"
                                                               ViewModel="{Binding}" />
@@ -386,119 +536,166 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="vm:DiagramTableItem">
                                         <Border Classes="diagram-table-card"
+                                                Classes.highlighted="{Binding IsHighlighted}"
+                                                Classes.related="{Binding IsRelatedHighlighted}"
                                                 Width="260"
-                                                ClipToBounds="True">
-                                            <i:Interaction.Behaviors>
-                                                <b:GpuCardHoverBehavior HoverScale="1.02" HoverOffsetY="-2.0" />
-                                            </i:Interaction.Behaviors>
+                                                ClipToBounds="True"
+                                                Cursor="Hand"
+                                                PointerPressed="OnTableCardPointerPressed"
+                                                PointerMoved="OnTableCardPointerMoved"
+                                                PointerReleased="OnTableCardPointerReleased"
+                                                PointerEntered="OnTableCardPointerEntered"
+                                                PointerExited="OnTableCardPointerExited">
                                             <Grid RowDefinitions="Auto, *, Auto">
-                                                <!-- Table Card Header (Draggable Handle) -->
-                                                <Border Grid.Row="0" 
-                                                        Background="{DynamicResource AppBackgroundBrush}" 
-                                                        BorderBrush="{DynamicResource AppBorderBrush}" 
-                                                        BorderThickness="0,0,0,1" 
-                                                        CornerRadius="6,6,0,0"
-                                                        Padding="10,6"
-                                                        Cursor="Hand"
-                                                        PointerPressed="OnTableCardPointerPressed"
-                                                        PointerMoved="OnTableCardPointerMoved"
-                                                        PointerReleased="OnTableCardPointerReleased"
-                                                        PointerEntered="OnTableCardPointerEntered"
-                                                        PointerExited="OnTableCardPointerExited">
+                                                <!-- Card Header -->
+                                                <Border Grid.Row="0"
+                                                        Background="{DynamicResource AppSurfaceMutedBrush}"
+                                                        BorderBrush="{DynamicResource AppBorderBrush}"
+                                                        BorderThickness="0,0,0,1"
+                                                        CornerRadius="9,9,0,0"
+                                                        Height="46"
+                                                        Padding="10,0">
                                                     <Grid ColumnDefinitions="Auto, *, Auto">
-                                                        <Border Grid.Column="0" 
-                                                                Background="{DynamicResource AppAccentBrush}" 
-                                                                CornerRadius="4" 
-                                                                Width="22" Height="22" 
-                                                                Margin="0,0,8,0"
+                                                        <Border Grid.Column="0"
+                                                                Background="{DynamicResource AppChipActiveBackgroundBrush}"
+                                                                CornerRadius="6"
+                                                                Width="26"
+                                                                Height="26"
+                                                                Margin="0,0,9,0"
                                                                 VerticalAlignment="Center">
-                                                            <ic:SymbolIcon Symbol="Table" FontSize="12" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            <ic:SymbolIcon Symbol="Table"
+                                                                           FontSize="13"
+                                                                           Foreground="{DynamicResource AppChipActiveForegroundBrush}"
+                                                                           HorizontalAlignment="Center"
+                                                                           VerticalAlignment="Center"/>
                                                         </Border>
-                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                            <TextBlock Text="{Binding TableName}" 
-                                                                       FontWeight="Bold" 
-                                                                       FontSize="11" 
+
+                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                                                            <TextBlock Text="{Binding TableName}"
+                                                                       FontWeight="Bold"
+                                                                       FontSize="12"
                                                                        Foreground="{DynamicResource AppTextPrimaryBrush}"
                                                                        TextTrimming="CharacterEllipsis"/>
-                                                            <TextBlock Text="{Binding Schema}" 
-                                                                       FontSize="9" 
-                                                                       Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                                                <TextBlock Text="{Binding Schema}"
+                                                                           FontSize="10"
+                                                                           Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                                                <TextBlock Text="•"
+                                                                           FontSize="10"
+                                                                           Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                                                <TextBlock Text="{Binding TotalColumnsCount, StringFormat='{}{0} cols'}"
+                                                                           FontSize="10"
+                                                                           Foreground="{DynamicResource AppTextMutedBrush}"/>
+                                                            </StackPanel>
                                                         </StackPanel>
-                                                        
-                                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                                                            <Button Classes="classic-menu-btn" 
-                                                                    Padding="4,1" 
-                                                                    Height="20"
+
+                                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                                                            <Button Classes="panel-icon-btn"
+                                                                    Width="24"
+                                                                    Height="24"
+                                                                    MinHeight="24"
                                                                     Command="{Binding $parent[components:DatabaseDiagramModalComponent].((vm:DatabaseDiagramModalViewModel)DataContext).ViewTableDataCommand}"
                                                                     CommandParameter="{Binding}"
-                                                                    ToolTip.Tip="Select Top 100 rows in Editor">
-                                                                <ui:FASymbolIcon Symbol="Play" FontSize="9"/>
+                                                                    ToolTip.Tip="Query Top 100 rows in Editor">
+                                                                <ui:FASymbolIcon Symbol="Play" FontSize="9.5" Foreground="{DynamicResource AppAccentBrush}"/>
                                                             </Button>
-                                                            <Button Classes="classic-menu-btn" 
-                                                                    Padding="4,1" 
-                                                                    Height="20"
+                                                            <Button Classes="panel-icon-btn"
+                                                                    Width="24"
+                                                                    Height="24"
+                                                                    MinHeight="24"
                                                                     Command="{Binding $parent[components:DatabaseDiagramModalComponent].((vm:DatabaseDiagramModalViewModel)DataContext).GenerateDdlCommand}"
                                                                     CommandParameter="{Binding}"
                                                                     ToolTip.Tip="Generate CREATE TABLE DDL">
-                                                                <ui:FASymbolIcon Symbol="Code" FontSize="9"/>
+                                                                <ui:FASymbolIcon Symbol="Code" FontSize="9.5"/>
                                                             </Button>
                                                         </StackPanel>
                                                     </Grid>
                                                 </Border>
 
                                                 <!-- Columns List -->
-                                                <ScrollViewer Grid.Row="1" MaxHeight="220" VerticalScrollBarVisibility="Auto">
-                                                    <ItemsControl ItemsSource="{Binding Columns}" Margin="6,4">
+                                                <ScrollViewer Grid.Row="1" MaxHeight="226" VerticalScrollBarVisibility="Auto">
+                                                    <ItemsControl ItemsSource="{Binding Columns}" Margin="5,5">
                                                         <ItemsControl.ItemTemplate>
-                                                            <DataTemplate>
-                                                                <Grid ColumnDefinitions="Auto, *, Auto" Margin="2,2">
-                                                                    <!-- Key Indicator -->
-                                                                    <Border Grid.Column="0" Width="22" HorizontalAlignment="Left" VerticalAlignment="Center">
-                                                                        <Panel>
-                                                                            <Border Background="#F59E0B" CornerRadius="2" Padding="2,0" IsVisible="{Binding IsPrimaryKey}">
-                                                                                <TextBlock Text="PK" FontSize="8" FontWeight="Bold" Foreground="Black" HorizontalAlignment="Center"/>
+                                                            <DataTemplate x:DataType="vm:DiagramColumnItem">
+                                                                <Border Classes="diagram-col-row"
+                                                                        ToolTip.Tip="{Binding KeyTooltip}">
+                                                                    <Grid ColumnDefinitions="26, *, Auto">
+                                                                        <!-- Key Badge -->
+                                                                        <Panel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Left">
+                                                                            <Border Background="{DynamicResource AppWarningBackgroundBrush}"
+                                                                                    BorderBrush="{DynamicResource AppWarningBorderBrush}"
+                                                                                    BorderThickness="1"
+                                                                                    CornerRadius="4"
+                                                                                    Padding="4,0"
+                                                                                    IsVisible="{Binding IsPrimaryKey}">
+                                                                                <TextBlock Text="PK"
+                                                                                           FontSize="8.5"
+                                                                                           FontWeight="Bold"
+                                                                                           Foreground="{DynamicResource AppWarningForegroundBrush}"
+                                                                                           HorizontalAlignment="Center"/>
                                                                             </Border>
-                                                                            <Border Background="#38BDF8" CornerRadius="2" Padding="2,0" IsVisible="{Binding IsForeignKey}">
-                                                                                <TextBlock Text="FK" FontSize="8" FontWeight="Bold" Foreground="Black" HorizontalAlignment="Center"/>
+                                                                            <Border Background="{DynamicResource AppChipActiveBackgroundBrush}"
+                                                                                    CornerRadius="4"
+                                                                                    Padding="4,0"
+                                                                                    IsVisible="{Binding IsForeignKey}">
+                                                                                <TextBlock Text="FK"
+                                                                                           FontSize="8.5"
+                                                                                           FontWeight="Bold"
+                                                                                           Foreground="{DynamicResource AppChipActiveForegroundBrush}"
+                                                                                           HorizontalAlignment="Center"/>
                                                                             </Border>
+                                                                            <Border Width="4"
+                                                                                    Height="4"
+                                                                                    CornerRadius="2"
+                                                                                    Margin="6,0,0,0"
+                                                                                    Background="{DynamicResource AppBorderDarkBrush}"
+                                                                                    IsVisible="{Binding IsRegularColumn}"/>
                                                                         </Panel>
-                                                                    </Border>
 
-                                                                    <!-- Column Name -->
-                                                                    <TextBlock Grid.Column="1" 
-                                                                               Text="{Binding ColumnName}" 
-                                                                               FontSize="11" 
-                                                                               Foreground="{DynamicResource AppTextPrimaryBrush}" 
-                                                                               VerticalAlignment="Center"
-                                                                               Margin="4,0"
-                                                                               TextTrimming="CharacterEllipsis"/>
+                                                                        <!-- Column Name -->
+                                                                        <TextBlock Grid.Column="1"
+                                                                                   Text="{Binding ColumnName}"
+                                                                                   FontSize="11.5"
+                                                                                   Foreground="{DynamicResource AppTextPrimaryBrush}"
+                                                                                   VerticalAlignment="Center"
+                                                                                   Margin="4,0,6,0"
+                                                                                   TextTrimming="CharacterEllipsis"/>
 
-                                                                    <!-- Data Type Pill -->
-                                                                    <TextBlock Grid.Column="2" 
-                                                                               Text="{Binding DataType}" 
-                                                                               FontSize="9" 
-                                                                               Foreground="{DynamicResource AppTextMutedBrush}" 
-                                                                               VerticalAlignment="Center"/>
-                                                                </Grid>
+                                                                        <!-- Data Type -->
+                                                                        <TextBlock Grid.Column="2"
+                                                                                   Text="{Binding DataType}"
+                                                                                   FontFamily="{DynamicResource AppFontFamilyMonospace}"
+                                                                                   FontSize="9.5"
+                                                                                   Foreground="{DynamicResource AppTextMutedBrush}"
+                                                                                   VerticalAlignment="Center"/>
+                                                                    </Grid>
+                                                                </Border>
                                                             </DataTemplate>
                                                         </ItemsControl.ItemTemplate>
                                                     </ItemsControl>
                                                 </ScrollViewer>
 
-                                                <!-- Table Card Footer: Relations -->
-                                                <Border Grid.Row="2" 
-                                                        Background="{DynamicResource AppBackgroundBrush}" 
-                                                        BorderBrush="{DynamicResource AppBorderBrush}" 
-                                                        BorderThickness="0,1,0,0" 
-                                                        CornerRadius="0,0,6,6"
-                                                        Padding="6,4"
-                                                        IsVisible="{Binding OutgoingRelations.Count}">
+                                                <!-- Card Footer: Outgoing Relations -->
+                                                <Border Grid.Row="2"
+                                                        Background="{DynamicResource AppSurfaceMutedBrush}"
+                                                        BorderBrush="{DynamicResource AppBorderBrush}"
+                                                        BorderThickness="0,1,0,0"
+                                                        CornerRadius="0,0,9,9"
+                                                        Padding="10,5"
+                                                        IsVisible="{Binding HasOutgoingRelations}">
                                                     <ItemsControl ItemsSource="{Binding OutgoingRelations}">
                                                         <ItemsControl.ItemTemplate>
                                                             <DataTemplate>
-                                                                <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,1">
-                                                                    <ui:FASymbolIcon Symbol="Link" FontSize="8" Foreground="#38BDF8" VerticalAlignment="Center"/>
-                                                                    <TextBlock Text="{Binding}" FontSize="9" Foreground="#38BDF8" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                                <StackPanel Orientation="Horizontal" Spacing="5" Margin="0,1">
+                                                                    <ui:FASymbolIcon Symbol="Link"
+                                                                                     FontSize="8.5"
+                                                                                     Foreground="{DynamicResource AppAccentBrush}"
+                                                                                     VerticalAlignment="Center"/>
+                                                                    <TextBlock Text="{Binding}"
+                                                                               FontSize="9.5"
+                                                                               Foreground="{DynamicResource AppChipActiveForegroundBrush}"
+                                                                               VerticalAlignment="Center"
+                                                                               TextTrimming="CharacterEllipsis"/>
                                                                 </StackPanel>
                                                             </DataTemplate>
                                                         </ItemsControl.ItemTemplate>
@@ -511,132 +708,140 @@
                             </ItemsControl>
                         </Canvas>
 
-                        <!-- Floating Canvas Navigation Helper Overlay -->
-                        <Border HorizontalAlignment="Left"
+                        <!-- Floating Navigation Hint Pill -->
+                        <Border Classes="diagram-floating-pill"
+                                HorizontalAlignment="Left"
                                 VerticalAlignment="Bottom"
-                                Margin="14,14"
-                                Background="{DynamicResource AppSurfaceBrush}"
-                                BorderBrush="{DynamicResource AppBorderBrush}"
-                                BorderThickness="1"
-                                CornerRadius="6"
-                                Padding="10,5"
-                                BoxShadow="0 4 12 0 #30000000"
-                                Opacity="0.9">
+                                Margin="14"
+                                Padding="11,6"
+                                Opacity="0.94">
                             <StackPanel Orientation="Horizontal" Spacing="10">
                                 <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-                                    <ui:FASymbolIcon Symbol="FullScreen" FontSize="11" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Pan: Drag canvas" FontSize="10" Foreground="{DynamicResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
+                                    <ui:FASymbolIcon Symbol="FullScreen" FontSize="10.5" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Pan: Drag canvas" FontSize="10.5" Foreground="{DynamicResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
                                 </StackPanel>
-                                <Rectangle Width="1" Height="10" Fill="{DynamicResource AppBorderBrush}" VerticalAlignment="Center"/>
+                                <Border Width="1" Height="11" Background="{DynamicResource AppBorderBrush}" VerticalAlignment="Center"/>
                                 <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-                                    <ui:FASymbolIcon Symbol="Preview" FontSize="11" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Zoom: Mouse wheel" FontSize="10" Foreground="{DynamicResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
+                                    <ui:FASymbolIcon Symbol="Preview" FontSize="10.5" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Zoom: Mouse wheel" FontSize="10.5" Foreground="{DynamicResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
                                 </StackPanel>
-                                <Rectangle Width="1" Height="10" Fill="{DynamicResource AppBorderBrush}" VerticalAlignment="Center"/>
+                                <Border Width="1" Height="11" Background="{DynamicResource AppBorderBrush}" VerticalAlignment="Center"/>
                                 <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-                                    <ui:FASymbolIcon Symbol="Folder" FontSize="11" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Move: Drag table" FontSize="10" Foreground="{DynamicResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
+                                    <ui:FASymbolIcon Symbol="Folder" FontSize="10.5" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Move: Drag table" FontSize="10.5" Foreground="{DynamicResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </StackPanel>
                         </Border>
 
-                        <!-- Floating Canvas Quick Tools (Auto-Layout & Fit View) -->
-                        <Border HorizontalAlignment="Right"
+                        <!-- Floating Quick Actions Pill -->
+                        <Border Classes="diagram-floating-pill"
+                                HorizontalAlignment="Right"
                                 VerticalAlignment="Bottom"
-                                Margin="14,14"
-                                Background="{DynamicResource AppSurfaceBrush}"
-                                BorderBrush="{DynamicResource AppBorderBrush}"
-                                BorderThickness="1"
-                                CornerRadius="6"
-                                Padding="4,3"
-                                BoxShadow="0 4 12 0 #30000000">
+                                Margin="14"
+                                Padding="4">
                             <StackPanel Orientation="Horizontal" Spacing="4">
                                 <Button Classes="classic-menu-btn"
-                                        Height="25"
-                                        Padding="8,2"
+                                        Height="26"
+                                        MinHeight="26"
+                                        Padding="9,0"
                                         Command="{Binding AutoLayoutCommand}"
-                                        ToolTip.Tip="Automatically rearrange tables into clean grid (Auto-Layout)">
+                                        ToolTip.Tip="Automatically arrange tables into clean hierarchy">
                                     <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-                                        <ui:FASymbolIcon Symbol="Sync" FontSize="10" Foreground="{DynamicResource AppAccentBrush}"/>
-                                        <TextBlock Text="Auto Layout" FontSize="10" FontWeight="SemiBold"/>
+                                        <ui:FASymbolIcon Symbol="ViewAll" FontSize="10" Foreground="{DynamicResource AppAccentBrush}"/>
+                                        <TextBlock Text="Auto Layout" FontSize="10.5" FontWeight="SemiBold"/>
                                     </StackPanel>
                                 </Button>
-                                <Rectangle Width="1" Height="12" Fill="{DynamicResource AppBorderBrush}" VerticalAlignment="Center"/>
+                                <Border Width="1" Height="13" Background="{DynamicResource AppBorderBrush}" VerticalAlignment="Center"/>
                                 <Button Classes="classic-menu-btn"
-                                        Height="25"
-                                        Padding="8,2"
+                                        Height="26"
+                                        MinHeight="26"
+                                        Padding="9,0"
                                         Command="{Binding FitToViewCommand}"
-                                        ToolTip.Tip="Fit all tables in view (Double-click canvas background)">
+                                        ToolTip.Tip="Fit all tables in view (Double-click canvas)">
                                     <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-                                        <ui:FASymbolIcon Symbol="FullScreen" FontSize="10" Foreground="#38BDF8"/>
-                                        <TextBlock Text="Fit to View" FontSize="10" FontWeight="SemiBold"/>
+                                        <ui:FASymbolIcon Symbol="FullScreen" FontSize="10" Foreground="{DynamicResource AppAccentBrush}"/>
+                                        <TextBlock Text="Fit to View" FontSize="10.5" FontWeight="SemiBold"/>
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
                         </Border>
                     </Grid>
 
-                    <!-- C. Empty State (No tables found) -->
-                    <Border Background="{DynamicResource AppWorkspaceBrush}" 
+                    <!-- C. Empty State Card -->
+                    <Border Background="{DynamicResource AppWorkspaceBrush}"
                             IsVisible="{Binding IsEmptyState}"
                             Padding="32">
-                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" Width="320">
-                            <Border Background="{DynamicResource AppSurfaceBrush}"
-                                    BorderBrush="{DynamicResource AppBorderBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="24"
-                                    Width="48"
-                                    Height="48"
-                                    HorizontalAlignment="Center">
-                                <ui:FASymbolIcon Symbol="Document" 
-                                                 FontSize="18" 
-                                                 Foreground="{DynamicResource AppTextMutedBrush}" 
-                                                 HorizontalAlignment="Center" 
-                                                 VerticalAlignment="Center"/>
-                            </Border>
+                        <Border Classes="quell-card"
+                                CornerRadius="12"
+                                Padding="28,24"
+                                Width="360"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+                            <StackPanel HorizontalAlignment="Center" Spacing="10">
+                                <Border Background="{DynamicResource AppChipActiveBackgroundBrush}"
+                                        CornerRadius="12"
+                                        Width="48"
+                                        Height="48"
+                                        HorizontalAlignment="Center">
+                                    <ic:SymbolIcon Symbol="TableMultiple"
+                                                   FontSize="22"
+                                                   Foreground="{DynamicResource AppChipActiveForegroundBrush}"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"/>
+                                </Border>
 
-                            <TextBlock Text="No Tables Available" 
-                                       FontSize="13" 
-                                       FontWeight="Bold" 
-                                       Foreground="{DynamicResource AppTextPrimaryBrush}" 
-                                       HorizontalAlignment="Center"/>
-                            <TextBlock Text="No tables found in the active database or matching the search filter." 
-                                       FontSize="11" 
-                                       Foreground="{DynamicResource AppTextSecondaryBrush}" 
-                                       HorizontalAlignment="Center"
-                                       TextAlignment="Center"
-                                       TextWrapping="Wrap"/>
-                        </StackPanel>
+                                <TextBlock Text="No Tables Available"
+                                           FontSize="13.5"
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource AppTextPrimaryBrush}"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="No tables found in the active database or matching the current filter."
+                                           FontSize="11.5"
+                                           Foreground="{DynamicResource AppTextMutedBrush}"
+                                           HorizontalAlignment="Center"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
                     </Border>
                 </Panel>
 
-                <!-- 4. Footer -->
-                <Border Grid.Row="3" 
-                        Background="{DynamicResource AppSurfaceBrush}" 
-                        BorderBrush="{DynamicResource AppBorderBrush}" 
-                        BorderThickness="0,1,0,0" 
-                        Padding="16,10">
+                <!-- 4. Unified Modal Footer -->
+                <Border Grid.Row="3" Classes="quell-modal-footer">
                     <Grid ColumnDefinitions="Auto, *, Auto">
                         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <Border Background="{DynamicResource AppSurfaceBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="8,3">
-                                <StackPanel Orientation="Horizontal" Spacing="4">
-                                    <TextBlock Text="Visible Tables:" FontSize="10" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                                    <TextBlock Text="{Binding FilteredTables.Count}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                            <Border Background="{DynamicResource AppWorkspaceBrush}"
+                                    BorderBrush="{DynamicResource AppBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="7"
+                                    Height="26"
+                                    Padding="10,0">
+                                <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                    <TextBlock Text="Tables:" FontSize="11" Foreground="{DynamicResource AppTextMutedBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding FilteredTables.Count}" FontFamily="{DynamicResource AppFontFamilyMonospace}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AppTextPrimaryBrush}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Border>
-                            <Border Background="{DynamicResource AppSurfaceBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="8,3">
-                                <StackPanel Orientation="Horizontal" Spacing="4">
-                                    <TextBlock Text="Total Relations:" FontSize="10" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
-                                    <TextBlock Text="{Binding TotalRelationsCount}" FontSize="10" FontWeight="Bold" Foreground="#38BDF8"/>
+
+                            <Border Background="{DynamicResource AppWorkspaceBrush}"
+                                    BorderBrush="{DynamicResource AppBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="7"
+                                    Height="26"
+                                    Padding="10,0">
+                                <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                    <ui:FASymbolIcon Symbol="Link" FontSize="10" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Relations:" FontSize="11" Foreground="{DynamicResource AppTextMutedBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding TotalRelationsCount}" FontFamily="{DynamicResource AppFontFamilyMonospace}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
 
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-                            <Button Classes="classic-tool-btn" 
-                                    Content="Close" 
-                                    Command="{Binding CloseCommand}"/>
-                        </StackPanel>
+                        <Button Grid.Column="2"
+                                Classes="classic-tool-btn"
+                                Height="30"
+                                MinHeight="30"
+                                Content="Close"
+                                Command="{Binding CloseCommand}"/>
                     </Grid>
                 </Border>
             </Grid>

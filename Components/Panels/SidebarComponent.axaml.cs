@@ -56,7 +56,7 @@ public partial class SidebarComponent : UserControl
         try
         {
             var point = e.GetCurrentPoint(this);
-            if (point.Properties.IsLeftButtonPressed && (sender as Control)?.DataContext is TableTreeNode tableNode)
+            if (point.Properties.IsLeftButtonPressed && e.ClickCount == 1 && (sender as Control)?.DataContext is TableTreeNode tableNode)
             {
                 if (DataContext is SidebarViewModel vm)
                 {
@@ -74,6 +74,48 @@ public partial class SidebarComponent : UserControl
         catch (Exception ex)
         {
             Console.WriteLine($"[SidebarComponent] OnTableNodePointerPressed error: {ex.Message}");
+        }
+    }
+
+    private void OnTableNodeDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        try
+        {
+            if ((sender as Control)?.DataContext is TableTreeNode tableNode && DataContext is SidebarViewModel vm)
+            {
+                e.Handled = true;
+                if (tableNode.IsProcedure)
+                {
+                    _ = vm.OpenProcedureNodeAsync(tableNode);
+                }
+                else
+                {
+                    _ = vm.ExecuteTableLast100Async(tableNode);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SidebarComponent] OnTableNodeDoubleTapped error: {ex.Message}");
+        }
+    }
+
+    private void OnTableMetadataGroupPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        try
+        {
+            var point = e.GetCurrentPoint(this);
+            if (point.Properties.IsLeftButtonPressed &&
+                (sender as Control)?.DataContext is TableMetadataGroupNode groupNode &&
+                DataContext is SidebarViewModel vm)
+            {
+                e.Handled = true;
+                _ = vm.OpenTableMetadataGroupAsync(groupNode);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SidebarComponent] OnTableMetadataGroupPointerPressed error: {ex.Message}");
         }
     }
 

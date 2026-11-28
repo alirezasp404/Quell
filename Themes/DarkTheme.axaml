@@ -117,6 +117,13 @@
     <SolidColorBrush x:Key="AppTableActiveForegroundBrush" Color="#8FA8FF" />
     <SolidColorBrush x:Key="AppTableActiveBorderBrush" Color="#4C7DFF" />
     <SolidColorBrush x:Key="AppTableHoverBackgroundBrush" Color="#1B2230" />
+    <SolidColorBrush x:Key="AppTableFormulaBarBackgroundBrush" Color="#12151B" />
+    <SolidColorBrush x:Key="AppTableFormulaBarBorderBrush" Color="#1D222B" />
+    <SolidColorBrush x:Key="AppTableNameBoxBackgroundBrush" Color="#0F1115" />
+    <SolidColorBrush x:Key="AppTableExcelAccentBrush" Color="#4C7DFF" />
+    <SolidColorBrush x:Key="AppTableHeaderActiveBackgroundBrush" Color="#1E2A47" />
+    <SolidColorBrush x:Key="AppTableHeaderActiveForegroundBrush" Color="#8FA8FF" />
+    <SolidColorBrush x:Key="AppTableNullForegroundBrush" Color="#64748B" />
 
     <!-- Primary Key Semantic Brushes -->
     <SolidColorBrush x:Key="AppTablePkBadgeBackgroundBrush" Color="#1E2A47" />

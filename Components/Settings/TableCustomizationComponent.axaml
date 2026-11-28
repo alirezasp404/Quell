@@ -3,6 +3,7 @@
               xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
               xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
               xmlns:vm="using:Quell.ViewModels"
+              xmlns:components="using:Quell.Components"
               xmlns:ui="using:FluentAvalonia.UI.Controls"
               mc:Ignorable="d" d:DesignWidth="550" d:DesignHeight="850"
               x:Class="Quell.Components.TableCustomizationComponent"
@@ -74,7 +75,10 @@
 
         <Separator Background="{DynamicResource AppBorderBrush}" Margin="0,2"/>
 
-        <!-- 2. Table Presets -->
+        <!-- 2. Table UI Models & Excel Features -->
+        <components:TableAppearanceModelsComponent DataContext="{Binding}" />
+
+        <!-- 3. Table Color Presets -->
         <StackPanel Spacing="8">
             <TextBlock Text="TABLE THEME PRESETS" 
                        FontSize="11" 

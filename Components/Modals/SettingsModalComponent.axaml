@@ -81,6 +81,11 @@
 
                                 <Separator Background="{DynamicResource AppBorderBrush}" Margin="0,4"/>
 
+                                <!-- Query Results Table UI Models & Excel Settings -->
+                                <components:TableAppearanceModelsComponent DataContext="{Binding}" />
+
+                                <Separator Background="{DynamicResource AppBorderBrush}" Margin="0,4"/>
+
                                 <!-- SQL Syntax & Keyword Highlighting Color Presets Component -->
                                 <components:SyntaxColorSelectorComponent DataContext="{Binding}" />
 

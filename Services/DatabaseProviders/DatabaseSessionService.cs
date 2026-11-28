@@ -382,6 +382,28 @@ public class DatabaseSessionService
         }
     }
 
+    internal async Task<T> ExecuteWithSessionAsync<T>(
+        string? sessionKey,
+        Func<OpenDatabaseSession, CancellationToken, Task<T>> action,
+        T fallback,
+        CancellationToken cancellationToken = default)
+    {
+        await _connectionLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var session = ResolveSession(sessionKey);
+            if (session == null || session.Connection.State != ConnectionState.Open)
+            {
+                return fallback;
+            }
+            return await action(session, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _connectionLock.Release();
+        }
+    }
+
     public async Task<List<TableMetadata>> GetTablesAsync(string? sessionKey = null, CancellationToken cancellationToken = default)
     {
         await _connectionLock.WaitAsync(cancellationToken).ConfigureAwait(false);

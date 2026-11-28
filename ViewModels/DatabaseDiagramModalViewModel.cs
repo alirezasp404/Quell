@@ -24,6 +24,12 @@ public class DiagramColumnItem
 
     public string BadgeText => IsPrimaryKey ? "PK" : (IsForeignKey ? "FK" : string.Empty);
     public string FullDisplay => $"{ColumnName} : {DataType}";
+    public bool IsRegularColumn => !IsPrimaryKey && !IsForeignKey;
+    public string KeyTooltip => IsPrimaryKey
+        ? "Primary Key"
+        : (IsForeignKey && !string.IsNullOrWhiteSpace(ReferencedTable)
+            ? $"Foreign Key → {ReferencedTable}.{ReferencedColumn ?? "Id"}"
+            : string.Empty);
 }
 
 public partial class DiagramTableItem : ObservableObject
@@ -51,12 +57,16 @@ public partial class DiagramTableItem : ObservableObject
     [ObservableProperty]
     private bool _isHighlighted;
 
+    [ObservableProperty]
+    private bool _isRelatedHighlighted;
+
     public ObservableCollection<DiagramColumnItem> Columns { get; } = new();
     public ObservableCollection<string> OutgoingRelations { get; } = new();
 
     public int PrimaryKeysCount => Columns.Count(c => c.IsPrimaryKey);
     public int ForeignKeysCount => Columns.Count(c => c.IsForeignKey);
     public int TotalColumnsCount => Columns.Count;
+    public bool HasOutgoingRelations => OutgoingRelations.Count > 0;
 
     public DiagramTableItem Clone()
     {
@@ -137,10 +147,20 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
     private DatabaseType _databaseType = DatabaseType.MSSQL;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSearchFilter))]
     private string _searchFilter = string.Empty;
 
+    public bool HasSearchFilter => !string.IsNullOrWhiteSpace(SearchFilter);
+
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsFilterAll))]
+    [NotifyPropertyChangedFor(nameof(IsFilterRelations))]
+    [NotifyPropertyChangedFor(nameof(IsFilterPk))]
     private string _filterMode = "All"; // "All", "Relations", "PK"
+
+    public bool IsFilterAll => string.Equals(FilterMode, "All", StringComparison.OrdinalIgnoreCase);
+    public bool IsFilterRelations => string.Equals(FilterMode, "Relations", StringComparison.OrdinalIgnoreCase);
+    public bool IsFilterPk => string.Equals(FilterMode, "PK", StringComparison.OrdinalIgnoreCase);
 
     [ObservableProperty]
     private double _zoomLevel = 1.0; // 0.3 .. 2.5
@@ -242,6 +262,19 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
     {
         FilterMode = mode;
         ApplyFilter();
+    }
+
+    [RelayCommand]
+    public void ClearSearchFilter()
+    {
+        SearchFilter = string.Empty;
+    }
+
+    [RelayCommand]
+    public void DismissStatusMessage()
+    {
+        StatusMessage = string.Empty;
+        HasStatusMessage = false;
     }
 
     [RelayCommand]
@@ -444,26 +477,41 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
             finalColumns.RemoveAt(mergeIdx + 1);
         }
 
-        // 4. Arrange tables by column with generous margins and padding
+        // 4. Arrange tables by column with barycenter Y-ordering to minimize crossing lines
         double startX = 60.0;
         double startY = 60.0;
         double colWidth = 260.0;
-        double xSpacing = 160.0; // Ample gutter for connection lines & badges
+        double xSpacing = 170.0; // Ample gutter for connection lines & badges
         double ySpacing = 36.0;
+        var placedCenterY = new Dictionary<DiagramTableItem, double>();
 
         for (int c = 0; c < finalColumns.Count; c++)
         {
+            var colTables = finalColumns[c];
+            if (c > 0)
+            {
+                colTables = colTables
+                    .OrderBy(t =>
+                    {
+                        var parents = GetParents(t).Where(p => placedCenterY.ContainsKey(p)).ToList();
+                        return parents.Count > 0 ? parents.Average(p => placedCenterY[p]) : double.MaxValue;
+                    })
+                    .ThenBy(t => t.TableName, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+
             double curY = startY;
             double curX = startX + c * (colWidth + xSpacing);
 
-            foreach (var table in finalColumns[c])
+            foreach (var table in colTables)
             {
-                double estimatedHeight = 38.0 + 8.0 + Math.Min(table.Columns.Count, 11) * 20.0 + (table.OutgoingRelations.Count > 0 ? 28.0 : 0.0);
+                double estimatedHeight = 46.0 + 12.0 + Math.Min(table.Columns.Count, 10) * 22.0 + (table.OutgoingRelations.Count > 0 ? 30.0 : 0.0);
 
                 table.X = curX;
                 table.Y = curY;
                 table.Width = colWidth;
                 table.Height = estimatedHeight;
+                placedCenterY[table] = curY + estimatedHeight / 2.0;
 
                 curY += estimatedHeight + ySpacing;
             }
@@ -588,7 +636,12 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
                     string targetColName = tgtParts.Length > 1 ? tgtParts[1].Trim() : "Id";
                     string srcColName = srcParts.Length > 1 ? srcParts[1].Trim() : "";
 
-                    if (!Relations.Any(r => r.SourceTable == table && r.TargetTable.TableName.Equals(targetTableName, StringComparison.OrdinalIgnoreCase)))
+                    bool alreadyAdded = Relations.Any(r =>
+                        r.SourceTable == table &&
+                        r.TargetTable.TableName.Equals(targetTableName, StringComparison.OrdinalIgnoreCase) &&
+                        (string.IsNullOrEmpty(srcColName) || r.SourceColumn.Equals(srcColName, StringComparison.OrdinalIgnoreCase)));
+
+                    if (!alreadyAdded)
                     {
                         var target = FilteredTables.FirstOrDefault(t => t.TableName.Equals(targetTableName, StringComparison.OrdinalIgnoreCase));
                         if (target != null)
@@ -612,6 +665,25 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
 
     public void RecalculateRelationPoints()
     {
+        // Group parallel relations between the same pair of tables so their lanes never collide
+        var pairCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var pairSeen = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        static string GetPairKey(DiagramTableItem a, DiagramTableItem b)
+        {
+            string n1 = a.FullName;
+            string n2 = b.FullName;
+            return string.Compare(n1, n2, StringComparison.OrdinalIgnoreCase) <= 0
+                ? $"{n1}||{n2}"
+                : $"{n2}||{n1}";
+        }
+
+        foreach (var r in Relations)
+        {
+            var key = GetPairKey(r.SourceTable, r.TargetTable);
+            pairCounts[key] = pairCounts.GetValueOrDefault(key, 0) + 1;
+        }
+
         for (int i = 0; i < Relations.Count; i++)
         {
             var rel = Relations[i];
@@ -619,19 +691,27 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
             var tgt = rel.TargetTable;
             rel.RelationIndex = i;
 
-            // 1. Accurately compute anchor Y on specific column row
-            // Table Card Header = ~38px, top padding/margin = ~6px.
-            // First column center is at Y + 54. Each subsequent column row is ~20px.
-            // Clamped to 10 to stay within card ScrollViewer viewport.
+            var key = GetPairKey(src, tgt);
+            int slot = pairSeen.GetValueOrDefault(key, 0);
+            pairSeen[key] = slot + 1;
+            int totalInPair = pairCounts[key];
+            double laneOffset = (slot - (totalInPair - 1) / 2.0) * 22.0;
+
+            // 1. Compute anchor Y aligned to table card header (46px) + padding (6px) + row height (22px)
             int srcColIdx = src.Columns.ToList().FindIndex(c => c.ColumnName.Equals(rel.SourceColumn, StringComparison.OrdinalIgnoreCase));
-            double srcY = srcColIdx >= 0 
-                ? (src.Y + 54.0 + Math.Min(srcColIdx, 10) * 20.0) 
+            double srcY = srcColIdx >= 0
+                ? (src.Y + 63.0 + Math.Min(srcColIdx, 9) * 22.0)
                 : (src.Y + (src.Height > 0 ? src.Height / 2.0 : 80.0));
 
             int tgtColIdx = tgt.Columns.ToList().FindIndex(c => c.ColumnName.Equals(rel.TargetColumn, StringComparison.OrdinalIgnoreCase));
-            double tgtY = tgtColIdx >= 0 
-                ? (tgt.Y + 54.0 + Math.Min(tgtColIdx, 10) * 20.0) 
+            double tgtY = tgtColIdx >= 0
+                ? (tgt.Y + 63.0 + Math.Min(tgtColIdx, 9) * 22.0)
                 : (tgt.Y + (tgt.Height > 0 ? tgt.Height / 2.0 : 80.0));
+
+            if (src == tgt && Math.Abs(srcY - tgtY) < 6.0)
+            {
+                tgtY += 14.0;
+            }
 
             double srcRight = src.X + src.Width;
             double tgtRight = tgt.X + tgt.Width;
@@ -641,36 +721,33 @@ public partial class DatabaseDiagramModalViewModel : ViewModelBase
             double midX;
 
             // Determine routing topology:
-            if (srcRight + 24.0 <= tgt.X)
+            if (src != tgt && srcRight + 24.0 <= tgt.X)
             {
                 // Source is completely left of Target
-                // Exit right (+1), enter target's left edge moving right (+1)
                 srcX = srcRight;
                 tgtX = tgt.X;
                 startDir = 1;
                 endDir = 1;
-                midX = (srcX + tgtX) / 2.0;
+                midX = (srcX + tgtX) / 2.0 + laneOffset;
             }
-            else if (tgtRight + 24.0 <= src.X)
+            else if (src != tgt && tgtRight + 24.0 <= src.X)
             {
                 // Target is completely left of Source
-                // Exit left (-1), enter target's right edge moving left (-1)
                 srcX = src.X;
                 tgtX = tgtRight;
                 startDir = -1;
                 endDir = -1;
-                midX = (srcX + tgtX) / 2.0;
+                midX = (srcX + tgtX) / 2.0 + laneOffset;
             }
             else
             {
-                // Horizontally overlapping (same column, or partially overlapping cards)
-                // Route along the right clearance gutter so the line loops cleanly around the outside
+                // Same column, overlapping cards, or self-referencing FK: route neatly in right gutter
                 srcX = srcRight;
                 tgtX = tgtRight;
-                startDir = 1;  // exit right into gutter
-                endDir = -1;  // enter target right edge from gutter heading left
+                startDir = 1;
+                endDir = -1;
                 double maxRight = Math.Max(srcRight, tgtRight);
-                midX = maxRight + 36.0 + (i % 4) * 14.0;
+                midX = maxRight + 38.0 + (i % 4) * 16.0 + slot * 14.0;
             }
 
             rel.StartPoint = new Point(srcX, srcY);

@@ -1,0 +1,268 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+              xmlns:vm="using:Quell.ViewModels"
+              xmlns:ui="using:FluentAvalonia.UI.Controls"
+              mc:Ignorable="d" d:DesignWidth="540" d:DesignHeight="420"
+              x:Class="Quell.Components.TableAppearanceModelsComponent"
+              x:DataType="vm:SettingsModalViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="Button.table-model-card">
+            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1.5" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="10,9" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.table-model-card:pointerover /template/ ContentPresenter">
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}" />
+        </Style>
+        <Style Selector="Button.table-model-card.active">
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AppSegmentedItemActiveBrush}" />
+        </Style>
+        <Style Selector="Button.table-model-card.active /template/ ContentPresenter">
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AppSegmentedItemActiveBrush}" />
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel Spacing="12">
+        <!-- Section Title -->
+        <Grid ColumnDefinitions="*, Auto">
+            <StackPanel Grid.Column="0" Spacing="2">
+                <TextBlock Text="RESULTS TABLE UI MODELS"
+                           FontSize="11"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource AppTextMutedBrush}"/>
+                <TextBlock Text="Switch between spreadsheet &amp; grid layouts for the Query Result Table."
+                           FontSize="11"
+                           Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+            </StackPanel>
+            <Button Grid.Column="1"
+                    Content="Reset"
+                    Command="{Binding ResetTableCustomizationCommand}"
+                    Classes="classic-tool-btn"
+                    FontSize="10.5"
+                    Padding="8,3"
+                    VerticalAlignment="Center"/>
+        </Grid>
+
+        <!-- 5 Visual UI Model Cards -->
+        <Grid ColumnDefinitions="*, 8, *" RowDefinitions="Auto, 8, Auto, 8, Auto">
+            <!-- Model 1: Excel Classic -->
+            <Button Grid.Row="0" Grid.Column="0"
+                    Classes="table-model-card"
+                    Classes.active="{Binding IsExcelClassicModel}"
+                    Command="{Binding ApplyTableUiModelCommand}"
+                    CommandParameter="ExcelClassic">
+                <Grid ColumnDefinitions="Auto, *, Auto">
+                    <Border Grid.Column="0" Width="46" Height="34" CornerRadius="4" Background="#FFFFFF" BorderBrush="#2563EB" BorderThickness="1.5" Margin="0,0,10,0" ClipToBounds="True">
+                        <Grid RowDefinitions="7, 8, *, *">
+                            <Border Grid.Row="0" Background="#2563EB"/>
+                            <Border Grid.Row="1" Background="#F1F5F9" BorderBrush="#CBD5E1" BorderThickness="0,0,0,1"/>
+                            <Border Grid.Row="2" Background="#DBEAFE" BorderBrush="#CBD5E1" BorderThickness="0,0,0,1"/>
+                            <Border Grid.Row="3" Background="#F8FAFC"/>
+                        </Grid>
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="Excel Classic" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <TextBlock Text="Unified blue selection, full gridlines &amp; stats" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                    <Border Grid.Column="2" Width="16" Height="16" CornerRadius="8" Background="{DynamicResource AppAccentBrush}" IsVisible="{Binding IsExcelClassicModel}" VerticalAlignment="Center">
+                        <ui:FASymbolIcon Symbol="Checkmark" FontSize="9" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </Grid>
+            </Button>
+
+            <!-- Model 2: Excel Modern 365 -->
+            <Button Grid.Row="0" Grid.Column="2"
+                    Classes="table-model-card"
+                    Classes.active="{Binding IsExcelModernModel}"
+                    Command="{Binding ApplyTableUiModelCommand}"
+                    CommandParameter="ExcelModern">
+                <Grid ColumnDefinitions="Auto, *, Auto">
+                    <Border Grid.Column="0" Width="46" Height="34" CornerRadius="4" Background="{DynamicResource AppSurfaceMutedBrush}" BorderBrush="{DynamicResource AppAccentBrush}" BorderThickness="1.5" Margin="0,0,10,0" ClipToBounds="True">
+                        <Grid RowDefinitions="8, 9, *, *">
+                            <Border Grid.Row="0" Background="{DynamicResource AppAccentBrush}" Opacity="0.85"/>
+                            <Border Grid.Row="1" Background="{DynamicResource AppTableHeaderBackgroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1"/>
+                            <Border Grid.Row="2" Background="{DynamicResource AppTableSelectedBackgroundBrush}"/>
+                            <Border Grid.Row="3" Background="{DynamicResource AppTableAltColBackgroundBrush}"/>
+                        </Grid>
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="Excel Modern 365" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <TextBlock Text="Airy 26px rows, type badges &amp; stats" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                    <Border Grid.Column="2" Width="16" Height="16" CornerRadius="8" Background="{DynamicResource AppAccentBrush}" IsVisible="{Binding IsExcelModernModel}" VerticalAlignment="Center">
+                        <ui:FASymbolIcon Symbol="Checkmark" FontSize="9" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </Grid>
+            </Button>
+
+            <!-- Model 3: Minimalist Flat -->
+            <Button Grid.Row="2" Grid.Column="0"
+                    Classes="table-model-card"
+                    Classes.active="{Binding IsMinimalistFlatModel}"
+                    Command="{Binding ApplyTableUiModelCommand}"
+                    CommandParameter="MinimalistFlat">
+                <Grid ColumnDefinitions="Auto, *, Auto">
+                    <Border Grid.Column="0" Width="46" Height="34" CornerRadius="4" Background="{DynamicResource AppWorkspaceBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" Margin="0,0,10,0" ClipToBounds="True">
+                        <Grid RowDefinitions="10, *, *, *">
+                            <Border Grid.Row="0" Background="{DynamicResource AppSurfaceBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1"/>
+                            <Border Grid.Row="1" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1"/>
+                            <Border Grid.Row="2" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1"/>
+                        </Grid>
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="Minimalist Flat" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <TextBlock Text="Horizontal lines, clean 30px spacing" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                    <Border Grid.Column="2" Width="16" Height="16" CornerRadius="8" Background="{DynamicResource AppAccentBrush}" IsVisible="{Binding IsMinimalistFlatModel}" VerticalAlignment="Center">
+                        <ui:FASymbolIcon Symbol="Checkmark" FontSize="9" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </Grid>
+            </Button>
+
+            <!-- Model 4: Compact Data Studio -->
+            <Button Grid.Row="2" Grid.Column="2"
+                    Classes="table-model-card"
+                    Classes.active="{Binding IsCompactDataModel}"
+                    Command="{Binding ApplyTableUiModelCommand}"
+                    CommandParameter="CompactData">
+                <Grid ColumnDefinitions="Auto, *, Auto">
+                    <Border Grid.Column="0" Width="46" Height="34" CornerRadius="4" Background="{DynamicResource AppWorkspaceBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" Margin="0,0,10,0" ClipToBounds="True">
+                        <Grid RowDefinitions="8, *, *, *, *" ColumnDefinitions="*, *">
+                            <Border Grid.Row="0" Grid.ColumnSpan="2" Background="{DynamicResource AppTableHeaderBackgroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1"/>
+                            <Border Grid.Row="1" Grid.Column="0" Background="{DynamicResource AppTableWhiteColBackgroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,1,1"/>
+                            <Border Grid.Row="1" Grid.Column="1" Background="{DynamicResource AppTableAltColBackgroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1"/>
+                            <Border Grid.Row="2" Grid.Column="0" Background="{DynamicResource AppTableWhiteColBackgroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,1,1"/>
+                            <Border Grid.Row="2" Grid.Column="1" Background="{DynamicResource AppTableAltColBackgroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1"/>
+                            <Border Grid.Row="3" Grid.Column="0" Background="{DynamicResource AppTableWhiteColBackgroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,1,0"/>
+                            <Border Grid.Row="3" Grid.Column="1" Background="{DynamicResource AppTableAltColBackgroundBrush}"/>
+                        </Grid>
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="Compact Data Studio" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <TextBlock Text="Dense 20px rows, column stripes" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                    <Border Grid.Column="2" Width="16" Height="16" CornerRadius="8" Background="{DynamicResource AppAccentBrush}" IsVisible="{Binding IsCompactDataModel}" VerticalAlignment="Center">
+                        <ui:FASymbolIcon Symbol="Checkmark" FontSize="9" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </Grid>
+            </Button>
+
+            <!-- Model 5: High Contrast Grid -->
+            <Button Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3"
+                    Classes="table-model-card"
+                    Classes.active="{Binding IsHighContrastModel}"
+                    Command="{Binding ApplyTableUiModelCommand}"
+                    CommandParameter="HighContrast">
+                <Grid ColumnDefinitions="Auto, *, Auto">
+                    <Border Grid.Column="0" Width="46" Height="30" CornerRadius="4" Background="#000000" BorderBrush="#FFFFFF" BorderThickness="1.5" Margin="0,0,10,0" ClipToBounds="True">
+                        <Grid RowDefinitions="9, *, *">
+                            <Border Grid.Row="0" Background="#000000" BorderBrush="#FFFFFF" BorderThickness="0,0,0,1"/>
+                            <Border Grid.Row="1" Background="#2563EB" BorderBrush="#FFFFFF" BorderThickness="0,0,0,1"/>
+                            <Border Grid.Row="2" Background="#111827"/>
+                        </Grid>
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                        <TextBlock Text="High Contrast Grid" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                        <TextBlock Text="Maximum border &amp; selection contrast with selection status bar stats" FontSize="10" Foreground="{DynamicResource AppTextMutedBrush}"/>
+                    </StackPanel>
+                    <Border Grid.Column="2" Width="16" Height="16" CornerRadius="8" Background="{DynamicResource AppAccentBrush}" IsVisible="{Binding IsHighContrastModel}" VerticalAlignment="Center">
+                        <ui:FASymbolIcon Symbol="Checkmark" FontSize="9" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </Grid>
+            </Button>
+        </Grid>
+
+        <!-- Excel & Grid Behavior Settings -->
+        <Border Background="{DynamicResource AppSurfaceMutedBrush}"
+                BorderBrush="{DynamicResource AppBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="12,10">
+            <StackPanel Spacing="10">
+                <TextBlock Text="EXCEL &amp; GRID FEATURES"
+                           FontSize="10.5"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+
+                <Grid ColumnDefinitions="*, *">
+                    <CheckBox Grid.Column="0"
+                              Content="Column Data Types in Headers"
+                              IsChecked="{Binding TableShowColumnDataTypes}"
+                              FontSize="11"
+                              Margin="0,0,8,0"/>
+                    <CheckBox Grid.Column="1"
+                              Content="Status Bar Stats (Sum / Avg / Count)"
+                              IsChecked="{Binding TableShowExcelStatusStats}"
+                              FontSize="11"/>
+                </Grid>
+
+                <Separator Background="{DynamicResource AppBorderBrush}" Margin="0,2"/>
+
+                <!-- Striping Mode & Gridlines Mode Segmented Controls -->
+                <Grid ColumnDefinitions="*, 12, *">
+                    <StackPanel Grid.Column="0" Spacing="4">
+                        <TextBlock Text="Zebra Striping Mode" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                        <Border Classes="quell-segmented-track">
+                            <UniformGrid Rows="1">
+                                <Button Classes="quell-segmented-tab"
+                                        Classes.active="{Binding IsRowsStriping}"
+                                        Content="Rows"
+                                        Command="{Binding SetTableStripingModeCommand}"
+                                        CommandParameter="Rows"/>
+                                <Button Classes="quell-segmented-tab"
+                                        Classes.active="{Binding IsColumnsStriping}"
+                                        Content="Cols"
+                                        Command="{Binding SetTableStripingModeCommand}"
+                                        CommandParameter="Columns"/>
+                                <Button Classes="quell-segmented-tab"
+                                        Classes.active="{Binding IsNoStriping}"
+                                        Content="Flat"
+                                        Command="{Binding SetTableStripingModeCommand}"
+                                        CommandParameter="None"/>
+                            </UniformGrid>
+                        </Border>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Spacing="4">
+                        <TextBlock Text="Gridlines Style" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource AppTextSecondaryBrush}"/>
+                        <Border Classes="quell-segmented-track">
+                            <UniformGrid Rows="1">
+                                <Button Classes="quell-segmented-tab"
+                                        Classes.active="{Binding IsGridAll}"
+                                        Content="All"
+                                        Command="{Binding SetTableGridLinesModeCommand}"
+                                        CommandParameter="All"/>
+                                <Button Classes="quell-segmented-tab"
+                                        Classes.active="{Binding IsGridHorizontal}"
+                                        Content="Horiz"
+                                        Command="{Binding SetTableGridLinesModeCommand}"
+                                        CommandParameter="Horizontal"/>
+                                <Button Classes="quell-segmented-tab"
+                                        Classes.active="{Binding IsGridVertical}"
+                                        Content="Vert"
+                                        Command="{Binding SetTableGridLinesModeCommand}"
+                                        CommandParameter="Vertical"/>
+                                <Button Classes="quell-segmented-tab"
+                                        Classes.active="{Binding IsGridNone}"
+                                        Content="None"
+                                        Command="{Binding SetTableGridLinesModeCommand}"
+                                        CommandParameter="None"/>
+                            </UniformGrid>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

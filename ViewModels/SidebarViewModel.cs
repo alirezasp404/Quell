@@ -326,6 +326,7 @@ public partial class SidebarViewModel : ViewModelBase
     public Action<ConnectionRecord>? RequestActivateConnection { get; set; }
     public Action<ConnectionRecord>? RequestEditConnection { get; set; }
     public Func<string, Task>? ViewTableStructureCallback { get; set; }
+    public Func<TableSchemaDetail, string, Task>? ShowTableMetadataInResultCallback { get; set; }
     public Func<string, Task>? ShowTableInDiagramCallback { get; set; }
     public Func<string, string, string, Task>? GenerateTableScriptCallback { get; set; }
     public Action<string, string, string, Action>? RequestTruncateConfirmationCallback { get; set; }
@@ -370,18 +371,16 @@ public partial class SidebarViewModel : ViewModelBase
     partial void OnSelectedTreeNodeChanged(SidebarTreeNodeBase? value)
     {
         // Clicking a database node does NOT auto-connect.
-        // Use right-click -> Connect to connect.
-        // Clicking a table node auto-generates and executes SELECT TOP 100.
-        if (value is TableTreeNode tableNode)
+        // Single-clicking a table node expands/shows its metadata; double-clicking runs the last-100 query.
+        if (value is TableTreeNode tableNode && !tableNode.IsProcedure)
         {
-            if (tableNode.IsProcedure)
+            if (ActiveTableNode != null && ActiveTableNode != tableNode)
             {
-                _ = OpenProcedureNodeAsync(tableNode);
+                ActiveTableNode.IsActive = false;
             }
-            else
-            {
-                _ = SelectTableNode(tableNode);
-            }
+            tableNode.IsActive = true;
+            ActiveTableNode = tableNode;
+            SelectedTable = tableNode.Table;
         }
     }
 
@@ -481,7 +480,8 @@ public partial class SidebarViewModel : ViewModelBase
         node.DeleteAction = DeleteDatabaseNodeAsync;
         node.ExpandConnectAction = ConnectDatabaseNodeAsync;
 
-        node.OpenTableDataAction = SelectTableNode;
+        node.OpenTableDataAction = ExecuteTableLast100Async;
+        node.LoadMetadataAction = LoadTableMetadataNodeAsync;
         node.ViewStructureAction = async t =>
         {
             if (ViewTableStructureCallback != null)
@@ -617,7 +617,7 @@ public partial class SidebarViewModel : ViewModelBase
                 if (isOpen)
                 {
                     var dbTables = await Task.Run(() => DatabaseSessionService.Instance.GetTablesAsync(key));
-                    existing.LoadTables(dbTables, SelectTableNode);
+                    existing.LoadTables(dbTables, ExecuteTableLast100Async);
                     if (ExplorerCategory == "Procs")
                     {
                         var routines = await Task.Run(() => DatabaseSessionService.Instance.GetRoutinesAsync(key));
@@ -733,7 +733,7 @@ public partial class SidebarViewModel : ViewModelBase
                     }
 
                     var tables = await DatabaseSessionService.Instance.GetTablesAsync(node.ConnectionKey);
-                    node.LoadTables(tables, SelectTableNode);
+                    node.LoadTables(tables, ExecuteTableLast100Async);
                     node.IsExpanded = true;
                     node.Subtitle = $"{tables.Count} table(s) found";
 
@@ -797,7 +797,7 @@ public partial class SidebarViewModel : ViewModelBase
             node.IsExpanded = true;
 
             var tables = await DatabaseSessionService.Instance.GetTablesAsync(node.ConnectionKey);
-            node.LoadTables(tables, SelectTableNode);
+            node.LoadTables(tables, ExecuteTableLast100Async);
 
             IsConnected = true;
             ConnectionTitle = node.Title;
@@ -871,7 +871,7 @@ public partial class SidebarViewModel : ViewModelBase
         if (node.IsConnected)
         {
             var tables = await DatabaseSessionService.Instance.GetTablesAsync(node.ConnectionKey);
-            node.LoadTables(tables, SelectTableNode);
+            node.LoadTables(tables, ExecuteTableLast100Async);
             if (node.IsActive)
             {
                 Tables.Clear();
@@ -929,7 +929,83 @@ public partial class SidebarViewModel : ViewModelBase
 
         try
         {
-            if (ActiveTableNode != null)
+            if (ActiveTableNode != null && ActiveTableNode != node)
+            {
+                ActiveTableNode.IsActive = false;
+            }
+
+            node.IsActive = true;
+            ActiveTableNode = node;
+            SelectedTable = node.Table;
+            SelectedTreeNode = node;
+
+            if (!node.IsProcedure)
+            {
+                node.IsExpanded = !node.IsExpanded;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SidebarViewModel] SelectTableNode error: {ex.Message}");
+        }
+    }
+
+    public async Task LoadTableMetadataNodeAsync(TableTreeNode? node)
+    {
+        if (node == null || node.IsProcedure) return;
+
+        try
+        {
+            if (!node.DatabaseNode.IsConnected)
+            {
+                await ConnectDatabaseNodeAsync(node.DatabaseNode);
+            }
+
+            var schema = await DatabaseMetadataService.Instance
+                .GetTableSchemaAsync(node.FullName, node.DatabaseNode.ConnectionKey);
+            node.PopulateMetadata(schema);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SidebarViewModel] LoadTableMetadataNodeAsync error: {ex.Message}");
+            node.PopulateMetadata(null);
+        }
+    }
+
+    public async Task OpenTableMetadataGroupAsync(TableMetadataGroupNode? groupNode)
+    {
+        if (groupNode == null) return;
+
+        try
+        {
+            var tableNode = groupNode.ParentTable;
+            if (!tableNode.DatabaseNode.IsConnected || !tableNode.DatabaseNode.IsActive)
+            {
+                await ConnectDatabaseNodeAsync(tableNode.DatabaseNode);
+            }
+
+            var schema = tableNode.CachedSchema ?? await DatabaseMetadataService.Instance
+                .GetTableSchemaAsync(tableNode.FullName, tableNode.DatabaseNode.ConnectionKey);
+
+            if (schema != null && ShowTableMetadataInResultCallback != null)
+            {
+                await ShowTableMetadataInResultCallback.Invoke(schema, groupNode.GroupType);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SidebarViewModel] OpenTableMetadataGroupAsync error: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    public async Task ExecuteTableLast100Async(TableTreeNode? node)
+    {
+        if (node == null) return;
+
+        try
+        {
+            if (ActiveTableNode != null && ActiveTableNode != node)
             {
                 ActiveTableNode.IsActive = false;
             }
@@ -946,9 +1022,21 @@ public partial class SidebarViewModel : ViewModelBase
 
             var dbType = node.DatabaseNode.DatabaseType;
             string formattedTable = QueryResultTableViewModel.FormatIdentifier(node.FullName, dbType);
+
+            var schema = node.CachedSchema ?? await DatabaseMetadataService.Instance
+                .GetTableSchemaAsync(node.FullName, node.DatabaseNode.ConnectionKey);
+
+            string orderClause = string.Empty;
+            if (schema != null && schema.PrimaryKeyColumns.Count > 0)
+            {
+                string pkOrder = string.Join(", ", schema.PrimaryKeyColumns.Select(pk =>
+                    $"{QueryResultTableViewModel.FormatIdentifier(pk, dbType)} DESC"));
+                orderClause = $" ORDER BY {pkOrder}";
+            }
+
             string query = dbType == Quell.Services.DatabaseProviders.DatabaseType.MSSQL
-                ? $"SELECT TOP 100 * FROM {formattedTable};"
-                : $"SELECT * FROM {formattedTable} LIMIT 100;";
+                ? $"SELECT TOP 100 * FROM {formattedTable}{orderClause};"
+                : $"SELECT * FROM {formattedTable}{orderClause} LIMIT 100;";
 
             InsertQueryToEditor?.Invoke(query);
             if (ExecuteQueryInEditor != null)
@@ -958,14 +1046,14 @@ public partial class SidebarViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SidebarViewModel] SelectTableNode error: {ex.Message}");
+            Console.WriteLine($"[SidebarViewModel] ExecuteTableLast100Async error: {ex.Message}");
         }
     }
 
     [RelayCommand]
     public async Task ExecuteTableNodeAsync(TableTreeNode? node)
     {
-        await SelectTableNode(node);
+        await ExecuteTableLast100Async(node);
     }
 
     [RelayCommand]

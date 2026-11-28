@@ -131,6 +131,7 @@ public class PanelCustomizationRecord
 
 public class TableCustomizationRecord
 {
+    public string UiModel { get; set; } = "ExcelClassic";
     public double RowHeight { get; set; } = 20.0;
     public double HeaderHeight { get; set; } = 26.0;
     public double GutterWidth { get; set; } = 56.0;
@@ -146,6 +147,12 @@ public class TableCustomizationRecord
     public string SelectionColor { get; set; } = "Default";
     public bool ShowGridLines { get; set; } = true;
     public bool ShowAlternatingRowColors { get; set; } = true;
+    public bool ShowFormulaBar { get; set; } = true;
+    public bool ShowExcelColumnLetters { get; set; } = true;
+    public bool ShowColumnDataTypes { get; set; } = false;
+    public bool ShowExcelStatusStats { get; set; } = true;
+    public string StripingMode { get; set; } = "Rows";
+    public string GridLinesMode { get; set; } = "All";
 }
 
 internal sealed class DatabaseTypeHandler : SqlMapper.TypeHandler<DatabaseType>
@@ -1723,6 +1730,23 @@ public class DatabaseStorageService
 
             string altRowsStr = await GetSettingAsync("TableShowAlternatingRowColors", "true");
             record.ShowAlternatingRowColors = altRowsStr != "false" && altRowsStr != "0";
+
+            record.UiModel = await GetSettingAsync("TableUiModel", "ExcelClassic");
+
+            string formulaStr = await GetSettingAsync("TableShowFormulaBar", "true");
+            record.ShowFormulaBar = formulaStr != "false" && formulaStr != "0";
+
+            string colLettersStr = await GetSettingAsync("TableShowExcelColumnLetters", "true");
+            record.ShowExcelColumnLetters = colLettersStr != "false" && colLettersStr != "0";
+
+            string colTypesStr = await GetSettingAsync("TableShowColumnDataTypes", "false");
+            record.ShowColumnDataTypes = colTypesStr == "true" || colTypesStr == "1";
+
+            string statusStatsStr = await GetSettingAsync("TableShowExcelStatusStats", "true");
+            record.ShowExcelStatusStats = statusStatsStr != "false" && statusStatsStr != "0";
+
+            record.StripingMode = await GetSettingAsync("TableStripingMode", "Rows");
+            record.GridLinesMode = await GetSettingAsync("TableGridLinesMode", "All");
         }
         catch (Exception ex)
         {
@@ -1737,6 +1761,7 @@ public class DatabaseStorageService
         {
             var dict = new Dictionary<string, string>
             {
+                ["TableUiModel"] = record.UiModel,
                 ["TableRowHeight"] = record.RowHeight.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["TableHeaderHeight"] = record.HeaderHeight.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["TableGutterWidth"] = record.GutterWidth.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -1751,7 +1776,13 @@ public class DatabaseStorageService
                 ["TableGridLinesColor"] = record.GridLinesColor,
                 ["TableSelectionColor"] = record.SelectionColor,
                 ["TableShowGridLines"] = record.ShowGridLines ? "true" : "false",
-                ["TableShowAlternatingRowColors"] = record.ShowAlternatingRowColors ? "true" : "false"
+                ["TableShowAlternatingRowColors"] = record.ShowAlternatingRowColors ? "true" : "false",
+                ["TableShowFormulaBar"] = record.ShowFormulaBar ? "true" : "false",
+                ["TableShowExcelColumnLetters"] = record.ShowExcelColumnLetters ? "true" : "false",
+                ["TableShowColumnDataTypes"] = record.ShowColumnDataTypes ? "true" : "false",
+                ["TableShowExcelStatusStats"] = record.ShowExcelStatusStats ? "true" : "false",
+                ["TableStripingMode"] = record.StripingMode,
+                ["TableGridLinesMode"] = record.GridLinesMode
             };
             await SaveSettingsBatchAsync(dict);
         }

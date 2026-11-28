@@ -54,6 +54,7 @@ Components/
 ├── Settings/
 │   ├── SettingsCategoriesNavComponent.axaml      # Categories navigation sidebar for Settings modal
 │   ├── ThemeSelectionCardsComponent.axaml        # Light, Dark, and System theme selection cards
+│   ├── TableAppearanceModelsComponent.axaml      # Excel/Grid UI models and formula bar / striping / gridline toggles
 │   ├── SyntaxColorSelectorComponent.axaml        # 6-preset SQL syntax keyword color palette
 │   ├── TableCustomizationComponent.axaml         # Query Results Table row height, font size, gutter & color presets
 │   ├── PanelCustomizationComponent.axaml         # Color Maker (RGB/Hex), buttons, borders, sidebar, editor & bundles
@@ -305,6 +306,7 @@ All feature modals bind `IsOpen`, render with `Classes="modal-backdrop"` + `Clas
 * **Description:** Composed application preferences dialog backed by SQLite persistent storage (`AppSettings` table via Dapper) and startup pre-caching. It assembles these modular sub-components (all `x:DataType="vm:SettingsModalViewModel"`):
   * [SettingsCategoriesNavComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Settings/SettingsCategoriesNavComponent.axaml) — Category navigation rail
   * [ThemeSelectionCardsComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Settings/ThemeSelectionCardsComponent.axaml) — Light / Dark / System theme selector cards
+  * [TableAppearanceModelsComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Settings/TableAppearanceModelsComponent.axaml) — Excel / Flat / Compact / High-Contrast table UI models and grid toggles
   * [SyntaxColorSelectorComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Settings/SyntaxColorSelectorComponent.axaml) — 6 SQL keyword color presets
   * [LiveSyntaxPreviewComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Editor/LiveSyntaxPreviewComponent.axaml) — Live SQL keyword highlight preview
   * [TableCustomizationComponent.axaml](file:///c:/Users/ehsan/Desktop/Quell/Components/Settings/TableCustomizationComponent.axaml) — Table row height, font size, gutter, and color presets
