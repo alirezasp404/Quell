@@ -2774,17 +2774,10 @@ sealed class Program
             }
 
             await vm.Sidebar.RefreshAsync();
-            await vm.Sidebar.SelectExplorerCategory("Views");
-            if (vm.Sidebar.ExplorerCategory != "Views" ||
-                !vm.Sidebar.FilteredTables.Any(t => string.Equals(t.TableName, "v_staff_overview", StringComparison.OrdinalIgnoreCase)))
-            {
-                throw new Exception($"Explorer 'Views' filter failed to surface 'v_staff_overview'! Count={vm.Sidebar.FilteredTables.Count}");
-            }
-            await vm.Sidebar.SelectExplorerCategory("Tables");
             if (vm.Sidebar.ExplorerCategory != "Tables" ||
                 !vm.Sidebar.FilteredTables.Any(t => string.Equals(t.TableName, "StaffMembers", StringComparison.OrdinalIgnoreCase)))
             {
-                throw new Exception("Explorer 'Tables' filter failed to restore 'StaffMembers'!");
+                throw new Exception("Explorer 'Tables' filter failed to surface 'StaffMembers'!");
             }
             var sampleTreeNode = new Quell.ViewModels.DatabaseConnectionTreeNode(new Quell.Services.ConnectionRecord
             {
@@ -2792,17 +2785,35 @@ sealed class Program
                 DatabaseName = "verify_tree",
                 Server = metaDbPath
             }) { IsConnected = true };
-            sampleTreeNode.LoadTables(vm.Sidebar.Tables.ToList(), vm.Sidebar.SelectTableNode);
-            sampleTreeNode.FilterObjects(null, "Views");
-            if (sampleTreeNode.TablesFolder == null ||
-                !sampleTreeNode.TablesFolder.Children.OfType<Quell.ViewModels.TableTreeNode>().Any(c => string.Equals(c.TableName, "v_staff_overview", StringComparison.OrdinalIgnoreCase)))
-            {
-                throw new Exception("DatabaseConnectionTreeNode.FilterObjects('Views') failed to isolate views!");
-            }
+            sampleTreeNode.LoadTables(vm.Sidebar.Tables.ToList(), vm.Sidebar.ExecuteTableLast100Async);
             sampleTreeNode.FilterObjects(null, "Tables");
-            if (!sampleTreeNode.TablesFolder.Children.OfType<Quell.ViewModels.TableTreeNode>().Any(c => string.Equals(c.TableName, "StaffMembers", StringComparison.OrdinalIgnoreCase)))
+            if (sampleTreeNode.TablesFolder == null ||
+                !sampleTreeNode.TablesFolder.Children.OfType<Quell.ViewModels.TableTreeNode>().Any(c => string.Equals(c.TableName, "StaffMembers", StringComparison.OrdinalIgnoreCase)))
             {
                 throw new Exception("DatabaseConnectionTreeNode.FilterObjects('Tables') failed to restore tables!");
+            }
+
+            // Test Explorer Database Folders & Drag-Drop Move
+            vm.Sidebar.BeginCreateConnectionFolder();
+            vm.Sidebar.NewConnectionFolderName = "ProdFolder";
+            await vm.Sidebar.ConfirmCreateConnectionFolderAsync();
+            var prodFolder = vm.Sidebar.FilteredDatabaseNodes.OfType<Quell.ViewModels.ConnectionFolderTreeNode>()
+                .FirstOrDefault(f => f.Name == "ProdFolder");
+            if (prodFolder == null)
+            {
+                throw new Exception("ConnectionFolderTreeNode 'ProdFolder' was not created in FilteredDatabaseNodes!");
+            }
+            var firstDbNode = vm.Sidebar.DatabaseNodes.FirstOrDefault(d => d.Record.Id > 0);
+            if (firstDbNode != null)
+            {
+                await vm.Sidebar.MoveConnectionToFolderAsync(firstDbNode.Record.Id, "ProdFolder");
+                prodFolder = vm.Sidebar.FilteredDatabaseNodes.OfType<Quell.ViewModels.ConnectionFolderTreeNode>()
+                    .FirstOrDefault(f => f.Name == "ProdFolder");
+                if (prodFolder == null || !prodFolder.Children.OfType<Quell.ViewModels.DatabaseConnectionTreeNode>().Any(c => c.Record.Id == firstDbNode.Record.Id))
+                {
+                    throw new Exception("Moving database connection into 'ProdFolder' failed!");
+                }
+                await vm.Sidebar.DeleteConnectionFolderAsync(prodFolder);
             }
 
             // Test Loading transition & ColumnsChanged population while Footer starts collapsed

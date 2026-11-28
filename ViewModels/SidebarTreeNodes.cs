@@ -34,6 +34,39 @@ public abstract partial class SidebarTreeNodeBase : ViewModelBase
     public ObservableCollection<SidebarTreeNodeBase> Children { get; } = new();
 }
 
+public partial class ConnectionFolderTreeNode : SidebarTreeNodeBase
+{
+    public string Name { get; }
+
+    [ObservableProperty]
+    private bool _isDragOver;
+
+    public string CountText => Children.Count.ToString();
+
+    public Func<ConnectionFolderTreeNode, Task>? DeleteFolderAction { get; set; }
+
+    public ConnectionFolderTreeNode(string name, bool isExpanded = true)
+    {
+        Name = name;
+        Title = name;
+        IsExpanded = isExpanded;
+    }
+
+    public void RefreshCount() => OnPropertyChanged(nameof(CountText));
+
+    [RelayCommand]
+    public void ToggleExpand() => IsExpanded = !IsExpanded;
+
+    [RelayCommand]
+    public async Task DeleteFolderAsync()
+    {
+        if (DeleteFolderAction != null)
+        {
+            await DeleteFolderAction(this);
+        }
+    }
+}
+
 public partial class DatabaseConnectionTreeNode : SidebarTreeNodeBase
 {
     public ConnectionRecord Record { get; private set; }

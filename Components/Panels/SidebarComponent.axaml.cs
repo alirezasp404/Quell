@@ -17,6 +17,10 @@ public partial class SidebarComponent : UserControl
     private PointerPressedEventArgs? _dragStartArgs;
     private SavedQueryItemViewModel? _dragCandidateItem;
 
+    private Point? _dbDragStartPoint;
+    private PointerPressedEventArgs? _dbDragStartArgs;
+    private DatabaseConnectionTreeNode? _dragCandidateDbNode;
+
     public SidebarComponent()
     {
         InitializeComponent();
@@ -182,8 +186,67 @@ public partial class SidebarComponent : UserControl
         }
     }
 
+    private void OnDatabaseNodePointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        if ((sender as Control)?.DataContext is DatabaseConnectionTreeNode dbNode && dbNode.Record.Id > 0)
+        {
+            _dbDragStartPoint = e.GetPosition(this);
+            _dbDragStartArgs = e;
+            _dragCandidateDbNode = dbNode;
+        }
+    }
+
+    private async void OnDatabaseNodePointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (_dragCandidateDbNode == null || _dbDragStartPoint == null || _dbDragStartArgs == null) return;
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            _dragCandidateDbNode = null;
+            _dbDragStartPoint = null;
+            _dbDragStartArgs = null;
+            return;
+        }
+
+        var pos = e.GetPosition(this);
+        var delta = pos - _dbDragStartPoint.Value;
+        if (Math.Abs(delta.X) < 6 && Math.Abs(delta.Y) < 6) return;
+
+        var dragged = _dragCandidateDbNode;
+        var triggerArgs = _dbDragStartArgs;
+        _dragCandidateDbNode = null;
+        _dbDragStartPoint = null;
+        _dbDragStartArgs = null;
+
+        try
+        {
+            var data = new DataTransfer();
+            var dtItem = new DataTransferItem();
+            dtItem.SetText($"db:{dragged.Record.Id}");
+            data.Add(dtItem);
+            await DragDrop.DoDragDropAsync(triggerArgs, data, DragDropEffects.Move);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SidebarComponent] Database DragDrop error: {ex.Message}");
+        }
+    }
+
     private void OnSidebarDragOver(object? sender, DragEventArgs e)
     {
+        string? payload = e.DataTransfer.TryGetText();
+        if (!string.IsNullOrEmpty(payload) && payload.StartsWith("db:", StringComparison.Ordinal))
+        {
+            var folderBorder = (e.Source as Visual)?.FindAncestorOfType<Border>(includeSelf: true);
+            if (folderBorder?.DataContext is ConnectionFolderTreeNode connFolder)
+            {
+                connFolder.IsDragOver = true;
+            }
+            e.DragEffects = DragDropEffects.Move;
+            e.Handled = true;
+            return;
+        }
+
         if ((e.Source as Visual)?.FindAncestorOfType<Border>(includeSelf: true)?.DataContext is SavedQueryFolderViewModel folder)
         {
             folder.IsDragOver = true;
@@ -194,7 +257,12 @@ public partial class SidebarComponent : UserControl
 
     private void OnSidebarDragLeave(object? sender, DragEventArgs e)
     {
-        if ((e.Source as Visual)?.FindAncestorOfType<Border>(includeSelf: true)?.DataContext is SavedQueryFolderViewModel folder)
+        var border = (e.Source as Visual)?.FindAncestorOfType<Border>(includeSelf: true);
+        if (border?.DataContext is ConnectionFolderTreeNode connFolder)
+        {
+            connFolder.IsDragOver = false;
+        }
+        if (border?.DataContext is SavedQueryFolderViewModel folder)
         {
             folder.IsDragOver = false;
         }
@@ -202,12 +270,30 @@ public partial class SidebarComponent : UserControl
 
     private async void OnSidebarDrop(object? sender, DragEventArgs e)
     {
-        var border = (e.Source as Visual)?.FindAncestorOfType<Border>(includeSelf: true);
-        if (border?.DataContext is SavedQueryFolderViewModel folder)
+        string? payload = e.DataTransfer.TryGetText();
+        if (!string.IsNullOrEmpty(payload) && payload.StartsWith("db:", StringComparison.Ordinal))
+        {
+            var border = (e.Source as Visual)?.FindAncestorOfType<Border>(includeSelf: true);
+            string targetFolder = string.Empty;
+            if (border?.DataContext is ConnectionFolderTreeNode connFolder)
+            {
+                connFolder.IsDragOver = false;
+                targetFolder = connFolder.Name;
+            }
+
+            if (int.TryParse(payload.Substring(3), out int connId) && DataContext is SidebarViewModel vm)
+            {
+                await vm.MoveConnectionToFolderAsync(connId, targetFolder);
+                e.Handled = true;
+            }
+            return;
+        }
+
+        var sqBorder = (e.Source as Visual)?.FindAncestorOfType<Border>(includeSelf: true);
+        if (sqBorder?.DataContext is SavedQueryFolderViewModel folder)
         {
             folder.IsDragOver = false;
-            string? idText = e.DataTransfer.TryGetText();
-            if (int.TryParse(idText, out int queryId) && DataContext is SidebarViewModel vm)
+            if (int.TryParse(payload, out int queryId) && DataContext is SidebarViewModel vm)
             {
                 await vm.MoveSavedQueryToFolderAsync(queryId, folder.Name);
                 e.Handled = true;

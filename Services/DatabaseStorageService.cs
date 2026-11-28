@@ -21,6 +21,7 @@ public class ConnectionRecord
     public string Password { get; set; } = string.Empty;
     public DatabaseType DatabaseType { get; set; } = DatabaseType.MSSQL;
     public string LastConnectedAt { get; set; } = string.Empty;
+    public string FolderName { get; set; } = string.Empty;
 
     public string DisplayTitle => DatabaseType == DatabaseType.SQLite
         ? (string.IsNullOrWhiteSpace(DatabaseName) || DatabaseName == "main" || DatabaseName == "master"
@@ -45,8 +46,17 @@ public class ConnectionRecord
         Password = Password,
         DatabaseType = DatabaseType,
         LastConnectedAt = LastConnectedAt,
+        FolderName = FolderName,
         IsActive = IsActive
     };
+}
+
+public class ConnectionFolderRecord
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public bool IsExpanded { get; set; } = true;
+    public string CreatedAt { get; set; } = string.Empty;
 }
 
 public class QueryHistoryRecord
@@ -407,6 +417,24 @@ public class DatabaseStorageService
             {
                 await connection.ExecuteAsync(@"
                     CREATE TABLE IF NOT EXISTS SavedQueryFolders (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        Name TEXT NOT NULL UNIQUE,
+                        IsExpanded INTEGER NOT NULL DEFAULT 1,
+                        CreatedAt TEXT NOT NULL
+                    );");
+            }
+            catch { }
+
+            try
+            {
+                await connection.ExecuteAsync("ALTER TABLE Connections ADD COLUMN FolderName TEXT DEFAULT '';");
+            }
+            catch { }
+
+            try
+            {
+                await connection.ExecuteAsync(@"
+                    CREATE TABLE IF NOT EXISTS ConnectionFolders (
                         Id INTEGER PRIMARY KEY AUTOINCREMENT,
                         Name TEXT NOT NULL UNIQUE,
                         IsExpanded INTEGER NOT NULL DEFAULT 1,
@@ -1346,7 +1374,8 @@ public class DatabaseStorageService
             const string sql = @"
                 SELECT Id, Server, Port, DatabaseName, AuthType, COALESCE(Username, '') AS Username, 
                        COALESCE(Password, '') AS Password,
-                       COALESCE(DatabaseType, 'MSSQL') AS DatabaseType, LastConnectedAt 
+                       COALESCE(DatabaseType, 'MSSQL') AS DatabaseType, LastConnectedAt,
+                       COALESCE(FolderName, '') AS FolderName
                 FROM Connections 
                 WHERE Server NOT LIKE '%quell%' AND DatabaseName NOT LIKE '%quell%' AND Server NOT LIKE '%fdb_studio%' AND DatabaseName NOT LIKE '%fdb_studio%'
                 ORDER BY Id DESC 
@@ -1377,7 +1406,8 @@ public class DatabaseStorageService
             const string sql = @"
                 SELECT Id, Server, Port, DatabaseName, AuthType, COALESCE(Username, '') AS Username, 
                        COALESCE(Password, '') AS Password,
-                       COALESCE(DatabaseType, 'MSSQL') AS DatabaseType, LastConnectedAt 
+                       COALESCE(DatabaseType, 'MSSQL') AS DatabaseType, LastConnectedAt,
+                       COALESCE(FolderName, '') AS FolderName
                 FROM Connections 
                 WHERE Id = @id AND Server NOT LIKE '%quell%' AND DatabaseName NOT LIKE '%quell%' AND Server NOT LIKE '%fdb_studio%' AND DatabaseName NOT LIKE '%fdb_studio%';";
 
@@ -1387,6 +1417,89 @@ public class DatabaseStorageService
         {
             Console.WriteLine($"[DatabaseStorageService] GetConnectionByIdAsync error: {ex.Message}");
             return null;
+        }
+    }
+
+    public async Task<List<ConnectionFolderRecord>> GetConnectionFoldersAsync()
+    {
+        try
+        {
+            await InitializeAsync();
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+            const string sql = "SELECT Id, Name, IsExpanded, CreatedAt FROM ConnectionFolders ORDER BY Name ASC;";
+            return (await connection.QueryAsync<ConnectionFolderRecord>(sql).ConfigureAwait(false)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] GetConnectionFoldersAsync error: {ex.Message}");
+            return new List<ConnectionFolderRecord>();
+        }
+    }
+
+    public async Task CreateConnectionFolderAsync(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return;
+        try
+        {
+            await InitializeAsync();
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+            await connection.ExecuteAsync(@"
+                INSERT OR IGNORE INTO ConnectionFolders (Name, IsExpanded, CreatedAt)
+                VALUES (@name, 1, datetime('now'));",
+                new { name = name.Trim() });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] CreateConnectionFolderAsync error: {ex.Message}");
+        }
+    }
+
+    public async Task DeleteConnectionFolderAsync(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return;
+        try
+        {
+            await InitializeAsync();
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+            await connection.ExecuteAsync("UPDATE Connections SET FolderName = '' WHERE FolderName = @name;", new { name });
+            await connection.ExecuteAsync("DELETE FROM ConnectionFolders WHERE Name = @name;", new { name });
+            lock (_connsLock)
+            {
+                _cachedRecentConnections = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] DeleteConnectionFolderAsync error: {ex.Message}");
+        }
+    }
+
+    public async Task MoveConnectionToFolderAsync(int connectionId, string folderName)
+    {
+        try
+        {
+            await InitializeAsync();
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+            string trimmed = folderName?.Trim() ?? string.Empty;
+            if (!string.IsNullOrEmpty(trimmed))
+            {
+                await connection.ExecuteAsync(
+                    "INSERT OR IGNORE INTO ConnectionFolders (Name, IsExpanded, CreatedAt) VALUES (@name, 1, datetime('now'));",
+                    new { name = trimmed });
+            }
+            await connection.ExecuteAsync("UPDATE Connections SET FolderName = @folderName WHERE Id = @id;", new { id = connectionId, folderName = trimmed });
+            lock (_connsLock)
+            {
+                _cachedRecentConnections = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DatabaseStorageService] MoveConnectionToFolderAsync error: {ex.Message}");
         }
     }
 

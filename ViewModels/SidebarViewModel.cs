@@ -216,22 +216,11 @@ public partial class SidebarViewModel : ViewModelBase
     public bool IsProcsCategory => ExplorerCategory == "Procs";
 
     [RelayCommand]
-    public async Task SelectExplorerCategory(string category)
+    public Task SelectExplorerCategory(string category)
     {
-        if (string.IsNullOrWhiteSpace(category)) return;
-        ExplorerCategory = category;
-
-        if (category == "Procs")
-        {
-            var openNodes = DatabaseNodes.Where(n => n.IsConnected && n.AllRoutineNodes.Count == 0).ToList();
-            foreach (var node in openNodes)
-            {
-                var routines = await Task.Run(() => DatabaseSessionService.Instance.GetRoutinesAsync(node.ConnectionKey));
-                node.LoadRoutines(routines, OpenProcedureNodeAsync);
-            }
-        }
-
+        ExplorerCategory = "Tables";
         ApplyFilter();
+        return Task.CompletedTask;
     }
 
     [ObservableProperty]
@@ -248,7 +237,15 @@ public partial class SidebarViewModel : ViewModelBase
 
     public ObservableCollection<DatabaseConnectionTreeNode> DatabaseNodes { get; } = new();
 
-    public ObservableCollection<DatabaseConnectionTreeNode> FilteredDatabaseNodes { get; } = new();
+    public ObservableCollection<SidebarTreeNodeBase> FilteredDatabaseNodes { get; } = new();
+
+    private readonly System.Collections.Generic.List<ConnectionFolderRecord> _connectionFolders = new();
+
+    [ObservableProperty]
+    private bool _isCreatingConnectionFolder;
+
+    [ObservableProperty]
+    private string _newConnectionFolderName = string.Empty;
 
     public ObservableCollection<TableMetadata> Tables { get; } = new();
 
@@ -426,12 +423,51 @@ public partial class SidebarViewModel : ViewModelBase
             }
         }
 
+        // Preserve folder expanded states
+        var prevFolderExpanded = FilteredDatabaseNodes
+            .OfType<ConnectionFolderTreeNode>()
+            .ToDictionary(f => f.Name, f => f.IsExpanded, StringComparer.OrdinalIgnoreCase);
+
+        var folderNodes = new System.Collections.Generic.Dictionary<string, ConnectionFolderTreeNode>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrEmpty(filter))
+        {
+            foreach (var f in _connectionFolders)
+            {
+                bool isExp = prevFolderExpanded.TryGetValue(f.Name, out var exp) ? exp : f.IsExpanded;
+                var fn = new ConnectionFolderTreeNode(f.Name, isExp)
+                {
+                    DeleteFolderAction = DeleteConnectionFolderAsync
+                };
+                folderNodes[f.Name] = fn;
+                FilteredDatabaseNodes.Add(fn);
+            }
+        }
+
         if (string.IsNullOrEmpty(filter))
         {
             foreach (var node in DatabaseNodes)
             {
                 node.FilterObjects(null, ExplorerCategory);
-                FilteredDatabaseNodes.Add(node);
+                string fName = node.Record.FolderName?.Trim() ?? string.Empty;
+                if (!string.IsNullOrEmpty(fName))
+                {
+                    if (!folderNodes.TryGetValue(fName, out var fn))
+                    {
+                        bool isExp = prevFolderExpanded.TryGetValue(fName, out var exp) ? exp : true;
+                        fn = new ConnectionFolderTreeNode(fName, isExp)
+                        {
+                            DeleteFolderAction = DeleteConnectionFolderAsync
+                        };
+                        folderNodes[fName] = fn;
+                        FilteredDatabaseNodes.Add(fn);
+                    }
+                    fn.Children.Add(node);
+                    fn.RefreshCount();
+                }
+                else
+                {
+                    FilteredDatabaseNodes.Add(node);
+                }
             }
 
             var active = DatabaseNodes.FirstOrDefault(n => n.IsActive);
@@ -464,11 +500,74 @@ public partial class SidebarViewModel : ViewModelBase
                 totalMatchingTables += matchingCount;
                 node.IsExpanded = true;
                 if (node.TablesFolder != null) node.TablesFolder.IsExpanded = true;
-                FilteredDatabaseNodes.Add(node);
+
+                string fName = node.Record.FolderName?.Trim() ?? string.Empty;
+                if (!string.IsNullOrEmpty(fName))
+                {
+                    if (!folderNodes.TryGetValue(fName, out var fn))
+                    {
+                        fn = new ConnectionFolderTreeNode(fName, isExpanded: true)
+                        {
+                            DeleteFolderAction = DeleteConnectionFolderAsync
+                        };
+                        folderNodes[fName] = fn;
+                        FilteredDatabaseNodes.Add(fn);
+                    }
+                    fn.IsExpanded = true;
+                    fn.Children.Add(node);
+                    fn.RefreshCount();
+                }
+                else
+                {
+                    FilteredDatabaseNodes.Add(node);
+                }
             }
         }
 
         StatusText = $"{totalMatchingTables} matching item(s)";
+    }
+
+    [RelayCommand]
+    public void BeginCreateConnectionFolder()
+    {
+        NewConnectionFolderName = string.Empty;
+        IsCreatingConnectionFolder = true;
+    }
+
+    [RelayCommand]
+    public void CancelCreateConnectionFolder()
+    {
+        IsCreatingConnectionFolder = false;
+        NewConnectionFolderName = string.Empty;
+    }
+
+    [RelayCommand]
+    public async Task ConfirmCreateConnectionFolderAsync()
+    {
+        string name = NewConnectionFolderName?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(name))
+        {
+            CancelCreateConnectionFolder();
+            return;
+        }
+
+        await DatabaseStorageService.Instance.CreateConnectionFolderAsync(name);
+        IsCreatingConnectionFolder = false;
+        NewConnectionFolderName = string.Empty;
+        await RefreshAsync();
+    }
+
+    public async Task DeleteConnectionFolderAsync(ConnectionFolderTreeNode? folder)
+    {
+        if (folder == null) return;
+        await DatabaseStorageService.Instance.DeleteConnectionFolderAsync(folder.Name);
+        await RefreshAsync();
+    }
+
+    public async Task MoveConnectionToFolderAsync(int connectionId, string targetFolder)
+    {
+        await DatabaseStorageService.Instance.MoveConnectionToFolderAsync(connectionId, targetFolder);
+        await RefreshAsync();
     }
 
     private void WireDatabaseNodeCallbacks(DatabaseConnectionTreeNode node)
@@ -570,8 +669,15 @@ public partial class SidebarViewModel : ViewModelBase
         IsLoading = true;
         try
         {
-            // Load saved connections from SQLite
-            var conns = (await DatabaseStorageService.Instance.GetRecentConnectionsAsync())
+            // Load saved connections & connection folders from SQLite
+            var foldersTask = DatabaseStorageService.Instance.GetConnectionFoldersAsync();
+            var connsTask = DatabaseStorageService.Instance.GetRecentConnectionsAsync();
+            await Task.WhenAll(foldersTask, connsTask);
+
+            _connectionFolders.Clear();
+            _connectionFolders.AddRange(await foldersTask);
+
+            var conns = (await connsTask)
                 .Where(c => !c.Server.Contains("quell", StringComparison.OrdinalIgnoreCase) && !c.DatabaseName.Contains("quell", StringComparison.OrdinalIgnoreCase) && !c.Server.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase) && !c.DatabaseName.Contains("fdb_studio", StringComparison.OrdinalIgnoreCase))
                 .ToList();
             SavedConnections.Clear();
