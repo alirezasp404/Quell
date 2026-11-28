@@ -18,32 +18,6 @@
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Padding" Value="7,2" />
         </Style>
-
-        <Style Selector="Button.cat-filter-btn">
-            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="999" />
-            <Setter Property="Padding" Value="11,4" />
-            <Setter Property="FontSize" Value="11" />
-            <Setter Property="Cursor" Value="Hand" />
-        </Style>
-        <Style Selector="Button.cat-filter-btn:pointerover /template/ ContentPresenter">
-            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
-            <Setter Property="Background" Value="{DynamicResource AppToolHoverBrush}" />
-        </Style>
-        <Style Selector="Button.cat-filter-btn.active">
-            <Setter Property="Background" Value="{DynamicResource AppChipActiveBackgroundBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
-        </Style>
-        <Style Selector="Button.cat-filter-btn.active /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppChipActiveBackgroundBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
-        </Style>
-        <Style Selector="Button.cat-filter-btn.active TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource AppChipActiveForegroundBrush}" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-        </Style>
     </UserControl.Styles>
 
     <StackPanel Spacing="14">
@@ -84,13 +58,35 @@
                      Padding="8,6"
                      Margin="0,0,8,0"/>
 
-            <!-- Category Filter Buttons -->
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
-                <Button Classes="cat-filter-btn" Classes.active="{Binding IsAllShortcutsCategory}" Content="All" Command="{Binding FilterShortcutsByCategoryCommand}" CommandParameter="All"/>
-                <Button Classes="cat-filter-btn" Classes.active="{Binding IsQueryShortcutsCategory}" Content="Query" Command="{Binding FilterShortcutsByCategoryCommand}" CommandParameter="Query &amp; Execution"/>
-                <Button Classes="cat-filter-btn" Classes.active="{Binding IsEditorShortcutsCategory}" Content="Editor" Command="{Binding FilterShortcutsByCategoryCommand}" CommandParameter="File &amp; Editor"/>
-                <Button Classes="cat-filter-btn" Classes.active="{Binding IsPanelsShortcutsCategory}" Content="Panels" Command="{Binding FilterShortcutsByCategoryCommand}" CommandParameter="Panels &amp; View"/>
-            </StackPanel>
+            <!-- Unified Segmented Filter Tabs (All / Query / Editor / Panels) -->
+            <Border Grid.Column="1" Classes="quell-segmented-track" VerticalAlignment="Center" MinWidth="230">
+                <UniformGrid Rows="1" Columns="4">
+                    <Button Classes="quell-segmented-tab"
+                            Classes.active="{Binding IsAllShortcutsCategory}"
+                            Command="{Binding FilterShortcutsByCategoryCommand}"
+                            CommandParameter="All">
+                        <TextBlock Classes="seg-label" Text="All"/>
+                    </Button>
+                    <Button Classes="quell-segmented-tab"
+                            Classes.active="{Binding IsQueryShortcutsCategory}"
+                            Command="{Binding FilterShortcutsByCategoryCommand}"
+                            CommandParameter="Query &amp; Execution">
+                        <TextBlock Classes="seg-label" Text="Query"/>
+                    </Button>
+                    <Button Classes="quell-segmented-tab"
+                            Classes.active="{Binding IsEditorShortcutsCategory}"
+                            Command="{Binding FilterShortcutsByCategoryCommand}"
+                            CommandParameter="File &amp; Editor">
+                        <TextBlock Classes="seg-label" Text="Editor"/>
+                    </Button>
+                    <Button Classes="quell-segmented-tab"
+                            Classes.active="{Binding IsPanelsShortcutsCategory}"
+                            Command="{Binding FilterShortcutsByCategoryCommand}"
+                            CommandParameter="Panels &amp; View">
+                        <TextBlock Classes="seg-label" Text="Panels"/>
+                    </Button>
+                </UniformGrid>
+            </Border>
         </Grid>
 
         <!-- Shortcuts List -->
